@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
-      const userData = await apiRequest<Omit<User, "name">>("/auth/me");
+      const userData = await apiRequest<Omit<User, "name">>("/auth/me", { skipErrorToast: true });
       const nameFromEmail = userData.email.split("@")[0];
       const fullName =
         [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
@@ -70,7 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...userData,
         name: fullName,
       });
-    } catch {
+    } catch (err) {
+      // Expected on initial load if user is not authenticated
       setUser(null);
       clearTokens();
     }
