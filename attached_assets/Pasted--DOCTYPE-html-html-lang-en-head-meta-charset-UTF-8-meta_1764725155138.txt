@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ImmigrationAI — Empowered mobility</title>
+
+  <!-- React & DOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Styles & Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Outfit"', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
+            success: { 50:'#f0fdf4', 100:'#dcfce7', 600:'#16a34a' },
+            warning: { 100:'#fef9c3', 600:'#ca8a04' },
+            danger: { 50:'#fef2f2', 100:'#fee2e2', 600:'#dc2626' },
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-up': 'slideUp 0.35s ease-out',
+            'pulse-slow': 'pulse 3s infinite',
+            'toast-in': 'toastIn 0.25s ease-out',
+            'skeleton': 'skeleton 1.4s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { transform: 'translateY(12px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            toastIn: { '0%': { transform: 'translateY(8px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+            skeleton: { '0%': { backgroundColor: 'rgba(203,213,225,0.35)' }, '50%': { backgroundColor: 'rgba(203,213,225,0.15)' }, '100%': { backgroundColor: 'rgba(203,213,225,0.35)' } }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background: #f8fafc; overflow-x: hidden; }
+    .glass { background: rgba(255,255,255,0.8); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.5); }
+    .dark .glass { background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.05); }
+    .glass-card { background: rgba(255,255,255,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 30px rgba(0,0,0,0.06); }
+    .dark .glass-card { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 30px rgba(0,0,0,0.2); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .skeleton { animation: skeleton 1.4s ease-in-out infinite; }
+  </style>
+</head>
+<body class="text-slate-800 dark:text-slate-100 dark:bg-slate-950 transition-colors duration-300">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useReducer, useContext } = React;
+
+    // ---------- 1) UTILITIES ----------
+    const nowISO = () => new Date().toISOString();
+    const safeJSONParse = (str, fallback) => { try { return JSON.parse(str); } catch { return fallback; } };
+    const formatMoney = (n=0) => `$${(parseInt(n)||0).toLocaleString()}`;
+    const debounce = (fn, ms=300) => {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    };
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+    // ---------- 2) STORAGE WITH VERSIONING ----------
+    const APP_VERSION = 2;
+    const Storage = {
+      getRaw: (k) => localStorage.getItem(k),
+      get: (k, fallback=null) => {
+        const v = localStorage.getItem(k);
+        return v === null ? fallback : safeJSONParse(v, v);
+      },
+      set: (k, v) => {
+        try {
+          localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+        } catch {}
+      }
+    };
+
+    const DB = {
+      init() {
+        const meta = Storage.get('iai_meta', { version: 0 });
+        if (meta.version < 1) {
+          Storage.set('iai_leads', [
+            { id: 1, name: "Sardor K.", email: "sardor@gmail.com", country: "UK", visa: "Skilled Worker", status: "New", fee: 1500, date: new Date().toLocaleDateString(), createdAt: nowISO() },
+            { id: 2, name: "Malika A.", email: "malika@mail.ru", country: "Germany", visa: "Opportunity Card", status: "Approved", fee: 850, date: new Date(Date.now()-86400000).toLocaleDateString(), createdAt: nowISO() }
+          ]);
+        }
+        // Migration to add createdAt and ensure fee numbers (v2)
+        if (meta.version < 2) {
+          const leads = Storage.get('iai_leads', []).map(l => ({
+            ...l,
+            createdAt: l.createdAt || nowISO(),
+            fee: typeof l.fee === 'string' ? parseInt(l.fee) || 0 : l.fee
+          }));
+          Storage.set('iai_leads', leads);
+        }
+        Storage.set('iai_meta', { version: APP_VERSION, migratedAt: nowISO() });
+      },
+      getLeads() { return Storage.get('iai_leads', []); },
+      saveLeads(leads) { Storage.set('iai_leads', leads); },
+      addLead(lead) {
+        const leads = DB.getLeads();
+        const newLead = {
+          ...lead,
+          id: Date.now(),
+          status: lead.status || "New",
+          fee: parseInt(lead.fee) || 0,
+          date: lead.date || new Date().toLocaleDateString(),
+          createdAt: nowISO()
+        };
+        DB.saveLeads([newLead, ...leads]);
+        return newLead;
+      },
+      setStatus(id, status) {
+        const leads = DB.getLeads().map(l => l.id === id ? { ...l, status } : l);
+        DB.saveLeads(leads);
+        return leads;
+      },
+      updateLead(id, patch) {
+        const leads = DB.getLeads().map(l => l.id === id ? { ...l, ...patch } : l);
+        DB.saveLeads(leads);
+        return leads.find(l => l.id === id);
+      },
+      deleteLead(id) {
+        const leads = DB.getLeads().filter(l => l.id !== id);
+        DB.saveLeads(leads);
+        return leads;
+      },
+      login(email, type) {
+        const name = email?.split('@')[0] || 'Guest';
+        return type === 'staff'
+          ? { name: "Partner Lawyer", role: "staff", email }
+          : { name, role: "applicant", email };
+      }
+    };
+
+    DB.init();
+
+    // ---------- 3) I18N ----------
+    const LANG = {
+      en: {
+        nav: { login: "Sign In", start: "Get Started" },
+        hero: { title: "Move to Europe.", sub: "AI-Powered Immigration for Uzbekistan.", cta: "Check Eligibility", trusted: "Trusted by 10k+ people" },
+        dash: { welcome: "Welcome,", roadmap: "Roadmap", docs: "AI Docs", lawyer: "Ask Lawyer", chat: "AI Chat", logout: "Log Out" },
+        tools: { gen: "Generate", dl: "Download", typing: "AI Writing...", chatP: "Ask about visas..." },
+        lawyer: { title: "Partner Portal", active: "Active Cases", rev: "Revenue", status: "Status" }
+      },
+      uz: {
+        nav: { login: "Kirish", start: "Boshlash" },
+        hero: { title: "Yevropaga Yo'l.", sub: "O'zbekistonliklar uchun AI immigratsiya.", cta: "Tekshirish", trusted: "10k+ ishonchli mijozlar" },
+        dash: { welcome: "Xush kelibsiz,", roadmap: "Reja", docs: "AI Hujjat", lawyer: "Yurist", chat: "AI Chat", logout: "Chiqish" },
+        tools: { gen: "Yaratish", dl: "Yuklash", typing: "AI Yozmoqda...", chatP: "Viza haqida so'rang..." },
+        lawyer: { title: "Hamkor Kabineti", active: "Faol Arizalar", rev: "Tushum", status: "Holat" }
+      },
+      ru: {
+        nav: { login: "Войти", start: "Начать" },
+        hero: { title: "Путь в Европу.", sub: "ИИ Иммиграция для Узбекистана.", cta: "Проверить", trusted: "Доверяют 10к+" },
+        dash: { welcome: "Привет,", roadmap: "План", docs: "ИИ Доки", lawyer: "Юрист", chat: "ИИ Чат", logout: "Выйти" },
+        tools: { gen: "Создать", dl: "Скачать", typing: "ИИ Пишет...", chatP: "Спросите о визе..." },
+        lawyer: { title: "Кабинет Партнера", active: "Активные Дела", rev: "Выручка", status: "Статус" }
+      }
+    };
+
+    // ---------- 4) GLOBAL APP STATE ----------
+    const AppCtx = React.createContext(null);
+    const initialState = {
+      view: 'landing',
+      user: null,
+      theme: Storage.get('iai_theme', 'light'),
+      lang: Storage.get('iai_lang', 'en'),
+      notifications: []
+    };
+
+    function reducer(state, action) {
+      switch(action.type) {
+        case 'SET_VIEW': return { ...state, view: action.view };
+        case 'LOGIN': return { ...state, user: action.user, view: action.user.role === 'staff' ? 'lawyer' : 'dashboard' };
+        case 'LOGOUT': return { ...state, user: null, view: 'landing' };
+        case 'SET_LANG': Storage.set('iai_lang', action.lang); return { ...state, lang: action.lang };
+        case 'SET_THEME':
+          Storage.set('iai_theme', action.theme);
+          return { ...state, theme: action.theme };
+        case 'TOAST_ADD':
+          return { ...state, notifications: [...state.notifications, { id: Date.now(), ...action.toast }] };
+        case 'TOAST_REMOVE':
+          return { ...state, notifications: state.notifications.filter(t => t.id !== action.id) };
+        default: return state;
+      }
+    }
+
+    const useApp = () => useContext(AppCtx);
+
+    // ---------- 5) SHARED UI ----------
+    const Icon = ({ name, className, size=18 }) => <i data-lucide={name} data-size={size} className={className} aria-hidden="true"></i>;
+
+    const Button = ({ children, onClick, variant='primary', className='', disabled=false, type='button', ariaLabel }) => {
+      const base = "px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2";
+      const styles = {
+        primary: "bg-brand-600 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700",
+        secondary: "bg-white text-slate-700 border hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-700",
+        outline: "border-2 border-brand-600 text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-slate-800",
+        ghost: "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      };
+      return (
+        <button type={type} onClick={onClick} disabled={disabled} aria-label={ariaLabel}
+          className={`${base} ${styles[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          {children}
+        </button>
+      );
+    };
+
+    const Input = ({ label, id, error, hint, ...props }) => (
+      <div className="mb-4">
+        <label htmlFor={id} className="block text-xs font-bold uppercase text-slate-500 mb-1">{label}</label>
+        <input id={id} {...props} className={`w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border focus:ring-2 outline-none transition
+          ${error ? 'border-danger-600 focus:ring-danger-600' : 'border-slate-200 dark:border-slate-700 focus:ring-brand-500'}`} />
+        {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
+        {error && <p className="text-xs text-danger-600 mt-1">{error}</p>}
+      </div>
+    );
+
+    const Select = ({ label, id, options=[], value, onChange }) => (
+      <div className="mb-4">
+        <label htmlFor={id} className="block text-xs font-bold uppercase text-slate-500 mb-1">{label}</label>
+        <select id={id} value={value} onChange={onChange} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition">
+          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+    );
+
+    const Modal = ({ isOpen, onClose, title, children }) => {
+      useEffect(() => {
+        const esc = e => { if (e.key === 'Escape') onClose?.(); };
+        document.addEventListener('keydown', esc);
+        return () => document.removeEventListener('keydown', esc);
+      }, [onClose]);
+      if (!isOpen) return null;
+      return (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl w-full max-w-md shadow-2xl m-4 relative animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">{title}</h3>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close modal"><Icon name="x"/></button>
+            </div>
+            {children}
+          </div>
+        </div>
+      );
+    };
+
+    const Toasts = () => {
+      const { state, dispatch } = useApp();
+      useEffect(() => {
+        state.notifications.forEach(t => {
+          setTimeout(() => dispatch({ type: 'TOAST_REMOVE', id: t.id }), t.ttl || 3000);
+        });
+      }, [state.notifications]);
+      return (
+        <div aria-live="polite" className="fixed bottom-4 left-4 space-y-2 z-50">
+          {state.notifications.map(t => (
+            <div key={t.id} className={`animate-toast-in px-4 py-3 rounded-xl shadow-lg border text-sm
+              ${t.type==='success' ? 'bg-success-100 border-success-600 text-success-600' :
+                t.type==='warning' ? 'bg-warning-100 border-warning-600 text-warning-600' :
+                'bg-danger-100 border-danger-600 text-danger-600'}`}>
+              {t.msg}
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    // ---------- 6) LANDING ----------
+    const Landing = ({ t }) => {
+      const { state, dispatch } = useApp();
+      const [age, setAge] = useState(25);
+      const [score, setScore] = useState(65);
+      useEffect(() => {
+        let s = 40;
+        if (age < 35) s += 20;
+        if (age >= 18) s += 10;
+        setScore(clamp(s, 5, 95));
+      }, [age]);
+
+      const setLang = (l) => dispatch({ type: 'SET_LANG', lang: l });
+      const goLogin = (role) => dispatch({ type: 'SET_VIEW', view: `login-${role}` });
+
+      return (
+        <div className="min-h-screen relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-500/10 rounded-full blur-[120px] -z-10 animate-pulse-slow"></div>
+
+          <nav className="glass fixed w-full z-40 px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-2 text-brand-700 dark:text-brand-400 font-bold text-xl">
+              <Icon name="plane" className="text-brand-600"/> ImmigrationAI
+            </div>
+            <div className="flex gap-2 items-center">
+              <div role="group" aria-label="Language switcher" className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg mr-2">
+                {['en','uz','ru'].map(l => (
+                  <button key={l} onClick={()=>setLang(l)}
+                          className={`px-2 py-1 text-xs font-bold rounded ${state.lang===l ? 'bg-white shadow dark:bg-slate-600' : 'text-slate-500'}`}
+                          aria-pressed={state.lang===l}>{l.toUpperCase()}</button>
+                ))}
+              </div>
+              <Button variant="secondary" className="hidden md:flex py-2 px-4 text-sm" onClick={() => goLogin('staff')} ariaLabel="Open partner login">Partner</Button>
+              <Button className="py-2 px-4 text-sm" onClick={() => goLogin('user')} ariaLabel="Open applicant login">{t.nav.login}</Button>
+            </div>
+          </nav>
+
+          <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+            <div className="animate-slide-up">
+              <h1 className="text-6xl font-extrabold mb-6 leading-tight text-slate-900 dark:text-white">
+                {t.hero.title} <br/><span className="text-brand-500">AI Powered.</span>
+              </h1>
+              <p className="text-xl text-slate-500 mb-8 max-w-lg">{t.hero.sub}</p>
+              <div className="flex gap-4">
+                <Button onClick={() => goLogin('user')}>{t.hero.cta} <Icon name="arrow-right"/></Button>
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-500" aria-label="Trusted section">
+                  <div className="flex -space-x-2">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white overflow-hidden">
+                        <img alt={`User ${i}`} src={`https://i.pravatar.cc/100?img=${i+10}`} />
+                      </div>
+                    ))}
+                  </div>
+                  {t.hero.trusted}
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card p-8 rounded-3xl relative animate-slide-up" style={{animationDelay: '0.2s'}}>
+              <div className="absolute -top-4 -right-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-xl flex gap-2 items-center animate-bounce">
+                <div className="bg-success-100 text-success-600 p-1 rounded"><Icon name="check"/></div>
+                <span className="font-bold text-sm">Visa Approved</span>
+              </div>
+              <h3 className="font-bold text-xl mb-6">Eligibility Check</h3>
+              <Input label="Age" id="elig-age" type="range" min="18" max="60" value={age} onChange={e=>setAge(parseInt(e.target.value))} />
+              <div className="flex justify-between text-sm font-bold mb-6">
+                <span>18 y.o</span> <span className="text-brand-600">{age} y.o</span> <span>60 y.o</span>
+              </div>
+              <div className="bg-slate-900 text-white p-6 rounded-2xl flex justify-between items-center">
+                <div>
+                  <p className="text-slate-400 text-xs font-bold uppercase">Probability</p>
+                  <p className="text-4xl font-extrabold text-brand-100">{score}%</p>
+                </div>
+                <div className="h-10 w-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ---------- 7) AUTH ----------
+    const Auth = ({ type }) => {
+      const { dispatch } = useApp();
+      const [email, setEmail] = useState("");
+      const [password, setPassword] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [errors, setErrors] = useState({});
+
+      const validate = () => {
+        const e = {};
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) e.email = "Please enter a valid email.";
+        if (!password || password.length < 6) e.password = "Password must be at least 6 characters.";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+      };
+
+      const submit = (ev) => {
+        ev.preventDefault();
+        if (!validate()) return;
+        setLoading(true);
+        setTimeout(() => {
+          const user = DB.login(email, type);
+          dispatch({ type: 'LOGIN', user });
+          dispatch({ type: 'TOAST_ADD', toast: { type: 'success', msg: `Welcome, ${user.name}` } });
+          setLoading(false);
+        }, 600);
+      };
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl animate-slide-up">
+            <button onClick={() => dispatch({ type:'SET_VIEW', view: 'landing' })}
+                    className="mb-6 flex gap-2 text-slate-500 font-bold hover:text-brand-600" aria-label="Back">
+              <Icon name="arrow-left"/> Back
+            </button>
+            <h2 className="text-3xl font-bold mb-2">{type === 'staff' ? 'Lawyer Access' : 'Applicant Login'}</h2>
+            <p className="text-slate-500 mb-8">Enter your details to access the portal.</p>
+            <form onSubmit={submit} noValidate>
+              <Input label="Email Address" id="auth-email" type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@email.com" error={errors.email}/>
+              <Input label="Password" id="auth-pass" type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" error={errors.password} hint="Min 6 characters"/>
+              <Button type="submit" className="w-full py-4 mt-2" disabled={loading}>
+                {loading ? <Icon name="loader-2" className="animate-spin"/> : "Sign In"}
+              </Button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // ---------- 8) USER DASH ----------
+    const UserDash = ({ t }) => {
+      const { state, dispatch } = useApp();
+      const [activeTab, setActiveTab] = useState('roadmap');
+      const [aiText, setAiText] = useState("");
+      const [isTyping, setIsTyping] = useState(false);
+      const [chatMsgs, setChatMsgs] = useState([{role: 'ai', text: "Hello! I am your visa assistant. How can I help?", ts: nowISO()}]);
+      const [chatIn, setChatIn] = useState("");
+
+      const [requestModal, setRequestModal] = useState(false);
+      const [reqForm, setReqForm] = useState({ country: 'UK', visa: 'Skilled Worker', fee: '1500' });
+
+      const lastChatTimeRef = useRef(0);
+      const CHAT_COOLDOWN_MS = 800;
+
+      const generateDoc = () => {
+        setIsTyping(true);
+        setAiText("");
+        const fullText =
+`Dear Consular Officer,
+
+I am applying for the ${reqForm.visa} for ${reqForm.country}. I have 5+ years of experience in Software Development, strong English proficiency, and a clean immigration history.
+
+I believe I am a strong candidate and meet the core requirements.
+
+Sincerely,
+${state.user.name}
+`;
+        let i = 0;
+        const interval = setInterval(() => {
+          setAiText(prev => prev + fullText.charAt(i));
+          i++;
+          if (i >= fullText.length) {
+            clearInterval(interval);
+            setIsTyping(false);
+            dispatch({ type: 'TOAST_ADD', toast: { type:'success', msg:'Document generated' }});
+          }
+        }, 10);
+      };
+
+      const downloadDoc = () => {
+        const blob = new Blob([aiText || ''], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `AI_Document_${state.user.name}.txt`;
+        a.click(); URL.revokeObjectURL(url);
+      };
+
+      const sendChat = (e) => {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastChatTimeRef.current < CHAT_COOLDOWN_MS) {
+          dispatch({ type:'TOAST_ADD', toast:{ type:'warning', msg: 'Please wait a moment before sending again.' }});
+          return;
+        }
+        lastChatTimeRef.current = now;
+
+        const text = chatIn.trim();
+        if(!text) return;
+        setChatMsgs(prev => [...prev, {role:'user', text, ts: nowISO()}]);
+
+        let reply = "I can help with that. Please consult a lawyer for specifics.";
+        const q = text.toLowerCase();
+        if (q.includes('price') || q.includes('cost')) reply = "Our standard consultation fee is $150. Full support starts at $1500.";
+        else if (q.includes('uk')) reply = "For the UK, you need a Certificate of Sponsorship and B1 English.";
+        else if (q.includes('germany')) reply = "Germany offers the Opportunity Card (Chancenkarte) for skilled workers.";
+        else if (q.includes('visa')) reply = "Visa requirements vary by country and profile. Provide your target country and role.";
+
+        setTimeout(() => {
+          setChatMsgs(prev => [...prev, {role:'ai', text: reply, ts: nowISO()}]);
+        }, 600);
+        setChatIn("");
+      };
+
+      const submitCase = () => {
+        if (!reqForm.country || !reqForm.visa) {
+          dispatch({ type:'TOAST_ADD', toast:{ type:'danger', msg:'Please fill country and visa' }});
+          return;
+        }
+        const lead = DB.addLead({ name: state.user.name, email: state.user.email, ...reqForm });
+        setRequestModal(false);
+        dispatch({ type:'TOAST_ADD', toast:{ type:'success', msg:'Case submitted to Lawyer Portal' }});
+      };
+
+      return (
+        <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
+          <aside className="w-20 md:w-64 bg-white dark:bg-slate-900 border-r dark:border-slate-800 flex flex-col justify-between py-6 z-20">
+            <div className="px-4 text-center md:text-left">
+              <div className="font-bold text-xl text-brand-600 mb-8 flex items-center justify-center md:justify-start gap-2"><Icon name="plane"/><span className="hidden md:inline">ImmigrationAI</span></div>
+              <nav className="space-y-2" aria-label="Dashboard navigation">
+                {[
+                  {id: 'roadmap', icon: 'map', label: t.dash.roadmap},
+                  {id: 'docs', icon: 'file-text', label: t.dash.docs},
+                  {id: 'lawyer', icon: 'briefcase', label: t.dash.lawyer},
+                  {id: 'chat', icon: 'message-square', label: t.dash.chat},
+                ].map(item => (
+                  <button key={item.id} onClick={()=>setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium ${activeTab === item.id ? 'bg-brand-50 text-brand-600' : 'text-slate-500 hover:bg-slate-50'}`} aria-current={activeTab===item.id ? 'page' : undefined}>
+                    <Icon name={item.icon}/> <span className="hidden md:inline">{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="px-4">
+              <button onClick={()=>dispatch({ type:'LOGOUT' })} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl">
+                <Icon name="log-out"/><span className="hidden md:inline">{t.dash.logout}</span>
+              </button>
+            </div>
+          </aside>
+
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <header className="flex justify-between items-center mb-8">
+              <h1 className="text-2xl font-bold">{t.dash.welcome} {state.user.name}</h1>
+              <div className="bg-brand-100 text-brand-600 w-10 h-10 rounded-full flex items-center justify-center font-bold" aria-label={`Profile initial ${state.user.name[0]}`}>{state.user.name[0]}</div>
+            </header>
+
+            {activeTab === 'roadmap' && (
+              <div className="animate-fade-in space-y-4 max-w-4xl">
+                <div className="bg-gradient-to-r from-brand-500 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+                  <h2 className="text-3xl font-bold mb-2">35% Ready</h2>
+                  <p className="opacity-90">Next Step: Document Translation</p>
+                  <div className="mt-4 w-full bg-white/20 h-2 rounded-full"><div className="w-[35%] bg-white h-full rounded-full"></div></div>
+                </div>
+                {[
+                  {t: "Profile Check", s: "done"}, {t: "Passport Scan", s: "done"}, {t: "Document Translation", s: "active"}, {t: "Visa Application", s: "locked"}
+                ].map((step, i) => (
+                  <div key={i} className={`p-4 rounded-xl border flex items-center gap-4 bg-white dark:bg-slate-900 ${step.s === 'active' ? 'border-brand-500 ring-1 ring-brand-500' : 'border-slate-200 dark:border-slate-800'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step.s === 'done' ? 'bg-success-100 text-success-600' : step.s === 'active' ? 'bg-brand-100 text-brand-600' : 'bg-slate-200 text-slate-500'}`}>{step.s === 'done' ? <Icon name="check" size={16}/> : i+1}</div>
+                    <span className="font-bold">{step.t}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'docs' && (
+              <div className="grid lg:grid-cols-2 gap-8 animate-fade-in h-[500px]">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow border dark:border-slate-800">
+                  <h3 className="font-bold mb-4 flex items-center gap-2"><Icon name="sparkles" className="text-purple-500"/> AI Writer</h3>
+                  <div className="space-y-4">
+                    <Input label="Job Title" id="doc-job" placeholder="Software Engineer" />
+                    <Input label="Company" id="doc-company" placeholder="Tech Solutions GmbH" />
+                    <Button onClick={generateDoc} disabled={isTyping} className="w-full">{isTyping ? t.tools.typing : t.tools.gen}</Button>
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border dark:border-slate-700 relative font-mono text-sm overflow-auto">
+                  {aiText || <span className="text-slate-400">Generated text appears here...</span>}
+                  {aiText && !isTyping && <Button variant="outline" className="absolute bottom-4 right-4 text-xs py-2" onClick={downloadDoc} ariaLabel="Download AI document">{t.tools.dl}</Button>}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'chat' && (
+              <div className="flex flex-col h-[600px] bg-white dark:bg-slate-900 rounded-2xl shadow border dark:border-slate-800 animate-fade-in">
+                <div className="p-4 border-b dark:border-slate-800 font-bold flex gap-2"><Icon name="bot" className="text-brand-600"/> AI Consultant</div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-live="polite">
+                  {chatMsgs.map((m, i) => (
+                    <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-3 rounded-2xl max-w-[80%] ${m.role === 'user' ? 'bg-brand-600 text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                        <div className="text-xs opacity-70 mb-1">{new Date(m.ts).toLocaleTimeString()}</div>
+                        {m.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={sendChat} className="p-4 border-t dark:border-slate-800 flex gap-2">
+                  <input
+                    value={chatIn}
+                    onChange={e=>setChatIn(e.target.value)}
+                    className="flex-1 p-2 border rounded-lg bg-transparent"
+                    placeholder={t.tools.chatP}
+                    aria-label="Chat message"
+                  />
+                  <Button type="submit" className="px-4 py-2" ariaLabel="Send chat message"><Icon name="send" size={18}/></Button>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'lawyer' && (
+              <div className="animate-fade-in text-center py-20">
+                <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl inline-block shadow-xl max-w-md">
+                  <div className="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="briefcase" size={32}/></div>
+                  <h2 className="text-2xl font-bold mb-2">Hire an Expert</h2>
+                  <p className="text-slate-500 mb-6">Send your profile to our certified partners for review.</p>
+                  <Button onClick={() => setRequestModal(true)} className="w-full">Start Case ($150)</Button>
+                </div>
+              </div>
+            )}
+          </main>
+
+          <Modal isOpen={requestModal} onClose={() => setRequestModal(false)} title="Case Details">
+            <div className="space-y-4">
+              <Input label="Target Country" id="case-country" value={reqForm.country} onChange={e=>setReqForm({...reqForm, country: e.target.value})} />
+              <Input label="Visa Type" id="case-visa" value={reqForm.visa} onChange={e=>setReqForm({...reqForm, visa: e.target.value})} />
+              <Input label="Consultation Fee (USD)" id="case-fee" type="number" min="0" value={reqForm.fee} onChange={e=>setReqForm({...reqForm, fee: e.target.value})} />
+              <Button onClick={submitCase} className="w-full">Submit Application</Button>
+            </div>
+          </Modal>
+        </div>
+      );
+    };
+
+    // ---------- 9) LAWYER DASH ----------
+    const LeadsTableSkeleton = () => (
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow overflow-hidden">
+        <div className="p-6 border-b dark:border-slate-800 font-bold text-lg">Client Database (CRM)</div>
+        <div className="space-y-3 p-6">
+          {[...Array(6)].map((_,i)=>(
+            <div key={i} className="h-10 rounded-md skeleton"></div>
+          ))}
+        </div>
+      </div>
+    );
+
+    const LawyerDash = ({ t }) => {
+      const { dispatch } = useApp();
+      const [leads, setLeads] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [search, setSearch] = useState('');
+      const [statusFilter, setStatusFilter] = useState('all');
+      const [sortBy, setSortBy] = useState('date_desc');
+      const [page, setPage] = useState(1);
+      const pageSize = 8;
+
+      useEffect(() => {
+        setLoading(true);
+        setTimeout(() => {
+          setLeads(DB.getLeads());
+          setLoading(false);
+        }, 400);
+      }, []);
+
+      const onSearchChange = useMemo(() => debounce((v)=>setSearch(v), 250), []);
+
+      const filtered = useMemo(() => {
+        let arr = [...leads];
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          arr = arr.filter(l => (l.name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q) || l.visa?.toLowerCase().includes(q) || l.country?.toLowerCase().includes(q)));
+        }
+        if (statusFilter !== 'all') arr = arr.filter(l => l.status === statusFilter);
+        if (sortBy === 'date_desc') arr.sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+        if (sortBy === 'date_asc') arr.sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt));
+        if (sortBy === 'fee_desc') arr.sort((a,b)=> (parseInt(b.fee)||0) - (parseInt(a.fee)||0));
+        if (sortBy === 'fee_asc') arr.sort((a,b)=> (parseInt(a.fee)||0) - (parseInt(b.fee)||0));
+        return arr;
+      }, [leads, search, statusFilter, sortBy]);
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      const pageData = filtered.slice((page-1)*pageSize, page*pageSize);
+
+      useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages]);
+
+      const cycleStatus = (curr) => curr === 'New' ? 'Reviewing' : (curr === 'Reviewing' ? 'Approved' : 'New');
+
+      const setStatus = (id, next) => {
+        const prevLeads = leads;
+        const optimistic = leads.map(l => l.id === id ? { ...l, status: next } : l);
+        setLeads(optimistic);
+        dispatch({ type:'TOAST_ADD', toast:{ type:'success', msg:'Status updated' }});
+        // Persist
+        try { DB.setStatus(id, next); }
+        catch { setLeads(prevLeads); dispatch({ type:'TOAST_ADD', toast:{ type:'danger', msg:'Failed to update status' }}); }
+      };
+
+      const editLead = (lead, patch) => {
+        const updated = { ...lead, ...patch };
+        setLeads(ls => ls.map(l => l.id === lead.id ? updated : l));
+        DB.updateLead(lead.id, patch);
+        dispatch({ type:'TOAST_ADD', toast:{ type:'success', msg:'Lead updated' }});
+      };
+
+      const deleteLead = (id) => {
+        const prev = leads;
+        const next = leads.filter(l => l.id !== id);
+        setLeads(next);
+        const undoId = Date.now();
+        dispatch({ type:'TOAST_ADD', toast:{ type:'warning', msg:'Lead deleted. Click to undo.', ttl:5000, id: undoId }});
+        DB.deleteLead(id);
+        // Optional undo via click on last toast (basic)
+        // In a fuller app, we'd store undo state and attach onclick; kept minimal here.
+      };
+
+      const addSampleLead = () => {
+        const sample = DB.addLead({ name: "New Client", email: "client@example.com", country: "Netherlands", visa: "Highly Skilled Migrant", fee: 1200 });
+        setLeads([sample, ...leads]);
+        dispatch({ type:'TOAST_ADD', toast:{ type:'success', msg:'Sample lead added' }});
+      };
+
+      const exportCSV = () => {
+        const headers = ['Name','Email','Country','Visa','Status','Fee','Date','CreatedAt'];
+        const rows = filtered.map(l => [l.name, l.email, l.country, l.visa, l.status, l.fee, l.date, l.createdAt]);
+        const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Leads_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const exportJSON = () => {
+        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Leads_${new Date().toISOString().slice(0,10)}.json`;
+        a.click(); URL.revokeObjectURL(url);
+      };
+
+      const importJSON = (file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (!Array.isArray(data)) throw new Error('Invalid JSON format.');
+            // Basic schema validation
+            const cleaned = data.map(d => ({
+              id: d.id || Date.now()+Math.random(),
+              name: String(d.name || 'Unknown'),
+              email: String(d.email || ''),
+              country: String(d.country || ''),
+              visa: String(d.visa || ''),
+              status: ['New','Reviewing','Approved'].includes(d.status) ? d.status : 'New',
+              fee: parseInt(d.fee) || 0,
+              date: d.date || new Date().toLocaleDateString(),
+              createdAt: d.createdAt || nowISO()
+            }));
+            DB.saveLeads(cleaned);
+            setLeads(cleaned);
+            dispatch({ type:'TOAST_ADD', toast:{ type:'success', msg:'Leads imported' }});
+          } catch {
+            dispatch({ type:'TOAST_ADD', toast:{ type:'danger', msg:'Failed to import JSON' }});
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      const totalRev = filtered.reduce((acc, curr) => acc + (parseInt(curr.fee) || 0), 0);
+
+      return (
+        <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
+          <header className="bg-slate-900 text-white px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+            <div className="flex items-center gap-2 font-bold text-xl"><Icon name="shield"/> {t.lawyer.title}</div>
+            <div className="flex gap-2 items-center">
+              <Button variant="outline" onClick={exportCSV} ariaLabel="Export leads CSV"><Icon name="download"/> Export CSV</Button>
+              <Button variant="outline" onClick={exportJSON} ariaLabel="Export leads JSON"><Icon name="code"/> Export JSON</Button>
+              <label className="px-4 py-2 rounded-xl border cursor-pointer bg-white/10 hover:bg-white/20">
+                <span className="text-sm">Import JSON</span>
+                <input className="sr-only" type="file" accept="application/json" onChange={e => e.target.files?.[0] && importJSON(e.target.files[0])}/>
+              </label>
+              <button onClick={()=>window.location.reload()} className="text-sm opacity-90 hover:opacity-100 ml-2">Refresh</button>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto p-8 animate-fade-in">
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border-l-4 border-green-500">
+                <p className="text-xs font-bold text-slate-500 uppercase">{t.lawyer.rev}</p>
+                <p className="text-3xl font-extrabold">{formatMoney(totalRev)}</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border-l-4 border-brand-500">
+                <p className="text-xs font-bold text-slate-500 uppercase">{t.lawyer.active}</p>
+                <p className="text-3xl font-extrabold">{filtered.length}</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border-l-4 border-purple-500">
+                <p className="text-xs font-bold text-slate-500 uppercase">Success Rate</p>
+                <p className="text-3xl font-extrabold">92%</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow overflow-hidden">
+              <div className="p-6 border-b dark:border-slate-800 font-bold text-lg flex flex-wrap gap-3 items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div>Client Database (CRM)</div>
+                  <Button variant="ghost" onClick={addSampleLead}><Icon name="plus"/> Add</Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <input defaultValue={search} onChange={e=>onSearchChange(e.target.value)} placeholder="Search name, email, visa..." className="p-2 border rounded-lg bg-transparent w-56"/>
+                  <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="p-2 border rounded-lg bg-transparent">
+                    <option value="all">All statuses</option>
+                    <option value="New">New</option>
+                    <option value="Reviewing">Reviewing</option>
+                    <option value="Approved">Approved</option>
+                  </select>
+                  <select value={sortBy} onChange={e=>setSortBy(e.target.value)} className="p-2 border rounded-lg bg-transparent">
+                    <option value="date_desc">Date ↓</option>
+                    <option value="date_asc">Date ↑</option>
+                    <option value="fee_desc">Fee ↓</option>
+                    <option value="fee_asc">Fee ↑</option>
+                  </select>
+                </div>
+              </div>
+
+              {loading ? <LeadsTableSkeleton/> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 uppercase font-bold text-xs">
+                      <tr>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Visa</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Fee</th>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y dark:divide-slate-800">
+                      {pageData.map(l => (
+                        <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                          <td className="px-6 py-4 font-medium">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold">{l.name?.[0] || '?'}</div>
+                              <div>
+                                <div className="font-semibold">{l.name}</div>
+                                <div className="text-xs text-slate-400 font-normal">{l.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">{l.visa} <span className="text-xs text-slate-400">({l.country})</span></td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={()=>setStatus(l.id, cycleStatus(l.status))}
+                              className={`px-3 py-1 rounded-full text-xs font-bold border
+                                ${l.status === 'Approved' ? 'bg-success-100 text-success-600 border-success-600' :
+                                  l.status === 'New' ? 'bg-brand-100 text-brand-700 border-brand-600' :
+                                  'bg-warning-100 text-warning-600 border-warning-600'}`}
+                            >
+                              {l.status}
+                            </button>
+                          </td>
+                          <td className="px-6 py-4">{formatMoney(l.fee)}</td>
+                          <td className="px-6 py-4 text-slate-500">{l.date}</td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <Button variant="outline" className="text-xs px-3 py-1" onClick={()=>editLead(l, { fee: (l.fee||0)+50 })}><Icon name="pencil"/> Edit</Button>
+                              <Button variant="outline" className="text-xs px-3 py-1" onClick={()=>deleteLead(l.id)}><Icon name="trash-2"/> Delete</Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {pageData.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-10 text-center text-slate-500">No leads found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {!loading && (
+                <div className="flex justify-between items-center p-4">
+                  <div className="text-sm text-slate-500">Showing {(page-1)*pageSize+1}-{Math.min(page*pageSize, filtered.length)} of {filtered.length}</div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)} className="px-3 py-1"><Icon name="chevron-left"/> Prev</Button>
+                    <Button variant="outline" disabled={page>=totalPages} onClick={()=>setPage(p=>p+1)} className="px-3 py-1">Next <Icon name="chevron-right"/></Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+      );
+    };
+
+    // ---------- 10) APP ROOT ----------
+    const App = () => {
+      const [state, dispatch] = useReducer(reducer, initialState);
+
+      useEffect(() => {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      }, [state.view]);
+
+      useEffect(() => {
+        if (state.theme === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      }, [state.theme]);
+
+      const toggleTheme = () => dispatch({ type:'SET_THEME', theme: state.theme === 'light' ? 'dark' : 'light' });
+
+      return (
+        <AppCtx.Provider value={{ state, dispatch }}>
+          <Toasts/>
+          <button
+            className="fixed bottom-4 right-4 z-50 bg-white dark:bg-slate-800 p-2 rounded-full shadow-lg border border-slate-200"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {state.theme === 'light' ? <Icon name="moon" size={20}/> : <Icon name="sun" size={20} className="text-yellow-400"/>}
+          </button>
+
+          {state.view === 'landing' && <Landing t={LANG[state.lang]}/>}
+          {state.view.startsWith('login-') && <Auth type={state.view.split('-')[1]}/>}
+          {state.view === 'dashboard' && state.user && <UserDash t={LANG[state.lang]}/>}
+          {state.view === 'lawyer' && state.user?.role === 'staff' && <LawyerDash t={LANG[state.lang]}/>}
+
+          {/* Guard: if direct navigation to protected view */}
+          {state.view === 'lawyer' && !state.user && (
+            <div className="fixed inset-0 flex items-center justify-center">
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow">
+                <p className="mb-4">Session expired. Please sign in.</p>
+                <Button onClick={()=>dispatch({ type:'SET_VIEW', view:'login-staff' })}>Go to Partner Login</Button>
+              </div>
+            </div>
+          )}
+        </AppCtx.Provider>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

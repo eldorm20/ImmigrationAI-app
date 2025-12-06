@@ -1,0 +1,150 @@
+import { Router } from "express";
+import { z } from "zod";
+import { db } from "../db";
+import { researchArticles, type ResearchArticle, insertResearchArticleSchema } from "@shared/schema";
+import { and, desc, ilike, sql } from "drizzle-orm";
+import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { sanitizeInput } from "../middleware/security";
+
+const router = Router();
+
+// Public list endpoint (no auth required)
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const {
+      search = "",
+      category = "all",
+      language = "",
+      limit = "50",
+      offset = "0",
+    } = req.query as Record<string, string>;
+
+    const whereClauses: any[] = [sql`"is_published" = true`];
+
+    if (category && category !== "all") {
+      whereClauses.push(sql`category = ${category}`);
+    }
+
+    if (language) {
+      whereClauses.push(sql`language = ${language}`);
+    }
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      whereClauses.push(
+        and(
+          ilike(researchArticles.title, term),
+          sql`1 = 1`
+        ),
+      );
+    }
+
+    const articles = await db.query.researchArticles.findMany({
+      where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
+      orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
+    });
+
+    res.json({ items: articles });
+  }),
+);
+
+// Authenticated create/update/delete endpoints
+const upsertSchema = insertResearchArticleSchema.extend({
+  id: z.string().uuid().optional(),
+});
+
+// Create article - any logged-in user can contribute
+router.post(
+  "/",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const body = upsertSchema.parse(req.body);
+
+    const slug = body.slug.toLowerCase();
+
+    const [article] = await db
+      .insert(researchArticles)
+      .values({
+        ...body,
+        slug,
+        title: sanitizeInput(body.title),
+        summary: body.summary ? sanitizeInput(body.summary) : null,
+        body: body.body,
+        tags: body.tags || [],
+        source: body.source ? sanitizeInput(body.source) : null,
+        createdByUserId: req.user!.userId,
+        publishedAt: new Date(),
+      })
+      .returning();
+
+    res.status(201).json(article);
+  }),
+);
+
+// Update article - only creator, lawyer, or admin
+router.patch(
+  "/:id",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const body = upsertSchema.partial().parse(req.body);
+
+    const existing = await db.query.researchArticles.findFirst({
+      where: sql`id = ${id}`,
+    });
+
+    if (!existing) {
+      throw new AppError(404, "Article not found");
+    }
+
+    const isOwner = existing.createdByUserId === req.user!.userId;
+    const isElevated = req.user!.role === "admin" || req.user!.role === "lawyer";
+    if (!isOwner && !isElevated) {
+      throw new AppError(403, "Insufficient permissions");
+    }
+
+    const [updated] = await db
+      .update(researchArticles)
+      .set({
+        ...body,
+        title: body.title ? sanitizeInput(body.title) : existing.title,
+        summary: body.summary ? sanitizeInput(body.summary) : existing.summary,
+        slug: body.slug ? body.slug.toLowerCase() : existing.slug,
+        source: body.source ? sanitizeInput(body.source) : existing.source,
+        updatedByUserId: req.user!.userId,
+        updatedAt: new Date(),
+      })
+      .where(sql`id = ${id}`)
+      .returning();
+
+    res.json(updated);
+  }),
+);
+
+// Delete article - admin only
+router.delete(
+  "/:id",
+  authenticate,
+  requireRole("admin"),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    await db.delete(researchArticles).where(sql`id = ${id}`);
+
+    res.json({ message: "Article deleted" });
+  }),
+);
+
+export default router;
+
+
+
+
+
+
+
+

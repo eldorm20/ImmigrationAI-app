@@ -1,0 +1,121 @@
+import { Request, Response, NextFunction } from "express";
+import { verifyAccessToken, type JWTPayload } from "../lib/auth";
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { logger } from "../lib/logger";
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JWTPayload & {
+        id: string;
+      };
+    }
+  }
+}
+
+// Extract token from Authorization header
+function extractToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  return authHeader.substring(7);
+}
+
+// Authentication middleware
+export async function authenticate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const token = extractToken(req);
+
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const payload = verifyAccessToken(token);
+
+    if (!payload) {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+
+    // Verify user still exists and is active
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, payload.userId),
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = {
+      ...payload,
+      id: payload.userId,
+      userId: payload.userId,
+    };
+
+    next();
+  } catch (error) {
+    logger.error({ error }, "Authentication error");
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// Role-based access control middleware
+export function requireRole(...allowedRoles: ("admin" | "lawyer" | "applicant")[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Insufficient permissions" });
+    }
+
+    next();
+  };
+}
+
+// Optional authentication (doesn't fail if no token)
+export async function optionalAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const token = extractToken(req);
+
+    if (token) {
+      const payload = verifyAccessToken(token);
+      if (payload) {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, payload.userId),
+        });
+        if (user) {
+          req.user = {
+            ...payload,
+            id: payload.userId,
+            userId: payload.userId,
+          };
+        }
+      }
+    }
+
+    next();
+  } catch (error) {
+    // Continue without authentication on error
+    next();
+  }
+}
+
+
+
+
+
+
+

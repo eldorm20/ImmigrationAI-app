@@ -1,0 +1,764 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+type Language = "en" | "uz" | "ru" | "de" | "fr" | "es";
+
+interface I18nContextType {
+  lang: Language;
+  setLang: (lang: Language) => void;
+  t: any; // Using any to match the structure flexibility of the prototype
+}
+
+const I18nContext = createContext<I18nContextType | null>(null);
+
+const TRANSLATIONS = {
+  en: {
+    nav: { login: "Sign In", start: "Get Started", features: "Features", pricing: "Pricing", partner: "Partner" },
+    hero: { title: "Move to Europe.", sub: "AI-Powered Immigration for Uzbekistan.", cta: "Check Eligibility", trusted: "Trusted by 10k+ people" },
+    dash: { 
+      welcome: "Welcome,", roadmap: "Roadmap", docs: "AI Docs", lawyer: "Ask Lawyer", chat: "AI Chat", 
+      logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research"
+    },
+    tools: { gen: "Generate", dl: "Download", typing: "AI Writing...", chatP: "Ask about visas...", clear: "Clear" },
+    lawyer: { 
+      title: "Partner Portal", 
+      active: "Active Cases", 
+      rev: "Revenue", 
+      status: "Status", 
+      pending: "Pending", 
+      approved: "Approved",
+      applications: "Applications",
+      searchPlaceholder: "Search applicants, names, emails..."
+    },
+    pricing: {
+      title: "Choose Your Plan",
+      subtitle: "Start free, upgrade as you grow. All plans include our core AI-powered immigration assistance.",
+      starter: "Starter",
+      professional: "Professional",
+      enterprise: "Enterprise",
+      free: "Free",
+      forever: "forever",
+      perMonth: "per month",
+      contactUs: "contact us",
+      getStarted: "Get Started Free",
+      startTrial: "Start Free Trial",
+      contactSales: "Contact Sales",
+      mostPopular: "Most Popular",
+      faq: "Frequently Asked Questions",
+      changePlans: "Can I change plans later?",
+      changePlansA: "Yes! You can upgrade, downgrade, or cancel your plan at any time. Changes take effect immediately.",
+      paymentMethods: "What payment methods do you accept?",
+      paymentMethodsA: "We accept all major credit cards, PayPal, and bank transfers for enterprise plans.",
+      freeTrial: "Is there a free trial?",
+      freeTrialA: "Yes! Professional plan includes a 14-day free trial. No credit card required for Starter plan.",
+      refunds: "Do you offer refunds?",
+      refundsA: "We offer a 30-day money-back guarantee on all paid plans. Contact support for assistance."
+    },
+    features: {
+      title: "Everything You Need to Succeed",
+      subtitle: "Comprehensive AI-powered tools designed specifically for immigration professionals and applicants.",
+      ready: "Ready to Get Started?",
+      join: "Join thousands of users who trust ImmigrationAI for their immigration needs.",
+      startTrial: "Start Free Trial"
+    },
+    research: {
+      title: "Research Library",
+      subtitle: "Access curated immigration law resources, case studies, and official documentation",
+      search: "Search resources, regulations, case law...",
+      allResources: "All Resources",
+      visaRequirements: "Visa Requirements",
+      caseLaw: "Case Law",
+      regulations: "Regulations",
+      guides: "Guides & FAQs",
+      noResults: "No resources found",
+      tryAdjusting: "Try adjusting your search or filters",
+      source: "Source",
+      download: "Download"
+    },
+    upload: {
+      title: "Document Upload & Analysis",
+      dropFiles: "Drop files here or click to upload",
+      supports: "Supports PDF, DOC, DOCX, JPG, PNG (Max 10MB per file)",
+      chooseFiles: "Choose Files",
+      uploading: "Uploading...",
+      uploaded: "Uploaded Documents",
+      analyzed: "Analyzed",
+      view: "View",
+      delete: "Delete",
+      uploadedSuccess: "Files Uploaded",
+      uploadedDesc: "file(s) uploaded and analyzed successfully",
+      deleted: "File Deleted",
+      deletedDesc: "File removed successfully"
+    },
+    translate: {
+      title: "AI Translation",
+      from: "From",
+      to: "To",
+      textToTranslate: "Text to Translate",
+      enterText: "Enter text to translate...",
+      certified: "Request certified translation (+$25)",
+      translate: "Translate",
+      translating: "Translating...",
+      result: "Translation Result",
+      willAppear: "Translation will appear here...",
+      swap: "Swap",
+      download: "Download",
+      complete: "Translation Complete",
+      certifiedReady: "Certified translation ready for download",
+      aiComplete: "AI translation completed",
+      downloaded: "Downloaded",
+      saved: "Translation saved successfully",
+      error: "Error",
+      enterTextError: "Please enter text to translate"
+    },
+    auth: {
+      lawyerAccess: "Lawyer Access",
+      applicantLogin: "Applicant Login",
+      enterDetails: "Enter your details to access the portal.",
+      email: "Email Address",
+      password: "Password",
+      minChars: "Min 6 characters",
+      signIn: "Sign In",
+      noAccount: "Don't have an account?",
+      register: "Register",
+      back: "Back"
+    },
+    community: {
+      title: "Community & Support",
+      telegramGroup: "Uzbek Society Group",
+      telegramChannel: "Uzbek Immigrant Channel",
+      joinCommunity: "Join our community on Telegram for real-time support and connection with other immigrants",
+      getHelp: "Get Help & Support",
+      needHelp: "Need help? Join our Telegram communities or contact support"
+    }
+  },
+  uz: {
+    nav: { login: "Kirish", start: "Boshlash", features: "Xususiyatlar", pricing: "Narxlar", partner: "Hamkor" },
+    hero: { title: "Yevropaga Yo'l.", sub: "O'zbekistonliklar uchun AI immigratsiya.", cta: "Tekshirish", trusted: "10k+ ishonchli mijozlar" },
+    dash: { 
+      welcome: "Xush kelibsiz,", roadmap: "Reja", docs: "AI Hujjat", lawyer: "Yurist", chat: "AI Chat", 
+      logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot"
+    },
+    tools: { gen: "Yaratish", dl: "Yuklash", typing: "AI Yozmoqda...", chatP: "Viza haqida so'rang...", clear: "Tozalash" },
+    lawyer: { 
+      title: "Hamkor Kabineti", 
+      active: "Faol Arizalar", 
+      rev: "Tushum", 
+      status: "Holat", 
+      pending: "Kutilmoqda", 
+      approved: "Tasdiqlangan",
+      applications: "Arizalar",
+      searchPlaceholder: "Arizachilarni, ismlarni, emaillarni qidiring..."
+    },
+    pricing: {
+      title: "Rejangizni Tanlang",
+      subtitle: "Bepul boshlang, o'sib borayotganingizda yangilang. Barcha rejalar bizning asosiy AI bilan quvvatlanadigan immigratsiya yordamini o'z ichiga oladi.",
+      starter: "Boshlang'ich",
+      professional: "Professional",
+      enterprise: "Korporativ",
+      free: "Bepul",
+      forever: "doimiy",
+      perMonth: "oyiga",
+      contactUs: "biz bilan bog'laning",
+      getStarted: "Bepul Boshlash",
+      startTrial: "Bepul Sinovni Boshlash",
+      contactSales: "Sotuvga Murojaat",
+      mostPopular: "Eng Mashhur",
+      faq: "Tez-tez So'raladigan Savollar",
+      changePlans: "Keyinroq rejalarni o'zgartirish mumkinmi?",
+      changePlansA: "Ha! Siz istalgan vaqtda yangilashingiz, pastlashtirishingiz yoki bekor qilishingiz mumkin. O'zgarishlar darhol kuchga kiradi.",
+      paymentMethods: "Qanday to'lov usullarini qabul qilasiz?",
+      paymentMethodsA: "Biz barcha yirik kredit kartalarini, PayPal va korporativ rejalar uchun bank o'tkazmalarini qabul qilamiz.",
+      freeTrial: "Bepul sinov bormi?",
+      freeTrialA: "Ha! Professional reja 14 kunlik bepul sinovni o'z ichiga oladi. Boshlang'ich reja uchun kredit karta talab qilinmaydi.",
+      refunds: "Pul qaytarish taklif qilasizmi?",
+      refundsA: "Biz barcha pullik rejalar uchun 30 kunlik pul qaytarish kafolatini taklif qilamiz. Yordam uchun qo'llab-quvvatlashga murojaat qiling."
+    },
+    features: {
+      title: "Muvaffaqiyatga Erishish Uchun Barcha Narsa",
+      subtitle: "Immigratsiya mutaxassislari va arizachilar uchun maxsus yaratilgan keng qamrovli AI vositalari.",
+      ready: "Boshlashga Tayyormisiz?",
+      join: "O'z immigratsiya ehtiyojlari uchun ImmigrationAI ga ishonadigan minglab foydalanuvchilar qatoriga qo'shiling.",
+      startTrial: "Bepul Sinovni Boshlash"
+    },
+    research: {
+      title: "Tadqiqot Kutubxonasi",
+      subtitle: "Tanlangan immigratsiya qonunlari resurslari, holatlar tadqiqotlari va rasmiy hujjatlarni kiriting",
+      search: "Resurslar, qoidalar, holatlar qonunlarini qidiring...",
+      allResources: "Barcha Resurslar",
+      visaRequirements: "Viza Talablari",
+      caseLaw: "Holatlar Qonuni",
+      regulations: "Qoidalar",
+      guides: "Qo'llanmalar va Tez-tez So'raladigan Savollar",
+      noResults: "Hech qanday resurs topilmadi",
+      tryAdjusting: "Qidiruv yoki filtrlarni sozlashni sinab ko'ring",
+      source: "Manba",
+      download: "Yuklab Olish"
+    },
+    upload: {
+      title: "Hujjat Yuklash va Tahlil",
+      dropFiles: "Fayllarni bu yerga tashlang yoki yuklash uchun bosing",
+      supports: "PDF, DOC, DOCX, JPG, PNG ni qo'llab-quvvatlaydi (Har bir fayl uchun maksimal 10MB)",
+      chooseFiles: "Fayllarni Tanlash",
+      uploading: "Yuklanmoqda...",
+      uploaded: "Yuklangan Hujjatlar",
+      analyzed: "Tahlil Qilindi",
+      view: "Ko'rish",
+      delete: "O'chirish",
+      uploadedSuccess: "Fayllar Yuklandi",
+      uploadedDesc: "fayl(lar) muvaffaqiyatli yuklandi va tahlil qilindi",
+      deleted: "Fayl O'chirildi",
+      deletedDesc: "Fayl muvaffaqiyatli olib tashlandi"
+    },
+    translate: {
+      title: "AI Tarjima",
+      from: "Dan",
+      to: "Ga",
+      textToTranslate: "Tarjima Qilinadigan Matn",
+      enterText: "Tarjima qilish uchun matn kiriting...",
+      certified: "Sertifikatlangan tarjima so'rang (+$25)",
+      translate: "Tarjima Qilish",
+      translating: "Tarjima Qilinmoqda...",
+      result: "Tarjima Natijasi",
+      willAppear: "Tarjima bu yerda paydo bo'ladi...",
+      swap: "Almashtirish",
+      download: "Yuklab Olish",
+      complete: "Tarjima Tugallandi",
+      certifiedReady: "Sertifikatlangan tarjima yuklab olishga tayyor",
+      aiComplete: "AI tarjimasi tugallandi",
+      downloaded: "Yuklab Olindi",
+      saved: "Tarjima muvaffaqiyatli saqlandi",
+      error: "Xato",
+      enterTextError: "Iltimos, tarjima qilish uchun matn kiriting"
+    },
+    auth: {
+      lawyerAccess: "Yurist Kirishi",
+      applicantLogin: "Arizachi Kirishi",
+      enterDetails: "Portalga kirish uchun ma'lumotlaringizni kiriting.",
+      email: "Email Manzili",
+      password: "Parol",
+      minChars: "Minimal 6 belgi",
+      signIn: "Kirish",
+      noAccount: "Hisobingiz yo'qmi?",
+      register: "Ro'yxatdan O'tish",
+      back: "Orqaga"
+    },
+    community: {
+      title: "Jamiyat va Qo'llab-quvvatlash",
+      telegramGroup: "O'zbek Jamiyati Guruhi",
+      telegramChannel: "O'zbek Immigranti Kanali",
+      joinCommunity: "Telegram da bizning jamiygamizga qo'shiling va boshqa immigrantlar bilan aloqada bo'ling",
+      getHelp: "Yordam va Qo'llab-quvvatlash Oling",
+      needHelp: "Yordam kerakmi? Telegram jamiygamizga qo'shiling yoki qo'llab-quvvatlashga murojaat qiling"
+    }
+  },
+  ru: {
+    nav: { login: "Войти", start: "Начать", features: "Возможности", pricing: "Цены", partner: "Партнер" },
+    hero: { title: "Путь в Европу.", sub: "ИИ Иммиграция для Узбекистана.", cta: "Проверить", trusted: "Доверяют 10к+" },
+    dash: { 
+      welcome: "Привет,", roadmap: "План", docs: "ИИ Доки", lawyer: "Юрист", chat: "ИИ Чат", 
+      logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования"
+    },
+    tools: { gen: "Создать", dl: "Скачать", typing: "ИИ Пишет...", chatP: "Спросите о визе...", clear: "Очистить" },
+    lawyer: { 
+      title: "Кабинет Партнера", 
+      active: "Активные Дела", 
+      rev: "Выручка", 
+      status: "Статус", 
+      pending: "В ожидании", 
+      approved: "Одобрено",
+      applications: "Заявки",
+      searchPlaceholder: "Поиск заявителей, имен, email..."
+    },
+    pricing: {
+      title: "Выберите Ваш План",
+      subtitle: "Начните бесплатно, обновляйтесь по мере роста. Все планы включают нашу основную помощь в иммиграции на базе ИИ.",
+      starter: "Стартовый",
+      professional: "Профессиональный",
+      enterprise: "Корпоративный",
+      free: "Бесплатно",
+      forever: "навсегда",
+      perMonth: "в месяц",
+      contactUs: "свяжитесь с нами",
+      getStarted: "Начать Бесплатно",
+      startTrial: "Начать Бесплатную Пробную Версию",
+      contactSales: "Связаться с Отделом Продаж",
+      mostPopular: "Самый Популярный",
+      faq: "Часто Задаваемые Вопросы",
+      changePlans: "Могу ли я изменить план позже?",
+      changePlansA: "Да! Вы можете обновить, понизить или отменить свой план в любое время. Изменения вступают в силу немедленно.",
+      paymentMethods: "Какие способы оплаты вы принимаете?",
+      paymentMethodsA: "Мы принимаем все основные кредитные карты, PayPal и банковские переводы для корпоративных планов.",
+      freeTrial: "Есть ли бесплатная пробная версия?",
+      freeTrialA: "Да! Профессиональный план включает 14-дневную бесплатную пробную версию. Для стартового плана кредитная карта не требуется.",
+      refunds: "Предлагаете ли вы возврат средств?",
+      refundsA: "Мы предлагаем 30-дневную гарантию возврата денег на все платные планы. Обратитесь в службу поддержки за помощью."
+    },
+    features: {
+      title: "Все, Что Нужно для Успеха",
+      subtitle: "Комплексные инструменты на базе ИИ, разработанные специально для иммиграционных специалистов и заявителей.",
+      ready: "Готовы Начать?",
+      join: "Присоединяйтесь к тысячам пользователей, которые доверяют ImmigrationAI для своих иммиграционных потребностей.",
+      startTrial: "Начать Бесплатную Пробную Версию"
+    },
+    research: {
+      title: "Библиотека Исследований",
+      subtitle: "Доступ к курируемым ресурсам иммиграционного права, тематическим исследованиям и официальной документации",
+      search: "Поиск ресурсов, правил, судебной практики...",
+      allResources: "Все Ресурсы",
+      visaRequirements: "Требования к Визам",
+      caseLaw: "Судебная Практика",
+      regulations: "Правила",
+      guides: "Руководства и Часто Задаваемые Вопросы",
+      noResults: "Ресурсы не найдены",
+      tryAdjusting: "Попробуйте изменить поиск или фильтры",
+      source: "Источник",
+      download: "Скачать"
+    },
+    upload: {
+      title: "Загрузка и Анализ Документов",
+      dropFiles: "Перетащите файлы сюда или нажмите для загрузки",
+      supports: "Поддерживает PDF, DOC, DOCX, JPG, PNG (Макс. 10MB на файл)",
+      chooseFiles: "Выбрать Файлы",
+      uploading: "Загрузка...",
+      uploaded: "Загруженные Документы",
+      analyzed: "Проанализировано",
+      view: "Просмотр",
+      delete: "Удалить",
+      uploadedSuccess: "Файлы Загружены",
+      uploadedDesc: "файл(ов) успешно загружено и проанализировано",
+      deleted: "Файл Удален",
+      deletedDesc: "Файл успешно удален"
+    },
+    translate: {
+      title: "ИИ Перевод",
+      from: "С",
+      to: "На",
+      textToTranslate: "Текст для Перевода",
+      enterText: "Введите текст для перевода...",
+      certified: "Запросить сертифицированный перевод (+$25)",
+      translate: "Перевести",
+      translating: "Переводится...",
+      result: "Результат Перевода",
+      willAppear: "Перевод появится здесь...",
+      swap: "Поменять",
+      download: "Скачать",
+      complete: "Перевод Завершен",
+      certifiedReady: "Сертифицированный перевод готов к загрузке",
+      aiComplete: "ИИ перевод завершен",
+      downloaded: "Загружено",
+      saved: "Перевод успешно сохранен",
+      error: "Ошибка",
+      enterTextError: "Пожалуйста, введите текст для перевода"
+    },
+    auth: {
+      lawyerAccess: "Доступ Юриста",
+      applicantLogin: "Вход Заявителя",
+      enterDetails: "Введите свои данные для доступа к порталу.",
+      email: "Адрес Электронной Почты",
+      password: "Пароль",
+      minChars: "Мин. 6 символов",
+      signIn: "Войти",
+      noAccount: "Нет аккаунта?",
+      register: "Зарегистрироваться",
+      back: "Назад"
+    },
+    community: {
+      title: "Сообщество и Поддержка",
+      telegramGroup: "Группа Узбекского Общества",
+      telegramChannel: "Канал Узбекских Иммигрантов",
+      joinCommunity: "Присоединитесь к нашему сообществу в Telegram для получения поддержки в реальном времени",
+      getHelp: "Получить Помощь и Поддержку",
+      needHelp: "Нужна помощь? Присоединитесь к нашим сообществам Telegram или свяжитесь с поддержкой"
+    }
+  },
+  de: {
+    nav: { login: "Anmelden", start: "Jetzt Starten", features: "Funktionen", pricing: "Preise", partner: "Partner" },
+    hero: { title: "Nach Europa.", sub: "KI-gestützte Einwanderung aus Usbekistan.", cta: "Berechtigung Prüfen", trusted: "Vertraut von 10k+ Personen" },
+    dash: { 
+      welcome: "Willkommen,", roadmap: "Roadmap", docs: "KI Docs", lawyer: "Anwalt", chat: "KI Chat", 
+      logout: "Abmelden", upload: "Dokumente", translate: "Übersetzung", research: "Forschung"
+    },
+    tools: { gen: "Erstellen", dl: "Herunterladen", typing: "KI schreibt...", chatP: "Fragen Sie zu Visa...", clear: "Löschen" },
+    lawyer: { 
+      title: "Partner-Portal", 
+      active: "Aktive Fälle", 
+      rev: "Umsatz", 
+      status: "Status", 
+      pending: "Ausstehend", 
+      approved: "Genehmigt",
+      applications: "Anwendungen",
+      searchPlaceholder: "Antragsteller, Namen, E-Mails durchsuchen..."
+    },
+    pricing: {
+      title: "Wählen Sie Ihren Plan",
+      subtitle: "Starten Sie kostenlos, erweitern Sie sich, während Sie wachsen. Alle Pläne beinhalten unsere KI-gestützte Einwanderungshilfe.",
+      starter: "Starter",
+      professional: "Professionell",
+      enterprise: "Unternehmen",
+      free: "Kostenlos",
+      forever: "für immer",
+      perMonth: "pro Monat",
+      contactUs: "kontaktieren Sie uns",
+      getStarted: "Kostenlos Starten",
+      startTrial: "Kostenlose Testversion Starten",
+      contactSales: "Kontakt zum Vertrieb",
+      mostPopular: "Am Beliebtesten",
+      faq: "Häufig Gestellte Fragen",
+      changePlans: "Kann ich später meine Pläne ändern?",
+      changePlansA: "Ja! Sie können Ihren Plan jederzeit aktualisieren, herabstufen oder kündigen. Änderungen werden sofort wirksam.",
+      paymentMethods: "Welche Zahlungsmethoden akzeptieren Sie?",
+      paymentMethodsA: "Wir akzeptieren alle gängigen Kreditkarten, PayPal und Banktransfers für Unternehmenspläne.",
+      freeTrial: "Gibt es eine kostenlose Testversion?",
+      freeTrialA: "Ja! Der Professional Plan beinhaltet eine 14-tägige kostenlose Testversion. Keine Kreditkarte erforderlich für Starter Plan.",
+      refunds: "Bieten Sie Rückerstattungen an?",
+      refundsA: "Wir bieten eine 30-Tage-Geld-zurück-Garantie für alle kostenpflichtigen Pläne. Kontaktieren Sie den Support für Hilfe."
+    },
+    features: {
+      title: "Alles, Was Sie zum Erfolg Brauchen",
+      subtitle: "Umfassende KI-gestützte Tools, speziell für Einwanderungsfachleute und Antragsteller entwickelt.",
+      ready: "Bereit zu Beginnen?",
+      join: "Schließen Sie sich Tausenden von Benutzern an, die ImmigrationAI für ihre Einwanderungsbedürfnisse vertrauen.",
+      startTrial: "Kostenlose Testversion Starten"
+    },
+    research: {
+      title: "Forschungsbibliothek",
+      subtitle: "Zugriff auf kuratierte Ressourcen zum Einwanderungsrecht, Fallstudien und offizielle Dokumentation",
+      search: "Ressourcen, Vorschriften, Rechtsprechung durchsuchen...",
+      allResources: "Alle Ressourcen",
+      visaRequirements: "Visaanforderungen",
+      caseLaw: "Rechtsprechung",
+      regulations: "Vorschriften",
+      guides: "Leitfäden und Häufig Gestellte Fragen",
+      noResults: "Keine Ressourcen gefunden",
+      tryAdjusting: "Versuchen Sie, Ihre Suche oder Filter anzupassen",
+      source: "Quelle",
+      download: "Herunterladen"
+    },
+    upload: {
+      title: "Dokument-Upload und Analyse",
+      dropFiles: "Dateien hier ablegen oder klicken Sie zum Hochladen",
+      supports: "Unterstützt PDF, DOC, DOCX, JPG, PNG (Max 10MB pro Datei)",
+      chooseFiles: "Dateien Wählen",
+      uploading: "Wird Hochgeladen...",
+      uploaded: "Hochgeladene Dokumente",
+      analyzed: "Analysiert",
+      view: "Anzeigen",
+      delete: "Löschen",
+      uploadedSuccess: "Dateien Hochgeladen",
+      uploadedDesc: "Datei(en) erfolgreich hochgeladen und analysiert",
+      deleted: "Datei Gelöscht",
+      deletedDesc: "Datei erfolgreich entfernt"
+    },
+    translate: {
+      title: "KI-Übersetzung",
+      from: "Von",
+      to: "Zu",
+      textToTranslate: "Text zum Übersetzen",
+      enterText: "Text zum Übersetzen eingeben...",
+      certified: "Beglaubigte Übersetzung anfordern (+$25)",
+      translate: "Übersetzen",
+      translating: "Wird Übersetzt...",
+      result: "Übersetzungsergebnis",
+      willAppear: "Die Übersetzung wird hier angezeigt...",
+      swap: "Tauschen",
+      download: "Herunterladen",
+      complete: "Übersetzung Abgeschlossen",
+      certifiedReady: "Beglaubigte Übersetzung bereit zum Download",
+      aiComplete: "KI-Übersetzung abgeschlossen",
+      downloaded: "Heruntergeladen",
+      saved: "Übersetzung erfolgreich gespeichert",
+      error: "Fehler",
+      enterTextError: "Bitte geben Sie Text zum Übersetzen ein"
+    },
+    auth: {
+      lawyerAccess: "Anwaltzugang",
+      applicantLogin: "Antragstelleranmeldung",
+      enterDetails: "Geben Sie Ihre Daten ein, um auf das Portal zuzugreifen.",
+      email: "E-Mail-Adresse",
+      password: "Passwort",
+      minChars: "Min. 6 Zeichen",
+      signIn: "Anmelden",
+      noAccount: "Sie haben noch kein Konto?",
+      register: "Registrieren",
+      back: "Zurück"
+    },
+    community: {
+      title: "Gemeinschaft und Unterstützung",
+      telegramGroup: "Usbekische Gesellschaftsgruppe",
+      telegramChannel: "Usbekischer Einwandererkanal",
+      joinCommunity: "Treten Sie unserer Telegram-Gemeinde bei für Echtzeit-Unterstützung und Kontakt mit anderen Einwanderern",
+      getHelp: "Hilfe und Unterstützung Erhalten",
+      needHelp: "Benötigen Sie Hilfe? Treten Sie unseren Telegram-Gemeinschaften bei oder kontaktieren Sie den Support"
+    }
+  },
+  fr: {
+    nav: { login: "Connexion", start: "Commencer", features: "Fonctionnalités", pricing: "Tarification", partner: "Partenaire" },
+    hero: { title: "Vers l'Europe.", sub: "Immigration IA pour l'Ouzbékistan.", cta: "Vérifier l'Admissibilité", trusted: "Approuvé par 10k+ personnes" },
+    dash: { 
+      welcome: "Bienvenue,", roadmap: "Feuille de route", docs: "Docs IA", lawyer: "Avocat", chat: "Chat IA", 
+      logout: "Déconnexion", upload: "Documents", translate: "Traduction", research: "Recherche"
+    },
+    tools: { gen: "Générer", dl: "Télécharger", typing: "IA écrit...", chatP: "Posez des questions sur les visas...", clear: "Effacer" },
+    lawyer: { 
+      title: "Portail Partenaire", 
+      active: "Dossiers Actifs", 
+      rev: "Revenu", 
+      status: "Statut", 
+      pending: "En Attente", 
+      approved: "Approuvé",
+      applications: "Demandes",
+      searchPlaceholder: "Rechercher des demandeurs, des noms, des e-mails..."
+    },
+    pricing: {
+      title: "Choisissez Votre Plan",
+      subtitle: "Commencez gratuitement, améliorez-vous au fur et à mesure de votre croissance. Tous les plans incluent notre aide à l'immigration basée sur l'IA.",
+      starter: "Démarrage",
+      professional: "Professionnel",
+      enterprise: "Entreprise",
+      free: "Gratuit",
+      forever: "pour toujours",
+      perMonth: "par mois",
+      contactUs: "nous contacter",
+      getStarted: "Commencer Gratuitement",
+      startTrial: "Commencer l'Essai Gratuit",
+      contactSales: "Contacter le Service des Ventes",
+      mostPopular: "Le Plus Populaire",
+      faq: "Questions Fréquemment Posées",
+      changePlans: "Puis-je changer de plan plus tard?",
+      changePlansA: "Oui! Vous pouvez mettre à niveau, rétrograder ou annuler votre plan à tout moment. Les modifications prennent effet immédiatement.",
+      paymentMethods: "Quels modes de paiement acceptez-vous?",
+      paymentMethodsA: "Nous acceptons toutes les principales cartes de crédit, PayPal et les virements bancaires pour les plans d'entreprise.",
+      freeTrial: "Y a-t-il un essai gratuit?",
+      freeTrialA: "Oui! Le plan Professionnel comprend un essai gratuit de 14 jours. Aucune carte de crédit requise pour le plan Démarrage.",
+      refunds: "Offrez-vous des remboursements?",
+      refundsA: "Nous offrons une garantie de remboursement de 30 jours sur tous les plans payants. Contactez le support pour obtenir de l'aide."
+    },
+    features: {
+      title: "Tout Ce que Vous Devez Réussir",
+      subtitle: "Des outils complets basés sur l'IA conçus spécifiquement pour les professionnels de l'immigration et les demandeurs.",
+      ready: "Prêt à Commencer?",
+      join: "Rejoignez des milliers d'utilisateurs qui font confiance à ImmigrationAI pour leurs besoins en matière d'immigration.",
+      startTrial: "Commencer l'Essai Gratuit"
+    },
+    research: {
+      title: "Bibliothèque de Recherche",
+      subtitle: "Accès aux ressources du droit de l'immigration, aux études de cas et à la documentation officielle",
+      search: "Rechercher des ressources, des réglementations, des jurisprudences...",
+      allResources: "Toutes les Ressources",
+      visaRequirements: "Exigences de Visa",
+      caseLaw: "Jurisprudence",
+      regulations: "Réglementations",
+      guides: "Guides et Questions Fréquemment Posées",
+      noResults: "Aucune ressource trouvée",
+      tryAdjusting: "Essayez d'ajuster votre recherche ou vos filtres",
+      source: "Source",
+      download: "Télécharger"
+    },
+    upload: {
+      title: "Téléchargement et Analyse de Documents",
+      dropFiles: "Déposez les fichiers ici ou cliquez pour télécharger",
+      supports: "Supporte PDF, DOC, DOCX, JPG, PNG (Max 10MB par fichier)",
+      chooseFiles: "Choisir des Fichiers",
+      uploading: "Téléchargement en Cours...",
+      uploaded: "Documents Téléchargés",
+      analyzed: "Analysé",
+      view: "Afficher",
+      delete: "Supprimer",
+      uploadedSuccess: "Fichiers Téléchargés",
+      uploadedDesc: "fichier(s) téléchargé(s) et analysé(s) avec succès",
+      deleted: "Fichier Supprimé",
+      deletedDesc: "Fichier supprimé avec succès"
+    },
+    translate: {
+      title: "Traduction IA",
+      from: "De",
+      to: "Vers",
+      textToTranslate: "Texte à Traduire",
+      enterText: "Entrez le texte à traduire...",
+      certified: "Demander une traduction certifiée (+$25)",
+      translate: "Traduire",
+      translating: "Traduction en Cours...",
+      result: "Résultat de la Traduction",
+      willAppear: "La traduction apparaîtra ici...",
+      swap: "Échanger",
+      download: "Télécharger",
+      complete: "Traduction Terminée",
+      certifiedReady: "La traduction certifiée est prête à être téléchargée",
+      aiComplete: "Traduction IA terminée",
+      downloaded: "Téléchargé",
+      saved: "Traduction enregistrée avec succès",
+      error: "Erreur",
+      enterTextError: "Veuillez entrer le texte à traduire"
+    },
+    auth: {
+      lawyerAccess: "Accès Avocat",
+      applicantLogin: "Connexion Demandeur",
+      enterDetails: "Entrez vos coordonnées pour accéder au portail.",
+      email: "Adresse E-mail",
+      password: "Mot de Passe",
+      minChars: "Min. 6 caractères",
+      signIn: "Connexion",
+      noAccount: "Pas encore de compte?",
+      register: "S'inscrire",
+      back: "Retour"
+    },
+    community: {
+      title: "Communauté et Support",
+      telegramGroup: "Groupe Société Ouzbek",
+      telegramChannel: "Canal Immigrant Ouzbek",
+      joinCommunity: "Rejoignez notre communauté Telegram pour un support en temps réel et la connexion avec d'autres immigrants",
+      getHelp: "Obtenir Aide et Support",
+      needHelp: "Besoin d'aide? Rejoignez nos communautés Telegram ou contactez le support"
+    }
+  },
+  es: {
+    nav: { login: "Iniciar Sesión", start: "Empezar", features: "Características", pricing: "Precios", partner: "Socio" },
+    hero: { title: "Hacia Europa.", sub: "Inmigración Impulsada por IA para Uzbekistán.", cta: "Verificar Elegibilidad", trusted: "Confiado por 10k+ personas" },
+    dash: { 
+      welcome: "Bienvenido,", roadmap: "Mapa de Ruta", docs: "Documentos IA", lawyer: "Abogado", chat: "Chat IA", 
+      logout: "Cerrar Sesión", upload: "Documentos", translate: "Traducción", research: "Investigación"
+    },
+    tools: { gen: "Generar", dl: "Descargar", typing: "IA escribiendo...", chatP: "Pregunte sobre visas...", clear: "Limpiar" },
+    lawyer: { 
+      title: "Portal de Socio", 
+      active: "Casos Activos", 
+      rev: "Ingresos", 
+      status: "Estado", 
+      pending: "Pendiente", 
+      approved: "Aprobado",
+      applications: "Solicitudes",
+      searchPlaceholder: "Buscar solicitantes, nombres, correos electrónicos..."
+    },
+    pricing: {
+      title: "Elige Tu Plan",
+      subtitle: "Comienza gratis, mejora a medida que creces. Todos los planes incluyen nuestra asistencia de inmigración impulsada por IA.",
+      starter: "Inicial",
+      professional: "Profesional",
+      enterprise: "Empresa",
+      free: "Gratis",
+      forever: "para siempre",
+      perMonth: "por mes",
+      contactUs: "contáctenos",
+      getStarted: "Empezar Gratis",
+      startTrial: "Comenzar Prueba Gratuita",
+      contactSales: "Contactar Ventas",
+      mostPopular: "Más Popular",
+      faq: "Preguntas Frecuentes",
+      changePlans: "¿Puedo cambiar de plan más tarde?",
+      changePlansA: "¡Sí! Puedes actualizar, degradar o cancelar tu plan en cualquier momento. Los cambios surten efecto de inmediato.",
+      paymentMethods: "¿Qué métodos de pago aceptan?",
+      paymentMethodsA: "Aceptamos todas las tarjetas de crédito principales, PayPal y transferencias bancarias para planes empresariales.",
+      freeTrial: "¿Hay una prueba gratuita?",
+      freeTrialA: "¡Sí! El plan Profesional incluye una prueba gratuita de 14 días. No se requiere tarjeta de crédito para el plan Inicial.",
+      refunds: "¿Ofrecen reembolsos?",
+      refundsA: "Ofrecemos una garantía de devolución de dinero de 30 días en todos los planes pagos. Contacta al soporte para obtener ayuda."
+    },
+    features: {
+      title: "Todo lo Que Necesitas para Tener Éxito",
+      subtitle: "Herramientas integrales impulsadas por IA diseñadas específicamente para profesionales de inmigración y solicitantes.",
+      ready: "¿Listo para Comenzar?",
+      join: "Únete a miles de usuarios que confían en ImmigrationAI para sus necesidades de inmigración.",
+      startTrial: "Comenzar Prueba Gratuita"
+    },
+    research: {
+      title: "Biblioteca de Investigación",
+      subtitle: "Acceso a recursos de derecho migratorio, estudios de casos y documentación oficial",
+      search: "Buscar recursos, regulaciones, jurisprudencia...",
+      allResources: "Todos los Recursos",
+      visaRequirements: "Requisitos de Visa",
+      caseLaw: "Jurisprudencia",
+      regulations: "Regulaciones",
+      guides: "Guías y Preguntas Frecuentes",
+      noResults: "No se encontraron recursos",
+      tryAdjusting: "Intenta ajustar tu búsqueda o filtros",
+      source: "Fuente",
+      download: "Descargar"
+    },
+    upload: {
+      title: "Carga y Análisis de Documentos",
+      dropFiles: "Suelta archivos aquí o haz clic para cargar",
+      supports: "Compatible con PDF, DOC, DOCX, JPG, PNG (Máx. 10MB por archivo)",
+      chooseFiles: "Elegir Archivos",
+      uploading: "Cargando...",
+      uploaded: "Documentos Cargados",
+      analyzed: "Analizado",
+      view: "Ver",
+      delete: "Eliminar",
+      uploadedSuccess: "Archivos Cargados",
+      uploadedDesc: "archivo(s) cargado(s) y analizado(s) con éxito",
+      deleted: "Archivo Eliminado",
+      deletedDesc: "Archivo eliminado exitosamente"
+    },
+    translate: {
+      title: "Traducción IA",
+      from: "De",
+      to: "Para",
+      textToTranslate: "Texto a Traducir",
+      enterText: "Ingresa el texto a traducir...",
+      certified: "Solicitar traducción certificada (+$25)",
+      translate: "Traducir",
+      translating: "Traduciendo...",
+      result: "Resultado de la Traducción",
+      willAppear: "La traducción aparecerá aquí...",
+      swap: "Intercambiar",
+      download: "Descargar",
+      complete: "Traducción Completada",
+      certifiedReady: "Traducción certificada lista para descargar",
+      aiComplete: "Traducción de IA completada",
+      downloaded: "Descargado",
+      saved: "Traducción guardada exitosamente",
+      error: "Error",
+      enterTextError: "Por favor ingresa el texto a traducir"
+    },
+    auth: {
+      lawyerAccess: "Acceso Abogado",
+      applicantLogin: "Inicio de Sesión Solicitante",
+      enterDetails: "Ingresa tus datos para acceder al portal.",
+      email: "Correo Electrónico",
+      password: "Contraseña",
+      minChars: "Mín. 6 caracteres",
+      signIn: "Iniciar Sesión",
+      noAccount: "¿Sin cuenta?",
+      register: "Registrarse",
+      back: "Atrás"
+    },
+    community: {
+      title: "Comunidad y Apoyo",
+      telegramGroup: "Grupo Sociedad Uzbeka",
+      telegramChannel: "Canal Inmigrante Uzbeko",
+      joinCommunity: "Únete a nuestra comunidad de Telegram para apoyo en tiempo real y conexión con otros inmigrantes",
+      getHelp: "Obtener Ayuda y Apoyo",
+      needHelp: "¿Necesitas ayuda? Únete a nuestras comunidades de Telegram o contacta con soporte"
+    }
+  }
+};
+
+export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [lang, setLangState] = useState<Language>("en");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("iai_lang") as Language;
+    if (saved && ["en", "uz", "ru", "de", "fr", "es"].includes(saved)) {
+      setLangState(saved);
+    }
+  }, []);
+
+  const setLang = (l: Language) => {
+    setLangState(l);
+    localStorage.setItem("iai_lang", l);
+  };
+
+  const t = TRANSLATIONS[lang];
+
+  return (
+    <I18nContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </I18nContext.Provider>
+  );
+};
+
+export const useI18n = () => {
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error("useI18n must be used within I18nProvider");
+  return ctx;
+};

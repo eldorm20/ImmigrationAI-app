@@ -1,0 +1,126 @@
+import { db } from "../db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { logger } from "./logger";
+import { emailQueue, notificationQueue } from "./queue";
+import { 
+  generateApplicationStatusEmail, 
+  generateConsultationEmail,
+  generatePaymentConfirmationEmail,
+  generateDocumentUploadConfirmationEmail 
+} from "./email";
+
+export interface NotificationPayload {
+  userId: string;
+  title: string;
+  message: string;
+  type: "info" | "success" | "warning" | "error";
+  link?: string;
+}
+
+// Send notification (queued)
+export async function sendNotification(payload: NotificationPayload): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, payload.userId),
+    });
+
+    if (!user) {
+      logger.warn({ userId: payload.userId }, "User not found for notification");
+      return;
+    }
+
+    // Queue notification
+    await notificationQueue.add(payload, { priority: 10 });
+
+    logger.info({ userId: payload.userId }, "Notification queued");
+  } catch (error) {
+    logger.error({ error, payload }, "Failed to queue notification");
+  }
+}
+
+// Send application status update
+export async function sendApplicationStatusNotification(
+  userId: string,
+  applicationId: string,
+  status: string,
+  applicantName: string = ""
+): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user || !user.emailVerified) {
+      logger.warn({ userId }, "User not found or email not verified");
+      return;
+    }
+
+    const name = applicantName || user.firstName || "Applicant";
+    const html = generateApplicationStatusEmail(status, name, applicationId);
+
+    await emailQueue.add({
+      to: user.email,
+      subject: `Application Status Updated - ${status}`,
+      html,
+    });
+
+    logger.info({ userId, applicationId }, "Status notification queued");
+  } catch (error) {
+    logger.error({ error }, "Failed to send status notification");
+  }
+}
+
+// Send consultation booking notification
+export async function sendConsultationNotification(
+  userId: string,
+  lawyerName: string,
+  scheduledTime: Date,
+  meetingLink?: string
+): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user || !user.emailVerified) {
+      logger.warn({ userId }, "User not found or email not verified");
+      return;
+    }
+
+    const html = generateConsultationEmail(lawyerName, scheduledTime, meetingLink);
+
+    await emailQueue.add({
+      to: user.email,
+      subject: "Consultation Scheduled - ImmigrationAI",
+      html,
+    });
+
+    logger.info({ userId }, "Consultation notification queued");
+  } catch (error) {
+    logger.error({ error }, "Failed to send consultation notification");
+  }
+}
+
+// Bulk notification to admins
+export async function notifyAdmins(subject: string, message: string): Promise<void> {
+  try {
+    const admins = await db.query.users.findMany({
+      where: eq(users.role, "admin"),
+    });
+
+    for (const admin of admins) {
+      if (admin.emailVerified) {
+        await emailQueue.add({
+          to: admin.email,
+          subject: `[ADMIN] ${subject}`,
+          html: `<p>${message}</p>`,
+        });
+      }
+    }
+
+    logger.info({ count: admins.length }, "Admin notifications queued");
+  } catch (error) {
+    logger.error({ error }, "Failed to notify admins");
+  }
+}
