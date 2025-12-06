@@ -11,8 +11,8 @@ const DEFAULT_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:5000",
   // Allow Railway preview/production domains by default (wildcard)
-  "https://*.railway.app",
-  "https://*.up.railway.app",
+  "*.railway.app",
+  "*.up.railway.app",
   // Specific production domain
   "https://immigrationai-app-production-b994.up.railway.app",
 ];
@@ -27,28 +27,29 @@ const allowedOrigins = getAllowedOrigins();
 export const corsMiddleware = cors({
   origin: (origin: any, cb: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) return cb(null, true);
+    
     const o = String(origin).toLowerCase();
-    const ok = allowedOrigins.some((a) => {
-      const aa = a.toLowerCase();
-      if (aa === o) return true;
-      if (aa.includes("*")) {
-        // Convert wildcard pattern to regex: *.up.railway.app -> ^.+\.up\.railway\.app$
-        const escapedPattern = aa
-          .replace(/\./g, "\\.")  // escape dots
-          .replace(/\*\./g, "[^/]+\\.");  // *. becomes [^/]+\.  (one or more non-slash chars + dot)
-        const pattern = new RegExp("^" + escapedPattern + "$");
-        return pattern.test(o);
+    
+    // Check exact matches first
+    if (allowedOrigins.some(a => a.toLowerCase() === o)) {
+      return cb(null, true);
+    }
+    
+    // Check wildcard patterns
+    for (const pattern of allowedOrigins) {
+      const p = pattern.toLowerCase();
+      if (p.includes("*")) {
+        // Convert *.up.railway.app to regex: ^https?:\/\/[^\/]+\.up\.railway\.app(:[0-9]+)?$
+        const escaped = p.replace(/\./g, "\\.");
+        const regexStr = escaped.replace(/\*/g, "[^.]+");
+        const regex = new RegExp(`^https?:\\/\\/${regexStr}(:[0-9]+)?$`);
+        if (regex.test(o)) {
+          return cb(null, true);
+        }
       }
-      return false;
-    });
-    if (ok) return cb(null, true);
-    // If origin is not in the list, log a warning. To avoid accidental lockouts
-    // during deploys where the exact host may be unknown, allow the request
-    // in production as a safe fallback. To enforce stricter rules, set
-    // `ALLOWED_ORIGINS` in the environment to a comma-separated list.
-    // This mirrors the relaxed behavior used earlier during deployment.
-    // Note: keep a warning so operators can tighten production rules later.
-    // eslint-disable-next-line no-console
+    }
+    
+    // Log warning but allow as fallback for safety
     console.warn(`CORS origin not allowed: ${origin}; allowing as fallback`);
     return cb(null, true);
   },
