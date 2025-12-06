@@ -11,8 +11,8 @@ const DEFAULT_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:5000",
   // Allow Railway preview/production domains by default (wildcard)
-  "*.railway.app",
-  "*.up.railway.app",
+  "https://*.railway.app",
+  "https://*.up.railway.app",
   // Specific production domain
   "https://immigrationai-app-production-b994.up.railway.app",
 ];
@@ -30,22 +30,22 @@ export const corsMiddleware = cors({
     
     const o = String(origin).toLowerCase();
     
-    // Check exact matches first
-    if (allowedOrigins.some(a => a.toLowerCase() === o)) {
-      return cb(null, true);
-    }
-    
-    // Check wildcard patterns
+    // Check each allowed origin pattern
     for (const pattern of allowedOrigins) {
       const p = pattern.toLowerCase();
+      
+      // Exact match
+      if (p === o) return cb(null, true);
+      
+      // Wildcard pattern matching
       if (p.includes("*")) {
-        // Convert *.up.railway.app to regex: ^https?:\/\/[^\/]+\.up\.railway\.app(:[0-9]+)?$
-        const escaped = p.replace(/\./g, "\\.");
-        const regexStr = escaped.replace(/\*/g, "[^.]+");
-        const regex = new RegExp(`^https?:\\/\\/${regexStr}(:[0-9]+)?$`);
-        if (regex.test(o)) {
-          return cb(null, true);
-        }
+        // Pattern like "https://*.up.railway.app"
+        // Convert to regex: https://[^.]+\.up\.railway\.app(:[0-9]+)?
+        const regexPattern = p
+          .replace(/\./g, "\\.")
+          .replace(/\*/g, "[^.]+");
+        const regex = new RegExp(`^${regexPattern}(:[0-9]+)?/?$`);
+        if (regex.test(o)) return cb(null, true);
       }
     }
     
