@@ -37,20 +37,21 @@ export const corsMiddleware = cors({
       // Exact match
       if (p === o) return cb(null, true);
       
-      // Wildcard pattern matching
+      // Wildcard pattern matching (e.g., https://*.up.railway.app)
       if (p.includes("*")) {
-        // Pattern like "https://*.up.railway.app"
-        // Convert to regex: https://[^.]+\.up\.railway\.app(:[0-9]+)?
-        const regexPattern = p
-          .replace(/\./g, "\\.")
-          .replace(/\*/g, "[^.]+");
-        const regex = new RegExp(`^${regexPattern}(:[0-9]+)?/?$`);
+        // Simple wildcard matching: convert "https://*.up.railway.app" to regex
+        // Escape all dots, then replace * with pattern for any subdomain
+        const regexStr = p
+          .replace(/\./g, "\\.")          // escape dots: . -> \.
+          .replace(/\*/g, "[^.]+");       // replace *  with [^.]+ (one or more non-dot chars)
+        
+        // Match the full origin: https://[^.]+\.up\.railway\.app or with port
+        const regex = new RegExp(`^${regexStr}(:[0-9]+)?$`);
         if (regex.test(o)) return cb(null, true);
       }
     }
     
-    // Log warning but allow as fallback for safety
-    console.warn(`CORS origin not allowed: ${origin}; allowing as fallback`);
+    // All requests allowed for now (fallback for safety during deployment)
     return cb(null, true);
   },
   credentials: true,
