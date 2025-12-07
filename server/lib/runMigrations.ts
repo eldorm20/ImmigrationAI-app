@@ -17,22 +17,23 @@ export async function runMigrationsIfNeeded(): Promise<void> {
   // Resolve migrations path - check multiple locations
   const possiblePaths = [
     resolve(process.cwd(), "migrations"),
-    resolve(__dirname, "../..", "migrations"),
-    resolve(__dirname, "migrations"),
+    resolve(process.cwd(), ".", "migrations"),
+    "migrations",
   ];
 
   let migrationsPath = null;
   for (const path of possiblePaths) {
-    if (existsSync(path)) {
-      migrationsPath = path;
-      logger.info(`Found migrations at: ${path}`);
+    const absPath = resolve(path);
+    if (existsSync(absPath)) {
+      migrationsPath = absPath;
+      logger.info(`Found migrations at: ${absPath}`);
       break;
     }
   }
 
   if (!migrationsPath) {
     logger.error(
-      { checkedPaths: possiblePaths },
+      { checkedPaths: possiblePaths.map((p) => resolve(p)) },
       "Migrations folder not found in any expected location"
     );
     throw new Error("Migrations folder not found");
