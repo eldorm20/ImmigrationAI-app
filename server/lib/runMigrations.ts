@@ -5,22 +5,22 @@ const { Pool } = pkg;
 import { logger } from "./logger";
 
 export async function runMigrationsIfNeeded(): Promise<void> {
-  if (process.env.AUTO_RUN_MIGRATIONS !== "true") return;
-
+  // Always run migrations if DATABASE_URL is set
+  // This ensures the database schema is up to date on every app start
   if (!process.env.DATABASE_URL) {
-    logger.error("DATABASE_URL not set, cannot run migrations");
-    throw new Error("DATABASE_URL not set");
+    logger.warn("DATABASE_URL not set, skipping migrations");
+    return;
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool);
 
   try {
-    logger.info("AUTO_RUN_MIGRATIONS=true — running migrations...");
+    logger.info("Running database migrations...");
     await migrate(db, { migrationsFolder: "./migrations" });
-    logger.info("Database migrations completed");
+    logger.info("Database migrations completed successfully");
   } catch (err) {
-    logger.error({ err }, "Auto migration failed");
+    logger.error({ err }, "Database migration failed");
     throw err;
   } finally {
     try {

@@ -37,6 +37,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dist/public ./client/dist
 
 COPY drizzle.config.ts ./
+COPY migrations ./migrations
 COPY shared ./shared
 
 EXPOSE 5000
