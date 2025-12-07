@@ -12,6 +12,7 @@ import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { ensureSchemaExists } from "./lib/ensureSchema";
+import { initializeDatabase } from "./lib/initDatabase";
 
 import "dotenv/config";
 
@@ -128,6 +129,13 @@ app.get("/health", async (_req, res) => {
       await ensureSchemaExists();
     } catch (err) {
       logger.error({ err }, "Schema initialization failed");
+    }
+
+    // Initialize database schema (creates tables if needed)
+    try {
+      await initializeDatabase();
+    } catch (err) {
+      logger.error({ err }, "Database initialization failed");
     }
 
     // Run migrations automatically
