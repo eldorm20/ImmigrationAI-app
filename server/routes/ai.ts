@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth";
 import { apiLimiter } from "../middleware/security";
-import { asyncHandler } from "../middleware/errorHandler";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { enforceFeatureGating } from "../middleware/featureGating";
 import {
   getEligibilityQuestions,
   checkEligibility,
@@ -12,6 +13,7 @@ import {
   generateDocument,
   type DocumentGenerationRequest,
 } from "../lib/ai";
+import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
 import { db } from "../db";
 import { documents } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -113,6 +115,7 @@ router.post(
 // Generate AI document
 router.post(
   "/documents/generate",
+  enforceFeatureGating("aiDocumentGenerations"),
   asyncHandler(async (req, res) => {
     const { type, visaType, country, applicantName, applicantEmail, education, experience, skills, targetRole, personalStatement } = z
       .object({

@@ -10,6 +10,7 @@ import researchRoutes from "./routes/research";
 import stripeRoutes from "./routes/stripe";
 import notificationRoutes from "./routes/notifications";
 import reportsRoutes from "./routes/reports";
+import subscriptionsRoutes from "./routes/subscriptions";
 import webhooksRoutes from "./routes/webhooks";
 
 export function registerRoutes(app: Express) {
@@ -27,4 +28,5 @@ export function registerRoutes(app: Express) {
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/reports", reportsRoutes);
+  app.use("/api/subscription", subscriptionsRoutes);
 }
