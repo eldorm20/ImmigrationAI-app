@@ -11,6 +11,7 @@ import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
+import { ensureSchemaExists } from "./lib/ensureSchema";
 
 import "dotenv/config";
 
@@ -122,8 +123,14 @@ app.get("/health", async (_req, res) => {
       logger.warn("Redis not connected - caching disabled");
     }
 
-    // Optionally run migrations automatically in production if enabled.
-    // Set `AUTO_RUN_MIGRATIONS=true` in Railway project variables to enable.
+    // Check if database schema exists, run migrations if needed
+    try {
+      await ensureSchemaExists();
+    } catch (err) {
+      logger.error({ err }, "Schema initialization failed");
+    }
+
+    // Run migrations automatically
     try {
       await runMigrationsIfNeeded();
     } catch (err) {
