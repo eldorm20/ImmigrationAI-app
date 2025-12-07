@@ -44,7 +44,7 @@ router.post(
   "/documents/analyze/:documentId",
   asyncHandler(async (req, res) => {
     const { documentId } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
 
     const document = await db.query.documents.findFirst({

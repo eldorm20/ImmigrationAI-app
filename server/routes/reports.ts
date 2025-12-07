@@ -294,7 +294,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const { applicationId } = req.params;
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const application = await db.query.applications.findFirst({
       where: eq(applications.id, applicationId),

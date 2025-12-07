@@ -205,7 +205,7 @@ router.post(
       await revokeRefreshToken(refreshToken);
     }
 
-    await auditLog(req.user!.userId, "user.logout", "user", req.user!.userId, {}, req);
+    await auditLog(req.user!.id, "user.logout", "user", req.user!.id, {}, req);
 
     res.json({ message: "Logged out successfully" });
   })
@@ -217,7 +217,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const user = await db.query.users.findFirst({
-      where: eq(users.id, req.user!.userId),
+      where: eq(users.id, req.user!.id),
     });
 
     if (!user) {
