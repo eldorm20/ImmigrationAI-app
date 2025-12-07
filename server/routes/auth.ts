@@ -126,8 +126,13 @@ router.post(
       });
     } catch (err) {
       logger.error(
-        { err, stack: (err as any)?.stack, body: req.body },
-        "Register endpoint error"
+        {
+          message: (err as any)?.message,
+          stack: (err as any)?.stack,
+          body: { email: req.body?.email },
+          errorType: (err as any)?.constructor?.name,
+        },
+        `Register endpoint error: ${(err as any)?.message}`
       );
       throw err;
     }
@@ -187,8 +192,13 @@ router.post(
       });
     } catch (err) {
       logger.error(
-        { err, stack: (err as any)?.stack, body: req.body },
-        "Login endpoint error"
+        { 
+          message: (err as any)?.message,
+          stack: (err as any)?.stack, 
+          body: req.body,
+          errorType: (err as any)?.constructor?.name,
+        },
+        `Login endpoint error: ${(err as any)?.message}`
       );
       throw err;
     }
