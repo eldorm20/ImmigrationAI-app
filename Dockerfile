@@ -17,7 +17,7 @@ RUN apt-get update \
 
 # Install dependencies and build the project
 COPY package*.json tsconfig.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 COPY . .
 RUN npm run build   # uses your updated package.json to build server + client
