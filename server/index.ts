@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
+import { runMigrationsIfNeeded } from "./lib/runMigrations";
 
 import "dotenv/config";
 
@@ -119,6 +120,15 @@ app.get("/health", async (_req, res) => {
     const redisConnected = await checkRedisConnection();
     if (!redisConnected) {
       logger.warn("Redis not connected - caching disabled");
+    }
+
+    // Optionally run migrations automatically in production if enabled.
+    // Set `AUTO_RUN_MIGRATIONS=true` in Railway project variables to enable.
+    try {
+      await runMigrationsIfNeeded();
+    } catch (err) {
+      logger.error({ err }, "Auto-run migrations failed");
+      // continue startup; migrations failure might be transient but we want the app to start for debugging
     }
 
     // Register API routes first
