@@ -13,6 +13,7 @@ import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { ensureSchemaExists } from "./lib/ensureSchema";
 import { initializeDatabase } from "./lib/initDatabase";
+import { initializeWebSocket } from "./lib/websocket";
 
 import "dotenv/config";
 
@@ -149,6 +150,16 @@ app.get("/health", async (_req, res) => {
     // Register API routes first
     // registerRoutes expects the Express `app` instance (not the HTTP server)
     await registerRoutes(app);
+
+    // ============================================
+    // Initialize WebSocket for real-time messaging
+    // ============================================
+    try {
+      initializeWebSocket(httpServer);
+      logger.info("WebSocket server initialized successfully");
+    } catch (err) {
+      logger.error({ err }, "Failed to initialize WebSocket server");
+    }
 
     // ============================================
     // FIX #6: Serve static assets (after routes)

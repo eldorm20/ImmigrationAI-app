@@ -8,6 +8,7 @@ import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { emailQueue } from "../lib/queue";
 import { generateConsultationEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { generateGoogleMeetLink, createCalendarEventWithMeet } from "../lib/googleMeet";
 
 const router = Router();
 
@@ -56,6 +57,9 @@ router.post(
       throw new AppError(404, "User not found");
     }
 
+    // Generate Google Meet link for video consultation
+    const meetingLink = generateGoogleMeetLink(`consult-${body.lawyerId}-${user.id}`);
+
     // Create consultation request
     const [consultation] = await db
       .insert(consultations)
@@ -67,6 +71,7 @@ router.post(
         duration: body.duration,
         notes: body.notes,
         status: "scheduled",
+        meetingLink: meetingLink,
       })
       .returning();
 
@@ -85,6 +90,7 @@ router.post(
               <p><strong>Scheduled Time:</strong> ${new Date(body.scheduledTime).toLocaleString()}</p>
               <p><strong>Duration:</strong> ${body.duration} minutes</p>
               ${body.notes ? `<p><strong>Notes:</strong> ${body.notes}</p>` : ""}
+              <p><strong>Video Meeting Link:</strong> <a href="${meetingLink}">${meetingLink}</a></p>
               <p><a href="${process.env.APP_URL || "https://immigrationai.com"}/lawyer/consultations/${consultation.id}">View Request</a></p>
             </body>
           </html>
@@ -106,6 +112,7 @@ router.post(
               <p>Your consultation request has been submitted to ${lawyer.firstName} ${lawyer.lastName || ""}.</p>
               <p>The lawyer will review your request and confirm the appointment.</p>
               <p><strong>Requested Time:</strong> ${new Date(body.scheduledTime).toLocaleString()}</p>
+              <p><strong>Video Meeting Link:</strong> <a href="${meetingLink}">${meetingLink}</a></p>
             </body>
           </html>
         `,
