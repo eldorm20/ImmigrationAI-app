@@ -1,2 +1,2 @@
--- Add metadata column to users table for subscription and other data
-ALTER TABLE users ADD COLUMN metadata jsonb DEFAULT NULL;
+-- Metadata column already included in initial migration 0000
+-- This migration is now a no-op as the column exists from creation

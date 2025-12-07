@@ -104,6 +104,7 @@ CREATE TABLE "users" (
 	"first_name" varchar(100),
 	"last_name" varchar(100),
 	"phone" varchar(20),
+	"metadata" jsonb DEFAULT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
