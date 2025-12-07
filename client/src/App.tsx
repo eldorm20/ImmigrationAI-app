@@ -27,15 +27,24 @@ function ProtectedRoute({ component: Component, role }: { component: React.Compo
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation("/auth");
-    } else if (!isLoading && role && user?.role !== role) {
-      setLocation(user?.role === 'lawyer' || user?.role === 'admin' ? '/lawyer' : '/dashboard');
-    }
-  }, [user, isLoading, setLocation, role]);
+  // If still loading, show loading state
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin">Loading...</div></div>;
+  }
 
-  if (isLoading || !user) return null; // Or loading spinner
+  // If not authenticated, redirect to auth
+  if (!user) {
+    setLocation("/auth");
+    return null;
+  }
+
+  // If role doesn't match, redirect to appropriate dashboard
+  if (role && user.role !== role) {
+    const targetRoute = (user.role === 'lawyer' || user.role === 'admin') ? '/lawyer' : '/dashboard';
+    setLocation(targetRoute);
+    return null;
+  }
+
   return <Component />;
 }
 

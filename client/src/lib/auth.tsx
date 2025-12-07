@@ -46,6 +46,9 @@ function clearTokens() {
   localStorage.removeItem("refreshToken");
 }
 
+// Request deduplication to prevent multiple simultaneous /auth/me calls
+let refreshUserPromise: Promise<void> | null = null;
+
 // Use shared API helper from `client/src/lib/api.ts`
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -59,22 +62,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshUser = async () => {
-    try {
-      const userData = await apiRequest<Omit<User, "name">>("/auth/me", { skipErrorToast: true });
-      const nameFromEmail = userData.email.split("@")[0];
-      const fullName =
-        [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
-        nameFromEmail;
-
-      setUser({
-        ...userData,
-        name: fullName,
-      });
-    } catch (err) {
-      // Expected on initial load if user is not authenticated
-      setUser(null);
-      clearTokens();
+    // Return existing promise if already in flight to deduplicate requests
+    if (refreshUserPromise) {
+      return refreshUserPromise;
     }
+
+    refreshUserPromise = (async () => {
+      try {
+        const userData = await apiRequest<Omit<User, "name">>("/auth/me", { skipErrorToast: true });
+        const nameFromEmail = userData.email.split("@")[0];
+        const fullName =
+          [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
+          nameFromEmail;
+
+        setUser({
+          ...userData,
+          name: fullName,
+        });
+      } catch (err) {
+        // Expected on initial load if user is not authenticated
+        setUser(null);
+        clearTokens();
+      } finally {
+        refreshUserPromise = null;
+      }
+    })();
+
+    return refreshUserPromise;
   };
 
   const login = async (email: string, password: string) => {
@@ -152,25 +166,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-// Update the logout function in AuthProvider
-const logout = async () => {
-  try {
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (refreshToken) {
-      await apiRequest("/auth/logout", {
-        method: "POST",
-        body: JSON.stringify({ refreshToken }),
-        skipErrorToast: true,
-      });
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await apiRequest("/auth/logout", {
+          method: "POST",
+          body: JSON.stringify({ refreshToken }),
+          skipErrorToast: true,
+        });
+      }
+    } catch (err) {
+      // Ignore errors on logout
+    } finally {
+      clearTokens();
+      setUser(null);
+      setLocation("/");
     }
-  } catch (err) {
-    // Ignore errors on logout
-  } finally {
-    clearTokens();
-    setUser(null);
-    setLocation("/");
-  }
-};
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, isLoading, refreshUser }}>

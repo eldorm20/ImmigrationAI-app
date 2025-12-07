@@ -92,27 +92,27 @@ export async function apiRequest<T>(
           });
 
           if (refreshResponse.ok) {
-            const { accessToken, refreshToken: newRefreshToken } =
+            const { accessToken, refreshToken } =
               await refreshResponse.json();
-            await setAuthTokens(accessToken, newRefreshToken);
+            await setAuthTokens(accessToken, refreshToken);
 
             // Retry original request
             return apiRequest<T>(endpoint, options, retryCount + 1);
+          } else {
+            // Refresh failed, clear tokens and throw error
+            await clearAuthTokens();
+            throw new APIError(401, null, "Session expired");
           }
         } catch (err) {
           await clearAuthTokens();
-          if (typeof window !== "undefined") {
-            window.location.href = "/auth";
-          }
-          throw err;
+          if (err instanceof APIError) throw err;
+          throw new APIError(401, null, "Session expired");
         }
       }
 
+      // No refresh token available, just throw 401 error
       await clearAuthTokens();
-      if (typeof window !== "undefined") {
-        window.location.href = "/auth";
-      }
-      throw new APIError(401, null, "Session expired");
+      throw new APIError(401, null, "Unauthorized");
     }
 
     if (!response.ok) {
