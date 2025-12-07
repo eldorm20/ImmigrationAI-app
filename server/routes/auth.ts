@@ -55,68 +55,82 @@ router.post(
   "/register",
   authLimiter,
   asyncHandler(async (req, res) => {
-    const body = registerSchema.parse(req.body);
-    const email = normalizeEmail(body.email);
-
-    // Check if user exists
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.email, email),
-    });
-
-    if (existingUser) {
-      return res.status(409).json({ message: "Email already registered" });
-    }
-
-    // Hash password
-    const hashedPassword = await hashPassword(body.password);
-
-    // Generate email verification token
-    const verificationToken = generateEmailVerificationToken();
-    const verificationExpires = new Date();
-    verificationExpires.setHours(verificationExpires.getHours() + 24); // 24 hours
-
-    // Create user
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        email,
-        hashedPassword,
-        role: body.role,
-        firstName: sanitizeInput(body.firstName || ""),
-        lastName: sanitizeInput(body.lastName || ""),
-        phone: body.phone ? sanitizeInput(body.phone) : null,
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: verificationExpires,
-      })
-      .returning();
-
-    // Generate tokens
-    const tokens = await generateTokens(newUser.id);
-
-    await auditLog(newUser.id, "user.register", "user", newUser.id, {}, req);
-
-    logger.info({ userId: newUser.id, email }, "User registered");
-
-    // Optionally queue verification email (best-effort)
     try {
-      const appUrl = process.env.APP_URL || "http://localhost:5000";
-      const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
-      const html = `Please verify your email by visiting: <a href="${verificationUrl}">${verificationUrl}</a>`;
-      await emailQueue.add({ to: newUser.email, subject: "Verify your ImmigrationAI account", html });
-    } catch (err) {
-      logger.error({ error: err }, "Failed to queue verification email");
-    }
+      const body = registerSchema.parse(req.body);
+      const email = normalizeEmail(body.email);
 
-    res.status(201).json({
-      message: "Registration successful. Please verify your email.",
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        role: newUser.role,
-        emailVerified: newUser.emailVerified,
-      },
-      ...tokens,
-    });
+      logger.debug({ email }, "Registration attempt");
+
+      // Check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (existingUser) {
+        return res.status(409).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(body.password);
+
+      // Generate email verification token
+      const verificationToken = generateEmailVerificationToken();
+      const verificationExpires = new Date();
+      verificationExpires.setHours(verificationExpires.getHours() + 24); // 24 hours
+
+      logger.debug({ email }, "Creating user in database");
+
+      // Create user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          email,
+          hashedPassword,
+          role: body.role,
+          firstName: sanitizeInput(body.firstName || ""),
+          lastName: sanitizeInput(body.lastName || ""),
+          phone: body.phone ? sanitizeInput(body.phone) : null,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: verificationExpires,
+        })
+        .returning();
+
+      logger.debug({ userId: newUser.id }, "User created, generating tokens");
+
+      // Generate tokens
+      const tokens = await generateTokens(newUser.id);
+
+      await auditLog(newUser.id, "user.register", "user", newUser.id, {}, req);
+
+      logger.info({ userId: newUser.id, email }, "User registered successfully");
+
+      // Optionally queue verification email (best-effort)
+      try {
+        const appUrl = process.env.APP_URL || "http://localhost:5000";
+        const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+        const html = `Please verify your email by visiting: <a href="${verificationUrl}">${verificationUrl}</a>`;
+        await emailQueue.add({ to: newUser.email, subject: "Verify your ImmigrationAI account", html });
+      } catch (err) {
+        logger.error({ error: err }, "Failed to queue verification email");
+      }
+
+      res.status(201).json({
+        message: "Registration successful. Please verify your email.",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          emailVerified: newUser.emailVerified,
+        },
+        ...tokens,
+      });
+    } catch (err) {
+      logger.error(
+        { err, stack: (err as any)?.stack, body: req.body },
+        "Register endpoint error"
+      );
+      throw err;
+    }
   })
 );
 
@@ -125,45 +139,59 @@ router.post(
   "/login",
   authLimiter,
   asyncHandler(async (req, res) => {
-    const body = loginSchema.parse(req.body);
-    const email = normalizeEmail(body.email);
+    try {
+      const body = loginSchema.parse(req.body);
+      const email = normalizeEmail(body.email);
 
-    // Find user
-    const user = await db.query.users.findFirst({
-      where: eq(users.email, email),
-    });
+      logger.debug({ email }, "Login attempt");
 
-    if (!user) {
-      await auditLog(null, "user.login_failed", "user", null, { email }, req);
-      return res.status(401).json({ message: "Invalid email or password" });
+      // Find user
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (!user) {
+        await auditLog(null, "user.login_failed", "user", null, { email }, req);
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      logger.debug({ userId: user.id }, "User found, verifying password");
+
+      // Verify password
+      const isValid = await verifyPassword(user.hashedPassword, body.password);
+      if (!isValid) {
+        await auditLog(null, "user.login_failed", "user", user.id, {}, req);
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      logger.debug({ userId: user.id }, "Password verified, generating tokens");
+
+      // Generate tokens
+      const tokens = await generateTokens(user.id);
+
+      await auditLog(user.id, "user.login", "user", user.id, {}, req);
+
+      logger.info({ userId: user.id, email }, "User logged in successfully");
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+        },
+        ...tokens,
+      });
+    } catch (err) {
+      logger.error(
+        { err, stack: (err as any)?.stack, body: req.body },
+        "Login endpoint error"
+      );
+      throw err;
     }
-
-    // Verify password
-    const isValid = await verifyPassword(user.hashedPassword, body.password);
-    if (!isValid) {
-      await auditLog(null, "user.login_failed", "user", user.id, {}, req);
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    // Generate tokens
-    const tokens = await generateTokens(user.id);
-
-    await auditLog(user.id, "user.login", "user", user.id, {}, req);
-
-    logger.info({ userId: user.id, email }, "User logged in");
-
-    res.json({
-      message: "Login successful",
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailVerified: user.emailVerified,
-      },
-      ...tokens,
-    });
   })
 );
 
