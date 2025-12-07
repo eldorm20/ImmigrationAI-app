@@ -33,9 +33,14 @@ In Railway → Project → Variables, paste these:
 NODE_ENV=production
 JWT_SECRET=<run: openssl rand -base64 32>
 ALLOWED_ORIGINS=https://<your-railway-domain>
+AUTO_RUN_MIGRATIONS=true
 ```
 
 Note: Railway will auto-create `DATABASE_URL` and `REDIS_URL` from plugins. Verify they're set before deploying.
+
+Important: the Docker build context must not include local `dist` artifacts. A
+.dockerignore entry excluding `dist` and `client/dist` is already included in the
+repo to prevent duplicate-source build errors (esbuild) during Railway builds.
 
 ### Get Your Values
 
