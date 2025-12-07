@@ -9,6 +9,8 @@ import {
   analyzeDocument,
   generateInterviewQuestions,
   evaluateInterviewAnswer,
+  generateDocument,
+  type DocumentGenerationRequest,
 } from "../lib/ai";
 import { db } from "../db";
 import { documents } from "@shared/schema";
@@ -105,6 +107,42 @@ router.post(
 
     const feedback = await evaluateInterviewAnswer(question, answer);
     res.json(feedback);
+  })
+);
+
+// Generate AI document
+router.post(
+  "/documents/generate",
+  asyncHandler(async (req, res) => {
+    const { type, visaType, country, applicantName, applicantEmail, education, experience, skills, targetRole, personalStatement } = z
+      .object({
+        type: z.enum(["cover_letter", "resume", "sop", "motivation_letter", "cv"]),
+        visaType: z.string().min(1),
+        country: z.string().min(1),
+        applicantName: z.string().min(1),
+        applicantEmail: z.string().email(),
+        education: z.string().optional(),
+        experience: z.string().optional(),
+        skills: z.string().optional(),
+        targetRole: z.string().optional(),
+        personalStatement: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const generatedDoc = await generateDocument({
+      type,
+      visaType,
+      country,
+      applicantName,
+      applicantEmail,
+      education,
+      experience,
+      skills,
+      targetRole,
+      personalStatement,
+    } as DocumentGenerationRequest);
+
+    res.json(generatedDoc);
   })
 );
 

@@ -292,6 +292,130 @@ export async function evaluateInterviewAnswer(
   }
 }
 
+// Document Generation
+export interface DocumentGenerationRequest {
+  type: "cover_letter" | "resume" | "sop" | "motivation_letter" | "cv";
+  visaType: string;
+  country: string;
+  applicantName: string;
+  applicantEmail: string;
+  education?: string;
+  experience?: string;
+  skills?: string;
+  targetRole?: string;
+  personalStatement?: string;
+}
+
+export interface GeneratedDocument {
+  title: string;
+  content: string;
+  generatedAt: string;
+  format: "markdown" | "html" | "text";
+}
+
+export async function generateDocument(request: DocumentGenerationRequest): Promise<GeneratedDocument> {
+  if (!hasOpenAI && !hasHuggingFace) {
+    const fallbackContent = `${request.type.replace(/_/g, " ").toUpperCase()}\n\nApplicant: ${request.applicantName}\nVisa Type: ${request.visaType}\nTarget Country: ${request.country}\n\nThis is a template document. Please add your personal information and customize it according to your needs.`;
+    return {
+      title: `${request.type.replace(/_/g, " ")} - ${request.applicantName}`,
+      content: fallbackContent,
+      generatedAt: new Date().toISOString(),
+      format: "text",
+    };
+  }
+
+  try {
+    const documentType = request.type.replace(/_/g, " ");
+    const prompt = buildDocumentGenerationPrompt(request, documentType);
+
+    const content = await generateText(prompt, 2000, 0.7);
+    
+    return {
+      title: `${documentType} - ${request.applicantName}`,
+      content: content,
+      generatedAt: new Date().toISOString(),
+      format: "markdown",
+    };
+  } catch (error) {
+    logger.error({ error, documentType: request.type }, "Failed to generate document");
+    throw new Error(`Failed to generate ${request.type.replace(/_/g, " ")}`);
+  }
+}
+
+function buildDocumentGenerationPrompt(request: DocumentGenerationRequest, docType: string): string {
+  const baseInfo = `
+Applicant Name: ${request.applicantName}
+Target Visa Type: ${request.visaType}
+Target Country: ${request.country}
+Education: ${request.education || "Not specified"}
+Work Experience: ${request.experience || "Not specified"}
+Key Skills: ${request.skills || "Not specified"}
+Target Role: ${request.targetRole || "Not specified"}
+Personal Statement: ${request.personalStatement || "Not specified"}`;
+
+  const prompts: Record<string, string> = {
+    "cover letter": `Generate a professional cover letter for a ${request.visaType} visa application to ${request.country}. ${baseInfo}
+
+The cover letter should:
+1. Be professional and formal
+2. Clearly state the purpose of the application
+3. Highlight relevant qualifications and experience
+4. Express genuine interest in the visa type and country
+5. Be 3-4 paragraphs long
+6. End with call to action
+
+Return the cover letter in markdown format with proper formatting.`,
+
+    "resume": `Generate a professional resume/CV for a ${request.visaType} visa application to ${request.country}. ${baseInfo}
+
+The resume should:
+1. Have a clear structure with sections for contact, summary, education, experience, skills
+2. Be tailored to highlight relevant qualifications for the visa type
+3. Use action verbs and quantifiable achievements
+4. Be ATS-friendly (applicant tracking system)
+5. Be concise but comprehensive (1-2 pages worth)
+
+Return in markdown format with clear section headers.`,
+
+    "statement of purpose": `Generate a Statement of Purpose (SOP) for a ${request.visaType} visa application to ${request.country}. ${baseInfo}
+
+The SOP should:
+1. Be 500-700 words
+2. Explain the motivation for choosing this visa type and country
+3. Discuss academic/professional background
+4. Outline future plans and goals
+5. Explain how this opportunity aligns with long-term objectives
+6. Be compelling and authentic
+
+Return in markdown format.`,
+
+    "motivation letter": `Generate a Motivation Letter for a ${request.visaType} visa application to ${request.country}. ${baseInfo}
+
+The letter should:
+1. Be 300-400 words
+2. Express genuine interest and motivation
+3. Highlight key strengths and achievements
+4. Connect past experience with future goals
+5. Be formal but personable
+6. Include specific reasons for choosing this country/visa type
+
+Return in markdown format.`,
+
+    "cv": `Generate a comprehensive CV (Curriculum Vitae) for a ${request.visaType} visa application to ${request.country}. ${baseInfo}
+
+The CV should:
+1. Include all standard sections: personal info, professional summary, education, employment, skills, certifications
+2. Be detailed and comprehensive (2-3 pages worth)
+3. Highlight achievements and impacts
+4. Be tailored to the visa requirements
+5. Use professional formatting
+
+Return in markdown format with clear section headers.`,
+  };
+
+  return prompts[docType] || prompts["cover letter"];
+}
+
 
 
 
