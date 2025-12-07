@@ -4,6 +4,7 @@ import { db } from "../db";
 import { users, refreshTokens } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { logger } from "./logger";
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 const REFRESH_SECRET = process.env.REFRESH_SECRET || "change-me-in-production-refresh";
@@ -91,32 +92,51 @@ export async function storeRefreshToken(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-  await db.insert(refreshTokens).values({
-    userId,
-    token,
-    expiresAt,
-    revoked: false,
-  });
+  try {
+    await db.insert(refreshTokens).values({
+      userId,
+      token,
+      expiresAt,
+      revoked: false,
+    });
+  } catch (err) {
+    // If the refresh_tokens table doesn't exist (migrations not run) or any DB
+    // error occurs, log a warning and continue. This prevents login from
+    // returning 500 when migrations are pending in deployed environments.
+    logger.warn({ err }, "Failed to store refresh token - continuing without DB storage");
+  }
 }
 
 // Revoke refresh token
 export async function revokeRefreshToken(token: string): Promise<void> {
-  await db
-    .update(refreshTokens)
-    .set({ revoked: true })
-    .where(eq(refreshTokens.token, token));
+  try {
+    await db
+      .update(refreshTokens)
+      .set({ revoked: true })
+      .where(eq(refreshTokens.token, token));
+  } catch (err) {
+    logger.warn({ err }, "Failed to revoke refresh token (table may be missing)");
+  }
 }
 
 // Check if refresh token is valid
 export async function isValidRefreshToken(token: string): Promise<boolean> {
-  const tokenRecord = await db.query.refreshTokens.findFirst({
-    where: and(
-      eq(refreshTokens.token, token),
-      eq(refreshTokens.revoked, false),
-      gt(refreshTokens.expiresAt, new Date())
-    ),
-  });
-  return !!tokenRecord;
+  try {
+    const tokenRecord = await db.query.refreshTokens.findFirst({
+      where: and(
+        eq(refreshTokens.token, token),
+        eq(refreshTokens.revoked, false),
+        gt(refreshTokens.expiresAt, new Date())
+      ),
+    });
+    return !!tokenRecord;
+  } catch (err) {
+    // If the table doesn't exist or other DB error, treat token as invalid
+    // rather than throwing. This keeps refresh endpoints safe when migrations
+    // haven't been applied yet.
+    logger.warn({ err }, "isValidRefreshToken: DB read failed, treating token as invalid");
+    return false;
+  }
 }
 
 // Generate tokens for user
