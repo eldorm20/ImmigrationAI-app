@@ -27,7 +27,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
   });
 
   // Middleware: authenticate socket connection via JWT token
-  io.use(async (socket: Socket, next) => {
+  io.use(async (socket: Socket, next: (err?: any) => void) => {
     try {
       const token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
       if (!token) return next(new Error("Authentication token required"));

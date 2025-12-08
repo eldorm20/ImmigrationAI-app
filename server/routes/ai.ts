@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth";
 import { apiLimiter } from "../middleware/security";
-import { asyncHandler } from "../middleware/errorHandler";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
 import {
   getEligibilityQuestions,
   checkEligibility,
@@ -14,8 +14,9 @@ import {
   chatRespond,
 } from "../lib/ai";
 import { db } from "../db";
-import { documents } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { documents, users } from "@shared/schema";
+import { eq, and, gte } from "drizzle-orm";
+import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
 
 const router = Router();
 
@@ -117,11 +118,55 @@ router.post(
 router.post(
   "/documents/generate",
   asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+
+    // Check subscription tier and enforce AI document generation limit
+    const tier = await getUserSubscriptionTier(userId);
+    const tierFeatures = getTierFeatures(tier);
+    const genLimit = tierFeatures.features.aiDocumentGenerations;
+
+    // Track usage in user metadata
+    const currentMonth = new Date();
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+    const metadata = user?.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
+    const lastResetMonth = metadata?.aiGenLastResetMonth;
+    const generationCount = metadata?.aiGenCount || 0;
+
+    // Reset counter if we've entered a new month
+    let currentGenCount = generationCount;
+    if (!lastResetMonth || lastResetMonth !== currentMonth.toISOString().slice(0, 7)) {
+      currentGenCount = 0;
+    }
+
+    if (currentGenCount >= genLimit) {
+      throw new AppError(
+        403,
+        `You have reached the AI document generation limit (${genLimit}/month) for your ${tier} plan. Upgrade to generate more documents.`
+      );
+    }
+
     const { template, data, language } = z
       .object({ template: z.string().min(1), data: z.record(z.any()).optional(), language: z.string().optional() })
       .parse(req.body);
 
     const doc = await generateDocument(template, data || {}, language || 'en');
+
+    // Increment generation count
+    await db
+      .update(users)
+      .set({
+        metadata: JSON.parse(
+          JSON.stringify({
+            ...metadata,
+            aiGenCount: currentGenCount + 1,
+            aiGenLastResetMonth: currentMonth.toISOString().slice(0, 7),
+          })
+        ),
+      } as any)
+      .where(eq(users.id, userId));
+
     res.json({ document: doc });
   })
 );

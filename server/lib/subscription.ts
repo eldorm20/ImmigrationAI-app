@@ -89,6 +89,31 @@ export async function createSubscription(
       throw err;
     }
 
+    // Persist subscription ID to user metadata
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
+      if (user) {
+        const currentMetadata = user.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
+        await db
+          .update(users)
+          .set({
+            metadata: JSON.parse(
+              JSON.stringify({
+                ...currentMetadata,
+                stripeSubscriptionId: subscription.id,
+                stripeCustomerId: customer.id,
+              })
+            ),
+          } as any)
+          .where(eq(users.id, userId));
+      }
+    } catch (err) {
+      logger.error({ err, userId, subscriptionId: subscription.id }, "Failed to persist subscription ID to user metadata");
+      // Non-fatal; proceed — subscription exists in Stripe even if metadata update failed
+    }
+
     logger.info({ userId, subscriptionId: subscription.id }, "Stripe subscription created");
 
     return subscription;

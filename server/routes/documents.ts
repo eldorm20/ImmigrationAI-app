@@ -2,14 +2,15 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { db } from "../db";
-import { documents, applications } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { documents, applications, users } from "@shared/schema";
+import { eq, and, gte } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { uploadLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/storage";
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
+import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
 
 const router = Router();
 
@@ -41,6 +42,28 @@ router.post(
 
     const body = createDocumentSchema.parse(req.body || {});
     const userId = req.user!.id;
+
+    // Check subscription tier and enforce document upload limit
+    const tier = await getUserSubscriptionTier(userId);
+    const tierFeatures = getTierFeatures(tier);
+    const uploadLimit = tierFeatures.features.documentUploadLimit;
+
+    // Count documents uploaded this month by user
+    const currentMonth = new Date();
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const docsThisMonth = await db.query.documents.findMany({
+      where: and(
+        eq(documents.userId, userId),
+        gte(documents.createdAt, startOfMonth)
+      ),
+    });
+
+    if (docsThisMonth.length >= uploadLimit) {
+      throw new AppError(
+        403,
+        `You have reached the document upload limit (${uploadLimit}/month) for your ${tier} plan. Upgrade to upload more documents.`
+      );
+    }
 
     // Validate file
     const validation = validateFile(req.file);

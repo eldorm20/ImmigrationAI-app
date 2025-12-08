@@ -10,7 +10,9 @@ import {
   getFeatureLimit,
   type SubscriptionTier,
 } from "../lib/subscriptionTiers";
-import { createSubscription } from "../lib/subscription";
+import { createSubscription, getSubscriptionStatus } from "../lib/subscription";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -124,51 +126,38 @@ router.post(
   })
 );
 
-// Get current subscription with details
+// Rich subscription details: tier + (optional) provider-backed subscription status
 router.get(
-  "/current",
+  "/details",
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.id;
-    
+
+    const tier = await getUserSubscriptionTier(userId);
+    const tierFeatures = getTierFeatures(tier);
+
+    // Attempt to return Stripe-backed subscription status if available in user metadata
+    let subscriptionStatus = null;
     try {
-      const subscription = await db
-        .selectFrom("subscriptions")
-        .selectAll()
-        .where("user_id", "=", userId)
-        .orderBy("created_at", "desc")
-        .limit(1)
-        .executeTakeFirst();
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+      const metadata = user?.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
+      const stripeSubscriptionId = metadata?.stripeSubscriptionId || metadata?.stripe_subscription_id || null;
 
-      if (!subscription) {
-        return res.json({
-          id: "free",
-          userId,
-          plan: "starter",
-          status: "active",
-          amount: 0,
-          currency: "USD",
-          startDate: new Date().toISOString(),
-          renewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+      if (stripeSubscriptionId) {
+        const status = await getSubscriptionStatus(stripeSubscriptionId as string);
+        subscriptionStatus = status;
       }
-
-      res.json({
-        id: subscription.id,
-        userId: subscription.user_id,
-        plan: subscription.tier || "professional",
-        status: subscription.status,
-        amount: subscription.amount || 29,
-        currency: subscription.currency || "USD",
-        startDate: subscription.created_at,
-        renewalDate: subscription.renewal_date,
-        stripeCustomerId: subscription.stripe_customer_id,
-        stripeSubscriptionId: subscription.stripe_subscription_id,
-      });
-    } catch (error) {
-      console.error("Error fetching subscription:", error);
-      res.status(500).json({ message: "Failed to fetch subscription" });
+    } catch (err) {
+      // non-fatal — return tier info even if provider lookup fails
     }
+
+    res.json({
+      tier,
+      name: tierFeatures.name,
+      monthlyPrice: tierFeatures.monthlyPrice,
+      features: tierFeatures.features,
+      subscription: subscriptionStatus,
+    });
   })
 );
 
