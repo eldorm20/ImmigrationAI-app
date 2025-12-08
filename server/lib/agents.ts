@@ -378,13 +378,13 @@ export class AIAgentsManager {
   private agents: Map<string, Agent>;
 
   constructor() {
-    this.agents = new Map([
-      ["immigration-law", new ImmigrationLawAgent()],
-      ["customer-service", new CustomerServiceAgent()],
-      ["document-analysis", new DocumentAnalysisAgent()],
-      ["legal-compliance", new LegalComplianceAgent()],
-      ["translation", new LanguageTranslationAgent()],
-    ]);
+    // Initialize map and set entries individually to avoid TypeScript tuple inference issues
+    this.agents = new Map<string, Agent>();
+    this.agents.set("immigration-law", new ImmigrationLawAgent());
+    this.agents.set("customer-service", new CustomerServiceAgent());
+    this.agents.set("document-analysis", new DocumentAnalysisAgent());
+    this.agents.set("legal-compliance", new LegalComplianceAgent());
+    this.agents.set("translation", new LanguageTranslationAgent());
   }
 
   getAgent(agentType: string): Agent | null {

@@ -76,6 +76,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
+  avatar: text("avatar"),
   metadata: jsonb("metadata"), // Store subscription and other metadata
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -374,3 +375,4 @@ export type InsertResearchArticle = z.infer<typeof insertResearchArticleSchema>;
 export type ResearchArticle = typeof researchArticles.$inferSelect;
 export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
 export type RoadmapItem = typeof roadmapItems.$inferSelect;
+

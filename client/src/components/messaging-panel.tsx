@@ -101,6 +101,8 @@ export default function MessagingPanel() {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const selectedParticipantObj = selectedParticipant ? participants.find((p) => p.id === selectedParticipant) || null : null;
+
   // Load consultations to build participant list
   useEffect(() => {
     (async () => {
@@ -255,10 +257,13 @@ export default function MessagingPanel() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">
-                    {participants.find((p) => p.id === selectedParticipant)?.name || t.messaging.participant}
+                    {selectedParticipantObj?.name || t.messaging.participant}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {participants.find((p) => p.id === selectedParticipant)?.role ? t.roles[participants.find((p) => p.id === selectedParticipant)?.role] : t.roles.user}
+                    {(() => {
+                      const roleKey = selectedParticipantObj?.role ?? "user";
+                      return t.roles[roleKey as keyof typeof t.roles] || t.roles.user;
+                    })()}
                   </p>
                 </div>
               </div>

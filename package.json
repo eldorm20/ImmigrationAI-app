@@ -55,6 +55,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.60.5",
     "argon2": "^0.31.2",
+    "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

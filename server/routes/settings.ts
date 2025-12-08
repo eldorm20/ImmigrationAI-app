@@ -3,23 +3,36 @@ import { authenticate } from "../middleware/auth";
 import { errorHandler } from "../middleware/errorHandler";
 import * as db from "../db";
 import { logger } from "../lib/logger";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const router = express.Router();
 
 // Get user settings
 router.get("/settings", authenticate, async (req, res) => {
   try {
-    const user = req.user!;
-    res.json({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: user.phone,
-      avatar: user.avatar,
-      role: user.role,
-      metadata: user.metadata,
-    });
+    const userId = req.user!.id;
+    
+    const user = await db.db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        phone: users.phone,
+        avatar: users.avatar,
+        role: users.role,
+        metadata: users.metadata,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user || user.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user[0]);
   } catch (err) {
     logger.error({ err }, "Failed to get settings");
     res.status(500).json({ error: "Failed to get settings" });
@@ -32,23 +45,33 @@ router.put("/settings", authenticate, async (req, res) => {
     const { firstName, lastName, phone, avatar } = req.body;
     const userId = req.user!.id;
 
-    // Update user with provided fields
-    const updates: Record<string, any> = {};
-    if (firstName) updates.firstName = firstName;
-    if (lastName) updates.lastName = lastName;
-    if (phone) updates.phone = phone;
-    if (avatar) updates.avatar = avatar;
+    // Build update object dynamically
+    const updates: any = {};
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    if (phone !== undefined) updates.phone = phone;
+    if (avatar !== undefined) updates.avatar = avatar;
 
-    // Execute update query
-    const result = await db.db.execute(
-      `UPDATE users SET ${Object.keys(updates).map((k) => `${k} = ?`).join(", ")}, updated_at = NOW() WHERE id = ?`,
-      [...Object.values(updates), userId]
-    );
+    if (Object.keys(updates).length === 0) {
+      return res.json({
+        success: true,
+        message: "No updates provided",
+        updates: {},
+      });
+    }
+
+    // Update user
+    const result = await db.db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
 
     res.json({
       success: true,
       message: "Profile updated successfully",
       updates,
+      user: result[0],
     });
   } catch (err) {
     logger.error({ err }, "Failed to update profile");
@@ -63,31 +86,31 @@ router.post("/change-password", authenticate, async (req, res) => {
     const userId = req.user!.id;
 
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ error: "Current and new password are required" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
     if (newPassword.length < 8) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 8 characters" });
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
     }
 
-    // Get user from database
-    const user = await db.db.query("SELECT * FROM users WHERE id = ?", [
-      userId,
-    ]);
+    // Get user with current password
+    const userResult = await db.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    if (!user || !user[0]) {
+    if (!userResult || userResult.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Verify current password (simplified - in production use bcrypt)
-    const bcrypt = await import("bcryptjs");
-    const isValid = await bcrypt.compare(currentPassword, user[0].password);
+    const user = userResult[0];
 
-    if (!isValid) {
+    // Verify current password
+    const bcrypt = await import("bcryptjs");
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.hashedPassword);
+
+    if (!isPasswordValid) {
       return res.status(401).json({ error: "Current password is incorrect" });
     }
 
@@ -95,10 +118,10 @@ router.post("/change-password", authenticate, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    await db.db.execute("UPDATE users SET password = ? WHERE id = ?", [
-      hashedPassword,
-      userId,
-    ]);
+    await db.db
+      .update(users)
+      .set({ hashedPassword })
+      .where(eq(users.id, userId));
 
     res.json({
       success: true,
@@ -113,34 +136,43 @@ router.post("/change-password", authenticate, async (req, res) => {
 // Update privacy settings
 router.put("/privacy-settings", authenticate, async (req, res) => {
   try {
-    const { profilePublic, showEmail, allowMessages, dataSharing } = req.body;
+    const { privacySettings } = req.body;
     const userId = req.user!.id;
 
-    const privacySettings = {
-      profilePublic: Boolean(profilePublic),
-      showEmail: Boolean(showEmail),
-      allowMessages: Boolean(allowMessages),
-      dataSharing: Boolean(dataSharing),
-    };
+    if (!privacySettings) {
+      return res.status(400).json({ error: "Privacy settings required" });
+    }
 
     // Get current metadata
-    const user = await db.db.query("SELECT metadata FROM users WHERE id = ?", [
-      userId,
-    ]);
+    const userResult = await db.db
+      .select({ metadata: users.metadata })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    const metadata = user[0]?.metadata ? JSON.parse(user[0].metadata) : {};
-    metadata.privacy = privacySettings;
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    // Update user metadata
-    await db.db.execute("UPDATE users SET metadata = ? WHERE id = ?", [
-      JSON.stringify(metadata),
-      userId,
-    ]);
+    const metadata = userResult[0].metadata || {};
+
+    // Update privacy settings in metadata
+    const updatedMetadata = {
+      ...metadata,
+      privacySettings,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update user
+    await db.db
+      .update(users)
+      .set({ metadata: updatedMetadata })
+      .where(eq(users.id, userId));
 
     res.json({
       success: true,
-      message: "Privacy settings updated",
-      settings: privacySettings,
+      message: "Privacy settings updated successfully",
+      privacySettings,
     });
   } catch (err) {
     logger.error({ err }, "Failed to update privacy settings");
@@ -151,80 +183,95 @@ router.put("/privacy-settings", authenticate, async (req, res) => {
 // Update notification settings
 router.put("/notification-settings", authenticate, async (req, res) => {
   try {
-    const {
-      emailNotifications,
-      applicationUpdates,
-      documentReminders,
-      consultationReminders,
-      newsAndUpdates,
-    } = req.body;
+    const { notificationSettings } = req.body;
     const userId = req.user!.id;
 
-    const notificationSettings = {
-      emailNotifications: Boolean(emailNotifications),
-      applicationUpdates: Boolean(applicationUpdates),
-      documentReminders: Boolean(documentReminders),
-      consultationReminders: Boolean(consultationReminders),
-      newsAndUpdates: Boolean(newsAndUpdates),
-    };
+    if (!notificationSettings) {
+      return res.status(400).json({ error: "Notification settings required" });
+    }
 
     // Get current metadata
-    const user = await db.db.query("SELECT metadata FROM users WHERE id = ?", [
-      userId,
-    ]);
+    const userResult = await db.db
+      .select({ metadata: users.metadata })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    const metadata = user[0]?.metadata ? JSON.parse(user[0].metadata) : {};
-    metadata.notifications = notificationSettings;
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    // Update user metadata
-    await db.db.execute("UPDATE users SET metadata = ? WHERE id = ?", [
-      JSON.stringify(metadata),
-      userId,
-    ]);
+    const metadata = userResult[0].metadata || {};
+
+    // Update notification settings in metadata
+    const updatedMetadata = {
+      ...metadata,
+      notificationSettings,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update user
+    await db.db
+      .update(users)
+      .set({ metadata: updatedMetadata })
+      .where(eq(users.id, userId));
 
     res.json({
       success: true,
-      message: "Notification settings updated",
-      settings: notificationSettings,
+      message: "Notification settings updated successfully",
+      notificationSettings,
     });
   } catch (err) {
     logger.error({ err }, "Failed to update notification settings");
-    res
-      .status(500)
-      .json({ error: "Failed to update notification settings" });
+    res.status(500).json({ error: "Failed to update notification settings" });
   }
 });
 
-// Update preferences (language, theme, etc.)
+// Update user preferences
 router.put("/preferences", authenticate, async (req, res) => {
   try {
-    const { language, theme, fontSize } = req.body;
+    const { preferences } = req.body;
     const userId = req.user!.id;
 
-    const preferences = {
-      language: language || "en",
-      theme: theme || "light",
-      fontSize: fontSize || "normal",
-    };
+    if (!preferences) {
+      return res.status(400).json({ error: "Preferences required" });
+    }
 
     // Get current metadata
-    const user = await db.db.query("SELECT metadata FROM users WHERE id = ?", [
-      userId,
-    ]);
+    const userResult = await db.db
+      .select({ metadata: users.metadata })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    const metadata = user[0]?.metadata ? JSON.parse(user[0].metadata) : {};
-    metadata.preferences = preferences;
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    // Update user metadata
-    await db.db.execute("UPDATE users SET metadata = ? WHERE id = ?", [
-      JSON.stringify(metadata),
-      userId,
-    ]);
+    const metadata = userResult[0].metadata || {};
+
+    // Update preferences in metadata
+    const updatedMetadata = {
+      ...metadata,
+      preferences: {
+        language: preferences.language || "en",
+        fontSize: preferences.fontSize || "medium",
+        theme: preferences.theme || "light",
+        ...preferences,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update user
+    await db.db
+      .update(users)
+      .set({ metadata: updatedMetadata })
+      .where(eq(users.id, userId));
 
     res.json({
       success: true,
-      message: "Preferences updated",
-      preferences,
+      message: "Preferences updated successfully",
+      preferences: updatedMetadata.preferences,
     });
   } catch (err) {
     logger.error({ err }, "Failed to update preferences");
@@ -232,4 +279,4 @@ router.put("/preferences", authenticate, async (req, res) => {
   }
 });
 
-export const settingsRouter = router;
+export default router;

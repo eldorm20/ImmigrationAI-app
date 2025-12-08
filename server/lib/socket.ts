@@ -1,9 +1,10 @@
-import { Server as SocketIOServer } from "socket.io";
+import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
 import { db } from "../db";
 import { messages } from "@shared/schema";
 import { verifyAccessToken } from "./auth";
 import { logger } from "./logger";
+import { eq } from "drizzle-orm";
 
 interface MessagePayload {
   content: string;
@@ -12,7 +13,7 @@ interface MessagePayload {
 }
 
 interface SocketUser {
-  userId: string;
+  id: string; // matches users.id
   email: string;
   role: "admin" | "lawyer" | "applicant";
 }
@@ -20,41 +21,39 @@ interface SocketUser {
 export function setupSocketIO(httpServer: HTTPServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(",") || "http://localhost:5000",
+      origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5000"],
       credentials: true,
     },
   });
 
   // Middleware: authenticate socket connection via JWT token
-  io.use((socket, next) => {
-    const token = socket.handshake.auth?.token as string;
-    if (!token) {
-      return next(new Error("Authentication token required"));
-    }
+  io.use(async (socket: Socket, next) => {
+    try {
+      const token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
+      if (!token) return next(new Error("Authentication token required"));
 
-    const payload = verifyAccessToken(token);
-    if (!payload) {
-      return next(new Error("Invalid or expired token"));
-    }
+      const payload = await verifyAccessToken(token);
+      if (!payload) return next(new Error("Invalid or expired token"));
 
-    (socket.data as any).user = payload;
-    next();
+      socket.data.user = payload;
+      return next();
+    } catch (err) {
+      return next(err as any);
+    }
   });
 
-  // In-memory room mapping: userId -> socketId
+  // In-memory room mapping: userId -> socketId set
   const userSockets = new Map<string, Set<string>>();
 
-  io.on("connection", (socket) => {
-    const user = (socket.data as any).user as SocketUser;
-    const userId = user.userId;
+  io.on("connection", (socket: Socket) => {
+    const user = socket.data.user as SocketUser;
+    const userId = user.id;
 
     logger.info({ userId, socketId: socket.id }, "Socket.IO client connected");
 
     // Track user's sockets
-    if (!userSockets.has(userId)) {
-      userSockets.set(userId, new Set());
-    }
-    userSockets.get(userId)?.add(socket.id);
+    if (!userSockets.has(userId)) userSockets.set(userId, new Set());
+    userSockets.get(userId)!.add(socket.id);
 
     // Join user room (e.g., for private notifications)
     socket.join(`user:${userId}`);
@@ -63,7 +62,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
     socket.emit("connect:success", { message: "Connected to messaging server", userId });
 
     // Handle incoming messages
-    socket.on("message:send", async (payload: MessagePayload, ack) => {
+    socket.on("message:send", async (payload: MessagePayload, ack?: (res: any) => void) => {
       try {
         const { content, receiverId, applicationId } = payload;
 
@@ -83,10 +82,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
           })
           .returning();
 
-        logger.info(
-          { messageId: savedMessage.id, senderId: userId, receiverId },
-          "Message persisted"
-        );
+        logger.info({ messageId: savedMessage.id, senderId: userId, receiverId }, "Message persisted");
 
         // Emit to receiver's connected sockets (if they're online)
         const receiverSockets = userSockets.get(receiverId);
@@ -112,10 +108,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
     // Handle message read status
     socket.on("message:mark-read", async (messageId: string) => {
       try {
-        await db
-          .update(messages)
-          .set({ isRead: true })
-          .where((m) => m.id === messageId);
+        await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
       } catch (err) {
         logger.error({ err, messageId }, "Failed to mark message as read");
       }
@@ -126,9 +119,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
-        if (sockets.size === 0) {
-          userSockets.delete(userId);
-        }
+        if (sockets.size === 0) userSockets.delete(userId);
       }
       logger.info({ userId, socketId: socket.id }, "Socket.IO client disconnected");
     });
