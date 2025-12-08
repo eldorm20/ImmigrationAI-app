@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { Credit Card, AlertCircle, Check, X, Calendar, DollarSign, Settings, LogOut, History } from "lucide-react";
+import { CreditCard, AlertCircle, Check, X, Calendar, DollarSign, Settings, LogOut, History } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -172,7 +172,7 @@ export default function SubscriptionPage() {
             onClick={() => setLocation("/dashboard")}
           >
             <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 text-white">
-              <Credit Card size={20} />
+              <CreditCard size={20} />
             </div>
             <span className="text-slate-900 dark:text-white">ImmigrationAI</span>
           </motion.div>
