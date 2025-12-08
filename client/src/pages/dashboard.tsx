@@ -669,6 +669,7 @@ const UploadView = () => {
   const [files, setFiles] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -788,6 +789,7 @@ const UploadView = () => {
           <h4 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">{t.upload.dropFiles}</h4>
           <p className="text-slate-500 dark:text-slate-400 mb-4">{t.upload.supports}</p>
           <input
+            ref={fileInputRef}
             type="file"
             multiple
             onChange={handleFileInput}
@@ -795,12 +797,15 @@ const UploadView = () => {
             id="file-upload"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
-          <label htmlFor="file-upload">
-            <LiveButton variant="primary" className="cursor-pointer" disabled={uploading}>
-              {uploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
-              {uploading ? t.upload.uploading : t.upload.chooseFiles}
-            </LiveButton>
-          </label>
+          <LiveButton 
+            variant="primary" 
+            className="cursor-pointer" 
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
+            {uploading ? t.upload.uploading : t.upload.chooseFiles}
+          </LiveButton>
         </div>
       </AnimatedCard>
 

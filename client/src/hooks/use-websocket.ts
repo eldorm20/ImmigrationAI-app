@@ -16,6 +16,7 @@ interface MessageEvent {
   content: string;
   timestamp: Date;
   isRead: boolean;
+  recipientId?: string;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
