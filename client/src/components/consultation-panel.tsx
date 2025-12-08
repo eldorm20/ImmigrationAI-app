@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
 import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +31,7 @@ interface Lawyer {
 export default function ConsultationPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,7 +225,7 @@ export default function ConsultationPanel() {
               className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6"
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">Request a Consultation</h3>
+                <h3 className="text-xl font-bold">{t.consultation.requestConsultation}</h3>
                 <button
                   onClick={() => setShowModal(false)}
                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
@@ -234,13 +236,13 @@ export default function ConsultationPanel() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Select a Lawyer</label>
+                  <label className="block text-sm font-medium mb-2">{t.consultation.selectLawyer}</label>
                   <select
                     value={selectedLawyer}
                     onChange={(e) => setSelectedLawyer(e.target.value)}
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800"
                   >
-                    <option value="">-- Choose a Lawyer --</option>
+                    <option value="">{`-- ${t.consultation.selectLawyer} --`}</option>
                     {lawyers.map((lawyer) => (
                       <option key={lawyer.id} value={lawyer.id}>
                         {lawyer.firstName} {lawyer.lastName || ""} ({lawyer.email})
@@ -250,7 +252,7 @@ export default function ConsultationPanel() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Preferred Date & Time</label>
+                  <label className="block text-sm font-medium mb-2">{t.consultation.preferredDateTime}</label>
                   <input
                     type="datetime-local"
                     value={formData.scheduledTime}
@@ -261,7 +263,7 @@ export default function ConsultationPanel() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Duration (minutes)</label>
+                  <label className="block text-sm font-medium mb-2">{t.consultation.duration}</label>
                   <input
                     type="number"
                     min="15"
@@ -274,7 +276,7 @@ export default function ConsultationPanel() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Notes</label>
+                  <label className="block text-sm font-medium mb-2">{t.consultation.notes}</label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -290,13 +292,13 @@ export default function ConsultationPanel() {
                     onClick={() => setShowModal(false)}
                     className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
-                    Cancel
+                    {t.consultation.cancel}
                   </button>
                   <button
                     type="submit"
                     className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
                   >
-                    Submit Request
+                    {t.consultation.submitRequest}
                   </button>
                 </div>
               </form>
@@ -310,7 +312,7 @@ export default function ConsultationPanel() {
         {consultations.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
-            <p>No consultations yet. Request one with an available lawyer!</p>
+            <p>{t.consultation.noConsultations}</p>
           </div>
         ) : (
           consultations.map((consultation) => (
@@ -383,7 +385,7 @@ export default function ConsultationPanel() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">
                   <MessageSquare size={16} />
-                  <span>Open Chat</span>
+                  <span>{t.consultation.consultationChat}</span>
                 </div>
                 {consultation.meetingLink && (
                   <a
