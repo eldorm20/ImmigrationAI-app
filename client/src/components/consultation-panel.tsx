@@ -348,6 +348,34 @@ export default function ConsultationPanel() {
 
               <div className="grid grid-cols-2 gap-4 mb-3">
                 <div className="flex items-center gap-2 text-sm">
+                  <Calendar size={14} className="text-slate-400" />
+                  <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock size={14} className="text-slate-400" />
+                  <span>{new Date(consultation.scheduledTime).toLocaleTimeString()}</span>
+                </div>
+              </div>
+
+              {consultation.meetingLink && (
+                <motion.a
+                  href={consultation.meetingLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  whileHover={{ scale: 1.02 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 mb-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full justify-center"
+                >
+                  <CheckCircle size={16} />
+                  Join Video Call
+                </motion.a>
+              )}
+
+              {consultation.notes && (
+                <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 p-2 bg-slate-50 dark:bg-slate-900 rounded italic">
+                  "{consultation.notes}"
+                </div>
+              )}
                   <Calendar size={16} className="text-slate-400" />
                   <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
                 </div>
