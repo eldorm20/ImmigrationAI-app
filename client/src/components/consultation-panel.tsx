@@ -378,11 +378,6 @@ export default function ConsultationPanel() {
                   "{consultation.notes}"
                 </div>
               )}
-<<<<<<< HEAD
-            </motion.div>
-          ))}
-        </div>
-=======
 
               <div className="grid grid-cols-2 gap-4 mb-3">
                 <div className="flex items-center gap-2 text-sm">
@@ -398,7 +393,6 @@ export default function ConsultationPanel() {
               {consultation.notes && (
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{consultation.notes}</p>
               )}
->>>>>>> 201525014cbe66a1390fc53a453e7334cdb654d6
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">
