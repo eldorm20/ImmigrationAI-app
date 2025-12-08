@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { Credit Card, AlertCircle, Check, X, Calendar, DollarSign, Settings, LogOut } from "lucide-react";
+import { Credit Card, AlertCircle, Check, X, Calendar, DollarSign, Settings, LogOut, History } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -178,6 +178,9 @@ export default function SubscriptionPage() {
           </motion.div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
+            <LiveButton variant="ghost" onClick={() => setLocation("/payment-history")} className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20" icon={History}>
+              Payment History
+            </LiveButton>
             <LiveButton variant="ghost" onClick={() => { logout(); setLocation("/"); }} className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20">
               <LogOut size={18} />
               {t.dash.logout}
