@@ -6,13 +6,14 @@ import { apiRequest } from "@/lib/api";
 import { 
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code
+  Filter, Calendar, FileText, Download, Code, MessageSquare, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { RealtimeChat } from "@/components/realtime-chat";
 
 // --- Components ---
 
@@ -67,6 +68,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [showChat, setShowChat] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -557,6 +559,14 @@ export default function LawyerDashboard() {
                    <div className="flex gap-3 pt-4">
                       <ActionButton 
                         className="flex-1 py-3" 
+                        variant="primary" 
+                        icon={MessageSquare} 
+                        onClick={() => setShowChat(true)}
+                      >
+                        Send Message
+                      </ActionButton>
+                      <ActionButton 
+                        className="flex-1 py-3" 
                         variant="success" 
                         icon={CheckCircle} 
                         onClick={() => { 
@@ -582,6 +592,35 @@ export default function LawyerDashboard() {
                    </div>
                 </div>
              </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Modal */}
+      <AnimatePresence>
+        {selectedLead && showChat && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowChat(false)} />
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} className="bg-white dark:bg-slate-900 p-6 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setShowChat(false)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Chat with {selectedLead.name}</h3>
+                    <p className="text-xs text-slate-500">{selectedLead.email}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowChat(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20}/></button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <RealtimeChat recipientId={selectedLead.id} />
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

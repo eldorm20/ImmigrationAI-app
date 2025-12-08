@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus } from "lucide-react";
+import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { RealtimeChat } from "./realtime-chat";
 
 interface Consultation {
   id: string;
@@ -34,6 +35,7 @@ export default function ConsultationPanel() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedLawyer, setSelectedLawyer] = useState<string>("");
+  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [formData, setFormData] = useState({
     scheduledTime: "",
     duration: 60,
@@ -151,8 +153,47 @@ export default function ConsultationPanel() {
     );
   }
 
+  // Show chat view when a consultation is selected
+  if (selectedConsultation) {
+    return (
+      <div className="space-y-4 h-full flex flex-col">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSelectedConsultation(null)}
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h3 className="font-semibold">Consultation Chat</h3>
+            <p className="text-xs text-slate-500">
+              {new Date(selectedConsultation.scheduledTime).toLocaleDateString()} at{" "}
+              {new Date(selectedConsultation.scheduledTime).toLocaleTimeString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden">
+          <RealtimeChat recipientId={selectedConsultation.lawyerId} />
+        </div>
+
+        {selectedConsultation.meetingLink && (
+          <a
+            href={selectedConsultation.meetingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            <CheckCircle size={16} />
+            Join Video Meeting
+          </a>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Consultations</h2>
         <motion.button
@@ -265,7 +306,7 @@ export default function ConsultationPanel() {
       </AnimatePresence>
 
       {/* Consultations List */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 flex-1 overflow-y-auto">
         {consultations.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
@@ -279,7 +320,8 @@ export default function ConsultationPanel() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-lg transition-shadow"
+              onClick={() => setSelectedConsultation(consultation)}
+              className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-brand-300 dark:hover:border-brand-600"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
@@ -293,7 +335,10 @@ export default function ConsultationPanel() {
                 </div>
                 {consultation.status === "scheduled" && (
                   <button
-                    onClick={() => handleCancel(consultation.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancel(consultation.id);
+                    }}
                     className="p-2 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg text-red-600"
                   >
                     <X size={18} />
@@ -316,17 +361,24 @@ export default function ConsultationPanel() {
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{consultation.notes}</p>
               )}
 
-              {consultation.meetingLink && (
-                <a
-                  href={consultation.meetingLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-brand-600 hover:underline"
-                >
-                  <CheckCircle size={16} />
-                  Join Meeting
-                </a>
-              )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">
+                  <MessageSquare size={16} />
+                  <span>Open Chat</span>
+                </div>
+                {consultation.meetingLink && (
+                  <a
+                    href={consultation.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-xs text-green-600 hover:underline"
+                  >
+                    <CheckCircle size={14} />
+                    Join Meeting
+                  </a>
+                )}
+              </div>
             </motion.div>
           ))
         )}
