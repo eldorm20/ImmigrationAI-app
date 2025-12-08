@@ -7,7 +7,7 @@ import {
   LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle, 
   ArrowRight, Download, Send, User, X, Sparkles, Briefcase,
   Loader2, ChevronRight, Globe, Zap, FileCheck, RefreshCw, Edit3, Check,
-  Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard
+  Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard, Bell
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -119,8 +119,16 @@ export default function UserDash() {
           </LiveButton>
           <LiveButton 
             variant="ghost" 
+            className="w-full justify-start text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20" 
+            onClick={() => setLocation("/notifications")}
+            icon={Bell}
+          >
+            Notifications
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
             className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800" 
-            onClick={() => toast({ title: "Coming Soon", description: "Settings page coming in next update" })}
+            onClick={() => setLocation("/settings")}
             icon={Settings}
           >
             Settings
