@@ -7,7 +7,7 @@ import {
   LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle, 
   ArrowRight, Download, Send, User, X, Sparkles, Briefcase,
   Loader2, ChevronRight, Globe, Zap, FileCheck, RefreshCw, Edit3, Check,
-  Upload, Languages, FileUp, Trash2, Eye, Book
+  Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -97,7 +97,7 @@ export default function UserDash() {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center gap-4 mb-6 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-brand-500 to-purple-500 p-[2px]">
               <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full flex items-center justify-center font-bold text-xs text-slate-900 dark:text-white">
@@ -109,7 +109,28 @@ export default function UserDash() {
               <p className="text-xs text-slate-400 truncate">{user.email}</p>
             </div>
           </div>
-          <LiveButton variant="ghost" className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" onClick={logout} icon={LogOut}>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20" 
+            onClick={() => setLocation("/subscription")}
+            icon={CreditCard}
+          >
+            {t.subscription?.manage || "Subscription"}
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800" 
+            onClick={() => toast({ title: "Coming Soon", description: "Settings page coming in next update" })}
+            icon={Settings}
+          >
+            Settings
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
+            onClick={logout} 
+            icon={LogOut}
+          >
             {t.dash.logout}
           </LiveButton>
         </div>

@@ -21,6 +21,7 @@ import Help from "@/pages/help";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Contact from "@/pages/contact";
+import Subscription from "@/pages/subscription";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
@@ -80,6 +81,10 @@ function Router() {
         
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} role="applicant" />
+        </Route>
+
+        <Route path="/subscription">
+          <ProtectedRoute component={Subscription} role="applicant" />
         </Route>
         
         <Route path="/lawyer">

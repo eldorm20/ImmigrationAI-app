@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import { db } from "../db";
 import {
   getUserSubscriptionTier,
   getTierFeatures,
@@ -110,6 +111,112 @@ router.post(
         message: "Failed to create subscription",
         error: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  })
+);
+
+// Get current subscription with details
+router.get(
+  "/current",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    
+    try {
+      const subscription = await db
+        .selectFrom("subscriptions")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .orderBy("created_at", "desc")
+        .limit(1)
+        .executeTakeFirst();
+
+      if (!subscription) {
+        return res.json({
+          id: "free",
+          userId,
+          plan: "starter",
+          status: "active",
+          amount: 0,
+          currency: "USD",
+          startDate: new Date().toISOString(),
+          renewalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
+      res.json({
+        id: subscription.id,
+        userId: subscription.user_id,
+        plan: subscription.tier || "professional",
+        status: subscription.status,
+        amount: subscription.amount || 29,
+        currency: subscription.currency || "USD",
+        startDate: subscription.created_at,
+        renewalDate: subscription.renewal_date,
+        stripeCustomerId: subscription.stripe_customer_id,
+        stripeSubscriptionId: subscription.stripe_subscription_id,
+      });
+    } catch (error) {
+      console.error("Error fetching subscription:", error);
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  })
+);
+
+// Get billing history
+router.get(
+  "/billing-history",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    
+    try {
+      // For now, return empty billing history
+      // In production, this would fetch from Stripe
+      const billingHistory = [];
+
+      res.json(billingHistory);
+    } catch (error) {
+      console.error("Error fetching billing history:", error);
+      res.status(500).json({ message: "Failed to fetch billing history" });
+    }
+  })
+);
+
+// Cancel subscription
+router.post(
+  "/cancel",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+    
+    try {
+      const subscription = await db
+        .selectFrom("subscriptions")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .orderBy("created_at", "desc")
+        .limit(1)
+        .executeTakeFirst();
+
+      if (!subscription) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      // Update subscription status to cancelled
+      await db
+        .updateTable("subscriptions")
+        .set({ status: "cancelled" })
+        .where("id", "=", subscription.id)
+        .execute();
+
+      res.json({
+        success: true,
+        message: "Subscription cancelled successfully",
+      });
+    } catch (error) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
     }
   })
 );
