@@ -129,15 +129,19 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
             content,
             timestamp: savedMessage.createdAt,
             isRead: false,
+            recipientId,
           });
         }
 
         // Confirm to sender
         socket.emit("message_sent", {
           id: savedMessage.id,
+          senderId,
+          senderName: sender?.firstName || sender?.email || "Unknown",
           recipientId,
           content,
           timestamp: savedMessage.createdAt,
+          isRead: false,
         });
 
         logger.info(`Message sent from ${senderId} to ${recipientId}`);

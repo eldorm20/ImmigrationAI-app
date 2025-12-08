@@ -41,7 +41,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const serverUrl = window.location.origin;
     const socket = io(serverUrl, {
       auth: {
-        token: localStorage.getItem('auth_token'),
+        token: localStorage.getItem('accessToken'),
         userId,
       },
       reconnection: true,
@@ -103,6 +103,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     socket.on('message_sent', (data) => {
       console.log('Message sent successfully:', data.id);
+      // Add the sent message to the messages list
+      setMessages((prev) => [...prev, {
+        id: data.id,
+        senderId: data.senderId,
+        senderName: data.senderName,
+        content: data.content,
+        timestamp: new Date(data.timestamp),
+        isRead: data.isRead,
+        recipientId: data.recipientId,
+      }]);
     });
 
     socket.on('message_read', (data) => {
