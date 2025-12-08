@@ -17,7 +17,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/migrate.ts",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "tools:gen-doc": "tsx server/tools/generate_doc_cli.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.654.0",
@@ -95,6 +96,8 @@
     "react-resizable-panels": "^2.1.9",
     "recharts": "^2.15.4",
     "sharp": "^0.33.2",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
     "sonner": "^2.0.7",
     "stripe": "^13.11.0",
     "swagger-jsdoc": "^6.2.8",

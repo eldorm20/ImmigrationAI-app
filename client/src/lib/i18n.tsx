@@ -16,7 +16,7 @@ const TRANSLATIONS = {
     hero: { title: "Move to Europe.", sub: "AI-Powered Immigration for Uzbekistan.", cta: "Check Eligibility", trusted: "Trusted by 10k+ people" },
     dash: { 
       welcome: "Welcome,", roadmap: "Roadmap", docs: "AI Docs", lawyer: "Ask Lawyer", chat: "AI Chat", 
-      logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research"
+      logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research", messages: "Messages"
     },
     tools: { gen: "Generate", dl: "Download", typing: "AI Writing...", chatP: "Ask about visas...", clear: "Clear" },
     lawyer: { 
@@ -136,7 +136,7 @@ const TRANSLATIONS = {
     hero: { title: "Yevropaga Yo'l.", sub: "O'zbekistonliklar uchun AI immigratsiya.", cta: "Tekshirish", trusted: "10k+ ishonchli mijozlar" },
     dash: { 
       welcome: "Xush kelibsiz,", roadmap: "Reja", docs: "AI Hujjat", lawyer: "Yurist", chat: "AI Chat", 
-      logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot"
+      logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot", messages: "Xabarlar"
     },
     tools: { gen: "Yaratish", dl: "Yuklash", typing: "AI Yozmoqda...", chatP: "Viza haqida so'rang...", clear: "Tozalash" },
     lawyer: { 
@@ -256,7 +256,7 @@ const TRANSLATIONS = {
     hero: { title: "Путь в Европу.", sub: "ИИ Иммиграция для Узбекистана.", cta: "Проверить", trusted: "Доверяют 10к+" },
     dash: { 
       welcome: "Привет,", roadmap: "План", docs: "ИИ Доки", lawyer: "Юрист", chat: "ИИ Чат", 
-      logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования"
+      logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования", messages: "Сообщения"
     },
     tools: { gen: "Создать", dl: "Скачать", typing: "ИИ Пишет...", chatP: "Спросите о визе...", clear: "Очистить" },
     lawyer: { 

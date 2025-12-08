@@ -112,6 +112,7 @@ export const documents = pgTable("documents", {
   mimeType: varchar("mime_type", { length: 100 }).notNull(),
   fileSize: integer("file_size"), // in bytes
   documentType: varchar("document_type", { length: 100 }), // passport, certificate, etc.
+  s3Key: varchar("s3_key", { length: 500 }), // Internal storage key (S3/Railway)
   ocrData: jsonb("ocr_data"), // OCR extracted data
   aiAnalysis: jsonb("ai_analysis"), // AI analysis results
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -263,6 +264,7 @@ export const insertDocumentSchema = createInsertSchema(documents).pick({
   applicationId: true,
   userId: true,
   url: true,
+  s3Key: true,
   fileName: true,
   mimeType: true,
   fileSize: true,

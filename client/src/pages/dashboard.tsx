@@ -14,6 +14,7 @@ import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
 import ConsultationPanel from "@/components/consultation-panel";
+import MessagingPanel from "@/components/messaging-panel";
 
 // --- Main Dashboard Component ---
 
@@ -30,7 +31,7 @@ export default function UserDash() {
     const handleKeyPress = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        const tabs = ['roadmap', 'docs', 'upload', 'translate', 'chat', 'lawyer', 'research'];
+        const tabs = ['roadmap', 'docs', 'upload', 'translate', 'chat', 'messages', 'lawyer', 'research'];
         const currentIndex = tabs.indexOf(activeTab);
         setActiveTab(tabs[(currentIndex + 1) % tabs.length]);
         toast({ title: "Tab Switched", description: `Switched to ${tabs[(currentIndex + 1) % tabs.length]}`, className: "bg-blue-50 text-blue-900 border-blue-200" });
@@ -74,6 +75,7 @@ export default function UserDash() {
             { id: 'upload', icon: Upload, label: t.dash.upload },
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
+            { id: 'messages', icon: Send, label: t.dash.messages },
             { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
             { id: 'research', icon: Book, label: t.dash.research }
           ].map(item => (
@@ -141,6 +143,7 @@ export default function UserDash() {
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}
+          {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
           {activeTab === 'research' && (
             <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
@@ -363,35 +366,45 @@ ${new Date().toLocaleDateString()}`;
 
   const handleGenerate = () => {
     if (!formData.role && !formData.company && !formData.skills) {
-      toast({ 
-        title: t.tools.gen, 
-        description: "Please fill in at least role, company, or skills for better results", 
-        variant: "destructive" 
+      toast({
+        title: t.tools.gen,
+        description: "Please fill in at least role, company, or skills for better results",
+        variant: "destructive",
       });
+      return;
     }
 
     setIsGenerating(true);
     setGeneratedContent("");
-    
-    // Simulate AI processing delay
-    setTimeout(() => {
-      const targetText = templates[docType](formData);
-      let i = 0;
-      
-      const interval = setInterval(() => {
-        setGeneratedContent(prev => prev + targetText.charAt(i));
-        i++;
-        if (i >= targetText.length) {
-          clearInterval(interval);
-          setIsGenerating(false);
-          toast({ 
-            title: "Document Generated", 
-            description: `${docType} has been generated successfully`,
-            className: "bg-green-50 text-green-900 border-green-200"
-          });
-        }
-      }, 15); // Slightly faster typing
-    }, 500);
+
+    (async () => {
+      try {
+        const resp = await apiRequest<{ document: string }>("/ai/documents/generate", {
+          method: "POST",
+          body: JSON.stringify({ template: docType, data: formData, language: (t as any).lang || 'en' }),
+        });
+
+        const targetText = resp.document || "";
+        let i = 0;
+
+        const interval = setInterval(() => {
+          setGeneratedContent((prev) => prev + targetText.charAt(i));
+          i++;
+          if (i >= targetText.length) {
+            clearInterval(interval);
+            setIsGenerating(false);
+            toast({
+              title: "Document Generated",
+              description: `${docType} has been generated successfully`,
+              className: "bg-green-50 text-green-900 border-green-200",
+            });
+          }
+        }, 10);
+      } catch (err) {
+        setIsGenerating(false);
+        toast({ title: "Generation Error", description: (err as any)?.message || 'Failed to generate document', variant: 'destructive' });
+      }
+    })();
   };
 
   return (
@@ -520,7 +533,7 @@ ${new Date().toLocaleDateString()}`;
 };
 
 const ChatView = () => {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [messages, setMessages] = useState([{ role: 'ai', text: "Hello! I'm your Immigration AI Assistant. Ask me anything about UK or German visas.", ts: new Date().toISOString() }]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -538,38 +551,19 @@ const ChatView = () => {
     setMessages(prev => [...prev, { role: 'user', text: userMsg, ts: new Date().toISOString() }]);
     setInput("");
     setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-      let reply = "I'm analyzing the latest immigration rules...";
-      const q = userMsg.toLowerCase();
-      
-      if (q.includes('cost') || q.includes('fee') || q.includes('price')) {
-        reply = "The UK Skilled Worker visa fee ranges from £625 to £1,423 depending on the duration. The Immigration Health Surcharge (IHS) is £1,035 per year. For Germany's Opportunity Card, the fee is typically €75-€100. Our consultation services start at $150.";
-      } else if (q.includes('time') || q.includes('long') || q.includes('duration') || q.includes('process')) {
-        reply = "Standard processing takes about 3 weeks for outside-UK applications. Priority services (5 days) are available for an extra £500. Germany's Opportunity Card processing is usually 4-6 weeks. We can help expedite your application.";
-      } else if (q.includes('job') || q.includes('offer') || q.includes('sponsor') || q.includes('cos')) {
-        reply = "Yes, for the UK Skilled Worker route, you need a confirmed job offer from a Home Office licensed sponsor and a Certificate of Sponsorship (CoS). Germany's Opportunity Card allows job searching for up to 1 year without a prior job offer.";
-      } else if (q.includes('family') || q.includes('dependent') || q.includes('spouse') || q.includes('children')) {
-        reply = "Yes, you can bring your partner and children as dependents. Each family member needs to apply separately and pay their own fees. For UK, dependents need to meet financial requirements (£285 for partner, £315 for first child, £200 for each additional child).";
-      } else if (q.includes('english') || q.includes('language') || q.includes('ielts') || q.includes('test')) {
-        reply = "For UK Skilled Worker visa, you typically need B1 level English (IELTS 4.0+). Some professions require higher levels. Germany's Opportunity Card requires B2 German or English proficiency. We can help you prepare for language tests.";
-      } else if (q.includes('documents') || q.includes('required') || q.includes('need')) {
-        reply = "Required documents typically include: valid passport, job offer/CoS (UK), proof of qualifications, English/German language certificate, proof of funds, TB test certificate (UK), and translated documents. Our AI can help you prepare a complete checklist.";
-      } else if (q.includes('eligibility') || q.includes('qualify') || q.includes('score')) {
-        reply = "Eligibility depends on factors like age, qualifications, work experience, language skills, and job offer. UK Skilled Worker requires 70 points. Germany's Opportunity Card uses a points system (6+ points needed). Use our eligibility checker on the homepage!";
-      } else if (q.includes('germany') || q.includes('opportunity card') || q.includes('chancenkarte')) {
-        reply = "Germany's Opportunity Card (Chancenkarte) is perfect for skilled workers from non-EU countries. It allows you to search for jobs for up to 1 year. Requirements include: recognized qualification, B2 language, proof of funds (€1,027/month), and 6+ points. We can guide you through the application.";
-      } else if (q.includes('uk') || q.includes('britain') || q.includes('united kingdom')) {
-        reply = "The UK Skilled Worker visa is a popular route. You need: a job offer from a licensed sponsor, Certificate of Sponsorship, English at B1 level, proof of funds, and meet the 70-point requirement. Processing is typically 3 weeks. Our lawyers can help with the entire process.";
-      } else if (q.includes('help') || q.includes('assistance') || q.includes('support')) {
-        reply = "I'm here to help! I can answer questions about visa requirements, fees, processing times, documents, and eligibility. For personalized legal advice, you can request a consultation with our partner lawyers through the 'Ask Lawyer' section. They provide expert guidance and document review.";
-      } else {
-        reply = "I understand you're asking about: " + userMsg + ". For detailed information, I recommend checking our eligibility tool or scheduling a consultation with our partner lawyers. They can provide personalized guidance based on your specific situation. Would you like to know about visa fees, processing times, or required documents?";
+    (async () => {
+      try {
+        const resp = await apiRequest<{ reply: string }>("/ai/chat", {
+          method: "POST",
+          body: JSON.stringify({ message: userMsg, language: lang }),
+        });
+        setIsTyping(false);
+        setMessages(prev => [...prev, { role: 'ai', text: resp.reply, ts: new Date().toISOString() }]);
+      } catch (err) {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { role: 'ai', text: "Sorry, I couldn't reach the AI service right now.", ts: new Date().toISOString() }]);
       }
-
-      setMessages(prev => [...prev, { role: 'ai', text: reply, ts: new Date().toISOString() }]);
-    }, 1000);
+    })();
   };
 
   return (
@@ -865,68 +859,18 @@ const TranslateView = () => {
     }
 
     setTranslating(true);
-    
-    // Simulate AI translation processing
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-    
-    // Enhanced translation logic with better mock translations
-    const translationMap: Record<string, Record<string, (text: string) => string>> = {
-      'uz': {
-        'en': (txt: string) => {
-          // Simple word mapping for demo
-          const words = txt.split(' ');
-          return words.map(w => {
-            if (w.toLowerCase().includes('salom')) return 'Hello';
-            if (w.toLowerCase().includes('yaxshi')) return 'good';
-            if (w.toLowerCase().includes('ish')) return 'work';
-            return w;
-          }).join(' ') || `[AI Translation from Uzbek to English]\n\n${txt}\n\nThis is an AI-generated translation. For certified translations, please request the certified option.`;
-        },
-        'ru': (txt: string) => `[Перевод с узбекского на русский]\n\n${txt}\n\nЭто автоматический перевод, созданный с помощью ИИ. Для сертифицированного перевода, пожалуйста, запросите сертифицированный вариант.`,
-        'de': (txt: string) => `[Übersetzung von Usbekisch ins Deutsche]\n\n${txt}\n\nDies ist eine KI-generierte Übersetzung. Für zertifizierte Übersetzungen bitte die zertifizierte Option anfordern.`
-      },
-      'en': {
-        'uz': (txt: string) => `[Ingliz tilidan o'zbek tiliga tarjima]\n\n${txt}\n\nBu sun'iy intellekt tomonidan yaratilgan tarjima. Sertifikatlangan tarjima uchun, iltimos, sertifikatlangan variantni so'rang.`,
-        'ru': (txt: string) => `[Перевод с английского на русский]\n\n${txt}\n\nЭто автоматический перевод, созданный с помощью ИИ. Для сертифицированного перевода, пожалуйста, запросите сертифицированный вариант.`,
-        'de': (txt: string) => {
-          // Better German translation simulation
-          const common = {
-            'hello': 'Hallo',
-            'thank you': 'Danke',
-            'yes': 'Ja',
-            'no': 'Nein',
-            'work': 'Arbeit',
-            'visa': 'Visum',
-            'application': 'Antrag'
-          };
-          let result = txt;
-          Object.entries(common).forEach(([en, de]) => {
-            result = result.replace(new RegExp(en, 'gi'), de);
-          });
-          return `[Übersetzung von Englisch ins Deutsche]\n\n${result}\n\nDies ist eine KI-generierte Übersetzung. Für zertifizierte Übersetzungen bitte die zertifizierte Option anfordern.`;
-        },
-        'fr': (txt: string) => `[Traduction de l'anglais vers le français]\n\n${txt}\n\nCeci est une traduction générée par IA. Pour les traductions certifiées, veuillez demander l'option certifiée.`,
-        'es': (txt: string) => `[Traducción del inglés al español]\n\n${txt}\n\nEsta es una traducción generada por IA. Para traducciones certificadas, solicite la opción certificada.`
-      },
-      'ru': {
-        'en': (txt: string) => `[Translation from Russian to English]\n\n${txt}\n\nThis is an AI-generated translation. For certified translations, please request the certified option.`,
-        'uz': (txt: string) => `[Rus tilidan o'zbek tiliga tarjima]\n\n${txt}\n\nBu sun'iy intellekt tomonidan yaratilgan tarjima.`,
-        'de': (txt: string) => `[Übersetzung von Russisch ins Deutsche]\n\n${txt}\n\nDies ist eine KI-generierte Übersetzung.`
-      }
-    };
-
-    const translator = translationMap[fromLang]?.[toLang];
-    const translation = translator 
-      ? translator(text) 
-      : `[AI Translation from ${languages.find(l => l.code === fromLang)?.name} to ${languages.find(l => l.code === toLang)?.name}]\n\n${text}\n\nThis is an AI-generated translation. For certified translations, please request the certified option.`;
-    
-    setTranslated(translation);
-    setTranslating(false);
-    toast({ 
-      title: t.translate.complete, 
-      description: certified ? t.translate.certifiedReady : t.translate.aiComplete,
-      className: "bg-green-50 text-green-900 border-green-200"
-    });
+    try {
+      const resp = await apiRequest<{ translation: string }>("/ai/translate", {
+        method: "POST",
+        body: JSON.stringify({ fromLang, toLang, text }),
+      });
+      setTranslated(resp.translation || "");
+      toast({ title: t.translate.complete, description: certified ? t.translate.certifiedReady : t.translate.aiComplete, className: "bg-green-50 text-green-900 border-green-200" });
+    } catch (err) {
+      toast({ title: "Translation Error", description: (err as any)?.message || 'Failed to translate', variant: 'destructive' });
+    } finally {
+      setTranslating(false);
+    }
   };
 
   const handleDownload = () => {

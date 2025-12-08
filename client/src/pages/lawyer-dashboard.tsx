@@ -6,9 +6,10 @@ import { apiRequest } from "@/lib/api";
 import { 
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code
+  Filter, Calendar, FileText, Download, Code, Bell
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import LawyerConsultations from "@/components/lawyer-consultations";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -67,6 +68,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -241,6 +243,38 @@ export default function LawyerDashboard() {
 
       <main className="max-w-7xl mx-auto p-8 space-y-8">
         
+        {/* Tab Navigation */}
+        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('applications')}
+            className={`px-4 py-3 font-medium transition-colors ${
+              activeTab === 'applications'
+                ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Applications
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('consultations')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'consultations'
+                ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Bell size={18} />
+            Consultation Requests
+          </motion.button>
+        </div>
+
+        {/* Applications Tab Content */}
+        {activeTab === 'applications' && (
+          <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title={t.lawyer.active} value={leads.length} icon={Users} color="blue" trend="+12%" />
@@ -486,6 +520,13 @@ export default function LawyerDashboard() {
             </>
           )}
         </div>
+        </>
+        )}
+
+        {/* Consultations Tab Content */}
+        {activeTab === 'consultations' && (
+          <LawyerConsultations />
+        )}
       </main>
 
       {/* Client Detail Modal */}

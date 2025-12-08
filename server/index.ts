@@ -11,6 +11,7 @@ import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
+import { setupSocketIO } from "./lib/socket";
 
 import "dotenv/config";
 
@@ -134,6 +135,16 @@ app.get("/health", async (_req, res) => {
     // Register API routes first
     // registerRoutes expects the Express `app` instance (not the HTTP server)
     await registerRoutes(app);
+
+    // ============================================
+    // Setup Socket.IO for real-time messaging
+    // ============================================
+    try {
+      setupSocketIO(httpServer);
+      logger.info("Socket.IO messaging server initialized");
+    } catch (err) {
+      logger.error({ err }, "Failed to setup Socket.IO");
+    }
 
     // ============================================
     // FIX #6: Serve static assets (after routes)

@@ -70,19 +70,45 @@ router.post(
       body.applicationId || null
     );
 
-    // Save to database
-    const [document] = await db
-      .insert(documents)
-      .values({
-        applicationId: body.applicationId || null,
-        userId,
-        url: uploadResult.url,
-        fileName: uploadResult.fileName,
-        mimeType: uploadResult.mimeType,
-        fileSize: uploadResult.fileSize,
-        documentType: body.documentType || null,
-      })
-      .returning();
+    // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
+    let document: any;
+    try {
+      const res = await db
+        .insert(documents)
+        .values({
+          applicationId: body.applicationId || null,
+          userId,
+          // store a snapshot URL and the internal storage key for reliable access
+          url: uploadResult.url,
+          s3Key: uploadResult.key,
+          fileName: uploadResult.fileName,
+          mimeType: uploadResult.mimeType,
+          fileSize: uploadResult.fileSize,
+          documentType: body.documentType || null,
+        })
+        .returning();
+      document = res[0];
+    } catch (err) {
+      // Fallback: older DB schema without s3_key column
+      try {
+        const res2 = await db
+          .insert(documents)
+          .values({
+            applicationId: body.applicationId || null,
+            userId,
+            url: uploadResult.url,
+            fileName: uploadResult.fileName,
+            mimeType: uploadResult.mimeType,
+            fileSize: uploadResult.fileSize,
+            documentType: body.documentType || null,
+          })
+          .returning();
+        document = res2[0];
+      } catch (err2) {
+        // If fallback also fails, rethrow the original error for visibility
+        throw err;
+      }
+    }
 
     await auditLog(userId, "document.upload", "document", document.id, {
       fileName: uploadResult.fileName,
@@ -91,7 +117,13 @@ router.post(
 
     logger.info({ userId, documentId: document.id, fileName: uploadResult.fileName }, "Document uploaded");
 
-    res.status(201).json(document);
+    // Return a fresh presigned URL for the client
+    try {
+      const presigned = await getPresignedUrl(uploadResult.key);
+      res.status(201).json({ ...document, url: presigned });
+    } catch (err) {
+      res.status(201).json(document);
+    }
   })
 );
 
@@ -130,12 +162,17 @@ router.get(
       });
     }
 
-    // Generate fresh presigned URLs
+    // Generate fresh presigned URLs (prefer stored s3Key)
     const docsWithUrls = await Promise.all(
       docs.map(async (doc) => {
         try {
-          const url = await getPresignedUrl(doc.url.split("/").pop() || doc.url);
-          return { ...doc, url };
+          const key = (doc as any).s3Key || (typeof doc.url === 'string' && !doc.url.startsWith('http') ? doc.url : null);
+          if (key) {
+            const url = await getPresignedUrl(key);
+            return { ...doc, url };
+          }
+          // Fallback: return stored URL (possibly already presigned)
+          return doc;
         } catch {
           return doc;
         }
@@ -167,13 +204,18 @@ router.get(
       throw new AppError(403, "Access denied");
     }
 
-    // Generate fresh presigned URL
+    // Generate fresh presigned URL using s3Key when available
     try {
-      const url = await getPresignedUrl(document.url.split("/").pop() || document.url);
-      res.json({ ...document, url });
-    } catch {
-      res.json(document);
+      const key = (document as any).s3Key || (typeof document.url === 'string' && !document.url.startsWith('http') ? document.url : null);
+      if (key) {
+        const url = await getPresignedUrl(key);
+        return res.json({ ...document, url });
+      }
+    } catch (err) {
+      // ignore and fallthrough to return stored document
     }
+
+    res.json(document);
   })
 );
 
@@ -198,9 +240,26 @@ router.delete(
       throw new AppError(403, "Access denied");
     }
 
-    // Delete from storage
+    // Delete from storage (prefer stored s3Key). Try to parse key from stored URL as fallback.
     try {
-      await deleteFile(document.url.split("/").pop() || document.url);
+      const key = (document as any).s3Key;
+      if (key) {
+        await deleteFile(key);
+      } else if (document.url && typeof document.url === 'string') {
+        try {
+          const u = new URL(document.url);
+          const path = u.pathname.startsWith('/') ? u.pathname.slice(1) : u.pathname;
+          const decoded = decodeURIComponent(path);
+          await deleteFile(decoded);
+        } catch (err) {
+          // Last resort: try deleting using the stored URL (may fail)
+          try {
+            await deleteFile(document.url as any);
+          } catch (err2) {
+            logger.error({ err2, documentId: id }, 'Failed to delete file from storage (fallback)');
+          }
+        }
+      }
     } catch (error) {
       logger.error({ error, documentId: id }, "Failed to delete file from storage");
     }
