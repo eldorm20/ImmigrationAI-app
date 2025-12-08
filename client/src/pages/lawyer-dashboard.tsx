@@ -6,14 +6,14 @@ import { apiRequest } from "@/lib/api";
 import { 
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, MessageSquare, ArrowLeft
+  Filter, Calendar, FileText, Download, Code, Bell
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import LawyerConsultations from "@/components/lawyer-consultations";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { RealtimeChat } from "@/components/realtime-chat";
 
 // --- Components ---
 
@@ -68,7 +68,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [showChat, setShowChat] = useState(false);
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -76,7 +76,6 @@ export default function LawyerDashboard() {
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [showReport, setShowReport] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'clients' | 'earnings' | 'messages'>('applications');
   const pageSize = 10;
 
   // Mock Chart Data
@@ -244,6 +243,38 @@ export default function LawyerDashboard() {
 
       <main className="max-w-7xl mx-auto p-8 space-y-8">
         
+        {/* Tab Navigation */}
+        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('applications')}
+            className={`px-4 py-3 font-medium transition-colors ${
+              activeTab === 'applications'
+                ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            Applications
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('consultations')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'consultations'
+                ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Bell size={18} />
+            Consultation Requests
+          </motion.button>
+        </div>
+
+        {/* Applications Tab Content */}
+        {activeTab === 'applications' && (
+          <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title={t.lawyer.active} value={leads.length} icon={Users} color="blue" trend="+12%" />
@@ -252,32 +283,6 @@ export default function LawyerDashboard() {
           <StatCard title={t.lawyer.approved} value={leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 sticky top-20 bg-slate-50 dark:bg-slate-950 z-30 -mx-8 px-8 pt-6">
-          {[
-            { id: 'applications', label: 'Applications', icon: FileText },
-            { id: 'clients', label: 'Clients', icon: Users },
-            { id: 'earnings', label: 'Earnings', icon: DollarSign },
-            { id: 'messages', label: 'Messages', icon: MessageSquare }
-          ].map(tab => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-4 font-bold text-sm border-b-2 transition-colors -mb-6 ${
-                activeTab === tab.id 
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400' 
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'applications' && (
-        <>
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
@@ -515,88 +520,12 @@ export default function LawyerDashboard() {
             </>
           )}
         </div>
-
-        {/* Clients Tab */}
-        {activeTab === 'clients' && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Client Management</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {leads.slice(0, 6).map((client) => (
-                <motion.div key={client.id} whileHover={{ y: -4 }} className="p-6 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold">
-                      {client.name[0]}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white">{client.name}</h4>
-                      <p className="text-xs text-slate-500">{client.email}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm mb-4">
-                    <p><span className="text-slate-500">Country:</span> <span className="font-bold text-slate-900 dark:text-white">{client.country}</span></p>
-                    <p><span className="text-slate-500">Visa:</span> <span className="font-bold text-slate-900 dark:text-white">{client.visa}</span></p>
-                    <p><span className="text-slate-500">Status:</span> <span className={`font-bold ${client.status === 'Approved' ? 'text-green-600' : client.status === 'Rejected' ? 'text-red-600' : 'text-blue-600'}`}>{client.status}</span></p>
-                  </div>
-                  <ActionButton variant="primary" className="w-full" onClick={() => setSelectedLead(client)}>Contact Client</ActionButton>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Earnings Tab */}
-        {activeTab === 'earnings' && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <motion.div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">Total Earnings</p>
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</h3>
-                <p className="text-green-600 text-sm mt-2">+12% from last month</p>
-              </motion.div>
-              <motion.div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">Average Fee</p>
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</h3>
-                <p className="text-slate-500 text-sm mt-2">{leads.length} clients</p>
-              </motion.div>
-              <motion.div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-2">Pending Payments</p>
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">${(leads.filter(l => l.status === 'New' || l.status === 'Reviewing').length * 500).toLocaleString()}</h3>
-                <p className="text-orange-600 text-sm mt-2">{leads.filter(l => l.status === 'New' || l.status === 'Reviewing').length} awaiting approval</p>
-              </motion.div>
-            </div>
-            <motion.div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Revenue History</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.2} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} tickFormatter={(val) => `$${val}`} />
-                  <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff'}} />
-                  <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Client Messages</h3>
-            <div className="text-center py-12 text-slate-500">
-              <MessageSquare size={48} className="mx-auto mb-4 opacity-30" />
-              <p>Real-time messaging coming soon</p>
-              <p className="text-sm mt-2">Connect with your clients directly</p>
-            </div>
-          </motion.div>
-        )}
         </>
+        )}
+
+        {/* Consultations Tab Content */}
+        {activeTab === 'consultations' && (
+          <LawyerConsultations />
         )}
       </main>
 
@@ -669,14 +598,6 @@ export default function LawyerDashboard() {
                    <div className="flex gap-3 pt-4">
                       <ActionButton 
                         className="flex-1 py-3" 
-                        variant="primary" 
-                        icon={MessageSquare} 
-                        onClick={() => setShowChat(true)}
-                      >
-                        Send Message
-                      </ActionButton>
-                      <ActionButton 
-                        className="flex-1 py-3" 
                         variant="success" 
                         icon={CheckCircle} 
                         onClick={() => { 
@@ -702,35 +623,6 @@ export default function LawyerDashboard() {
                    </div>
                 </div>
              </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Chat Modal */}
-      <AnimatePresence>
-        {selectedLead && showChat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowChat(false)} />
-            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} className="bg-white dark:bg-slate-900 p-6 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setShowChat(false)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Chat with {selectedLead.name}</h3>
-                    <p className="text-xs text-slate-500">{selectedLead.email}</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowChat(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20}/></button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <RealtimeChat recipientId={selectedLead.id} />
-              </div>
-            </motion.div>
           </div>
         )}
       </AnimatePresence>

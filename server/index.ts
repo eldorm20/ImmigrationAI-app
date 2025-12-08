@@ -11,9 +11,7 @@ import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
-import { ensureSchemaExists } from "./lib/ensureSchema";
-import { initializeDatabase } from "./lib/initDatabase";
-import { initializeWebSocket } from "./lib/websocket";
+import { setupSocketIO } from "./lib/socket";
 
 import "dotenv/config";
 
@@ -125,21 +123,8 @@ app.get("/health", async (_req, res) => {
       logger.warn("Redis not connected - caching disabled");
     }
 
-    // Check if database schema exists, run migrations if needed
-    try {
-      await ensureSchemaExists();
-    } catch (err) {
-      logger.error({ err }, "Schema initialization failed");
-    }
-
-    // Initialize database schema (creates tables if needed)
-    try {
-      await initializeDatabase();
-    } catch (err) {
-      logger.error({ err }, "Database initialization failed");
-    }
-
-    // Run migrations automatically
+    // Optionally run migrations automatically in production if enabled.
+    // Set `AUTO_RUN_MIGRATIONS=true` in Railway project variables to enable.
     try {
       await runMigrationsIfNeeded();
     } catch (err) {
@@ -152,13 +137,13 @@ app.get("/health", async (_req, res) => {
     await registerRoutes(app);
 
     // ============================================
-    // Initialize WebSocket for real-time messaging
+    // Setup Socket.IO for real-time messaging
     // ============================================
     try {
-      initializeWebSocket(httpServer);
-      logger.info("WebSocket server initialized successfully");
+      setupSocketIO(httpServer);
+      logger.info("Socket.IO messaging server initialized");
     } catch (err) {
-      logger.error({ err }, "Failed to initialize WebSocket server");
+      logger.error({ err }, "Failed to setup Socket.IO");
     }
 
     // ============================================

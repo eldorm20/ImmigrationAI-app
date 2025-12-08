@@ -76,8 +76,8 @@ export default function ConsultationPanel() {
     e.preventDefault();
     if (!selectedLawyer || !formData.scheduledTime) {
       toast({
-        title: "Missing Information",
-        description: "Please select a lawyer and scheduled time",
+        title: t.common.error,
+        description: t.consultation.missingInfo,
         variant: "destructive",
       });
       return;
@@ -100,13 +100,13 @@ export default function ConsultationPanel() {
       setSelectedLawyer("");
 
       toast({
-        title: "Success",
-        description: "Consultation request submitted! The lawyer will confirm shortly.",
+        title: t.common.success,
+        description: t.consultation.requestSubmitted,
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to submit consultation request",
+        title: t.common.error,
+        description: error.message || t.consultation.submitError,
         variant: "destructive",
       });
     }
@@ -120,13 +120,13 @@ export default function ConsultationPanel() {
 
       setConsultations(consultations.filter(c => c.id !== consultationId));
       toast({
-        title: "Success",
-        description: "Consultation cancelled",
+        title: t.common.success,
+        description: t.consultation.cancelled,
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to cancel consultation",
+        title: t.common.error,
+        description: error.message || t.consultation.cancelError,
         variant: "destructive",
       });
     }
@@ -167,7 +167,7 @@ export default function ConsultationPanel() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h3 className="font-semibold">Consultation Chat</h3>
+            <h3 className="font-semibold">{t.consultation.consultationChat}</h3>
             <p className="text-xs text-slate-500">
               {new Date(selectedConsultation.scheduledTime).toLocaleDateString()} at{" "}
               {new Date(selectedConsultation.scheduledTime).toLocaleTimeString()}
@@ -187,7 +187,7 @@ export default function ConsultationPanel() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
           >
             <CheckCircle size={16} />
-            Join Video Meeting
+            {t.consultation.joinVideoCall}
           </a>
         )}
       </div>
@@ -197,7 +197,7 @@ export default function ConsultationPanel() {
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Consultations</h2>
+        <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -378,9 +378,27 @@ export default function ConsultationPanel() {
                   "{consultation.notes}"
                 </div>
               )}
+<<<<<<< HEAD
             </motion.div>
           ))}
         </div>
+=======
+
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar size={16} className="text-slate-400" />
+                  <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock size={16} className="text-slate-400" />
+                  <span>{new Date(consultation.scheduledTime).toLocaleTimeString()} ({consultation.duration} min)</span>
+                </div>
+              </div>
+
+              {consultation.notes && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{consultation.notes}</p>
+              )}
+>>>>>>> 201525014cbe66a1390fc53a453e7334cdb654d6
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">

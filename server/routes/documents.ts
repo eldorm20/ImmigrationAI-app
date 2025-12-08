@@ -2,14 +2,15 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { db } from "../db";
-import { documents, applications } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { documents, applications, users } from "@shared/schema";
+import { eq, and, gte } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { uploadLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/storage";
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
+import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
 
 const router = Router();
 
@@ -42,6 +43,28 @@ router.post(
     const body = createDocumentSchema.parse(req.body || {});
     const userId = req.user!.id;
 
+    // Check subscription tier and enforce document upload limit
+    const tier = await getUserSubscriptionTier(userId);
+    const tierFeatures = getTierFeatures(tier);
+    const uploadLimit = tierFeatures.features.documentUploadLimit;
+
+    // Count documents uploaded this month by user
+    const currentMonth = new Date();
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const docsThisMonth = await db.query.documents.findMany({
+      where: and(
+        eq(documents.userId, userId),
+        gte(documents.createdAt, startOfMonth)
+      ),
+    });
+
+    if (docsThisMonth.length >= uploadLimit) {
+      throw new AppError(
+        403,
+        `You have reached the document upload limit (${uploadLimit}/month) for your ${tier} plan. Upgrade to upload more documents.`
+      );
+    }
+
     // Validate file
     const validation = validateFile(req.file);
     if (!validation.valid) {
@@ -64,25 +87,57 @@ router.post(
     }
 
     // Upload to storage
-    const uploadResult = await uploadFile(
-      req.file,
-      userId,
-      body.applicationId || null
-    );
-
-    // Save to database
-    const [document] = await db
-      .insert(documents)
-      .values({
-        applicationId: body.applicationId || null,
+    let uploadResult;
+    try {
+      uploadResult = await uploadFile(
+        req.file,
         userId,
-        url: uploadResult.url,
-        fileName: uploadResult.fileName,
-        mimeType: uploadResult.mimeType,
-        fileSize: uploadResult.fileSize,
-        documentType: body.documentType || null,
-      })
-      .returning();
+        body.applicationId || null
+      );
+    } catch (err: any) {
+      logger.error({ err, userId, fileName: req.file.originalname }, "File upload failed");
+      throw new AppError(500, err.message || "File upload failed");
+    }
+
+    // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
+    let document: any;
+    try {
+      const res = await db
+        .insert(documents)
+        .values({
+          applicationId: body.applicationId || null,
+          userId,
+          // store a snapshot URL and the internal storage key for reliable access
+          url: uploadResult.url,
+          s3Key: uploadResult.key,
+          fileName: uploadResult.fileName,
+          mimeType: uploadResult.mimeType,
+          fileSize: uploadResult.fileSize,
+          documentType: body.documentType || null,
+        })
+        .returning();
+      document = res[0];
+    } catch (err) {
+      // Fallback: older DB schema without s3_key column
+      try {
+        const res2 = await db
+          .insert(documents)
+          .values({
+            applicationId: body.applicationId || null,
+            userId,
+            url: uploadResult.url,
+            fileName: uploadResult.fileName,
+            mimeType: uploadResult.mimeType,
+            fileSize: uploadResult.fileSize,
+            documentType: body.documentType || null,
+          })
+          .returning();
+        document = res2[0];
+      } catch (err2) {
+        // If fallback also fails, rethrow the original error for visibility
+        throw err;
+      }
+    }
 
     await auditLog(userId, "document.upload", "document", document.id, {
       fileName: uploadResult.fileName,
@@ -91,7 +146,13 @@ router.post(
 
     logger.info({ userId, documentId: document.id, fileName: uploadResult.fileName }, "Document uploaded");
 
-    res.status(201).json(document);
+    // Return a fresh presigned URL for the client
+    try {
+      const presigned = await getPresignedUrl(uploadResult.key);
+      res.status(201).json({ ...document, url: presigned });
+    } catch (err) {
+      res.status(201).json(document);
+    }
   })
 );
 
@@ -130,12 +191,17 @@ router.get(
       });
     }
 
-    // Generate fresh presigned URLs
+    // Generate fresh presigned URLs (prefer stored s3Key)
     const docsWithUrls = await Promise.all(
       docs.map(async (doc) => {
         try {
-          const url = await getPresignedUrl(doc.url.split("/").pop() || doc.url);
-          return { ...doc, url };
+          const key = (doc as any).s3Key || (typeof doc.url === 'string' && !doc.url.startsWith('http') ? doc.url : null);
+          if (key) {
+            const url = await getPresignedUrl(key);
+            return { ...doc, url };
+          }
+          // Fallback: return stored URL (possibly already presigned)
+          return doc;
         } catch {
           return doc;
         }
@@ -167,13 +233,18 @@ router.get(
       throw new AppError(403, "Access denied");
     }
 
-    // Generate fresh presigned URL
+    // Generate fresh presigned URL using s3Key when available
     try {
-      const url = await getPresignedUrl(document.url.split("/").pop() || document.url);
-      res.json({ ...document, url });
-    } catch {
-      res.json(document);
+      const key = (document as any).s3Key || (typeof document.url === 'string' && !document.url.startsWith('http') ? document.url : null);
+      if (key) {
+        const url = await getPresignedUrl(key);
+        return res.json({ ...document, url });
+      }
+    } catch (err) {
+      // ignore and fallthrough to return stored document
     }
+
+    res.json(document);
   })
 );
 
@@ -198,9 +269,26 @@ router.delete(
       throw new AppError(403, "Access denied");
     }
 
-    // Delete from storage
+    // Delete from storage (prefer stored s3Key). Try to parse key from stored URL as fallback.
     try {
-      await deleteFile(document.url.split("/").pop() || document.url);
+      const key = (document as any).s3Key;
+      if (key) {
+        await deleteFile(key);
+      } else if (document.url && typeof document.url === 'string') {
+        try {
+          const u = new URL(document.url);
+          const path = u.pathname.startsWith('/') ? u.pathname.slice(1) : u.pathname;
+          const decoded = decodeURIComponent(path);
+          await deleteFile(decoded);
+        } catch (err) {
+          // Last resort: try deleting using the stored URL (may fail)
+          try {
+            await deleteFile(document.url as any);
+          } catch (err2) {
+            logger.error({ err2, documentId: id }, 'Failed to delete file from storage (fallback)');
+          }
+        }
+      }
     } catch (error) {
       logger.error({ error, documentId: id }, "Failed to delete file from storage");
     }

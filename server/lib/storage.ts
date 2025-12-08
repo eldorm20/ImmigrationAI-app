@@ -17,6 +17,9 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
+if (!BUCKET_NAME) {
+  logger.warn("S3 bucket not configured - file uploads will fail without S3_BUCKET or AWS_S3_BUCKET");
+}
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -25,6 +28,70 @@ const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "image/webp",
 ];
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [500, 1000, 2000]; // ms: 500ms, 1s, 2s
+
+/**
+ * Retry helper with exponential backoff
+ * @param operation The async operation to retry
+ * @param operationName Name for logging
+ * @param context Context object for logging
+ * @returns Promise resolving to operation result
+ */
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  context: Record<string, any> = {}
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        logger.info(
+          { ...context, attempt: attempt + 1, maxRetries: MAX_RETRIES, operationName },
+          `Retrying ${operationName} (attempt ${attempt + 1}/${MAX_RETRIES})`
+        );
+      }
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt < MAX_RETRIES - 1) {
+        const delay = RETRY_DELAYS[attempt];
+        logger.warn(
+          { 
+            ...context, 
+            attempt: attempt + 1, 
+            maxRetries: MAX_RETRIES, 
+            operationName,
+            error: lastError.message,
+            nextRetryDelayMs: delay
+          },
+          `${operationName} failed (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms`
+        );
+        
+        // Sleep before retry
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        logger.error(
+          { 
+            ...context, 
+            attempt: attempt + 1, 
+            maxRetries: MAX_RETRIES, 
+            operationName,
+            error: lastError.message 
+          },
+          `${operationName} failed after all retries`
+        );
+      }
+    }
+  }
+
+  throw lastError || new Error(`${operationName} failed after ${MAX_RETRIES} attempts`);
+}
 
 export interface UploadResult {
   key: string;
@@ -85,21 +152,38 @@ export async function uploadFile(
 
   const key = generateFileKey(userId, applicationId, file.originalname);
 
-  try {
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ContentLength: file.size,
-      // Make files private by default
-      ACL: "private",
-    });
+  if (!BUCKET_NAME) {
+    logger.error({ key, userId }, "No bucket configured for upload");
+    throw new Error("Storage bucket not configured");
+  }
 
-    await s3Client.send(command);
+  try {
+    // Retry the upload operation with exponential backoff
+    await retryWithBackoff(
+      async () => {
+        const command = new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          ContentLength: file.size,
+          // Make files private by default
+          ACL: "private",
+        });
+
+        await s3Client.send(command);
+      },
+      "S3 file upload",
+      { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype }
+    );
 
     // Generate presigned URL for access (valid for 1 hour)
-    const url = await getPresignedUrl(key);
+    // Also retry presigned URL generation
+    const url = await retryWithBackoff(
+      async () => getPresignedUrl(key),
+      "presigned URL generation",
+      { key, userId }
+    );
 
     logger.info({ key, userId, applicationId, size: file.size }, "File uploaded successfully");
 
@@ -111,7 +195,7 @@ export async function uploadFile(
       fileSize: file.size,
     };
   } catch (error) {
-    logger.error({ error, key }, "Failed to upload file");
+    logger.error({ error, key, userId }, "Failed to upload file after retries");
     throw new Error("Failed to upload file");
   }
 }
@@ -119,15 +203,21 @@ export async function uploadFile(
 // Get presigned URL for file access
 export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
   try {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
+    return await retryWithBackoff(
+      async () => {
+        const command = new GetObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: key,
+        });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn });
-    return url;
+        const url = await getSignedUrl(s3Client, command, { expiresIn });
+        return url;
+      },
+      "presigned URL generation",
+      { key, expiresIn }
+    );
   } catch (error) {
-    logger.error({ error, key }, "Failed to generate presigned URL");
+    logger.error({ error, key }, "Failed to generate presigned URL after retries");
     throw new Error("Failed to generate file URL");
   }
 }

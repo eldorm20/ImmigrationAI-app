@@ -1,9 +1,11 @@
 import React from "react";
 import { useLocation } from "wouter";
+import { useI18n } from "@/lib/i18n";
 import { ArrowLeft } from "lucide-react";
 
 export default function TermsPage() {
   const [, setLocation] = useLocation();
+  const { t } = useI18n();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -16,7 +18,7 @@ export default function TermsPage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-3xl font-bold">Terms of Service</h1>
+          <h1 className="text-3xl font-bold">{t.terms.title}</h1>
         </div>
       </header>
 
@@ -24,70 +26,70 @@ export default function TermsPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="prose dark:prose-invert max-w-none space-y-6">
           <section>
-            <h2 className="text-2xl font-bold mb-4">Terms of Service</h2>
-            <p className="text-slate-600 dark:text-slate-400">Last updated: December 2024</p>
+            <h2 className="text-2xl font-bold mb-4">{t.terms.title}</h2>
+            <p className="text-slate-600 dark:text-slate-400">{t.terms.lastUpdated} December 2024</p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">1. Agreement to Terms</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section1Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              By accessing and using ImmigrationAI, you accept and agree to be bound by and comply with these Terms of Service and our Privacy Policy. If you do not agree to abide by the above, please do not use this service.
+              {t.terms.section1Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">2. Use License</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section2Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              Permission is granted to temporarily download one copy of the materials (information or software) on ImmigrationAI's website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+              {t.terms.section2Body}
             </p>
             <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-2 mt-3">
-              <li>Modify or copy the materials</li>
-              <li>Use the materials for any commercial purpose or for any public display</li>
-              <li>Attempt to decompile or reverse engineer any software contained on the website</li>
-              <li>Remove any copyright or other proprietary notations from the materials</li>
-              <li>Transfer the materials to another person or "mirror" the materials on any other server</li>
+              <li>{t.terms.section2Item1}</li>
+              <li>{t.terms.section2Item2}</li>
+              <li>{t.terms.section2Item3}</li>
+              <li>{t.terms.section2Item4}</li>
+              <li>{t.terms.section2Item5}</li>
             </ul>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">3. Disclaimer</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section3Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              The materials on ImmigrationAI's website are provided on an 'as is' basis. ImmigrationAI makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+              {t.terms.section3Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">4. Limitations</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section4Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              In no event shall ImmigrationAI or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on ImmigrationAI's website.
+              {t.terms.section4Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">5. Accuracy of Materials</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section5Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              The materials appearing on ImmigrationAI's website could include technical, typographical, or photographic errors. ImmigrationAI does not warrant that any of the materials on its website are accurate, complete, or current.
+              {t.terms.section5Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">6. Modifications</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section6Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              ImmigrationAI may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.
+              {t.terms.section6Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">7. Governing Law</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section7Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              These terms and conditions are governed by and construed in accordance with the laws of the jurisdiction in which ImmigrationAI operates, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.
+              {t.terms.section7Body}
             </p>
           </section>
 
           <section>
-            <h3 className="text-xl font-bold mb-3">8. Contact Information</h3>
+            <h3 className="text-xl font-bold mb-3">{t.terms.section8Title}</h3>
             <p className="text-slate-700 dark:text-slate-300">
-              If you have any questions about these Terms of Service, please contact us at:
+              {t.terms.section8Body}
             </p>
             <p className="text-slate-700 dark:text-slate-300 mt-2">
               Email: <span className="font-mono">legal@immigrationai.com</span>
