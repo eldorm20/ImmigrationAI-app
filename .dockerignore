@@ -15,7 +15,6 @@ client/dist
 .git
 .gitignore
 README.md
-migrations
 *.test.ts
 *.test.tsx
 *.spec.ts

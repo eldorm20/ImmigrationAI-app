@@ -33,7 +33,7 @@ router.post(
       })
       .parse(req.body);
 
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     // Create Stripe payment intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -92,7 +92,7 @@ router.post(
         .where(eq(payments.providerTransactionId, paymentIntentId));
 
       logger.info(
-        { paymentIntentId, userId: req.user!.userId },
+        { paymentIntentId, userId: req.user!.id },
         "Payment confirmed"
       );
 
@@ -108,7 +108,7 @@ router.get(
   "/history",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const userPayments = await db.query.payments.findMany({
       where: eq(payments.userId, userId),

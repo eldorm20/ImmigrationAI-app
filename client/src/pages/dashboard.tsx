@@ -7,7 +7,7 @@ import {
   LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle, 
   ArrowRight, Download, Send, User, X, Sparkles, Briefcase,
   Loader2, ChevronRight, Globe, Zap, FileCheck, RefreshCw, Edit3, Check,
-  Upload, Languages, FileUp, Trash2, Eye, Book
+  Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard, Bell
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -99,7 +99,7 @@ export default function UserDash() {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center gap-4 mb-6 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-brand-500 to-purple-500 p-[2px]">
               <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full flex items-center justify-center font-bold text-xs text-slate-900 dark:text-white">
@@ -111,7 +111,36 @@ export default function UserDash() {
               <p className="text-xs text-slate-400 truncate">{user.email}</p>
             </div>
           </div>
-          <LiveButton variant="ghost" className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" onClick={logout} icon={LogOut}>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20" 
+            onClick={() => setLocation("/subscription")}
+            icon={CreditCard}
+          >
+            {t.subscription?.manage || "Subscription"}
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20" 
+            onClick={() => setLocation("/notifications")}
+            icon={Bell}
+          >
+            Notifications
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800" 
+            onClick={() => setLocation("/settings")}
+            icon={Settings}
+          >
+            Settings
+          </LiveButton>
+          <LiveButton 
+            variant="ghost" 
+            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
+            onClick={logout} 
+            icon={LogOut}
+          >
             {t.dash.logout}
           </LiveButton>
         </div>
@@ -169,98 +198,147 @@ export default function UserDash() {
 
 // --- Sub-Views ---
 
-const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void, toast: any }) => (
-  <motion.div 
-    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-    className="space-y-8"
-  >
-    <AnimatedCard className="border-l-4 border-brand-500 bg-gradient-to-r from-white to-brand-50/30 dark:from-slate-900 dark:to-brand-900/10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h3 className="font-bold text-xl flex items-center gap-2 text-slate-900 dark:text-white">
-            Skilled Worker Visa (UK)
-            <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">In Progress</span>
-          </h3>
-          <p className="text-slate-500 mt-1">Application Reference: #UK-SW-2025-8842</p>
-        </div>
-        <div className="text-right">
-          <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">35%</div>
-          <div className="text-xs font-bold text-slate-400 uppercase">Completion</div>
-        </div>
-      </div>
-      
-      <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 mb-6 overflow-hidden">
-        <motion.div 
-          initial={{ width: 0 }} animate={{ width: '35%' }} transition={{ duration: 1.5, ease: "easeOut" }}
-          className="bg-gradient-to-r from-brand-500 to-purple-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] relative"
-        >
-           <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
-        </motion.div>
-      </div>
-      
-      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
-        <Zap size={16} className="text-yellow-500 fill-yellow-500" /> 
-        Next Step: <span className="font-bold">Upload Proof of Funds</span> (Due in 3 days)
-      </p>
-    </AnimatedCard>
+const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void, toast: any }) => {
+  const { user } = useAuth();
+  const [application, setApplication] = useState<any>(null);
+  const [roadmapItems, setRoadmapItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
 
-    <div className="grid gap-4">
-      {[
-        { title: 'Eligibility Assessment', status: 'done', desc: 'Passed with 85 points', action: () => {} },
-        { title: 'Document Collection', status: 'current', desc: 'Passport, Degree, TB Test', action: () => {
-          setActiveTab('upload');
-          toast({ title: "Document Collection", description: "Upload your documents here", className: "bg-blue-50 text-blue-900 border-blue-200" });
-        }},
-        { title: 'Official Translation', status: 'pending', desc: 'Notarized translations required', action: () => {
-          setActiveTab('translate');
-          toast({ title: "Translation", description: "Translate your documents here", className: "bg-blue-50 text-blue-900 border-blue-200" });
-        }},
-        { title: 'Visa Application Submission', status: 'pending', desc: 'Home Office portal', action: () => {
-          toast({ title: "Application Submission", description: "Complete previous steps before submission", className: "bg-yellow-50 text-yellow-900 border-yellow-200" });
-        }}
-      ].map((step, i) => (
-        <AnimatedCard 
-          key={i} 
-          delay={i * 0.1} 
-          className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} ${step.status !== 'pending' ? 'hover:shadow-lg' : ''}`}
-          onClick={() => step.status !== 'pending' && step.action()}
-        >
-           <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
-             {step.status === 'done' ? (
-               <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shadow-sm">
-                 <CheckCircle size={20} />
-               </div>
-             ) : step.status === 'current' ? (
-               <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm relative">
-                 <div className="absolute inset-0 bg-brand-500 rounded-full opacity-20 animate-ping"></div>
-                 <Loader2 size={20} className="animate-spin" />
-               </div>
-             ) : (
-               <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                 <Circle size={20} />
-               </div>
-             )}
-             
-             <div className="flex-1">
-               <h4 className={`font-bold text-lg ${step.status === 'pending' ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{step.title}</h4>
-               <p className="text-sm text-slate-500">{step.desc}</p>
-             </div>
-             
-             {step.status === 'current' && (
-               <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
-                 toast({ 
-                   title: "Next Step", 
-                   description: `Starting ${step.title}...`,
-                   className: "bg-blue-50 text-blue-900 border-blue-200"
-                 });
-               }}>Continue <ChevronRight size={16}/></LiveButton>
-             )}
-           </div>
+  useEffect(() => {
+    const loadRoadmapData = async () => {
+      try {
+        setLoading(true);
+        // Fetch user's applications
+        const appData = await apiRequest<any[]>("/applications");
+        if (appData && appData.length > 0) {
+          const activeApp = appData[0]; // Get first application
+          setApplication(activeApp);
+          
+          // Fetch roadmap items for this application
+          const items = await apiRequest<any[]>(`/roadmap/application/${activeApp.id}`);
+          setRoadmapItems(items || []);
+          
+          // Calculate progress
+          const completed = items.filter((i: any) => i.status === 'completed').length;
+          const total = items.length || 1;
+          setProgress(Math.round((completed / total) * 100));
+        }
+      } catch (error) {
+        console.error('Failed to load roadmap:', error);
+        setProgress(35); // Fallback for demo
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRoadmapData();
+  }, []);
+
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+        <AnimatedCard>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="animate-spin" />
+          </div>
         </AnimatedCard>
-      ))}
-    </div>
-  </motion.div>
-);
+      </motion.div>
+    );
+  }
+
+  const items = roadmapItems.length > 0 ? roadmapItems : [
+    { title: 'Eligibility Assessment', status: 'done', description: 'Passed with 85 points' },
+    { title: 'Document Collection', status: 'current', description: 'Passport, Degree, TB Test' },
+    { title: 'Official Translation', status: 'pending', description: 'Notarized translations required' },
+    { title: 'Visa Application Submission', status: 'pending', description: 'Home Office portal' }
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="space-y-8"
+    >
+      <AnimatedCard className="border-l-4 border-brand-500 bg-gradient-to-r from-white to-brand-50/30 dark:from-slate-900 dark:to-brand-900/10">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <div>
+            <h3 className="font-bold text-xl flex items-center gap-2 text-slate-900 dark:text-white">
+              {application?.visaType || 'Skilled Worker Visa'} ({application?.country || 'UK'})
+              <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">{application?.status || 'In Progress'}</span>
+            </h3>
+            <p className="text-slate-500 mt-1">Application Reference: #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress}%</div>
+            <div className="text-xs font-bold text-slate-400 uppercase">Completion</div>
+          </div>
+        </div>
+        
+        <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 mb-6 overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
+            className="bg-gradient-to-r from-brand-500 to-purple-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] relative"
+          >
+             <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
+          </motion.div>
+        </div>
+        
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+          <Zap size={16} className="text-yellow-500 fill-yellow-500" /> 
+          Next Step: <span className="font-bold">{items.find(i => i.status === 'current')?.title || 'Complete Application'}</span>
+        </p>
+      </AnimatedCard>
+
+      <div className="grid gap-4">
+        {items.map((step: any, i: number) => (
+          <AnimatedCard 
+            key={i} 
+            delay={i * 0.1} 
+            className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} ${step.status !== 'pending' ? 'hover:shadow-lg' : ''}`}
+            onClick={() => step.status !== 'pending' && (
+              step.title.includes('Document') ? setActiveTab('upload') : 
+              step.title.includes('Translation') ? setActiveTab('translate') : null
+            )}
+          >
+             <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
+               {step.status === 'done' || step.status === 'completed' ? (
+                 <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shadow-sm">
+                   <CheckCircle size={20} />
+                 </div>
+               ) : step.status === 'current' ? (
+                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm relative">
+                   <div className="absolute inset-0 bg-brand-500 rounded-full opacity-20 animate-ping"></div>
+                   <Loader2 size={20} className="animate-spin" />
+                 </div>
+               ) : (
+                 <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
+                   <Circle size={20} />
+                 </div>
+               )}
+               
+               <div className="flex-1">
+                 <h4 className={`font-bold text-lg ${step.status === 'pending' ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{step.title}</h4>
+                 <p className="text-sm text-slate-500">{step.description || step.desc}</p>
+               </div>
+               
+               {step.status === 'current' && (
+                 <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
+                   toast({ 
+                     title: "Next Step", 
+                     description: `Starting ${step.title}...`,
+                     className: "bg-blue-50 text-blue-900 border-blue-200"
+                   });
+                 }}>
+                   Next <ArrowRight size={16} />
+                 </LiveButton>
+               )}
+             </div>
+          </AnimatedCard>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
 
 const DocsView = () => {
   const [docType, setDocType] = useState('Motivation Letter');
@@ -663,6 +741,7 @@ const UploadView = () => {
   const [files, setFiles] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -782,6 +861,7 @@ const UploadView = () => {
           <h4 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">{t.upload.dropFiles}</h4>
           <p className="text-slate-500 dark:text-slate-400 mb-4">{t.upload.supports}</p>
           <input
+            ref={fileInputRef}
             type="file"
             multiple
             onChange={handleFileInput}
@@ -789,12 +869,15 @@ const UploadView = () => {
             id="file-upload"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
-          <label htmlFor="file-upload">
-            <LiveButton variant="primary" className="cursor-pointer" disabled={uploading}>
-              {uploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
-              {uploading ? t.upload.uploading : t.upload.chooseFiles}
-            </LiveButton>
-          </label>
+          <LiveButton 
+            variant="primary" 
+            className="cursor-pointer" 
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {uploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
+            {uploading ? t.upload.uploading : t.upload.chooseFiles}
+          </LiveButton>
         </div>
       </AnimatedCard>
 

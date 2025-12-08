@@ -44,7 +44,7 @@ const updateApplicationSchema = z.object({
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
 
     // Build query
@@ -115,7 +115,7 @@ router.get(
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { id } = req.params;
 
@@ -141,7 +141,7 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const body = createApplicationSchema.parse(req.body);
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     // Validate country code
     if (!isValidCountryCode(body.country)) {
@@ -179,7 +179,7 @@ router.post(
 router.patch(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { id } = req.params;
     const body = updateApplicationSchema.parse(req.body);
@@ -260,7 +260,7 @@ router.patch(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { id } = req.params;
 

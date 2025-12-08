@@ -40,7 +40,7 @@ router.post(
     }
 
     const body = createDocumentSchema.parse(req.body || {});
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     // Validate file
     const validation = validateFile(req.file);
@@ -131,7 +131,7 @@ router.post(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { applicationId } = req.query;
 
@@ -187,7 +187,7 @@ router.get(
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { id } = req.params;
 
@@ -223,7 +223,7 @@ router.get(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const role = req.user!.role;
     const { id } = req.params;
 

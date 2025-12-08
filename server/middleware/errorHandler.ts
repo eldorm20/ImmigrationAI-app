@@ -48,12 +48,13 @@ export function errorHandler(
   // Unknown errors
   logger.error(
     {
-      error: err,
+      message: err.message,
       stack: err.stack,
       path: req.path,
       method: req.method,
+      errorType: err.constructor.name,
     },
-    "Unhandled error"
+    `Unhandled ${err.constructor.name}: ${err.message}`
   );
 
   // Don't leak internal error details in production

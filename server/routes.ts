@@ -7,9 +7,12 @@ import aiRoutes from "./routes/ai";
 import statsRoutes from "./routes/stats";
 import healthRoutes from "./routes/health";
 import researchRoutes from "./routes/research";
+import roadmapRoutes from "./routes/roadmap";
 import stripeRoutes from "./routes/stripe";
 import notificationRoutes from "./routes/notifications";
 import reportsRoutes from "./routes/reports";
+import subscriptionsRoutes from "./routes/subscriptions";
+import messagesRoutes from "./routes/messages";
 import webhooksRoutes from "./routes/webhooks";
 
 export function registerRoutes(app: Express) {
@@ -24,7 +27,10 @@ export function registerRoutes(app: Express) {
   app.use("/api/stats", statsRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/api/research", researchRoutes);
+  app.use("/api/roadmap", roadmapRoutes);
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/reports", reportsRoutes);
+  app.use("/api/subscription", subscriptionsRoutes);
+  app.use("/api/messages", messagesRoutes);
 }

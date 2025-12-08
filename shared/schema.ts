@@ -232,6 +232,24 @@ export const researchArticles = pgTable("research_articles", {
   publishedIdx: index("research_published_idx").on(table.isPublished, table.publishedAt),
 }));
 
+// Roadmap items table for tracking visa application progress
+export const roadmapItems = pgTable("roadmap_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicationId: varchar("application_id", { length: 255 }).notNull().references(() => applications.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, current, completed
+  order: integer("order").notNull().default(0),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  metadata: jsonb("metadata"), // Store additional data like progress percentage, notes, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  applicationIdIdx: index("roadmap_application_id_idx").on(table.applicationId),
+  statusIdx: index("roadmap_status_idx").on(table.status),
+}));
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users, {
   email: z.string().email().max(255),
@@ -322,6 +340,21 @@ export const insertResearchArticleSchema = createInsertSchema(researchArticles, 
   sourceUrl: true,
 });
 
+export const insertRoadmapItemSchema = createInsertSchema(roadmapItems, {
+  title: z.string().min(3).max(255),
+  description: z.string().max(1000).optional(),
+  status: z.enum(["pending", "current", "completed"]).default("pending"),
+  dueDate: z.date().optional(),
+}).pick({
+  applicationId: true,
+  title: true,
+  description: true,
+  status: true,
+  order: true,
+  dueDate: true,
+  metadata: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -339,3 +372,5 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type InsertResearchArticle = z.infer<typeof insertResearchArticleSchema>;
 export type ResearchArticle = typeof researchArticles.$inferSelect;
+export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
+export type RoadmapItem = typeof roadmapItems.$inferSelect;

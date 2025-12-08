@@ -15,6 +15,20 @@
       "when": 1764846694102,
       "tag": "0001_confused_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764846800000,
+      "tag": "0002_add_user_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764846900000,
+      "tag": "0003_add_metadata_safe",
+      "breakpoints": true
     }
   ]
 }

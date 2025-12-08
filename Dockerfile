@@ -17,7 +17,7 @@ RUN apt-get update \
 
 # Install dependencies and build the project
 COPY package*.json tsconfig.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 COPY . .
 RUN npm run build   # uses your updated package.json to build server + client
@@ -36,8 +36,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dist/public ./client/dist
 
-COPY drizzle.config.ts ./
-COPY shared ./shared
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/shared ./shared
 
 EXPOSE 5000
 
