@@ -596,6 +596,8 @@ export default function LawyerDashboard() {
             </div>
           </motion.div>
         )}
+        </>
+        )}
       </main>
 
       {/* Client Detail Modal */}
