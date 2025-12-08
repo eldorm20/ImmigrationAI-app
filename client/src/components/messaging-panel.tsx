@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { Send, Loader2, MessageCircle, User, X, ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 
@@ -26,6 +27,7 @@ interface ChatParticipant {
 }
 
 export default function MessagingPanel() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -53,8 +55,8 @@ export default function MessagingPanel() {
     newSocket.on("connect", () => {
       console.log("Connected to messaging server");
       toast({
-        title: "Connected",
-        description: "Real-time messaging connected",
+        title: t.common.connected,
+        description: t.messaging.connected,
         className: "bg-green-50 text-green-900 border-green-200",
       });
     });
@@ -81,8 +83,8 @@ export default function MessagingPanel() {
     newSocket.on("disconnect", () => {
       console.log("Disconnected from messaging server");
       toast({
-        title: "Disconnected",
-        description: "Real-time messaging disconnected",
+        title: t.common.disconnected,
+        description: t.messaging.disconnected,
         variant: "destructive",
       });
     });
@@ -114,7 +116,7 @@ export default function MessagingPanel() {
             if (!uniqueParticipants.has(lawyerId)) {
               uniqueParticipants.set(lawyerId, {
                 id: lawyerId,
-                name: `Lawyer (${c.id.slice(0, 8)})`,
+                name: `${t.roles.lawyer} (${c.id.slice(0, 8)})`,
                 email: `lawyer-${lawyerId.slice(0, 8)}@example.com`,
                 role: "lawyer",
                 unreadCount: 0,
@@ -126,7 +128,7 @@ export default function MessagingPanel() {
             if (!uniqueParticipants.has(applicantId)) {
               uniqueParticipants.set(applicantId, {
                 id: applicantId,
-                name: `Applicant (${c.id.slice(0, 8)})`,
+                name: `${t.roles.applicant} (${c.id.slice(0, 8)})`,
                 email: `applicant-${applicantId.slice(0, 8)}@example.com`,
                 role: "applicant",
                 unreadCount: 0,
@@ -170,8 +172,8 @@ export default function MessagingPanel() {
         setInputMessage("");
       } else {
         toast({
-          title: "Error",
-          description: ack?.error || "Failed to send message",
+          title: t.common.error,
+          description: ack?.error || t.messaging.sendError,
           variant: "destructive",
         });
       }
@@ -198,7 +200,7 @@ export default function MessagingPanel() {
       <AnimatedCard className="w-72 flex flex-col">
         <div className="flex items-center gap-2 mb-4 font-bold text-lg text-slate-900 dark:text-white">
           <MessageCircle size={20} />
-          Messages
+          {t.messaging.title}
         </div>
 
         {loading ? (
@@ -207,7 +209,7 @@ export default function MessagingPanel() {
           </div>
         ) : participants.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-            No active conversations yet
+            {t.messaging.noConversations}
           </div>
         ) : (
           <div className="flex-1 space-y-2 overflow-y-auto">
@@ -253,10 +255,10 @@ export default function MessagingPanel() {
                 </div>
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">
-                    {participants.find((p) => p.id === selectedParticipant)?.name || "Participant"}
+                    {participants.find((p) => p.id === selectedParticipant)?.name || t.messaging.participant}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {participants.find((p) => p.id === selectedParticipant)?.role || "User"}
+                    {participants.find((p) => p.id === selectedParticipant)?.role ? t.roles[participants.find((p) => p.id === selectedParticipant)?.role] : t.roles.user}
                   </p>
                 </div>
               </div>
@@ -272,7 +274,7 @@ export default function MessagingPanel() {
             <div className="flex-1 overflow-y-auto py-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50">
               {filteredMessages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400">
-                  <p className="text-center">No messages yet. Start the conversation!</p>
+                  <p className="text-center">{t.messaging.noMessages}</p>
                 </div>
               ) : (
                 filteredMessages.map((msg, i) => (
@@ -315,7 +317,7 @@ export default function MessagingPanel() {
                 <input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder={t.messaging.inputPlaceholder}
                   className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400"
                   disabled={isSending}
                 />
@@ -329,7 +331,7 @@ export default function MessagingPanel() {
                 />
               </form>
               <p className="text-xs text-slate-400 mt-2 text-center">
-                Press Enter or click Send to send your message
+                {t.messaging.sendHint}
               </p>
             </div>
           </>
@@ -337,7 +339,7 @@ export default function MessagingPanel() {
           <div className="flex-1 flex items-center justify-center text-slate-400">
             <div className="text-center">
               <MessageCircle size={48} className="mx-auto mb-4 opacity-20" />
-              <p>Select a conversation to start messaging</p>
+              <p>{t.messaging.selectConversation}</p>
             </div>
           </div>
         )}

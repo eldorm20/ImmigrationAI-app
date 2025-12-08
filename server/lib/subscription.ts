@@ -23,7 +23,7 @@ export async function createSubscription(
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       logger.warn("Stripe key not configured");
-      return null;
+      throw new Error("Stripe key not configured");
     }
 
     // First, ensure customer exists or create one
@@ -37,30 +37,59 @@ export async function createSubscription(
 
     if (!stripeCustomerId) {
       // Create new customer
-      customer = await stripe.customers.create({
-        email,
-        metadata: { userId },
-      });
+      try {
+        customer = await stripe.customers.create({
+          email,
+          metadata: { userId },
+        });
+      } catch (err) {
+        logger.error({ err, userId, email }, "Failed to create Stripe customer");
+        throw err;
+      }
 
       // Update user with customer ID
-      await db
-        .update(users)
-        .set({
-          metadata: JSON.parse(JSON.stringify({ ...existingMetadata, stripeCustomerId: customer.id })),
-        } as any)
-        .where(eq(users.id, userId));
+      try {
+        await db
+          .update(users)
+          .set({
+            metadata: JSON.parse(JSON.stringify({ ...existingMetadata, stripeCustomerId: customer.id })),
+          } as any)
+          .where(eq(users.id, userId));
+      } catch (err) {
+        logger.error({ err, userId, customerId: customer.id }, "Failed to persist stripeCustomerId to user metadata");
+        // Proceed — customer exists in Stripe even if DB update failed
+      }
     } else {
-      customer = await stripe.customers.retrieve(stripeCustomerId as string) as Stripe.Customer;
+      try {
+        const retrieved = await stripe.customers.retrieve(stripeCustomerId as string);
+        if ((retrieved as any).deleted) {
+          logger.warn({ stripeCustomerId, userId }, "Stripe customer was deleted; creating new customer");
+          customer = await stripe.customers.create({ email, metadata: { userId } });
+        } else {
+          customer = retrieved as Stripe.Customer;
+        }
+      } catch (err) {
+        logger.error({ err, stripeCustomerId, userId }, "Failed to retrieve existing Stripe customer, attempting to create new one");
+        customer = await stripe.customers.create({ email, metadata: { userId } });
+      }
     }
 
     // Create subscription
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: planId }],
-      metadata: { userId, planId },
-      payment_behavior: "default_incomplete",
-      expand: ["latest_invoice.payment_intent"],
-    });
+    let subscription: Stripe.Subscription;
+    try {
+      subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: planId }],
+        metadata: { userId, planId },
+        payment_behavior: "default_incomplete",
+        expand: ["latest_invoice.payment_intent"],
+      });
+    } catch (err) {
+      logger.error({ err, userId, planId, customerId: customer.id }, "Failed to create Stripe subscription");
+      throw err;
+    }
+
+    logger.info({ userId, subscriptionId: subscription.id }, "Stripe subscription created");
 
     return subscription;
   } catch (error) {

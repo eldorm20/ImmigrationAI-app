@@ -210,19 +210,19 @@ export default function SubscriptionPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">Price</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.price}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">${subscription.amount}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">Billing Cycle</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">Monthly</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.billingCycle}</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{t.subscription.monthly}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">Started</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.started}</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(subscription.startDate).toLocaleDateString()}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">Renews</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.renews}</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(subscription.renewalDate).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -248,7 +248,7 @@ export default function SubscriptionPage() {
 
         {/* Plans Comparison */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">Upgrade Your Plan</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">{t.subscription.upgradeYourPlan}</h2>
           
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, i) => (
@@ -256,7 +256,7 @@ export default function SubscriptionPage() {
                 <AnimatedCard className={`flex flex-col h-full ${plan.popular ? "border-2 border-brand-500 relative" : "border border-slate-200 dark:border-slate-700"}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold">
-                      Most Popular
+                      {t.subscription.mostPopular}
                     </div>
                   )}
 
@@ -290,7 +290,7 @@ export default function SubscriptionPage() {
                       }
                     }}
                   >
-                    {plan.id === currentPlan ? "Current Plan" : "Upgrade Now"}
+                    {plan.id === currentPlan ? t.subscription.currentPlan : t.subscription.upgradeNow}
                   </LiveButton>
                 </AnimatedCard>
               </motion.div>
@@ -301,22 +301,22 @@ export default function SubscriptionPage() {
         {/* Billing History */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <AnimatedCard>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Billing History</h3>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">{t.subscription.billingHistory}</h3>
             
             {billingHistory.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <AlertCircle size={32} className="mx-auto mb-2 opacity-50" />
-                <p>No billing history yet</p>
+                <p>{t.subscription.noBillingHistory}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-700">
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">Date</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">Amount</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">Status</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">Invoice</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.date}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.amount}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.status}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.invoice}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -331,7 +331,7 @@ export default function SubscriptionPage() {
                         </td>
                         <td className="py-3 px-4">
                           <a href={`#invoice-${item.id}`} className="text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium">
-                            Download
+                            {t.subscription.download}
                           </a>
                         </td>
                       </tr>

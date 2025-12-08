@@ -14,6 +14,7 @@ import {
   Mail,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
 
 interface Consultation {
   id: string;
@@ -40,6 +41,7 @@ interface User {
 export default function LawyerConsultations() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [userDetails, setUserDetails] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
@@ -70,8 +72,8 @@ export default function LawyerConsultations() {
       } catch (error: any) {
         console.error("Failed to load consultations:", error);
         toast({
-          title: "Error",
-          description: "Failed to load consultations",
+          title: t.common.error || "Error",
+          description: t.consultation.submitError || "Failed to load consultations",
           variant: "destructive",
         });
       } finally {
@@ -104,13 +106,13 @@ export default function LawyerConsultations() {
       setNotes("");
 
       toast({
-        title: "Success",
-        description: "Consultation accepted with meeting link shared",
+        title: t.common.success || "Success",
+        description: t.consultation.requestSubmitted || "Consultation accepted",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to accept consultation",
+        title: t.common.error || "Error",
+        description: error.message || t.consultation.submitError || "Failed to accept consultation",
         variant: "destructive",
       });
     }
@@ -128,13 +130,13 @@ export default function LawyerConsultations() {
       setConsultations((prev) => prev.filter((c) => c.id !== consultationId));
 
       toast({
-        title: "Success",
-        description: "Consultation cancelled",
+        title: t.common.success || "Success",
+        description: t.consultation.cancelled || "Consultation cancelled",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to reject consultation",
+        title: t.common.error || "Error",
+        description: error.message || t.consultation.cancelError || "Failed to reject consultation",
         variant: "destructive",
       });
     }
@@ -157,12 +159,12 @@ export default function LawyerConsultations() {
       );
 
       toast({
-        title: "Success",
-        description: "Consultation marked as completed",
+        title: t.common.success || "Success",
+        description: t.consultation.requestSubmitted || "Consultation marked as completed",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: t.common.error || "Error",
         description: error.message || "Failed to complete consultation",
         variant: "destructive",
       });
@@ -212,15 +214,15 @@ export default function LawyerConsultations() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Consultation Requests</h2>
+        <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
         <div className="text-sm text-slate-600 dark:text-slate-400">
-          {filteredConsultations.length} {filterStatus === "scheduled" ? "pending" : filterStatus} requests
+          {filteredConsultations.length} {t.lawyer.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
         </div>
       </div>
 
       {/* Status Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {["scheduled", "completed", "cancelled", "all"].map((status) => (
+        {['scheduled', 'completed', 'cancelled', 'all'].map((status) => (
           <motion.button
             key={status}
             whileHover={{ scale: 1.05 }}
@@ -232,7 +234,7 @@ export default function LawyerConsultations() {
                 : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {t.lawyer[status] || status.charAt(0).toUpperCase() + status.slice(1)}
           </motion.button>
         ))}
       </div>
@@ -242,11 +244,11 @@ export default function LawyerConsultations() {
         {filteredConsultations.length === 0 ? (
           <div className="text-center py-12 text-slate-500">
             <AlertCircle size={48} className="mx-auto mb-3 opacity-50" />
-            <p className="text-lg font-medium">No consultations found</p>
+            <p className="text-lg font-medium">{t.consultation.noConsultations || "No consultations found"}</p>
             <p className="text-sm">
               {filterStatus === "scheduled"
-                ? "You'll see incoming consultation requests here"
-                : `No ${filterStatus} consultations yet`}
+                ? t.consultation.requestSubmitted || "You'll see incoming consultation requests here"
+                : `${t.consultation.title || "No"} ${filterStatus}`}
             </p>
           </div>
         ) : (
@@ -406,7 +408,7 @@ export default function LawyerConsultations() {
                             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                           >
                             <CheckCircle size={16} />
-                            Accept & Confirm
+                            {t.consultation.acceptAndConfirm || "Accept & Confirm"}
                           </motion.button>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -415,7 +417,7 @@ export default function LawyerConsultations() {
                             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                           >
                             <XCircle size={16} />
-                            Reject
+                            {t.consultation.reject || "Reject"}
                           </motion.button>
                         </>
                       ) : (
@@ -427,7 +429,7 @@ export default function LawyerConsultations() {
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                           >
                             <CheckCircle size={16} />
-                            Confirm
+                            {t.consultation.confirm || "Confirm"}
                           </motion.button>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -439,7 +441,7 @@ export default function LawyerConsultations() {
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white rounded-lg hover:bg-slate-400 transition-colors text-sm font-medium"
                           >
-                            Cancel
+                            {t.consultation.cancel || "Cancel"}
                           </motion.button>
                         </>
                       )}
@@ -448,13 +450,13 @@ export default function LawyerConsultations() {
 
                   {consultation.status === "completed" && (
                     <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                      ✓ Completed
+                      {t.consultation.completedLabel || "✓ Completed"}
                     </div>
                   )}
 
                   {consultation.status === "cancelled" && (
                     <div className="text-sm font-medium text-red-600 dark:text-red-400">
-                      ✗ Cancelled
+                      {t.consultation.cancelledLabel || "✗ Cancelled"}
                     </div>
                   )}
                 </div>

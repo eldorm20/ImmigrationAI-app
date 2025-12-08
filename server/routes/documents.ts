@@ -64,11 +64,17 @@ router.post(
     }
 
     // Upload to storage
-    const uploadResult = await uploadFile(
-      req.file,
-      userId,
-      body.applicationId || null
-    );
+    let uploadResult;
+    try {
+      uploadResult = await uploadFile(
+        req.file,
+        userId,
+        body.applicationId || null
+      );
+    } catch (err: any) {
+      logger.error({ err, userId, fileName: req.file.originalname }, "File upload failed");
+      throw new AppError(500, err.message || "File upload failed");
+    }
 
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
     let document: any;

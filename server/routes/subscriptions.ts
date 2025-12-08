@@ -100,13 +100,22 @@ router.post(
         user.email
       );
 
+      if (!subscription) {
+        // createSubscription returns null on failure — return a clearer message
+        return res.status(500).json({
+          success: false,
+          message: "Subscription creation failed — see server logs for details",
+        });
+      }
+
       res.json({
         success: true,
         message: `Upgraded to ${tierConfig.name} tier`,
         tier,
-        subscription: subscription ? { id: subscription.id, status: subscription.status } : null,
+        subscription: { id: subscription.id, status: subscription.status },
       });
     } catch (error) {
+      console.error("Subscription upgrade error:", error);
       res.status(400).json({
         message: "Failed to create subscription",
         error: error instanceof Error ? error.message : "Unknown error",

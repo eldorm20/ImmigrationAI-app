@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
 
@@ -28,6 +29,7 @@ interface Lawyer {
 }
 
 export default function ConsultationPanel() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -74,8 +76,8 @@ export default function ConsultationPanel() {
     e.preventDefault();
     if (!selectedLawyer || !formData.scheduledTime) {
       toast({
-        title: "Missing Information",
-        description: "Please select a lawyer and scheduled time",
+        title: t.common.error,
+        description: t.consultation.missingInfo,
         variant: "destructive",
       });
       return;
@@ -98,13 +100,13 @@ export default function ConsultationPanel() {
       setSelectedLawyer("");
 
       toast({
-        title: "Success",
-        description: "Consultation request submitted! The lawyer will confirm shortly.",
+        title: t.common.success,
+        description: t.consultation.requestSubmitted,
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to submit consultation request",
+        title: t.common.error,
+        description: error.message || t.consultation.submitError,
         variant: "destructive",
       });
     }
@@ -118,13 +120,13 @@ export default function ConsultationPanel() {
 
       setConsultations(consultations.filter(c => c.id !== consultationId));
       toast({
-        title: "Success",
-        description: "Consultation cancelled",
+        title: t.common.success,
+        description: t.consultation.cancelled,
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to cancel consultation",
+        title: t.common.error,
+        description: error.message || t.consultation.cancelError,
         variant: "destructive",
       });
     }
@@ -165,7 +167,7 @@ export default function ConsultationPanel() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h3 className="font-semibold">Consultation Chat</h3>
+            <h3 className="font-semibold">{t.consultation.consultationChat}</h3>
             <p className="text-xs text-slate-500">
               {new Date(selectedConsultation.scheduledTime).toLocaleDateString()} at{" "}
               {new Date(selectedConsultation.scheduledTime).toLocaleTimeString()}
@@ -185,7 +187,7 @@ export default function ConsultationPanel() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
           >
             <CheckCircle size={16} />
-            Join Video Meeting
+            {t.consultation.joinVideoCall}
           </a>
         )}
       </div>
@@ -195,7 +197,7 @@ export default function ConsultationPanel() {
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Consultations</h2>
+        <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

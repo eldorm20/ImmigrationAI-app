@@ -11,7 +11,11 @@ const router = Router();
 
 let stripe: any;
 try {
-  stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+  if (!process.env.STRIPE_SECRET_KEY) {
+    logger.warn("STRIPE_SECRET_KEY not set - Stripe disabled");
+  } else {
+    stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+  }
 } catch (err) {
   logger.warn("Stripe not initialized - payment features disabled");
 }
@@ -36,14 +40,20 @@ router.post(
     const userId = req.user!.id;
 
     // Create Stripe payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: "usd",
-      metadata: {
-        userId,
-        applicationId: applicationId || "general",
-      },
-    });
+    let paymentIntent: any;
+    try {
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency: "usd",
+        metadata: {
+          userId,
+          applicationId: applicationId || "general",
+        },
+      });
+    } catch (err: any) {
+      logger.error({ err, userId, amount, applicationId }, "Failed to create payment intent");
+      throw new AppError(502, "Payment provider error");
+    }
 
     // Store in database
     const [payment] = await db
@@ -83,7 +93,13 @@ router.post(
       })
       .parse(req.body);
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    let paymentIntent: any;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (err: any) {
+      logger.error({ err, paymentIntentId }, "Failed to retrieve payment intent");
+      throw new AppError(502, "Payment provider error");
+    }
 
     if (paymentIntent.status === "succeeded") {
       await db
