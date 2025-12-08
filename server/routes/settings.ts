@@ -280,3 +280,4 @@ router.put("/preferences", authenticate, async (req, res) => {
 });
 
 export default router;
+export { router as settingsRouter };

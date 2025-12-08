@@ -199,7 +199,7 @@ const TRANSLATIONS = {
       mostPopular: "Most Popular",
       download: "Download"
     },
-    lawyer: {
+    lawyerDashboard: {
       title: "Lawyer Dashboard",
       applications: "Applications",
       consultations: "Consultations",
@@ -294,7 +294,7 @@ const TRANSLATIONS = {
       logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot", messages: "Xabarlar"
     },
     tools: { gen: "Yaratish", dl: "Yuklash", typing: "AI Yozmoqda...", chatP: "Viza haqida so'rang...", clear: "Tozalash" },
-    lawyer: { 
+    lawyerDashboard: { 
       title: "Hamkor Kabineti", 
       active: "Faol Arizalar", 
       rev: "Tushum", 
@@ -713,7 +713,7 @@ const TRANSLATIONS = {
       mostPopular: "Самый Популярный",
       download: "Скачать"
     },
-    lawyer: {
+    lawyerDashboard: {
       title: "Панель Юриста",
       applications: "Приложения",
       consultations: "Консультации",
@@ -975,7 +975,7 @@ const TRANSLATIONS = {
       mostPopular: "Am Beliebtesten",
       download: "Herunterladen"
     },
-    lawyer: {
+    lawyerDashboard: {
       title: "Anwalt-Dashboard",
       applications: "Anwendungen",
       consultations: "Konsultationen",
@@ -1237,7 +1237,7 @@ const TRANSLATIONS = {
       mostPopular: "Le Plus Populaire",
       download: "Télécharger"
     },
-    lawyer: {
+    lawyerDashboard: {
       title: "Tableau de Bord de l'Avocat",
       applications: "Demandes",
       consultations: "Consultations",
@@ -1499,7 +1499,7 @@ const TRANSLATIONS = {
       mostPopular: "Más Popular",
       download: "Descargar"
     },
-    lawyer: {
+    lawyerDashboard: {
       title: "Panel del Abogado",
       applications: "Solicitudes",
       consultations: "Consultas",
