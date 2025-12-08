@@ -19,16 +19,6 @@ const TRANSLATIONS = {
       logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research", messages: "Messages"
     },
     tools: { gen: "Generate", dl: "Download", typing: "AI Writing...", chatP: "Ask about visas...", clear: "Clear" },
-    lawyer: { 
-      title: "Partner Portal", 
-      active: "Active Cases", 
-      rev: "Revenue", 
-      status: "Status", 
-      pending: "Pending", 
-      approved: "Approved",
-      applications: "Applications",
-      searchPlaceholder: "Search applicants, names, emails..."
-    },
     pricing: {
       title: "Choose Your Plan",
       subtitle: "Start free, upgrade as you grow. All plans include our core AI-powered immigration assistance.",
@@ -375,16 +365,6 @@ const TRANSLATIONS = {
       logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования", messages: "Сообщения"
     },
     tools: { gen: "Создать", dl: "Скачать", typing: "ИИ Пишет...", chatP: "Спросите о визе...", clear: "Очистить" },
-    lawyer: { 
-      title: "Кабинет Партнера", 
-      active: "Активные Дела", 
-      rev: "Выручка", 
-      status: "Статус", 
-      pending: "В ожидании", 
-      approved: "Одобрено",
-      applications: "Заявки",
-      searchPlaceholder: "Поиск заявителей, имен, email..."
-    },
     pricing: {
       title: "Выберите Ваш План",
       subtitle: "Начните бесплатно, обновляйтесь по мере роста. Все планы включают нашу основную помощь в иммиграции на базе ИИ.",

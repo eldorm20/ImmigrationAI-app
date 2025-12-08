@@ -376,6 +376,9 @@ export default function ConsultationPanel() {
                   "{consultation.notes}"
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div className="flex items-center gap-2 text-sm">
                   <Calendar size={16} className="text-slate-400" />
                   <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
                 </div>
