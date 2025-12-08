@@ -21,6 +21,7 @@ import Help from "@/pages/help";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Contact from "@/pages/contact";
+import Blog from "@/pages/blog";
 import Subscription from "@/pages/subscription";
 import Settings from "@/pages/settings";
 import Notifications from "@/pages/notifications";
@@ -80,6 +81,10 @@ function Router() {
 
         <Route path="/contact">
           <Contact />
+        </Route>
+
+        <Route path="/blog">
+          <Blog />
         </Route>
         
         <Route path="/dashboard">
