@@ -376,18 +376,9 @@ export default function ConsultationPanel() {
                   "{consultation.notes}"
                 </div>
               )}
-                  <Calendar size={16} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock size={16} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleTimeString()} ({consultation.duration} min)</span>
-                </div>
-              </div>
-
-              {consultation.notes && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{consultation.notes}</p>
-              )}
+            </motion.div>
+          ))}
+        </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">

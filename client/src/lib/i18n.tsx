@@ -19,16 +19,6 @@ const TRANSLATIONS = {
       logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research"
     },
     tools: { gen: "Generate", dl: "Download", typing: "AI Writing...", chatP: "Ask about visas...", clear: "Clear" },
-    lawyer: { 
-      title: "Partner Portal", 
-      active: "Active Cases", 
-      rev: "Revenue", 
-      status: "Status", 
-      pending: "Pending", 
-      approved: "Approved",
-      applications: "Applications",
-      searchPlaceholder: "Search applicants, names, emails..."
-    },
     pricing: {
       title: "Choose Your Plan",
       subtitle: "Start free, upgrade as you grow. All plans include our core AI-powered immigration assistance.",
@@ -175,7 +165,13 @@ const TRANSLATIONS = {
     },
     lawyer: {
       title: "Lawyer Dashboard",
+      active: "Active Cases",
+      rev: "Revenue",
+      status: "Status",
+      pending: "Pending",
+      approved: "Approved",
       applications: "Applications",
+      searchPlaceholder: "Search applicants, names, emails...",
       consultations: "Consultations",
       earnings: "Earnings",
       clients: "Clients",
@@ -197,16 +193,6 @@ const TRANSLATIONS = {
       logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot"
     },
     tools: { gen: "Yaratish", dl: "Yuklash", typing: "AI Yozmoqda...", chatP: "Viza haqida so'rang...", clear: "Tozalash" },
-    lawyer: { 
-      title: "Hamkor Kabineti", 
-      active: "Faol Arizalar", 
-      rev: "Tushum", 
-      status: "Holat", 
-      pending: "Kutilmoqda", 
-      approved: "Tasdiqlangan",
-      applications: "Arizalar",
-      searchPlaceholder: "Arizachilarni, ismlarni, emaillarni qidiring..."
-    },
     pricing: {
       title: "Rejangizni Tanlang",
       subtitle: "Bepul boshlang, o'sib borayotganingizda yangilang. Barcha rejalar bizning asosiy AI bilan quvvatlanadigan immigratsiya yordamini o'z ichiga oladi.",
@@ -375,16 +361,6 @@ const TRANSLATIONS = {
       logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования"
     },
     tools: { gen: "Создать", dl: "Скачать", typing: "ИИ Пишет...", chatP: "Спросите о визе...", clear: "Очистить" },
-    lawyer: { 
-      title: "Кабинет Партнера", 
-      active: "Активные Дела", 
-      rev: "Выручка", 
-      status: "Статус", 
-      pending: "В ожидании", 
-      approved: "Одобрено",
-      applications: "Заявки",
-      searchPlaceholder: "Поиск заявителей, имен, email..."
-    },
     pricing: {
       title: "Выберите Ваш План",
       subtitle: "Начните бесплатно, обновляйтесь по мере роста. Все планы включают нашу основную помощь в иммиграции на базе ИИ.",
@@ -553,16 +529,6 @@ const TRANSLATIONS = {
       logout: "Abmelden", upload: "Dokumente", translate: "Übersetzung", research: "Forschung"
     },
     tools: { gen: "Erstellen", dl: "Herunterladen", typing: "KI schreibt...", chatP: "Fragen Sie zu Visa...", clear: "Löschen" },
-    lawyer: { 
-      title: "Partner-Portal", 
-      active: "Aktive Fälle", 
-      rev: "Umsatz", 
-      status: "Status", 
-      pending: "Ausstehend", 
-      approved: "Genehmigt",
-      applications: "Anwendungen",
-      searchPlaceholder: "Antragsteller, Namen, E-Mails durchsuchen..."
-    },
     pricing: {
       title: "Wählen Sie Ihren Plan",
       subtitle: "Starten Sie kostenlos, erweitern Sie sich, während Sie wachsen. Alle Pläne beinhalten unsere KI-gestützte Einwanderungshilfe.",
@@ -731,16 +697,6 @@ const TRANSLATIONS = {
       logout: "Déconnexion", upload: "Documents", translate: "Traduction", research: "Recherche"
     },
     tools: { gen: "Générer", dl: "Télécharger", typing: "IA écrit...", chatP: "Posez des questions sur les visas...", clear: "Effacer" },
-    lawyer: { 
-      title: "Portail Partenaire", 
-      active: "Dossiers Actifs", 
-      rev: "Revenu", 
-      status: "Statut", 
-      pending: "En Attente", 
-      approved: "Approuvé",
-      applications: "Demandes",
-      searchPlaceholder: "Rechercher des demandeurs, des noms, des e-mails..."
-    },
     pricing: {
       title: "Choisissez Votre Plan",
       subtitle: "Commencez gratuitement, améliorez-vous au fur et à mesure de votre croissance. Tous les plans incluent notre aide à l'immigration basée sur l'IA.",
@@ -909,16 +865,6 @@ const TRANSLATIONS = {
       logout: "Cerrar Sesión", upload: "Documentos", translate: "Traducción", research: "Investigación"
     },
     tools: { gen: "Generar", dl: "Descargar", typing: "IA escribiendo...", chatP: "Pregunte sobre visas...", clear: "Limpiar" },
-    lawyer: { 
-      title: "Portal de Socio", 
-      active: "Casos Activos", 
-      rev: "Ingresos", 
-      status: "Estado", 
-      pending: "Pendiente", 
-      approved: "Aprobado",
-      applications: "Solicitudes",
-      searchPlaceholder: "Buscar solicitantes, nombres, correos electrónicos..."
-    },
     pricing: {
       title: "Elige Tu Plan",
       subtitle: "Comienza gratis, mejora a medida que creces. Todos los planes incluyen nuestra asistencia de inmigración impulsada por IA.",
