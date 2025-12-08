@@ -1,5 +1,5 @@
 import express from "express";
-import { auth } from "../middleware/auth";
+import { authenticate } from "../middleware/auth";
 import { errorHandler } from "../middleware/errorHandler";
 import * as db from "../db";
 import { logger } from "../lib/logger";
@@ -7,7 +7,7 @@ import { logger } from "../lib/logger";
 const router = express.Router();
 
 // Get user settings
-router.get("/settings", auth, async (req, res) => {
+router.get("/settings", authenticate, async (req, res) => {
   try {
     const user = req.user!;
     res.json({
@@ -27,7 +27,7 @@ router.get("/settings", auth, async (req, res) => {
 });
 
 // Update profile information
-router.put("/settings", auth, async (req, res) => {
+router.put("/settings", authenticate, async (req, res) => {
   try {
     const { firstName, lastName, phone, avatar } = req.body;
     const userId = req.user!.id;
@@ -57,7 +57,7 @@ router.put("/settings", auth, async (req, res) => {
 });
 
 // Change password
-router.post("/change-password", auth, async (req, res) => {
+router.post("/change-password", authenticate, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user!.id;
@@ -111,7 +111,7 @@ router.post("/change-password", auth, async (req, res) => {
 });
 
 // Update privacy settings
-router.put("/privacy-settings", auth, async (req, res) => {
+router.put("/privacy-settings", authenticate, async (req, res) => {
   try {
     const { profilePublic, showEmail, allowMessages, dataSharing } = req.body;
     const userId = req.user!.id;
@@ -149,7 +149,7 @@ router.put("/privacy-settings", auth, async (req, res) => {
 });
 
 // Update notification settings
-router.put("/notification-settings", auth, async (req, res) => {
+router.put("/notification-settings", authenticate, async (req, res) => {
   try {
     const {
       emailNotifications,
@@ -196,7 +196,7 @@ router.put("/notification-settings", auth, async (req, res) => {
 });
 
 // Update preferences (language, theme, etc.)
-router.put("/preferences", auth, async (req, res) => {
+router.put("/preferences", authenticate, async (req, res) => {
   try {
     const { language, theme, fontSize } = req.body;
     const userId = req.user!.id;
