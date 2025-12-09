@@ -119,8 +119,8 @@ router.post(
       });
     } catch (error) {
       console.error("Subscription upgrade error:", error);
-      res.status(400).json({
       logger.error({ error }, "Error fetching billing history");
+      res.status(400).json({
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
