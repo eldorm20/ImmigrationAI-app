@@ -10,7 +10,7 @@ interface RequestOptions extends RequestInit {
 export class APIError extends Error {
   constructor(
     public statusCode: number,
-    public data: any,
+    public data: unknown,
     message?: string
   ) {
     super(message || `API Error: ${statusCode}`);

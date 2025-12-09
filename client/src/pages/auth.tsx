@@ -5,23 +5,39 @@ import { useI18n } from "@/lib/i18n";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, type = "button" }: any) => {
-  const base = "px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer";
-  const styles: any = {
-    primary: "bg-brand-600 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700",
-    secondary: "bg-white text-slate-700 border hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-700",
+type ButtonProps = {
+  children: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  variant?: 'primary' | 'secondary';
+  className?: string;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+};
+
+const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary', className = '', disabled = false, type = 'button' }) => {
+  const base = 'px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer';
+  const styles: Record<string, string> = {
+    primary: 'bg-brand-600 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700',
+    secondary: 'bg-white text-slate-700 border hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-700',
   };
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
       {children}
     </button>
   );
 };
 
-const Input = ({ label, id, error, hint, ...props }: any) => (
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  label?: string;
+  id?: string;
+  error?: string | null;
+  hint?: React.ReactNode;
+};
+
+const Input: React.FC<InputProps> = ({ label, id, error, hint, ...props }) => (
   <div className="mb-4">
-    <label htmlFor={id} className="block text-xs font-bold uppercase text-slate-500 mb-1">{label}</label>
-    <input id={id} {...props} className={`w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border focus:ring-2 outline-none transition ${error ? "border-danger-600 focus:ring-danger-600" : "border-slate-200 dark:border-slate-700 focus:ring-brand-500"}`} />
+    {label && <label htmlFor={id} className="block text-xs font-bold uppercase text-slate-500 mb-1">{label}</label>}
+    <input id={id} {...props} className={`w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border focus:ring-2 outline-none transition ${error ? 'border-danger-600 focus:ring-danger-600' : 'border-slate-200 dark:border-slate-700 focus:ring-brand-500'}`} />
     {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
     {error && <p className="text-xs text-danger-600 mt-1">{error}</p>}
   </div>
@@ -40,10 +56,10 @@ export default function AuthPage() {
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"applicant" | "lawyer">("applicant");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
-    const e: any = {};
+    const e: Record<string, string> = {};
     if (!email) {
       e.email = "Email is required.";
     } else if (!/^\S+@\S+\.\S+$/.test(email)) {
@@ -85,12 +101,13 @@ export default function AuthPage() {
           description: "Account created! Please check your email to verify your account.",
         });
       }
-    } catch (error: any) {
-      setErrors({ submit: error.message || `${mode === "login" ? "Login" : "Registration"} failed. Please try again.` });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      setErrors({ submit: message || `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.` });
       toast({
-        title: "Error",
-        description: error.message || "An error occurred",
-        variant: "destructive",
+        title: 'Error',
+        description: message || 'An error occurred',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -139,7 +156,7 @@ export default function AuthPage() {
                 type="text"
                 required
                 value={firstName}
-                onChange={(e: any) => setFirstName(e.target.value)}
+                onChange={(e) => setFirstName((e.target as HTMLInputElement).value)}
                 placeholder="John"
                 error={errors.firstName}
               />
@@ -149,7 +166,7 @@ export default function AuthPage() {
                 type="text"
                 required
                 value={lastName}
-                onChange={(e: any) => setLastName(e.target.value)}
+                onChange={(e) => setLastName((e.target as HTMLInputElement).value)}
                 placeholder="Doe"
                 error={errors.lastName}
               />
@@ -172,7 +189,7 @@ export default function AuthPage() {
             type="email"
             required
             value={email}
-            onChange={(e: any) => setEmail(e.target.value)}
+            onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
             placeholder="name@email.com"
             error={errors.email}
           />
@@ -182,7 +199,7 @@ export default function AuthPage() {
             type="password"
             required
             value={password}
-            onChange={(e: any) => setPassword(e.target.value)}
+            onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
             placeholder="••••••••"
             error={errors.password}
             hint={mode === "register" ? "Minimum 8 characters" : t.auth.minChars}

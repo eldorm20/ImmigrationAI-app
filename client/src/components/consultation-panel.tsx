@@ -4,6 +4,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
 import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
+<<<<<<< HEAD
+=======
+import { useI18n } from "@/lib/i18n";
+import { error as logError } from "@/lib/logger";
+>>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
 
@@ -57,11 +62,12 @@ export default function ConsultationPanel() {
         // Fetch available lawyers
         const lawyersData = await apiRequest<Lawyer[]>("/consultations/available/lawyers");
         setLawyers(lawyersData || []);
-      } catch (error: any) {
-        console.error("Failed to load consultations:", error);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logError("Failed to load consultations:", msg);
         toast({
           title: "Error",
-          description: error.message || "Failed to load consultations",
+          description: msg || "Failed to load consultations",
           variant: "destructive",
         });
       } finally {
@@ -103,10 +109,11 @@ export default function ConsultationPanel() {
         title: t.common.success,
         description: t.consultation.requestSubmitted,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: t.common.error,
-        description: error.message || t.consultation.submitError,
+        description: msg || t.consultation.submitError,
         variant: "destructive",
       });
     }
@@ -123,10 +130,11 @@ export default function ConsultationPanel() {
         title: t.common.success,
         description: t.consultation.cancelled,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: t.common.error,
-        description: error.message || t.consultation.cancelError,
+        description: msg || t.consultation.cancelError,
         variant: "destructive",
       });
     }

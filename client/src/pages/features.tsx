@@ -95,8 +95,8 @@ export default function Features() {
           </motion.div>
           <div className="flex items-center gap-4">
             <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
-              {['en','uz','ru'].map(l => (
-                <button key={l} onClick={()=>setLang(l as any)}
+              {(['en','uz','ru'] as import("@/lib/i18n").Language[]).map((l) => (
+                <button key={l} onClick={() => setLang(l)}
                         className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang===l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {l}
                 </button>

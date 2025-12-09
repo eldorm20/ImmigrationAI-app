@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -468,3 +469,480 @@ export default function LawyerConsultations() {
     </div>
   );
 }
+=======
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
+import {
+  Loader2,
+  Calendar,
+  Clock,
+  User,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  LinkIcon,
+  Mail,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useI18n } from "@/lib/i18n";
+import { error as logError } from "@/lib/logger";
+
+interface Consultation {
+  id: string;
+  lawyerId: string;
+  userId: string;
+  applicationId?: string;
+  scheduledTime: string;
+  duration: number;
+  status: "scheduled" | "completed" | "cancelled" | "no_show";
+  notes?: string;
+  meetingLink?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface User {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+}
+
+export default function LawyerConsultations() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { t } = useI18n();
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [userDetails, setUserDetails] = useState<Record<string, User>>({});
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>("scheduled");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [meetingLink, setMeetingLink] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Fetch lawyer's consultations
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        setLoading(true);
+        const data = await apiRequest<Consultation[]>("/consultations");
+        setConsultations(data || []);
+
+        // Fetch user details for each consultation
+        const userIds = new Set(data?.map((c) => c.userId) || []);
+        const userIdsArray = Array.from(userIds);
+        for (const userId of userIdsArray) {
+          try {
+            const userData = await apiRequest<User>(`/users/${userId}`);
+            setUserDetails((prev) => ({ ...prev, [userId]: userData }));
+          } catch {
+            // User fetch failed, will show ID instead
+          }
+        }
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logError("Failed to load consultations:", msg);
+        toast({
+          title: t.common.error || "Error",
+          description: t.consultation.submitError || "Failed to load consultations",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsultations();
+  }, []);
+
+  const handleAccept = async (consultationId: string) => {
+    try {
+      const updated = await apiRequest<Consultation>(
+        `/consultations/${consultationId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: "scheduled",
+            meetingLink: meetingLink || undefined,
+            notes: notes || undefined,
+          }),
+        }
+      );
+
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === consultationId ? updated : c))
+      );
+      setEditingId(null);
+      setMeetingLink("");
+      setNotes("");
+
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation.requestSubmitted || "Consultation accepted",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || t.consultation.submitError || "Failed to accept consultation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (consultationId: string) => {
+    try {
+      const updated = await apiRequest<Consultation>(
+        `/consultations/${consultationId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      setConsultations((prev) => prev.filter((c) => c.id !== consultationId));
+
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation.cancelled || "Consultation cancelled",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || t.consultation.cancelError || "Failed to reject consultation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComplete = async (consultationId: string) => {
+    try {
+      const updated = await apiRequest<Consultation>(
+        `/consultations/${consultationId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: "completed",
+          }),
+        }
+      );
+
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === consultationId ? updated : c))
+      );
+
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation.requestSubmitted || "Consultation marked as completed",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || "Failed to complete consultation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      scheduled:
+        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
+      completed:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
+      cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
+      no_show: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
+    };
+
+    const icons: Record<string, React.ElementType> = {
+      scheduled: AlertCircle,
+      completed: CheckCircle,
+      cancelled: XCircle,
+      no_show: AlertCircle,
+    };
+
+    const Icon = icons[status] || AlertCircle;
+
+    return (
+      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${styles[status] || styles.scheduled}`}>
+        <Icon size={14} />
+        {status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ")}
+      </div>
+    );
+  };
+
+  const filteredConsultations = consultations.filter((c) =>
+    filterStatus === "all" ? true : c.status === filterStatus
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
+        <div className="text-sm text-slate-600 dark:text-slate-400">
+          {filteredConsultations.length} {t.lawyer.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
+        </div>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {['scheduled', 'completed', 'cancelled', 'all'].map((status) => (
+          <motion.button
+            key={status}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
+              filterStatus === status
+                ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+            }`}
+          >
+            {t.lawyer[status] || status.charAt(0).toUpperCase() + status.slice(1)}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Consultations List */}
+      <div className="grid gap-4">
+        {filteredConsultations.length === 0 ? (
+          <div className="text-center py-12 text-slate-500">
+            <AlertCircle size={48} className="mx-auto mb-3 opacity-50" />
+            <p className="text-lg font-medium">{t.consultation.noConsultations || "No consultations found"}</p>
+            <p className="text-sm">
+              {filterStatus === "scheduled"
+                ? t.consultation.requestSubmitted || "You'll see incoming consultation requests here"
+                : `${t.consultation.title || "No"} ${filterStatus}`}
+            </p>
+          </div>
+        ) : (
+          filteredConsultations.map((consultation) => {
+            const applicant = userDetails[consultation.userId];
+            const isEditing = editingId === consultation.id;
+
+            return (
+              <motion.div
+                key={consultation.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg transition-shadow"
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                        <User size={20} className="text-brand-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          {applicant?.firstName} {applicant?.lastName}
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {applicant?.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>{getStatusBadge(consultation.status)}</div>
+                </div>
+
+                {/* Contact Info */}
+                {applicant?.phone && (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
+                    <Mail size={16} />
+                    <span>{applicant.phone}</span>
+                  </div>
+                )}
+
+                {/* Timing */}
+                <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-slate-50 dark:bg-slate-700/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} className="text-brand-600" />
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Requested Date
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {new Date(consultation.scheduledTime).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-brand-600" />
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Time & Duration
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {new Date(consultation.scheduledTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        ({consultation.duration} min)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {consultation.notes && (
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                    <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
+                      Applicant Notes
+                    </p>
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      {consultation.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Meeting Link Display */}
+                {consultation.meetingLink && consultation.status === "scheduled" && (
+                  <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg">
+                    <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">
+                      Meeting Link
+                    </p>
+                    <a
+                      href={consultation.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-green-600 dark:text-green-400 hover:underline"
+                    >
+                      <LinkIcon size={16} />
+                      {consultation.meetingLink}
+                    </a>
+                  </div>
+                )}
+
+                {/* Edit Meeting Link Form */}
+                <AnimatePresence>
+                  {isEditing && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 rounded-lg"
+                    >
+                      <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-3">
+                        Confirm and Set Meeting Link
+                      </p>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-yellow-700 dark:text-yellow-300 mb-1">
+                            Meeting Link (Zoom, Google Meet, etc.)
+                          </label>
+                          <input
+                            type="url"
+                            placeholder="https://meet.google.com/..."
+                            value={meetingLink}
+                            onChange={(e) => setMeetingLink(e.target.value)}
+                            className="w-full px-3 py-2 border border-yellow-200 dark:border-yellow-700 rounded-lg dark:bg-slate-800 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-yellow-700 dark:text-yellow-300 mb-1">
+                            Internal Notes (optional)
+                          </label>
+                          <textarea
+                            placeholder="Any additional notes..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="w-full px-3 py-2 border border-yellow-200 dark:border-yellow-700 rounded-lg dark:bg-slate-800 text-sm resize-none"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Actions */}
+                <div className="flex gap-2 flex-wrap">
+                  {consultation.status === "scheduled" && (
+                    <>
+                      {!isEditing ? (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setEditingId(consultation.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          >
+                            <CheckCircle size={16} />
+                            {t.consultation.acceptAndConfirm || "Accept & Confirm"}
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleReject(consultation.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                          >
+                            <XCircle size={16} />
+                            {t.consultation.reject || "Reject"}
+                          </motion.button>
+                        </>
+                      ) : (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleAccept(consultation.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          >
+                            <CheckCircle size={16} />
+                            {t.consultation.confirm || "Confirm"}
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setEditingId(null);
+                              setMeetingLink("");
+                              setNotes("");
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white rounded-lg hover:bg-slate-400 transition-colors text-sm font-medium"
+                          >
+                            {t.consultation.cancel || "Cancel"}
+                          </motion.button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {consultation.status === "completed" && (
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                      {t.consultation.completedLabel || "✓ Completed"}
+                    </div>
+                  )}
+
+                  {consultation.status === "cancelled" && (
+                    <div className="text-sm font-medium text-red-600 dark:text-red-400">
+                      {t.consultation.cancelledLabel || "✗ Cancelled"}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+>>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)

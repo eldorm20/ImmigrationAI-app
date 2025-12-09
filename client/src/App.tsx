@@ -26,6 +26,8 @@ import Subscription from "@/pages/subscription";
 import Settings from "@/pages/settings";
 import Notifications from "@/pages/notifications";
 import PaymentHistory from "@/pages/payment-history";
+import { AssessmentPage } from "@/pages/assessment";
+import PartnerPage from "@/pages/partner";
 import NotFound from "@/pages/not-found";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import VisaComparison from "@/pages/visa-comparison";
@@ -66,7 +68,12 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/pricing" component={Pricing} />
+<<<<<<< HEAD
         <Route path="/partner" component={Partner} />
+=======
+        <Route path="/assessment" component={AssessmentPage} />
+        <Route path="/partner" component={PartnerPage} />
+>>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
         <Route path="/checkout" component={Checkout} />
         <Route path="/features" component={Features} />
         
