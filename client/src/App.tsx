@@ -27,6 +27,10 @@ import Settings from "@/pages/settings";
 import Notifications from "@/pages/notifications";
 import PaymentHistory from "@/pages/payment-history";
 import NotFound from "@/pages/not-found";
+import AnalyticsDashboard from "@/pages/analytics-dashboard";
+import VisaComparison from "@/pages/visa-comparison";
+import CommunityForum from "@/pages/forum";
+import AdminDashboard from "@/pages/admin-dashboard";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
   const { user, isLoading } = useAuth();
@@ -105,6 +109,22 @@ function Router() {
 
         <Route path="/payment-history">
           <ProtectedRoute component={PaymentHistory} role="applicant" />
+        </Route>
+
+        <Route path="/analytics">
+          <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
+        </Route>
+
+        <Route path="/visa-comparison">
+          <VisaComparison />
+        </Route>
+
+        <Route path="/forum">
+          <CommunityForum />
+        </Route>
+
+        <Route path="/admin">
+          <ProtectedRoute component={AdminDashboard} role="admin" />
         </Route>
         
         <Route path="/lawyer">
