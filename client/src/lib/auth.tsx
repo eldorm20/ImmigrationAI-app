@@ -92,19 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Login failed" }));
-      throw new Error(error.message || "Login failed");
-    }
-
-    const data = await response.json();
+    try {
+      const data = await apiRequest<any>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
     setTokens(data.accessToken, data.refreshToken);
     const userData = data.user as Omit<User, "name">;
     const nameFromEmail = userData.email.split("@")[0];
@@ -132,19 +124,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastName?: string,
     role: "applicant" | "lawyer" = "applicant"
   ) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, firstName, lastName, role }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Registration failed" }));
-      throw new Error(error.message || "Registration failed");
-    }
-
-    const data = await response.json();
+    try {
+      const data = await apiRequest<any>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password, firstName, lastName, role }),
+      });
     setTokens(data.accessToken, data.refreshToken);
     const userData = data.user as Omit<User, "name">;
     const nameFromEmail = userData.email.split("@")[0];
