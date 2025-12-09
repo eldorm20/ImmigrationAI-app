@@ -63,7 +63,7 @@ export default function Home() {
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
             <LiveButton variant="ghost" className="py-2 px-4 text-sm" onClick={() => setLocation('/features')}>Features</LiveButton>
             <LiveButton variant="ghost" className="py-2 px-4 text-sm" onClick={() => setLocation('/pricing')}>Pricing</LiveButton>
-            <LiveButton variant="secondary" className="py-2 px-4 text-sm" onClick={() => goLogin('lawyer')}>Partner</LiveButton>
+            <LiveButton variant="secondary" className="py-2 px-4 text-sm" onClick={() => setLocation('/partner')}>Partner</LiveButton>
             <LiveButton variant="primary" onClick={() => goLogin('applicant')} icon={ArrowRight}>{t.nav.login}</LiveButton>
           </div>
 
@@ -95,7 +95,9 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
-              <LiveButton variant="secondary" className="w-full justify-start py-4" onClick={() => goLogin('lawyer')}>Partner Portal</LiveButton>
+              <LiveButton variant="ghost" className="w-full justify-start py-4 text-slate-900 dark:text-white" onClick={() => { setMenuOpen(false); setLocation('/features'); }}>Features</LiveButton>
+              <LiveButton variant="ghost" className="w-full justify-start py-4 text-slate-900 dark:text-white" onClick={() => { setMenuOpen(false); setLocation('/pricing'); }}>Pricing</LiveButton>
+              <LiveButton variant="secondary" className="w-full justify-start py-4" onClick={() => { setMenuOpen(false); setLocation('/partner'); }}>Partner Program</LiveButton>
               <LiveButton variant="primary" className="w-full justify-start py-4" onClick={() => goLogin('applicant')}>{t.nav.login}</LiveButton>
             </div>
           </motion.div>

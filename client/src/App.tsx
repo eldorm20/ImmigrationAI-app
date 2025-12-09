@@ -31,6 +31,7 @@ import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import VisaComparison from "@/pages/visa-comparison";
 import CommunityForum from "@/pages/forum";
 import AdminDashboard from "@/pages/admin-dashboard";
+import Partner from "@/pages/partner";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
   const { user, isLoading } = useAuth();
@@ -64,6 +65,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/partner" component={Partner} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/features" component={Features} />
         
