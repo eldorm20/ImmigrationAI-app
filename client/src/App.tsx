@@ -144,6 +144,11 @@ function Router() {
           <ProtectedRoute component={LawyerDashboard} role="lawyer" />
         </Route>
 
+        {/* Legacy/alternate path for compatibility */}
+        <Route path="/lawyer-dashboard">
+          <ProtectedRoute component={LawyerDashboard} role="lawyer" />
+        </Route>
+
         <Route component={NotFound} />
       </Switch>
     </Layout>

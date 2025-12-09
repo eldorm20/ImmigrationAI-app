@@ -164,7 +164,17 @@ router.post(
       .object({ template: z.string().min(1), data: z.record(z.any()).optional(), language: z.string().optional() })
       .parse(req.body);
 
-    const doc = await generateDocument(template, data || {}, language || 'en');
+    let doc;
+    try {
+      doc = await generateDocument(template, data || {}, language || 'en');
+    } catch (err: any) {
+      // Provide a clear service-level message if AI providers are not configured
+      const msg = err?.message || String(err);
+      if (msg.includes('No AI provider')) {
+        return res.status(503).json({ message: 'AI provider not configured. Please set OPENAI_API_KEY or HUGGINGFACE_API_TOKEN in environment.' });
+      }
+      throw err;
+    }
 
     // Increment generation count
     await db
