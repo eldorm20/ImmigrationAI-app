@@ -103,7 +103,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, tr
 );
 
 export default function LawyerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -250,6 +250,16 @@ export default function LawyerDashboard() {
       className: "bg-green-50 text-green-900 border-green-200"
     });
   };
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      window.location.href = '/auth';
+    }
+  }, [isLoading, user]);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   if (!user || (user.role !== "lawyer" && user.role !== "admin")) return null;
 

@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/api";
 import { error as logError } from "@/lib/logger";
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { t, lang, setLang } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -51,6 +51,16 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/auth");
+    }
+  }, [isLoading, user, setLocation]);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   if (!user) return null;
 
