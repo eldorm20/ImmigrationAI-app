@@ -118,6 +118,13 @@ export default function LawyerDashboard() {
   const [showReport, setShowReport] = useState(false);
   const pageSize = 10;
 
+  // Auth check - redirect non-lawyer users
+  useEffect(() => {
+    if (user && user.role !== 'lawyer') {
+      window.location.href = '/dashboard';
+    }
+  }, [user]);
+
   // Mock Chart Data
   const revenueData = [
     { name: 'Jan', value: 4000 }, { name: 'Feb', value: 3000 },

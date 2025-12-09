@@ -6,6 +6,8 @@ import { useLocation } from "wouter";
 import { Settings, LogOut, Bell, Lock, User, Globe, Moon, Eye, Upload, Save, X, Loader } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import { apiRequest } from "@/lib/api";
+import { error as logError } from "@/lib/logger";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -62,9 +64,8 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users/settings', {
+      await apiRequest('/users/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -73,8 +74,6 @@ export default function SettingsPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to update profile');
-
       toast({
         title: "Profile Updated",
         description: "Your profile information has been saved successfully",
@@ -82,9 +81,11 @@ export default function SettingsPage() {
       });
       setEditing(false);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update profile";
+      logError("Profile update error:", msg);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update profile",
+        description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
     } finally {
@@ -135,13 +136,10 @@ export default function SettingsPage() {
   const handleSavePrivacy = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users/privacy-settings', {
+      await apiRequest('/users/privacy-settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(privacySettings),
       });
-
-      if (!res.ok) throw new Error('Failed to update privacy settings');
 
       toast({
         title: "Privacy Settings Updated",
@@ -149,9 +147,11 @@ export default function SettingsPage() {
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update settings";
+      logError("Privacy settings update error:", msg);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update settings",
+        description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
     } finally {
@@ -162,13 +162,10 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users/notification-settings', {
+      await apiRequest('/users/notification-settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notificationSettings),
       });
-
-      if (!res.ok) throw new Error('Failed to update notification settings');
 
       toast({
         title: "Notification Settings Updated",
@@ -176,9 +173,11 @@ export default function SettingsPage() {
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update settings";
+      logError("Notification settings update error:", msg);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update settings",
+        description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
     } finally {
@@ -193,9 +192,8 @@ export default function SettingsPage() {
         setLang(preferences.language);
       }
 
-      const res = await fetch('/api/users/preferences', {
+      await apiRequest('/users/preferences', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           language: preferences.language,
           theme: preferences.theme,
@@ -203,17 +201,17 @@ export default function SettingsPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to update preferences');
-
       toast({
         title: "Preferences Updated",
         description: "Your preferences have been saved",
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update preferences";
+      logError("Preferences update error:", msg);
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to update preferences",
+        description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
     } finally {
