@@ -434,6 +434,7 @@ export default function SubscriptionPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("");
 
@@ -446,6 +447,7 @@ export default function SubscriptionPage() {
     const loadSubscription = async () => {
       try {
         setLoading(true);
+        setError(null);
         const subs = await apiRequest<Subscription>("/subscription/current");
         setSubscription(subs);
 
@@ -454,6 +456,8 @@ export default function SubscriptionPage() {
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logError("Failed to load subscription:", msg);
+        setError(msg || "Failed to load subscription data");
+        setSubscription({ id: "free", userId: user?.id || "", plan: "starter", status: "active", amount: 0, currency: "USD", startDate: new Date().toISOString(), renewalDate: new Date().toISOString() });
       } finally {
         setLoading(false);
       }
@@ -550,6 +554,17 @@ export default function SubscriptionPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto p-6 lg:p-12">
+        {/* Error Banner */}
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 flex items-start gap-3">
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Failed to load subscription data</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Current Subscription */}
         {subscription && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">

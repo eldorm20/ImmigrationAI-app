@@ -532,7 +532,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { Settings, LogOut, Bell, Lock, User, Globe, Moon, Eye, Upload, Save, X, Loader } from "lucide-react";
+import { Settings, LogOut, Bell, Lock, User, Globe, Moon, Eye, Upload, Save, X, Loader, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { apiRequest } from "@/lib/api";
@@ -546,6 +546,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<'account' | 'privacy' | 'notifications' | 'preferences'>('account');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -603,6 +604,7 @@ export default function SettingsPage() {
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
+      setError(null);
       await apiRequest('/users/settings', {
         method: 'PUT',
         body: JSON.stringify({
@@ -622,6 +624,7 @@ export default function SettingsPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update profile";
       logError("Profile update error:", msg);
+      setError(msg);
       toast({
         title: "Error",
         description: msg,
@@ -782,6 +785,17 @@ export default function SettingsPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto p-6 lg:p-12">
+        {/* Error Banner */}
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 flex items-start gap-3">
+            <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">An error occurred</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <motion.aside
