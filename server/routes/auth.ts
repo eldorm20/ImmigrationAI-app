@@ -243,7 +243,7 @@ router.post(
       await revokeRefreshToken(refreshToken);
     }
 
-    await auditLog(req.user!.id, "user.logout", "user", req.user!.id, {}, req);
+    await auditLog(req.user!.userId, "user.logout", "user", req.user!.userId, {}, req);
 
     res.json({ message: "Logged out successfully" });
   })
@@ -255,7 +255,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const user = await db.query.users.findFirst({
-      where: eq(users.id, req.user!.id),
+      where: eq(users.id, req.user!.userId),
     });
 
     if (!user) {
@@ -270,7 +270,6 @@ router.get(
       lastName: user.lastName,
       phone: user.phone,
       emailVerified: user.emailVerified,
-      createdAt: user.createdAt,
     });
   })
 );
@@ -390,35 +389,6 @@ router.post(
     await auditLog(user.id, "user.password_reset", "user", user.id, {}, req);
 
     res.json({ message: "Password reset successfully" });
-  })
-);
-
-// Get current user
-router.get(
-  "/me",
-  authenticate,
-  asyncHandler(async (req, res) => {
-    if (!req.user) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, req.user.id),
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone,
-      emailVerified: user.emailVerified,
-    });
   })
 );
 
