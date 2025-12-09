@@ -15,6 +15,9 @@ import subscriptionsRoutes from "./routes/subscriptions";
 import messagesRoutes from "./routes/messages";
 import webhooksRoutes from "./routes/webhooks";
 import settingsRoutes from "./routes/settings";
+import adminRoutes from "./routes/admin";
+import visaRoutes from "./routes/visa";
+import analyticsRoutes from "./routes/analytics";
 
 export function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -35,4 +38,7 @@ export function registerRoutes(app: Express) {
   app.use("/api/subscription", subscriptionsRoutes);
   app.use("/api/messages", messagesRoutes);
   app.use("/api/users", settingsRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/visa", visaRoutes);
+  app.use("/api/analytics", analyticsRoutes);
 }

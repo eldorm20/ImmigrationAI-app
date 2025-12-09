@@ -22,7 +22,7 @@ const createMessageSchema = z.object({
 router.post(
   "/",
   asyncHandler(async (req, res) => {
-    const senderId = req.user!.id;
+    const senderId = req.user!.userId;
     const body = createMessageSchema.parse(req.body);
 
     // Verify recipient exists
@@ -64,7 +64,7 @@ router.post(
 router.get(
   "/conversation/:userId",
   asyncHandler(async (req, res) => {
-    const currentUserId = req.user!.id;
+    const currentUserId = req.user!.userId;
     const { userId } = req.params;
     const { limit = "50", offset = "0" } = req.query;
 
@@ -113,7 +113,7 @@ router.get(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { limit = "50", offset = "0" } = req.query;
 
     // Get unique users we have conversations with
@@ -179,7 +179,7 @@ router.get(
 router.get(
   "/unread/count",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const unreadCount = await db.query.messages.findMany({
       where: and(eq(messages.recipientId, userId), eq(messages.isRead, false)),
@@ -195,7 +195,7 @@ router.get(
 router.patch(
   "/:id/read",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { id } = req.params;
 
     const message = await db.query.messages.findFirst({
@@ -221,7 +221,7 @@ router.patch(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { id } = req.params;
 
     const message = await db.query.messages.findFirst({

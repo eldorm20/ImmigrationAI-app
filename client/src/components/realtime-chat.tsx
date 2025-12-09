@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useAuth } from '@/lib/auth';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +26,7 @@ interface ChatUser {
 
 export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const {
     isConnected,
     onlineUsers,
@@ -192,7 +194,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
         <div className="flex gap-2">
           <Input
             type="text"
-            placeholder="Type a message..."
+            placeholder={t.consultation?.inputPlaceholder || "Type a message..."}
             value={messageInput}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
@@ -209,7 +211,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
         </div>
         {!isConnected && (
           <p className="text-xs text-red-600 text-center">
-            Connecting... Real-time messaging unavailable
+            {t.consultation?.connected === false ? t.consultation?.disconnected : "Connecting... Real-time messaging unavailable"}
           </p>
         )}
       </CardContent>

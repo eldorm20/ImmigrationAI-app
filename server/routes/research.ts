@@ -76,7 +76,7 @@ router.post(
         body: body.body,
         tags: body.tags || [],
         source: body.source ? sanitizeInput(body.source) : null,
-        createdByUserId: req.user!.id,
+        createdByUserId: req.user!.userId,
         publishedAt: new Date(),
       })
       .returning();
@@ -101,7 +101,7 @@ router.patch(
       throw new AppError(404, "Article not found");
     }
 
-    const isOwner = existing.createdByUserId === req.user!.id;
+    const isOwner = existing.createdByUserId === req.user!.userId;
     const isElevated = req.user!.role === "admin" || req.user!.role === "lawyer";
     if (!isOwner && !isElevated) {
       throw new AppError(403, "Insufficient permissions");
@@ -115,7 +115,7 @@ router.patch(
         summary: body.summary ? sanitizeInput(body.summary) : existing.summary,
         slug: body.slug ? body.slug.toLowerCase() : existing.slug,
         source: body.source ? sanitizeInput(body.source) : existing.source,
-        updatedByUserId: req.user!.id,
+        updatedByUserId: req.user!.userId,
         updatedAt: new Date(),
       })
       .where(sql`id = ${id}`)

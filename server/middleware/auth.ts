@@ -10,7 +10,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: JWTPayload & {
-        id: string;
+        userId: string;
       };
     }
   }
@@ -55,7 +55,6 @@ export async function authenticate(
 
     req.user = {
       ...payload,
-      id: payload.userId,
       userId: payload.userId,
     };
 
@@ -99,7 +98,6 @@ export async function optionalAuth(
         if (user) {
           req.user = {
             ...payload,
-            id: payload.userId,
             userId: payload.userId,
           };
         }

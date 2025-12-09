@@ -41,7 +41,7 @@ router.post(
     }
 
     const body = createDocumentSchema.parse(req.body || {});
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     // Check subscription tier and enforce document upload limit
     const tier = await getUserSubscriptionTier(userId);
@@ -160,7 +160,7 @@ router.post(
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const role = req.user!.role;
     const { applicationId } = req.query;
 
@@ -216,7 +216,7 @@ router.get(
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const role = req.user!.role;
     const { id } = req.params;
 
@@ -252,7 +252,7 @@ router.get(
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const role = req.user!.role;
     const { id } = req.params;
 

@@ -4,7 +4,7 @@ import pkg from "pg";
 const { Pool } = pkg;
 import { logger } from "./logger";
 import { resolve } from "path";
-import { existsSync, readdirSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 
 export async function runMigrationsIfNeeded(): Promise<void> {
   // Always run migrations if DATABASE_URL is set
@@ -61,8 +61,87 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     logger.info("✓ Database connection successful");
 
     logger.info(`Running database migrations from: ${migrationsPath}`);
-    await migrate(db, { migrationsFolder: migrationsPath });
-    logger.info("✓ Database migrations completed successfully");
+    
+    // Try Drizzle's migrate function first
+    try {
+      await migrate(db, { migrationsFolder: migrationsPath });
+      logger.info("✓ Database migrations completed successfully via Drizzle");
+    } catch (drizzleErr: any) {
+      logger.warn({ drizzleErr }, "Drizzle migration failed, attempting direct SQL execution");
+      
+      // Fallback: execute SQL files directly
+      try {
+        const files = readdirSync(migrationsPath)
+          .filter(f => f.endsWith('.sql') && !f.startsWith('.'))
+          .sort();
+        
+        for (const file of files) {
+          const filePath = resolve(migrationsPath, file);
+          try {
+            const sql = readFileSync(filePath, 'utf-8');
+            
+            // Split by statement breakpoint marker (Drizzle format)
+            const statements = sql
+              .split('-->') 
+              .map(s => s.replace(/^[^\w"]*/, '').trim()) // Remove leading non-word chars and comments
+              .filter(s => s.length > 0 && !s.startsWith('statement-breakpoint'));
+            
+            for (const statement of statements) {
+              const cleanedStatement = statement
+                .replace(/--> statement-breakpoint\s*$/g, '') // Remove trailing marker
+                .trim();
+              
+              if (cleanedStatement.length > 0 && !cleanedStatement.startsWith('--')) {
+                try {
+                  await pool.query(cleanedStatement);
+                  logger.debug(`✓ Executed statement from ${file}`);
+                } catch (stmtErr: any) {
+                  // Some statements might fail if objects already exist, which is ok
+                  const errMsg = stmtErr.message || '';
+                  if (errMsg.includes('already exists') || 
+                      errMsg.includes('already defined') ||
+                      errMsg.includes('duplicate key')) {
+                    logger.debug(`⚠ Skipped existing object in ${file}: ${errMsg}`);
+                  } else {
+                    logger.warn({ stmtErr }, `Error executing statement from ${file}`);
+                  }
+                }
+              }
+            }
+            logger.info(`✓ Processed migration file: ${file}`);
+          } catch (fileErr) {
+            logger.error({ fileErr }, `Failed to process migration file: ${file}`);
+          }
+        }
+      } catch (fallbackErr) {
+        logger.error({ fallbackErr }, "Direct SQL execution also failed");
+      }
+    }
+    
+    // Verify avatar column exists
+    try {
+      const avatarCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'avatar'
+        )
+      `);
+      
+      if (avatarCheck.rows[0]?.exists) {
+        logger.info("✓ Avatar column verified in users table");
+      } else {
+        logger.warn("⚠ Avatar column not found in users table - attempting manual creation");
+        try {
+          await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar text");
+          logger.info("✓ Avatar column manually added");
+        } catch (manualErr: any) {
+          logger.warn({ manualErr }, "Could not add avatar column manually");
+        }
+      }
+    } catch (checkErr) {
+      logger.warn({ checkErr }, "Could not verify avatar column existence");
+    }
+    
   } catch (err) {
     logger.error(
       { err, stack: (err as any)?.stack },

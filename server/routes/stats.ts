@@ -13,7 +13,7 @@ router.use(authenticate);
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const role = req.user!.role;
 
     if (role === "applicant") {
