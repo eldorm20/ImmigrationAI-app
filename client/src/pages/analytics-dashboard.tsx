@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { TrendingUp, Award, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 export default function AnalyticsDashboard() {
   const { user } = useAuth();
@@ -15,12 +16,8 @@ export default function AnalyticsDashboard() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch("/api/analytics/dashboard", {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("accessToken")}` },
-      });
-      if (response.ok) {
-        setStats(await response.json());
-      }
+      const data = await apiRequest<any>("/analytics/dashboard", { skipErrorToast: true });
+      setStats(data);
     } catch (error) {
       console.error("Failed to fetch analytics", error);
     } finally {

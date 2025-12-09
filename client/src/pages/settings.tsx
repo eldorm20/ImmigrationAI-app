@@ -105,16 +105,13 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/users/change-password', {
+      await apiRequest('/users/change-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
       });
-
-      if (!res.ok) throw new Error('Failed to change password');
 
       toast({
         title: "Success",
@@ -123,11 +120,13 @@ export default function SettingsPage() {
       });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to change password";
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to change password",
+        description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
+      logError("Change password error:", msg);
     } finally {
       setLoading(false);
     }

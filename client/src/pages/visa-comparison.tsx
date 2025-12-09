@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { ArrowLeft, Check, X, DollarSign, Clock, TrendingUp } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 interface VisaType {
   visaType: string;
@@ -30,19 +31,14 @@ export default function VisaComparisonPage() {
   const compareVisas = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/visa/compare", {
+      const data = await apiRequest<any>("/visa/compare", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           countries: selectedCountries,
           visaType: selectedVisa,
         }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setComparison(data.comparison || {});
-      }
+      setComparison(data.comparison || {});
     } catch (error) {
       console.error("Failed to compare visas", error);
     } finally {

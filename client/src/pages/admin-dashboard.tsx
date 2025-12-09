@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { Users, TrendingUp, DollarSign, AlertCircle, User, Zap, BarChart3 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -21,12 +22,8 @@ export default function AdminDashboard() {
 
   const fetchAdminStats = async () => {
     try {
-      const response = await fetch("/api/admin/overview", {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("accessToken")}` },
-      });
-      if (response.ok) {
-        setStats(await response.json());
-      }
+      const data = await apiRequest<any>("/admin/overview", { skipErrorToast: true });
+      setStats(data);
     } catch (error) {
       console.error("Failed to fetch admin stats", error);
     } finally {
