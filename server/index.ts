@@ -172,6 +172,25 @@ app.get("/health", async (_req, res) => {
     const host = process.env.HOST || "0.0.0.0";
 
     httpServer.listen(port, host, () => {
+      // Log environment status for debugging
+      const missingEnvVars = [];
+      if (!process.env.AWS_ACCESS_KEY_ID && !process.env.S3_ENDPOINT) {
+        missingEnvVars.push("AWS_ACCESS_KEY_ID or S3_ENDPOINT (S3/file upload will fail)");
+      }
+      if (!process.env.S3_BUCKET && !process.env.AWS_S3_BUCKET) {
+        missingEnvVars.push("S3_BUCKET or AWS_S3_BUCKET (S3/file upload will fail)");
+      }
+      if (!process.env.STRIPE_SECRET_KEY) {
+        missingEnvVars.push("STRIPE_SECRET_KEY (Stripe payments disabled)");
+      }
+
+      if (missingEnvVars.length > 0) {
+        logger.warn(
+          { missingEnvVars },
+          "⚠️  Missing environment variables: " + missingEnvVars.join(", ")
+        );
+      }
+
       logger.info({
         port,
         host,

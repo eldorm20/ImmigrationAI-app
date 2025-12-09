@@ -96,7 +96,12 @@ router.post(
       );
     } catch (err: any) {
       logger.error({ err, userId, fileName: req.file.originalname }, "File upload failed");
-      throw new AppError(500, err.message || "File upload failed");
+      const msg = err.message || "File upload failed";
+      // Check if this is an S3 configuration issue and provide helpful message
+      if (msg.includes("S3") || msg.includes("bucket") || msg.includes("credentials")) {
+        throw new AppError(503, "File storage service is not configured. Please contact support.");
+      }
+      throw new AppError(500, msg);
     }
 
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
