@@ -46,8 +46,13 @@ export async function apiRequest<T>(
   } = options;
 
   // Normalize headers to a plain object so we can safely assign properties
-  const normalizeHeaders = (h?: HeadersInit): Record<string, string> => {
-    const out: Record<string, string> = { "Content-Type": "application/json" };
+  const normalizeHeaders = (h?: HeadersInit, body?: any): Record<string, string> => {
+    // If body is FormData, do not set Content-Type (browser will add multipart boundary)
+    const out: Record<string, string> = {};
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+    if (!isFormData) {
+      out["Content-Type"] = "application/json";
+    }
     if (!h) return out;
     if (h instanceof Headers) {
       h.forEach((v, k) => (out[k] = v));
@@ -59,7 +64,7 @@ export async function apiRequest<T>(
     return out;
   };
 
-  const headers = normalizeHeaders(fetchOptions.headers);
+  const headers = normalizeHeaders(fetchOptions.headers, fetchOptions.body);
 
   const token = await getAuthToken();
   if (token) {

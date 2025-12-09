@@ -805,23 +805,16 @@ const UploadView = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('documentType', 'application_document');
-        
-        const token = localStorage.getItem('accessToken');
-        const response = await fetch('/api/documents/upload', {
+
+        // Use apiRequest so auth/refresh logic and error handling are consistent
+        const uploadedDoc = await apiRequest<any>("/documents/upload", {
           method: 'POST',
           body: formData,
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          credentials: 'include',
+          // apiRequest now omits Content-Type when body is FormData
+        }).catch((err) => {
+          const msg = err instanceof Error ? err.message : 'Upload failed';
+          throw new Error(msg);
         });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Upload failed');
-        }
-        
-        const uploadedDoc = await response.json();
         try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch {};
         
         const newFile = {
