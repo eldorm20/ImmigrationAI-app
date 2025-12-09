@@ -4,6 +4,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@shared/schema';
+import { logger } from './lib/logger';
 
 // Ensure DATABASE_URL exists
 if (!process.env.DATABASE_URL) {
@@ -20,8 +21,11 @@ const pool = new Pool({
 
 // Handle pool errors globally
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(1);
+  logger.error({ err }, 'Unexpected error on idle client');
+  // For safety keep the process exit in non-development environments
+  if (process.env.NODE_ENV !== 'development') {
+    process.exit(1);
+  }
 });
 
 // Initialize Drizzle ORM with schema
@@ -33,16 +37,18 @@ export async function testConnection(): Promise<boolean> {
     const client = await pool.connect();
     await client.query('SELECT 1');
     client.release();
-    console.log('✅ PostgreSQL connection successful');
+    logger.info('✅ PostgreSQL connection successful');
     return true;
   } catch (error) {
-    console.error('❌ PostgreSQL connection failed:', error);
+    logger.error({ error }, '❌ PostgreSQL connection failed');
     return false;
   }
 }
 
-// Optional: Immediately test on import
-testConnection();
+// Optional: Immediately test on import in development only
+if (process.env.NODE_ENV === 'development') {
+  testConnection().catch((err) => logger.warn({ err }, 'Test connection failed during startup'));
+}
 
 
 

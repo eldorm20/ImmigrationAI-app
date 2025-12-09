@@ -25,6 +25,8 @@ import Subscription from "@/pages/subscription";
 import Settings from "@/pages/settings";
 import Notifications from "@/pages/notifications";
 import PaymentHistory from "@/pages/payment-history";
+import { AssessmentPage } from "@/pages/assessment";
+import PartnerPage from "@/pages/partner";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
@@ -59,6 +61,8 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/assessment" component={AssessmentPage} />
+        <Route path="/partner" component={PartnerPage} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/features" component={Features} />
         

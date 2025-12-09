@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-type Language = "en" | "uz" | "ru" | "de" | "fr" | "es";
+export type Language = "en" | "uz" | "ru" | "de" | "fr" | "es";
 
 interface I18nContextType {
   lang: Language;
@@ -36,7 +36,12 @@ const TRANSLATIONS = {
       user: "User",
     },
     nav: { login: "Sign In", start: "Get Started", features: "Features", pricing: "Pricing", partner: "Partner" },
-    hero: { title: "Move to Europe.", sub: "AI-Powered Immigration for Uzbekistan.", cta: "Check Eligibility", trusted: "Trusted by 10k+ people" },
+    hero: { 
+      title: "Reduce Visa Rejection Risk by 90%.",
+      sub: "AI-Powered Assessment & Documents for Uzbek Professionals Moving to UK, Germany & Poland. Get personalized guidance in 2 minutes.",
+      cta: "Get Free Assessment", 
+      trusted: "4.9/5 from 10,000+ Uzbek users" 
+    },
     dash: { 
       welcome: "Welcome,", roadmap: "Roadmap", docs: "AI Docs", lawyer: "Ask Lawyer", chat: "AI Chat", 
       logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research", messages: "Messages"
@@ -288,7 +293,12 @@ const TRANSLATIONS = {
           user: "Foydalanuvchi",
         },
     nav: { login: "Kirish", start: "Boshlash", features: "Xususiyatlar", pricing: "Narxlar", partner: "Hamkor" },
-    hero: { title: "Yevropaga Yo'l.", sub: "O'zbekistonliklar uchun AI immigratsiya.", cta: "Tekshirish", trusted: "10k+ ishonchli mijozlar" },
+    hero: { 
+      title: "Visa Rad'i Xavfini 90% Kamaytiring.",
+      sub: "O'zbek mutaxassislari uchun AI visa baholash va hujjatlar. 2 daqiqada shaxsiy yo'riqnama oling. UK, Germaniya va Polshadagi viza uchun.",
+      cta: "Bepul Baholash Olish", 
+      trusted: "10,000+ o'zbek foydalanuvchisini ishonchli" 
+    },
     dash: { 
       welcome: "Xush kelibsiz,", roadmap: "Reja", docs: "AI Hujjat", lawyer: "Yurist", chat: "AI Chat", 
       logout: "Chiqish", upload: "Hujjatlar", translate: "Tarjima", research: "Tadqiqot", messages: "Xabarlar"
@@ -550,7 +560,12 @@ const TRANSLATIONS = {
           user: "Пользователь",
         },
     nav: { login: "Войти", start: "Начать", features: "Возможности", pricing: "Цены", partner: "Партнер" },
-    hero: { title: "Путь в Европу.", sub: "ИИ Иммиграция для Узбекистана.", cta: "Проверить", trusted: "Доверяют 10к+" },
+    hero: { 
+      title: "Снизьте риск отказа в визе на 90%.",
+      sub: "AI-оценка виз и документы для узбеков, переезжающих в Великобританию, Германию и Польшу. Персональная консультация за 2 минуты.",
+      cta: "Получить бесплатную оценку", 
+      trusted: "4.9/5 от 10,000+ узбекских пользователей" 
+    },
     dash: { 
       welcome: "Привет,", roadmap: "План", docs: "ИИ Доки", lawyer: "Юрист", chat: "ИИ Чат", 
       logout: "Выйти", upload: "Документы", translate: "Перевод", research: "Исследования", messages: "Сообщения"
@@ -802,7 +817,12 @@ const TRANSLATIONS = {
           user: "Benutzer",
         },
     nav: { login: "Anmelden", start: "Jetzt Starten", features: "Funktionen", pricing: "Preise", partner: "Partner" },
-    hero: { title: "Nach Europa.", sub: "KI-gestützte Einwanderung aus Usbekistan.", cta: "Berechtigung Prüfen", trusted: "Vertraut von 10k+ Personen" },
+    hero: { 
+      title: "Reduzieren Sie das Visum-Ablehnungsrisiko um 90%.",
+      sub: "AI-Visa-Bewertung und Dokumente für usbekische Fachleute, die nach UK, Deutschland und Polen ziehen. Persönliche Anleitung in 2 Minuten.",
+      cta: "Kostenlose Bewertung Erhalten", 
+      trusted: "4.9/5 von 10.000+ usbekischen Benutzern" 
+    },
     dash: { 
       welcome: "Willkommen,", roadmap: "Roadmap", docs: "KI Docs", lawyer: "Anwalt", chat: "KI Chat", 
       logout: "Abmelden", upload: "Dokumente", translate: "Übersetzung", research: "Forschung"
@@ -1064,7 +1084,12 @@ const TRANSLATIONS = {
           user: "Utilisateur",
         },
     nav: { login: "Connexion", start: "Commencer", features: "Fonctionnalités", pricing: "Tarification", partner: "Partenaire" },
-    hero: { title: "Vers l'Europe.", sub: "Immigration IA pour l'Ouzbékistan.", cta: "Vérifier l'Admissibilité", trusted: "Approuvé par 10k+ personnes" },
+    hero: { 
+      title: "Réduisez le risque de refus de visa de 90%.",
+      sub: "Évaluation de visa et documents alimentés par l'IA pour les professionnels ouzbeks se déplaçant au Royaume-Uni, en Allemagne et en Pologne. Orientation personnalisée en 2 minutes.",
+      cta: "Obtenir une Évaluation Gratuite", 
+      trusted: "4.9/5 de 10 000+ utilisateurs ouzbeks" 
+    },
     dash: { 
       welcome: "Bienvenue,", roadmap: "Feuille de route", docs: "Docs IA", lawyer: "Avocat", chat: "Chat IA", 
       logout: "Déconnexion", upload: "Documents", translate: "Traduction", research: "Recherche"
@@ -1326,7 +1351,12 @@ const TRANSLATIONS = {
           user: "Usuario",
         },
     nav: { login: "Iniciar Sesión", start: "Empezar", features: "Características", pricing: "Precios", partner: "Socio" },
-    hero: { title: "Hacia Europa.", sub: "Inmigración Impulsada por IA para Uzbekistán.", cta: "Verificar Elegibilidad", trusted: "Confiado por 10k+ personas" },
+    hero: { 
+      title: "Reduzca el Riesgo de Rechazo de Visa en 90%.",
+      sub: "Evaluación de visa y documentos impulsados por IA para profesionales uzbekos que se trasladan a Reino Unido, Alemania y Polonia. Orientación personalizada en 2 minutos.",
+      cta: "Obtener Evaluación Gratuita", 
+      trusted: "4.9/5 de 10 000+ usuarios uzbekos" 
+    },
     dash: { 
       welcome: "Bienvenido,", roadmap: "Mapa de Ruta", docs: "Documentos IA", lawyer: "Abogado", chat: "Chat IA", 
       logout: "Cerrar Sesión", upload: "Documentos", translate: "Traducción", research: "Investigación"

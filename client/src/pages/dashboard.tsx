@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
+import { error as logError } from "@/lib/logger";
+import { trackEvent } from "../lib/analytics";
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
 
@@ -198,10 +200,24 @@ export default function UserDash() {
 
 // --- Sub-Views ---
 
-const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void, toast: any }) => {
+type ToastHandler = ReturnType<typeof import('@/hooks/use-toast').toast>;
+
+interface RoadmapItem {
+  id?: string;
+  title: string;
+  status?: string;
+  description?: string;
+}
+
+interface ApplicationSummary {
+  id: string;
+  status?: string;
+}
+
+const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void; toast: ToastHandler }) => {
   const { user } = useAuth();
-  const [application, setApplication] = useState<any>(null);
-  const [roadmapItems, setRoadmapItems] = useState<any[]>([]);
+  const [application, setApplication] = useState<ApplicationSummary | null>(null);
+  const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
@@ -210,22 +226,22 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
       try {
         setLoading(true);
         // Fetch user's applications
-        const appData = await apiRequest<any[]>("/applications");
+        const appData = await apiRequest<ApplicationSummary[]>('/applications');
         if (appData && appData.length > 0) {
           const activeApp = appData[0]; // Get first application
           setApplication(activeApp);
-          
+
           // Fetch roadmap items for this application
-          const items = await apiRequest<any[]>(`/roadmap/application/${activeApp.id}`);
+          const items = await apiRequest<RoadmapItem[]>(`/roadmap/application/${activeApp.id}`);
           setRoadmapItems(items || []);
-          
+
           // Calculate progress
-          const completed = items.filter((i: any) => i.status === 'completed').length;
-          const total = items.length || 1;
+          const completed = (items || []).filter((i) => i.status === 'completed').length;
+          const total = (items || []).length || 1;
           setProgress(Math.round((completed / total) * 100));
         }
       } catch (error) {
-        console.error('Failed to load roadmap:', error);
+        logError('Failed to load roadmap:', error);
         setProgress(35); // Fallback for demo
       } finally {
         setLoading(false);
@@ -290,7 +306,7 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
       </AnimatedCard>
 
       <div className="grid gap-4">
-        {items.map((step: any, i: number) => (
+        {items.map((step: RoadmapItem, i: number) => (
           <AnimatedCard 
             key={i} 
             delay={i * 0.1} 
@@ -347,9 +363,9 @@ const DocsView = () => {
   const [formData, setFormData] = useState({ role: '', company: '', skills: '', name: '', experience: '', education: '', achievements: '' });
   const { user } = useAuth();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
-  const generateMotivationLetter = (data: any) => {
+  const generateMotivationLetter = (data: Record<string, unknown>) => {
     const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
     const skillsText = skillsList.length > 0 ? skillsList.join(', ') : '[Your key skills]';
     
@@ -378,7 +394,7 @@ ${user?.email ? user.email : '[Your Email]'}
 ${new Date().toLocaleDateString()}`;
   };
 
-  const generateCVEnhancement = (data: any) => {
+  const generateCVEnhancement = (data: Record<string, unknown>) => {
     const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
     
     return `PROFESSIONAL SUMMARY
@@ -406,7 +422,7 @@ LANGUAGES
 ${data.achievements ? `KEY ACHIEVEMENTS\n${data.achievements}` : ''}`;
   };
 
-  const generateReferenceLetter = (data: any) => {
+  const generateReferenceLetter = (data: Record<string, unknown>) => {
     return `To Whom It May Concern,
 
 RE: Reference Letter for ${user?.name || '[Employee Name]'}
@@ -436,7 +452,8 @@ ${data.company || '[Company Name]'}
 ${new Date().toLocaleDateString()}`;
   };
 
-  const templates: any = {
+  type TemplateKey = 'Motivation Letter' | 'CV Enhancement' | 'Reference Letter';
+  const templates: Record<TemplateKey, (data: Record<string, unknown>) => string> = {
     'Motivation Letter': generateMotivationLetter,
     'CV Enhancement': generateCVEnhancement,
     'Reference Letter': generateReferenceLetter
@@ -459,10 +476,11 @@ ${new Date().toLocaleDateString()}`;
       try {
         const resp = await apiRequest<{ document: string }>("/ai/documents/generate", {
           method: "POST",
-          body: JSON.stringify({ template: docType, data: formData, language: (t as any).lang || 'en' }),
+          body: JSON.stringify({ template: docType, data: formData, language: lang || 'en' }),
         });
 
         const targetText = resp.document || "";
+        try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch {};
         let i = 0;
 
         const interval = setInterval(() => {
@@ -480,7 +498,7 @@ ${new Date().toLocaleDateString()}`;
         }, 10);
       } catch (err) {
         setIsGenerating(false);
-        toast({ title: "Generation Error", description: (err as any)?.message || 'Failed to generate document', variant: 'destructive' });
+        toast({ title: "Generation Error", description: err instanceof Error ? err.message : 'Failed to generate document', variant: 'destructive' });
       }
     })();
   };
@@ -621,7 +639,7 @@ const ChatView = () => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e: any) => {
+  const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
     
@@ -735,10 +753,20 @@ const ChatView = () => {
 };
 
 const UploadView = () => {
+  interface UploadedFile {
+    id: string | number;
+    name: string;
+    size: number;
+    type: string;
+    uploadedAt: string;
+    status: 'analyzed' | 'pending';
+    url: string;
+  }
+
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useI18n();
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -794,6 +822,7 @@ const UploadView = () => {
         }
         
         const uploadedDoc = await response.json();
+        try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch {};
         
         const newFile = {
           id: uploadedDoc.id,

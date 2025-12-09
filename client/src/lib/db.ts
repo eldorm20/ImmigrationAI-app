@@ -1,6 +1,6 @@
 // Mock DB logic ported exactly from the prototype
 const nowISO = () => new Date().toISOString();
-const safeJSONParse = (str: string | null, fallback: any) => { try { return JSON.parse(str || ""); } catch { return fallback; } };
+const safeJSONParse = <T>(str: string | null, fallback: T): T => { try { return JSON.parse(str || "") as T; } catch { return fallback; } };
 const APP_VERSION = 2;
 
 export interface Lead {
@@ -22,13 +22,13 @@ export interface User {
 }
 
 const Storage = {
-  get: (k: string, fallback: any = null) => {
+  get: <T>(k: string, fallback: T): T => {
     const v = localStorage.getItem(k);
-    return v === null ? fallback : safeJSONParse(v, fallback);
+    return v === null ? fallback : safeJSONParse<T>(v, fallback);
   },
-  set: (k: string, v: any) => {
+  set: (k: string, v: unknown) => {
     try {
-      localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+      localStorage.setItem(k, typeof v === 'string' ? (v as string) : JSON.stringify(v));
     } catch {}
   }
 };
@@ -44,16 +44,20 @@ export const db = {
     }
     // Migration to add createdAt and ensure fee numbers (v2)
     if (meta.version < 2) {
-      const leads = Storage.get('iai_leads', []).map((l: any) => ({
-        ...l,
-        createdAt: l.createdAt || nowISO(),
-        fee: typeof l.fee === 'string' ? parseInt(l.fee) || 0 : l.fee
-      }));
+      const raw = Storage.get<any[]>('iai_leads', []);
+      const leads = raw.map((l) => {
+        const obj = l as Partial<Lead>;
+        return {
+          ...obj,
+          createdAt: obj.createdAt || nowISO(),
+          fee: typeof obj.fee === 'string' ? parseInt(obj.fee) || 0 : (obj.fee || 0)
+        } as Lead;
+      });
       Storage.set('iai_leads', leads);
     }
     Storage.set('iai_meta', { version: APP_VERSION, migratedAt: nowISO() });
   },
-  getLeads() { return Storage.get('iai_leads', []); },
+  getLeads(): Lead[] { return Storage.get<Lead[]>('iai_leads', []); },
   saveLeads(leads: Lead[]) { Storage.set('iai_leads', leads); },
   addLead(lead: Partial<Lead>) {
     const leads = db.getLeads();
@@ -64,7 +68,7 @@ export const db = {
       country: lead.country || "UK",
       visa: lead.visa || "General",
       status: lead.status || "New",
-      fee: typeof lead.fee === 'number' ? lead.fee : parseInt(lead.fee as any) || 0,
+      fee: typeof lead.fee === 'number' ? lead.fee : parseInt(String(lead.fee || '0')) || 0,
       date: lead.date || new Date().toLocaleDateString(),
       createdAt: nowISO()
     };

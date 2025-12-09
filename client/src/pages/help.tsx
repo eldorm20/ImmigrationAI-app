@@ -4,7 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageCircle, Mail, Users, HelpCircle, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 
-const AnimatedCard = ({ children, delay = 0 }: any) => (
+interface AnimatedCardProps {
+  children?: React.ReactNode;
+  delay?: number;
+}
+
+const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}

@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
+import { error as logError } from "@/lib/logger";
+import { trackEvent } from "../lib/analytics";
 
 interface Subscription {
   id: string;
@@ -102,8 +104,9 @@ export default function SubscriptionPage() {
 
         const history = await apiRequest<BillingHistory[]>("/subscription/billing-history");
         setBillingHistory(history || []);
-      } catch (error: any) {
-        console.error("Failed to load subscription:", error);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logError("Failed to load subscription:", msg);
       } finally {
         setLoading(false);
       }
@@ -114,6 +117,7 @@ export default function SubscriptionPage() {
 
   const handleUpgrade = async (planId: string) => {
     try {
+      try { trackEvent('subscription_upgrade_initiated', { planId }); } catch {}
       const response = await apiRequest("/subscription/upgrade", {
         method: "POST",
         body: JSON.stringify({ planId }),
@@ -128,10 +132,11 @@ export default function SubscriptionPage() {
         description: "Redirecting to checkout...",
         className: "bg-green-50 text-green-900 border-green-200",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: "Error",
-        description: error.message || "Failed to upgrade plan",
+        description: msg || "Failed to upgrade plan",
         variant: "destructive",
       });
     }
@@ -140,6 +145,7 @@ export default function SubscriptionPage() {
   const handleCancel = async () => {
     if (confirm("Are you sure you want to cancel your subscription?")) {
       try {
+        try { trackEvent('subscription_cancelled', { userId: user?.id }); } catch {}
         await apiRequest("/subscription/cancel", { method: "POST" });
         toast({
           title: "Subscription Cancelled",
@@ -147,10 +153,11 @@ export default function SubscriptionPage() {
           className: "bg-red-50 text-red-900 border-red-200",
         });
         setSubscription(null);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
         toast({
           title: "Error",
-          description: error.message || "Failed to cancel subscription",
+          description: msg || "Failed to cancel subscription",
           variant: "destructive",
         });
       }

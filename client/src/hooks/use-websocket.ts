@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { debug, error as logError, info as logInfo } from '../lib/logger';
 
 interface UseWebSocketOptions {
   userId?: string;
@@ -54,7 +55,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // Connection events
     socket.on('connect', () => {
-      console.log('WebSocket connected');
+      logInfo('WebSocket connected');
       setIsConnected(true);
 
       // Emit user online status
@@ -66,12 +67,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     socket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
+      logInfo('WebSocket disconnected');
       setIsConnected(false);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      logError('WebSocket connection error:', error);
     });
 
     // User status events
@@ -80,7 +81,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     socket.on('user_status_changed', (data) => {
-      console.log(`User ${data.userName} went ${data.status}`);
+      debug(`User ${data.userName} went ${data.status}`);
       // Update online users list
       if (data.status === 'online') {
         setOnlineUsers((prev) => [
@@ -102,7 +103,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     socket.on('message_sent', (data) => {
-      console.log('Message sent successfully:', data.id);
+      debug('Message sent successfully:', data.id);
       // Add the sent message to the messages list
       setMessages((prev) => [...prev, {
         id: data.id,
@@ -116,7 +117,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     socket.on('message_read', (data) => {
-      console.log('Message read:', data.messageId);
+      debug('Message read:', data.messageId);
       setMessages((prev) =>
         prev.map((m) =>
           m.id === data.messageId ? { ...m, isRead: true } : m
@@ -125,7 +126,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     socket.on('message_error', (error) => {
-      console.error('Message error:', error.message);
+      logError('Message error:', error?.message || error);
     });
 
     // Typing indicators
@@ -150,7 +151,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const sendMessage = useCallback(
     (recipientId: string, content: string) => {
       if (!socketRef.current?.connected) {
-        console.error('WebSocket not connected');
+        logError('WebSocket not connected');
         return false;
       }
 

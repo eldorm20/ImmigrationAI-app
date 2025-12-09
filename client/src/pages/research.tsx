@@ -9,6 +9,20 @@ import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Plane } from "lucide-react";
 
+type LocalLang = 'en' | 'uz' | 'ru' | 'de' | 'fr' | 'es';
+
+interface ResearchItem {
+  id?: string;
+  title: string;
+  summary?: string;
+  body?: string;
+  category?: string;
+  type?: string;
+  tags?: string[];
+  source?: string;
+  sourceUrl?: string;
+}
+
 export default function Research() {
   const { user } = useAuth();
   const [_, setLocation] = useLocation();
@@ -16,7 +30,7 @@ export default function Research() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<ResearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -60,12 +74,13 @@ export default function Research() {
       try {
         setLoading(true);
         setError(null);
-        const res = await apiRequest<{ items: any[] }>(
+        const res = await apiRequest<{ items: ResearchItem[] }>(
           `/research?search=${encodeURIComponent(searchQuery)}&category=${selectedCategory}&language=${lang}`,
         );
-        setItems(res.items);
-      } catch (e: any) {
-        setError(e.message || "Failed to load research library");
+        setItems(res.items || []);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg || "Failed to load research library");
       } finally {
         setLoading(false);
       }
@@ -121,10 +136,11 @@ export default function Research() {
         description: "Thank you for contributing to the research library!",
         className: "bg-green-50 text-green-900 border-green-200",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
       toast({
         title: "Error",
-        description: e.message || "Failed to create article",
+        description: msg || "Failed to create article",
         variant: "destructive",
       });
     } finally {

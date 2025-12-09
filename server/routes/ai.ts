@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authenticate } from "../middleware/auth";
 import { apiLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { validateBody } from "../middleware/validate";
 import {
   getEligibilityQuestions,
   checkEligibility,
@@ -81,15 +82,13 @@ router.post(
 );
 
 // Generate interview questions
+const interviewQuestionsSchema = z.object({ visaType: z.string().min(1), country: z.string().length(2) });
+
 router.post(
   "/interview/questions",
+  validateBody(interviewQuestionsSchema),
   asyncHandler(async (req, res) => {
-    const { visaType, country } = z
-      .object({
-        visaType: z.string().min(1),
-        country: z.string().length(2),
-      })
-      .parse(req.body);
+    const { visaType, country } = req.parsedBody as { visaType: string; country: string };
 
     const questions = await generateInterviewQuestions(visaType, country);
     res.json({ questions });

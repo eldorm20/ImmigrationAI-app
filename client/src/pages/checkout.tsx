@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import type { Stripe, StripeElements } from '@stripe/stripe-js';
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Check, ArrowLeft, Lock, Loader } from "lucide-react";
@@ -10,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
-    Stripe: any;
+    Stripe?: Stripe | null;
   }
 }
 
@@ -20,8 +21,8 @@ export default function Checkout() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [stripe, setStripe] = useState<any>(null);
-  const [elements, setElements] = useState<any>(null);
+  const [stripe, setStripe] = useState<Stripe | null>(null);
+  const [elements, setElements] = useState<StripeElements | null>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
@@ -76,12 +77,13 @@ export default function Checkout() {
           setLocation('/dashboard');
         }, 2000);
       }
-    } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Payment failed. Please try again.');
       toast({
-        title: "Payment Failed",
-        description: err.message || 'Please try again',
-        className: "bg-red-50 text-red-900 border-red-200"
+        title: 'Payment Failed',
+        description: msg || 'Please try again',
+        className: 'bg-red-50 text-red-900 border-red-200'
       });
     } finally {
       setProcessing(false);

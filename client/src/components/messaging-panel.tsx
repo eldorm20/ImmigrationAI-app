@@ -7,6 +7,7 @@ import { Send, Loader2, MessageCircle, User, X, ChevronRight } from "lucide-reac
 import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import { debug, info as logInfo, error as logError } from "@/lib/logger";
 
 interface Message {
   id: string;
@@ -25,6 +26,14 @@ interface ChatParticipant {
   role: "lawyer" | "applicant";
   unreadCount: number;
 }
+
+interface ConsultationSummary {
+  id: string;
+  userId: string;
+  lawyerId: string;
+}
+
+type SocketAck = { success?: boolean; messageId?: string; error?: string };
 
 export default function MessagingPanel() {
   const { t } = useI18n();
@@ -53,7 +62,7 @@ export default function MessagingPanel() {
     });
 
     newSocket.on("connect", () => {
-      console.log("Connected to messaging server");
+      logInfo("Connected to messaging server");
       toast({
         title: t.common.connected,
         description: t.messaging.connected,
@@ -61,11 +70,11 @@ export default function MessagingPanel() {
       });
     });
 
-    newSocket.on("connect:success", (data: any) => {
-      console.log("Socket.IO auth success:", data);
+    newSocket.on("connect:success", (data: Record<string, unknown>) => {
+      debug("Socket.IO auth success:", data);
     });
 
-    newSocket.on("message:received", (msg: any) => {
+    newSocket.on("message:received", (msg: Message) => {
       setMessages((prev) => [
         ...prev,
         {
@@ -81,7 +90,7 @@ export default function MessagingPanel() {
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Disconnected from messaging server");
+      logInfo("Disconnected from messaging server");
       toast({
         title: t.common.disconnected,
         description: t.messaging.disconnected,
@@ -108,7 +117,7 @@ export default function MessagingPanel() {
     (async () => {
       try {
         setLoading(true);
-        const consultations = await apiRequest<any[]>("/consultations");
+        const consultations = await apiRequest<ConsultationSummary[]>("/consultations");
         const uniqueParticipants = new Map<string, ChatParticipant>();
 
         consultations.forEach((c) => {
@@ -140,8 +149,9 @@ export default function MessagingPanel() {
         });
 
         setParticipants(Array.from(uniqueParticipants.values()));
-      } catch (err) {
-        console.error("Failed to load participants:", err);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logError("Failed to load participants:", msg);
       } finally {
         setLoading(false);
       }
@@ -158,7 +168,7 @@ export default function MessagingPanel() {
       content: inputMessage,
       receiverId: selectedParticipant,
       applicationId: undefined,
-    }, (ack: any) => {
+    }, (ack: SocketAck) => {
       if (ack?.success) {
         setMessages((prev) => [
           ...prev,

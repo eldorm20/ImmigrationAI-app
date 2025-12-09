@@ -15,31 +15,71 @@ import {
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-// --- Components ---
+// --- Types & Components ---
 
-const ActionButton = ({ children, onClick, variant='primary', className='', icon: Icon }: any) => {
-  const styles: any = {
-    primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-500/20",
-    success: "bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20",
-    danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20",
-    ghost: "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-  };
-  
-  return (
-    <motion.button 
-      whileHover={{ scale: 1.05 }} 
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors ${styles[variant]} ${className}`}
-    >
-      {Icon && <Icon size={14} />}
-      {children}
-    </motion.button>
-  );
+interface Lead {
+  id: string | number;
+  name?: string;
+  email?: string;
+  country?: string;
+  visa?: string;
+  status?: string;
+  fee?: number;
+  date?: string;
+  createdAt?: string;
+}
+
+interface BackendApplication {
+  id: string;
+  metadata?: { applicantName?: string; email?: string };
+  userName?: string;
+  userEmail?: string;
+  country?: string;
+  visaType?: string;
+  status?: string;
+  fee?: number | string;
+  createdAt?: string;
+}
+
+type ActionVariant = 'primary' | 'success' | 'danger' | 'ghost';
+
+interface ActionButtonProps {
+  children?: React.ReactNode;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  variant?: ActionVariant;
+  className?: string;
+  icon?: React.ElementType;
+}
+
+const ACTION_STYLES: Record<ActionVariant, string> = {
+  primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-500/20",
+  success: "bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20",
+  danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20",
+  ghost: "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700",
 };
 
-const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
-  <motion.div 
+const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon: Icon }) => (
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors ${ACTION_STYLES[variant]} ${className}`}
+  >
+    {Icon && <Icon size={14} />}
+    {children}
+  </motion.button>
+);
+
+interface StatCardProps {
+  title: React.ReactNode;
+  value: React.ReactNode;
+  icon: React.ElementType;
+  color: string;
+  trend?: React.ReactNode;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, trend }) => (
+  <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group"
@@ -66,8 +106,8 @@ export default function LawyerDashboard() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
-  const [leads, setLeads] = useState<any[]>([]);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [activeTab, setActiveTab] = useState<'applications' | 'consultations'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,11 +129,11 @@ export default function LawyerDashboard() {
     const fetchLeads = async () => {
       try {
         setLoading(true);
-        const data = await apiRequest<{ applications: any[]; total: number }>(
+        const data = await apiRequest<{ applications: BackendApplication[]; total: number }>(
           `/applications?page=${page}&pageSize=${pageSize}&status=${filterStatus === "All" ? "all" : filterStatus.toLowerCase()}&sortBy=${sortBy}`
         );
         // Map backend applications to lead-like objects for UI
-        const mapped = data.applications.map((app: any) => ({
+        const mapped: Lead[] = (data.applications || []).map((app: BackendApplication) => ({
           id: app.id,
           name: app.metadata?.applicantName || app.userName || "Applicant",
           email: app.metadata?.email || app.userEmail || "",
@@ -143,6 +183,34 @@ export default function LawyerDashboard() {
     }
   };
 
+  // Filter and sort leads (moved here before handlers)
+  let filteredLeads = [...leads];
+  
+  if (filterStatus !== 'All') {
+    filteredLeads = filteredLeads.filter(l => l.status === filterStatus);
+  }
+  
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filteredLeads = filteredLeads.filter(l => 
+      l.name?.toLowerCase().includes(q) ||
+      l.email?.toLowerCase().includes(q) ||
+      l.visa?.toLowerCase().includes(q) ||
+      l.country?.toLowerCase().includes(q)
+    );
+  }
+  
+  // Sort
+  if (sortBy === 'date_desc') {
+    filteredLeads.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
+  } else if (sortBy === 'date_asc') {
+    filteredLeads.sort((a, b) => new Date(a.createdAt || a.date).getTime() - new Date(b.createdAt || b.date).getTime());
+  } else if (sortBy === 'fee_desc') {
+    filteredLeads.sort((a, b) => (b.fee || 0) - (a.fee || 0));
+  } else if (sortBy === 'fee_asc') {
+    filteredLeads.sort((a, b) => (a.fee || 0) - (b.fee || 0));
+  }
+
   const handleExportCSV = () => {
     const headers = ['Name','Email','Country','Visa','Status','Fee','Date','CreatedAt'];
     const rows = filteredLeads.map(l => [l.name, l.email, l.country, l.visa, l.status, l.fee, l.date, l.createdAt]);
@@ -178,34 +246,6 @@ export default function LawyerDashboard() {
 
   if (!user || (user.role !== "lawyer" && user.role !== "admin")) return null;
 
-  // Filter and sort leads
-  let filteredLeads = [...leads];
-  
-  if (filterStatus !== 'All') {
-    filteredLeads = filteredLeads.filter(l => l.status === filterStatus);
-  }
-  
-  if (searchQuery.trim()) {
-    const q = searchQuery.toLowerCase();
-    filteredLeads = filteredLeads.filter(l => 
-      l.name?.toLowerCase().includes(q) ||
-      l.email?.toLowerCase().includes(q) ||
-      l.visa?.toLowerCase().includes(q) ||
-      l.country?.toLowerCase().includes(q)
-    );
-  }
-  
-  // Sort
-  if (sortBy === 'date_desc') {
-    filteredLeads.sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
-  } else if (sortBy === 'date_asc') {
-    filteredLeads.sort((a, b) => new Date(a.createdAt || a.date).getTime() - new Date(b.createdAt || b.date).getTime());
-  } else if (sortBy === 'fee_desc') {
-    filteredLeads.sort((a, b) => (b.fee || 0) - (a.fee || 0));
-  } else if (sortBy === 'fee_asc') {
-    filteredLeads.sort((a, b) => (a.fee || 0) - (b.fee || 0));
-  }
-  
   // Pagination
   const totalPagesCalc = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
   const pageData = filteredLeads.slice((page - 1) * pageSize, page * pageSize);

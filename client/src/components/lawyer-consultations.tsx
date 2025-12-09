@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
+import { error as logError } from "@/lib/logger";
 
 interface Consultation {
   id: string;
@@ -69,8 +70,9 @@ export default function LawyerConsultations() {
             // User fetch failed, will show ID instead
           }
         }
-      } catch (error: any) {
-        console.error("Failed to load consultations:", error);
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logError("Failed to load consultations:", msg);
         toast({
           title: t.common.error || "Error",
           description: t.consultation.submitError || "Failed to load consultations",
@@ -109,10 +111,11 @@ export default function LawyerConsultations() {
         title: t.common.success || "Success",
         description: t.consultation.requestSubmitted || "Consultation accepted",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: t.common.error || "Error",
-        description: error.message || t.consultation.submitError || "Failed to accept consultation",
+        description: msg || t.consultation.submitError || "Failed to accept consultation",
         variant: "destructive",
       });
     }
@@ -133,10 +136,11 @@ export default function LawyerConsultations() {
         title: t.common.success || "Success",
         description: t.consultation.cancelled || "Consultation cancelled",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: t.common.error || "Error",
-        description: error.message || t.consultation.cancelError || "Failed to reject consultation",
+        description: msg || t.consultation.cancelError || "Failed to reject consultation",
         variant: "destructive",
       });
     }
@@ -162,10 +166,11 @@ export default function LawyerConsultations() {
         title: t.common.success || "Success",
         description: t.consultation.requestSubmitted || "Consultation marked as completed",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       toast({
         title: t.common.error || "Error",
-        description: error.message || "Failed to complete consultation",
+        description: msg || "Failed to complete consultation",
         variant: "destructive",
       });
     }
@@ -181,7 +186,7 @@ export default function LawyerConsultations() {
       no_show: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
     };
 
-    const icons: Record<string, any> = {
+    const icons: Record<string, React.ElementType> = {
       scheduled: AlertCircle,
       completed: CheckCircle,
       cancelled: XCircle,

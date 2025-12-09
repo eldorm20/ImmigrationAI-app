@@ -39,7 +39,7 @@ export default function SettingsPage() {
   });
 
   const [preferences, setPreferences] = useState({
-    language: language || 'en',
+    language: lang || 'en',
     theme: 'light',
     fontSize: 'normal',
   });
@@ -189,8 +189,8 @@ export default function SettingsPage() {
   const handleSavePreferences = async () => {
     setLoading(true);
     try {
-      if (preferences.language !== language) {
-        setLanguage(preferences.language);
+      if (preferences.language !== lang) {
+        setLang(preferences.language);
       }
 
       const res = await fetch('/api/users/preferences', {

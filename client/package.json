@@ -9,4 +9,8 @@
     "preview": "vite preview --config ../vite.config.ts",
     "test": "echo \"No tests defined\""
   }
+  ,
+  "dependencies": {
+    "@stripe/stripe-js": "^1.80.0"
+  }
 }

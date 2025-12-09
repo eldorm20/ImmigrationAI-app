@@ -12,6 +12,7 @@ import {
 } from "../lib/subscriptionTiers";
 import { createSubscription, getSubscriptionStatus } from "../lib/subscription";
 import { users } from "@shared/schema";
+import { logger } from "../lib/logger";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -61,7 +62,7 @@ router.get(
     const hasAccess = await checkFeatureAccess(userId, feature as any);
     const limit = await getFeatureLimit(userId, feature as any);
 
-    res.json({
+      logger.error({ error }, "Subscription upgrade error");
       feature,
       hasAccess,
       limit,
@@ -119,7 +120,7 @@ router.post(
     } catch (error) {
       console.error("Subscription upgrade error:", error);
       res.status(400).json({
-        message: "Failed to create subscription",
+      logger.error({ error }, "Error fetching billing history");
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
@@ -157,7 +158,7 @@ router.get(
       monthlyPrice: tierFeatures.monthlyPrice,
       features: tierFeatures.features,
       subscription: subscriptionStatus,
-    });
+      logger.error({ error }, "Error cancelling subscription");
   })
 );
 
