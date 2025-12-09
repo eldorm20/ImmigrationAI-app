@@ -118,7 +118,7 @@ router.post(
 router.post(
   "/documents/generate",
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     // Check subscription tier and enforce AI document generation limit
     const tier = await getUserSubscriptionTier(userId);

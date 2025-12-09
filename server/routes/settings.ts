@@ -11,7 +11,7 @@ const router = express.Router();
 // Get user settings
 router.get("/settings", authenticate, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     
     const user = await db.db
       .select({
@@ -43,7 +43,7 @@ router.get("/settings", authenticate, async (req, res) => {
 router.put("/settings", authenticate, async (req, res) => {
   try {
     const { firstName, lastName, phone, avatar } = req.body;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     // Build update object dynamically
     const updates: any = {};
@@ -83,7 +83,7 @@ router.put("/settings", authenticate, async (req, res) => {
 router.post("/change-password", authenticate, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -137,7 +137,7 @@ router.post("/change-password", authenticate, async (req, res) => {
 router.put("/privacy-settings", authenticate, async (req, res) => {
   try {
     const { privacySettings } = req.body;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     if (!privacySettings) {
       return res.status(400).json({ error: "Privacy settings required" });
@@ -184,7 +184,7 @@ router.put("/privacy-settings", authenticate, async (req, res) => {
 router.put("/notification-settings", authenticate, async (req, res) => {
   try {
     const { notificationSettings } = req.body;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     if (!notificationSettings) {
       return res.status(400).json({ error: "Notification settings required" });
@@ -231,7 +231,7 @@ router.put("/notification-settings", authenticate, async (req, res) => {
 router.put("/preferences", authenticate, async (req, res) => {
   try {
     const { preferences } = req.body;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     if (!preferences) {
       return res.status(400).json({ error: "Preferences required" });

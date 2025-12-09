@@ -12,7 +12,7 @@ router.get(
   "/dashboard",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const stats = await getDashboardStats(userId);
 
     if (!stats) {
@@ -28,7 +28,7 @@ router.get(
   "/user",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const analytics = await getUserAnalytics(userId);
 
     if (!analytics) {
@@ -52,7 +52,7 @@ router.post(
       .parse(req.body);
 
     // TODO: Implement event tracking storage
-    logger.info({ userId: req.user!.id, eventType }, "Event tracked");
+    logger.info({ userId: req.user!.userId, eventType }, "Event tracked");
 
     res.json({ message: "Event tracked successfully" });
   })

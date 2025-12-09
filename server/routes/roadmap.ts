@@ -14,7 +14,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const { applicationId } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const userRole = req.user!.role;
 
     // Verify the application exists and user has access
@@ -47,7 +47,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const { applicationId } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const userRole = req.user!.role;
 
     // Verify the application exists and user has access
