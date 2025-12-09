@@ -308,7 +308,7 @@ router.get(
     const hasAccess = await checkFeatureAccess(userId, feature as any);
     const limit = await getFeatureLimit(userId, feature as any);
 
-      logger.error({ error }, "Subscription upgrade error");
+    res.json({
       feature,
       hasAccess,
       limit,
