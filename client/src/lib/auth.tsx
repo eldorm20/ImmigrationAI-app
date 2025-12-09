@@ -115,6 +115,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       setLocation("/dashboard");
     }
+    } catch (err) {
+      // Propagate error so callers can handle it
+      throw err;
+    }
   };
 
   const register = async (
@@ -147,6 +151,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLocation("/lawyer");
     } else {
       setLocation("/dashboard");
+    }
+    } catch (err) {
+      // Propagate registration errors to caller
+      throw err;
     }
   };
 
