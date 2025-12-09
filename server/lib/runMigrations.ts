@@ -80,21 +80,28 @@ export async function runMigrationsIfNeeded(): Promise<void> {
           try {
             const sql = readFileSync(filePath, 'utf-8');
             
-            // Skip empty files and comments
+            // Split by statement breakpoint marker (Drizzle format)
             const statements = sql
-              .split('-->') // Remove Drizzle comments
-              .map(s => s.trim())
-              .filter(s => s.length > 0 && !s.startsWith('--'));
+              .split('-->') 
+              .map(s => s.replace(/^[^\w"]*/, '').trim()) // Remove leading non-word chars and comments
+              .filter(s => s.length > 0 && !s.startsWith('statement-breakpoint'));
             
             for (const statement of statements) {
-              if (statement.trim().length > 0) {
+              const cleanedStatement = statement
+                .replace(/--> statement-breakpoint\s*$/g, '') // Remove trailing marker
+                .trim();
+              
+              if (cleanedStatement.length > 0 && !cleanedStatement.startsWith('--')) {
                 try {
-                  await pool.query(statement);
+                  await pool.query(cleanedStatement);
                   logger.debug(`✓ Executed statement from ${file}`);
                 } catch (stmtErr: any) {
                   // Some statements might fail if objects already exist, which is ok
-                  if (stmtErr.message?.includes('already exists') || stmtErr.message?.includes('exists')) {
-                    logger.debug(`⚠ Skipped existing object in ${file}: ${stmtErr.message}`);
+                  const errMsg = stmtErr.message || '';
+                  if (errMsg.includes('already exists') || 
+                      errMsg.includes('already defined') ||
+                      errMsg.includes('duplicate key')) {
+                    logger.debug(`⚠ Skipped existing object in ${file}: ${errMsg}`);
                   } else {
                     logger.warn({ stmtErr }, `Error executing statement from ${file}`);
                   }
