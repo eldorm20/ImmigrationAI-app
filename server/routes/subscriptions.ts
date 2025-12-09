@@ -404,7 +404,7 @@ router.get(
       monthlyPrice: tierFeatures.monthlyPrice,
       features: tierFeatures.features,
       subscription: subscriptionStatus,
-      logger.error({ error }, "Error cancelling subscription");
+    });
   })
 );
 
