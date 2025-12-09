@@ -427,7 +427,7 @@ const plans = [
 ];
 
 export default function SubscriptionPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -461,6 +461,12 @@ export default function SubscriptionPage() {
 
     loadSubscription();
   }, [user, setLocation]);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) return null;
 
   const handleUpgrade = async (planId: string) => {
     try {

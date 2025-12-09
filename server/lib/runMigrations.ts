@@ -142,6 +142,29 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       logger.warn({ checkErr }, "Could not verify avatar column existence");
     }
     
+    // Verify documents.s3_key column exists and create if missing
+    try {
+      const s3KeyCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'documents' AND column_name = 's3_key'
+        )
+      `);
+
+      if (s3KeyCheck.rows[0]?.exists) {
+        logger.info("✓ s3_key column verified in documents table");
+      } else {
+        logger.warn("⚠ s3_key column not found in documents table - attempting manual creation");
+        try {
+          await pool.query("ALTER TABLE documents ADD COLUMN IF NOT EXISTS s3_key varchar(500)");
+          logger.info("✓ s3_key column manually added to documents table");
+        } catch (manualErr: any) {
+          logger.warn({ manualErr }, "Could not add s3_key column to documents table");
+        }
+      }
+    } catch (checkErr) {
+      logger.warn({ checkErr }, "Could not verify s3_key column existence in documents table");
+    }
   } catch (err) {
     logger.error(
       { err, stack: (err as any)?.stack },
