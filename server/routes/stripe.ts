@@ -135,3 +135,22 @@ router.get(
 );
 
 export default router;
+
+// Admin: validate Stripe credentials (non-destructive)
+router.get(
+  "/validate",
+  asyncHandler(async (req, res) => {
+    if (!stripe) {
+      return res.json({ ok: false, reason: "Stripe not configured (STRIPE_SECRET_KEY missing)" });
+    }
+
+    try {
+      // Attempt a simple non-destructive call: list prices with limit 1
+      const prices = await stripe.prices.list({ limit: 1 });
+      return res.json({ ok: true, examplePrice: prices.data[0] ? { id: prices.data[0].id, active: prices.data[0].active } : null });
+    } catch (err: any) {
+      logger.error({ err }, "Stripe validation failed");
+      return res.json({ ok: false, reason: err?.message || String(err) });
+    }
+  })
+);

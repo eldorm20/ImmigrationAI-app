@@ -25,6 +25,26 @@ const router = Router();
 router.use(authenticate);
 router.use(apiLimiter);
 
+// Status endpoint to report AI provider availability
+router.get(
+  "/status",
+  asyncHandler(async (req, res) => {
+    const hasLocalAI = Boolean(process.env.LOCAL_AI_URL);
+    const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+    const hasHF = Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL);
+    const hfModel = process.env.HF_MODEL || null;
+    const localUrl = process.env.LOCAL_AI_URL || null;
+
+    res.json({
+      providers: {
+        local: hasLocalAI ? { enabled: true, url: localUrl } : { enabled: false },
+        openai: hasOpenAI ? { enabled: true } : { enabled: false },
+        huggingface: hasHF ? { enabled: true, model: hfModel } : { enabled: false },
+      },
+    });
+  })
+);
+
 // Get eligibility questions
 router.get(
   "/eligibility/questions",
