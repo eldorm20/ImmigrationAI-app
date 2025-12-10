@@ -336,7 +336,11 @@ export default function ConsultationPanel() {
                     <span className="font-semibold">Lawyer Consultation</span>
                   </div>
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(consultation.status)}`}>
-                    {consultation.status.charAt(0).toUpperCase() + consultation.status.slice(1).replace("_", " ")}
+                    {(() => {
+                      const st = String(consultation?.status || "");
+                      if (!st) return "";
+                      return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
+                    })()}
                   </span>
                 </div>
                 {consultation.status === "scheduled" && (

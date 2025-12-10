@@ -233,7 +233,11 @@ export default function PaymentHistoryPage() {
                               : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
                           }`}
                         >
-                          {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                          {(() => {
+                            const st = String(payment?.status || "");
+                            if (!st) return "Unknown";
+                            try { return st.charAt(0).toUpperCase() + st.slice(1); } catch { return String(st); }
+                          })()}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-slate-600 dark:text-slate-400 font-mono text-sm">{payment.invoice}</td>

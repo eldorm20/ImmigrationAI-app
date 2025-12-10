@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
@@ -104,6 +105,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, tr
 
 export default function LawyerDashboard() {
   const { user, logout, isLoading } = useAuth();
+  const [_, setLocation] = useLocation();
   const { t } = useI18n();
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -118,12 +120,28 @@ export default function LawyerDashboard() {
   const [showReport, setShowReport] = useState(false);
   const pageSize = 10;
 
-  // Auth check - redirect non-lawyer users
-  useEffect(() => {
-    if (user && user.role !== 'lawyer') {
-      window.location.href = '/dashboard';
-    }
-  }, [user]);
+  // Show loading while auth resolves
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect unauthenticated or unauthorized users
+  if (!user) {
+    setLocation("/auth");
+    return null;
+  }
+
+  if (user.role !== 'lawyer' && user.role !== 'admin') {
+    setLocation('/dashboard');
+    return null;
+  }
 
   // Mock Chart Data
   const revenueData = [

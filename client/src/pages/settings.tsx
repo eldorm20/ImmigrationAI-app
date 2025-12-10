@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { Settings, LogOut, Bell, Lock, User, Globe, Moon, Eye, Upload, Save, X, Loader, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
 import { error as logError } from "@/lib/logger";
 

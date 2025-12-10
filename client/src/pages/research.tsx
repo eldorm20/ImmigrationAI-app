@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useAuth, apiRequest } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft } from "lucide-react";
@@ -65,11 +66,6 @@ export default function Research() {
   });
 
   useEffect(() => {
-    if (!user) {
-      setLocation("/auth");
-      return;
-    }
-
     const load = async () => {
       try {
         setLoading(true);
@@ -87,9 +83,10 @@ export default function Research() {
     };
 
     load();
-  }, [user, searchQuery, selectedCategory, lang, setLocation]);
+  }, [searchQuery, selectedCategory, lang]);
 
-  if (!user) return null;
+  // The research listing is public; show list even if user is not authenticated.
+  // Creation of new articles requires authentication; UI will show/hide create form accordingly.
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,22 +324,24 @@ export default function Research() {
               {error}
             </div>
           )}
-          {!loading && !error && filteredResources.map((resource, index) => (
-            <AnimatedCard key={resource.id} delay={index * 0.1} className="hover:shadow-xl transition-all cursor-pointer group">
+          {!loading && !error && filteredResources.filter(Boolean).map((resource, index) => (
+            // Defensive rendering: some items from the API may be null/partial in edge cases
+            // Provide safe defaults so missing fields don't crash the UI.
+            <AnimatedCard key={resource?.id || `r-${index}`} delay={index * 0.1} className="hover:shadow-xl transition-all cursor-pointer group">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-                    {resource.type === "guide" || resource.type === "Guide" ? <Book className="text-brand-600 dark:text-brand-400" size={24} /> :
-                     resource.type === "case_study" || resource.type === "Case Study" ? <FileText className="text-brand-600 dark:text-brand-400" size={24} /> :
+                    {resource?.type === "guide" || resource?.type === "Guide" ? <Book className="text-brand-600 dark:text-brand-400" size={24} /> :
+                     resource?.type === "case_study" || resource?.type === "Case Study" ? <FileText className="text-brand-600 dark:text-brand-400" size={24} /> :
                      <Globe className="text-brand-600 dark:text-brand-400" size={24} />}
                   </div>
                   <div>
                     <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase">
-                      {String(resource.type).replace("_", " ")}
+                      {String(resource?.type || "").replace("_", " ")}
                     </span>
                     <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1">
                       <Calendar size={12} />
-                      {new Date(resource.publishedAt || resource.createdAt).toLocaleDateString()}
+                      {new Date(resource?.publishedAt || resource?.createdAt || Date.now()).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -350,16 +349,16 @@ export default function Research() {
               </div>
 
               <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-                {resource.title}
+                {resource?.title || "Untitled"}
               </h3>
               
               <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                {resource.summary}
+                {resource?.summary || ""}
               </p>
 
               <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
-                  {(resource.tags || []).map((tag: string) => (
+                  {((resource && Array.isArray(resource.tags)) ? resource.tags : []).map((tag: string) => (
                     <span key={tag} className="px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                       {tag}
                     </span>
@@ -368,7 +367,7 @@ export default function Research() {
                 <LiveButton variant="ghost" size="sm" icon={Download} onClick={() => {
                   toast({ 
                     title: t.research.download, 
-                    description: `Downloading ${resource.title}...`,
+                    description: `Downloading ${resource?.title || "resource"}...`,
                     className: "bg-green-50 text-green-900 border-green-200"
                   });
                 }}>
