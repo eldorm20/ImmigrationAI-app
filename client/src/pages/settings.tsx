@@ -577,6 +577,10 @@ export default function SettingsPage() {
     fontSize: 'normal',
   });
 
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const [stripeStatus, setStripeStatus] = useState<any>(null);
+  const [checkingServices, setCheckingServices] = useState(false);
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -587,7 +591,32 @@ export default function SettingsPage() {
     if (!isLoading && !user) {
       setLocation("/auth");
     }
+    // initial service check for authenticated users
+    if (!isLoading && user) {
+      checkServices();
+    }
   }, [isLoading, user, setLocation]);
+
+  const checkServices = async () => {
+    setCheckingServices(true);
+    try {
+      try {
+        const a = await apiRequest<any>('/ai/status', { skipErrorToast: true });
+        setAiStatus(a.providers);
+      } catch (err) {
+        setAiStatus({ error: String(err) });
+      }
+
+      try {
+        const s = await apiRequest<any>('/stripe/validate', { skipErrorToast: true });
+        setStripeStatus(s);
+      } catch (err) {
+        setStripeStatus({ ok: false, reason: String(err) });
+      }
+    } finally {
+      setCheckingServices(false);
+    }
+  };
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -798,6 +827,31 @@ export default function SettingsPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Services Status Panel */}
+        <div className="lg:col-span-4">
+          <div className="mb-6 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold">Service Status</div>
+              <div className="text-xs text-slate-500 mt-1">AI & payment provider connectivity</div>
+              <div className="flex items-center gap-4 mt-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${aiStatus ? (aiStatus.local?.enabled || aiStatus.openai?.enabled || aiStatus.huggingface?.enabled ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                  <div className="text-sm">AI: {aiStatus ? (aiStatus.local?.enabled ? 'Local' : aiStatus.huggingface?.enabled ? `HF: ${aiStatus.huggingface.model}` : aiStatus.openai?.enabled ? 'OpenAI' : 'None configured') : 'Unknown'}</div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${stripeStatus ? (stripeStatus.ok ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                  <div className="text-sm">Stripe: {stripeStatus ? (stripeStatus.ok ? 'Connected' : `Error: ${stripeStatus.reason || 'invalid'}`) : 'Unknown'}</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <button onClick={checkServices} disabled={checkingServices} className="px-3 py-2 bg-brand-600 text-white rounded-md">
+                {checkingServices ? 'Checking...' : 'Check Services'}
+              </button>
+            </div>
+          </div>
+        </div>
           {/* Sidebar */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}

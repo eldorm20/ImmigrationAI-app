@@ -211,6 +211,8 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const [stripeStatus, setStripeStatus] = useState<any>(null);
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -224,6 +226,19 @@ export default function AdminDashboard() {
     try {
       const data = await apiRequest<any>("/admin/overview", { skipErrorToast: true });
       setStats(data);
+      // also fetch AI and Stripe status
+      try {
+        const a = await apiRequest<any>("/ai/status", { skipErrorToast: true });
+        setAiStatus(a.providers);
+      } catch (e) {
+        setAiStatus({ error: String(e) });
+      }
+      try {
+        const s = await apiRequest<any>("/stripe/validate", { skipErrorToast: true });
+        setStripeStatus(s);
+      } catch (e) {
+        setStripeStatus({ ok: false, reason: String(e) });
+      }
     } catch (error) {
       console.error("Failed to fetch admin stats", error);
     } finally {
@@ -319,6 +334,27 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-600 rounded-full" />
               <span className="text-sm">Storage Available</span>
+            </div>
+            {/* AI / Stripe statuses */}
+            <div className="mt-4">
+              <h4 className="text-sm font-semibold">Service Status</h4>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${aiStatus ? (aiStatus.local?.enabled || aiStatus.openai?.enabled || aiStatus.huggingface?.enabled ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                    <span className="text-sm">AI Providers</span>
+                  </div>
+                  <div className="text-xs text-slate-500">{aiStatus ? (aiStatus.local?.enabled ? 'Local' : aiStatus.huggingface?.enabled ? `HF:${aiStatus.huggingface.model}` : aiStatus.openai?.enabled ? 'OpenAI' : 'None') : 'Unknown'}</div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${stripeStatus ? (stripeStatus.ok ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                    <span className="text-sm">Stripe</span>
+                  </div>
+                  <div className="text-xs text-slate-500">{stripeStatus ? (stripeStatus.ok ? 'Connected' : `Error: ${stripeStatus.reason || 'unknown'}`) : 'Unknown'}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
