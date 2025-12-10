@@ -1020,7 +1020,7 @@ export default function LawyerDashboard() {
           <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-blue-400 rounded-xl text-white flex items-center justify-center shadow-lg shadow-brand-500/30">
              L
           </div>
-          {t.lawyer.title}
+          {t.lawyerDashboard?.title || t.lawyer?.title || "Lawyer Dashboard"}
         </div>
         <div className="flex items-center gap-4">
            <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>Export CSV</ActionButton>
@@ -1072,10 +1072,10 @@ export default function LawyerDashboard() {
           <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title={t.lawyer.active} value={leads.length} icon={Users} color="blue" trend="+12%" />
-          <StatCard title={t.lawyer.rev} value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
-          <StatCard title={t.lawyer.pending} value={leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
-          <StatCard title={t.lawyer.approved} value={leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
+          <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={leads.length} icon={Users} color="blue" trend="+12%" />
+          <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
+          <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
+          <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
         </div>
 
         {/* Charts Section */}
@@ -1122,14 +1122,14 @@ export default function LawyerDashboard() {
           <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-center gap-4 flex-wrap">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyer.applications}</h3>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}</h3>
                 <div className="flex gap-2">
                   {['All', 'New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
                     const statusLabels: Record<string, string> = {
                       'All': 'All',
-                      'New': t.lawyer.pending,
+                      'New': t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending',
                       'Reviewing': 'Reviewing',
-                      'Approved': t.lawyer.approved,
+                      'Approved': t.lawyerDashboard?.approved || t.lawyer?.approved || 'Approved',
                       'Rejected': 'Rejected'
                     };
                     return (
@@ -1150,7 +1150,7 @@ export default function LawyerDashboard() {
                   <input 
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                    placeholder={t.lawyer.searchPlaceholder} 
+                    placeholder={t.lawyerDashboard?.searchPlaceholder || t.lawyer?.searchPlaceholder || ''} 
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-900 dark:text-white" 
                   />
                 </div>
@@ -1278,7 +1278,7 @@ export default function LawyerDashboard() {
                           icon={Clock} 
                           onClick={() => handleStatusChange(lead.id, 'Reviewing')}
                         >
-                          {t.lawyer.pending}
+                          {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
                         </ActionButton>
                       )}
                       </div>
@@ -1331,7 +1331,7 @@ export default function LawyerDashboard() {
              <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
              <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-lg relative z-10 shadow-2xl border border-white/10">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t.lawyer.active} Details</h3>
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t.lawyerDashboard?.active || t.lawyer?.active || 'Active'} Details</h3>
                   <button onClick={() => setSelectedLead(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20}/></button>
                 </div>
                 
@@ -1366,7 +1366,7 @@ export default function LawyerDashboard() {
                         <p className="font-bold text-lg text-green-600 dark:text-green-400">${selectedLead.fee || 0}</p>
                       </div>
                       <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                        <p className="text-xs font-bold text-slate-400 uppercase">{t.lawyer.status}</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</p>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           selectedLead.status === 'Approved' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 
                           selectedLead.status === 'New' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :

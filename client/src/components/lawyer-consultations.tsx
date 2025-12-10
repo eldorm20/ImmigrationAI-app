@@ -697,7 +697,7 @@ export default function LawyerConsultations() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
         <div className="text-sm text-slate-600 dark:text-slate-400">
-          {filteredConsultations.length} {t.lawyer.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
+          {filteredConsultations.length} {t.lawyerDashboard?.consultations || t.lawyer?.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
         </div>
       </div>
 
@@ -715,7 +715,7 @@ export default function LawyerConsultations() {
                 : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
             >
-            {t.lawyer[status] || (() => {
+            {t.lawyerDashboard?.[status] || t.lawyer?.[status] || (() => {
               const st = String(status || "");
               if (!st) return status;
               return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
