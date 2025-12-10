@@ -217,6 +217,7 @@ interface ApplicationSummary {
 
 const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void; toast: ToastHandler }) => {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [application, setApplication] = useState<ApplicationSummary | null>(null);
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
   const [loading, setLoading] = useState(true);
