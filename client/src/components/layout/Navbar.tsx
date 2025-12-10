@@ -43,7 +43,7 @@ export function Navbar() {
             <span className={`font-heading font-bold text-xl tracking-tight ${
                !isScrolled && location === "/" ? "text-white" : "text-foreground"
             }`}>
-              ImmigrationAI
+              {t.brand?.name || "ImmigrationAI"}
             </span>
         </Link>
 
@@ -51,23 +51,23 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
+                <Button
                 variant="ghost"
                 size="sm"
                 className={`gap-2 ${!isScrolled && location === "/" ? "text-white hover:text-white/80 hover:bg-white/10" : ""}`}
               >
                 <Globe className="w-4 h-4" />
-                <span className="uppercase">{lang}</span>
+                <span className="uppercase">{t.langNames?.[lang] || lang}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setLang("en")}>English</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("uz")}>O'zbekcha</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("ru")}>Русский</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("de")}>Deutsch</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("fr")}>Français</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLang("es")}>Español</DropdownMenuItem>
-            </DropdownMenuContent>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLang("en")}>{t.langNames?.en || "English"}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("uz")}>{t.langNames?.uz || "O'zbekcha"}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("ru")}>{t.langNames?.ru || "Русский"}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("de")}>{t.langNames?.de || "Deutsch"}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("fr")}>{t.langNames?.fr || "Français"}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang("es")}>{t.langNames?.es || "Español"}</DropdownMenuItem>
+              </DropdownMenuContent>
           </DropdownMenu>
 
           <Link href="/help">
@@ -76,7 +76,7 @@ export function Navbar() {
               size="sm"
               className={`${!isScrolled && location === "/" ? "text-white hover:text-white/80 hover:bg-white/10" : ""}`}
             >
-              Help
+              {t.nav?.help || "Help"}
             </Button>
           </Link>
 
@@ -90,27 +90,27 @@ export function Navbar() {
                   <span className="max-w-[100px] truncate">{user.name}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => window.location.href = user.role === 'lawyer' || user.role === 'admin' ? '/lawyer' : '/dashboard'}>
-                  Dashboard
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout} className="text-destructive">
-                  {t.dash.logout}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => window.location.href = user.role === 'lawyer' || user.role === 'admin' ? '/lawyer' : '/dashboard'}>
+                    {t.dash?.welcome || 'Dashboard'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    {t.dash.logout}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/auth">
-                <Button variant="ghost" className={!isScrolled && location === "/" ? "text-white hover:bg-white/10 hover:text-white" : ""}>
-                  {t.nav.login}
-                </Button>
-              </Link>
-              <Link href="/auth">
-                <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
-                  {t.nav.start}
-                </Button>
-              </Link>
+                <Link href="/auth">
+                  <Button variant="ghost" className={!isScrolled && location === "/" ? "text-white hover:bg-white/10 hover:text-white" : ""}>
+                    {t.nav.login}
+                  </Button>
+                </Link>
+                <Link href="/auth">
+                  <Button className="shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
+                    {t.nav.start}
+                  </Button>
+                </Link>
             </div>
           )}
         </div>
@@ -124,17 +124,17 @@ export function Navbar() {
           </SheetTrigger>
           <SheetContent>
             <div className="flex flex-col gap-4 mt-8">
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Button variant={lang === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLang('en')}>EN</Button>
-                <Button variant={lang === 'uz' ? 'default' : 'outline'} size="sm" onClick={() => setLang('uz')}>UZ</Button>
-                <Button variant={lang === 'ru' ? 'default' : 'outline'} size="sm" onClick={() => setLang('ru')}>RU</Button>
-                <Button variant={lang === 'de' ? 'default' : 'outline'} size="sm" onClick={() => setLang('de')}>DE</Button>
-                <Button variant={lang === 'fr' ? 'default' : 'outline'} size="sm" onClick={() => setLang('fr')}>FR</Button>
-                <Button variant={lang === 'es' ? 'default' : 'outline'} size="sm" onClick={() => setLang('es')}>ES</Button>
-              </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Button variant={lang === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLang('en')}>{t.langNames?.en || 'EN'}</Button>
+                  <Button variant={lang === 'uz' ? 'default' : 'outline'} size="sm" onClick={() => setLang('uz')}>{t.langNames?.uz || 'UZ'}</Button>
+                  <Button variant={lang === 'ru' ? 'default' : 'outline'} size="sm" onClick={() => setLang('ru')}>{t.langNames?.ru || 'RU'}</Button>
+                  <Button variant={lang === 'de' ? 'default' : 'outline'} size="sm" onClick={() => setLang('de')}>{t.langNames?.de || 'DE'}</Button>
+                  <Button variant={lang === 'fr' ? 'default' : 'outline'} size="sm" onClick={() => setLang('fr')}>{t.langNames?.fr || 'FR'}</Button>
+                  <Button variant={lang === 'es' ? 'default' : 'outline'} size="sm" onClick={() => setLang('es')}>{t.langNames?.es || 'ES'}</Button>
+                </div>
 
               <Link href="/help">
-                <Button variant="outline" className="w-full justify-start">Help & Support</Button>
+                <Button variant="outline" className="w-full justify-start">{t.nav?.help || 'Help & Support'}</Button>
               </Link>
               
               {user ? (
