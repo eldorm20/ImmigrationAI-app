@@ -1572,9 +1572,8 @@ ${new Date().toLocaleDateString()}`;
         let i = 0;
 
         const interval = setInterval(() => {
-          setGeneratedContent((prev) => prev + targetText.charAt(i));
-          i++;
-          if (i >= targetText.length) {
+          const safeText = String(targetText || "");
+          if (i >= safeText.length) {
             clearInterval(interval);
             setIsGenerating(false);
             toast({
@@ -1582,7 +1581,11 @@ ${new Date().toLocaleDateString()}`;
               description: `${docType} has been generated successfully`,
               className: "bg-green-50 text-green-900 border-green-200",
             });
+            return;
           }
+
+          setGeneratedContent((prev) => prev + safeText.charAt(i));
+          i++;
         }, 10);
       } catch (err) {
         setIsGenerating(false);

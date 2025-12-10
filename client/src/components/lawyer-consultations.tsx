@@ -670,7 +670,11 @@ export default function LawyerConsultations() {
     return (
       <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${styles[status] || styles.scheduled}`}>
         <Icon size={14} />
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ")}
+        {(() => {
+          const st = String(status || "");
+          if (!st) return "";
+          return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
+        })()}
       </div>
     );
   };
@@ -699,7 +703,7 @@ export default function LawyerConsultations() {
 
       {/* Status Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {['scheduled', 'completed', 'cancelled', 'all'].map((status) => (
+            {['scheduled', 'completed', 'cancelled', 'all'].map((status) => (
           <motion.button
             key={status}
             whileHover={{ scale: 1.05 }}
@@ -710,8 +714,12 @@ export default function LawyerConsultations() {
                 ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30"
                 : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
             }`}
-          >
-            {t.lawyer[status] || status.charAt(0).toUpperCase() + status.slice(1)}
+            >
+            {t.lawyer[status] || (() => {
+              const st = String(status || "");
+              if (!st) return status;
+              return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
+            })()}
           </motion.button>
         ))}
       </div>
