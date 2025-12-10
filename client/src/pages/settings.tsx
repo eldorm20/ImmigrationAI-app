@@ -596,10 +596,10 @@ export default function SettingsPage() {
   if (!user) return null;
 
   const sections = [
-    { id: 'account', label: 'Account', icon: User },
-    { id: 'privacy', label: 'Privacy & Security', icon: Lock },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'preferences', label: 'Preferences', icon: Globe },
+    { id: 'account', label: t.settings.accountSettings, icon: User },
+    { id: 'privacy', label: t.settings.privacySecurity, icon: Lock },
+    { id: 'notifications', label: t.settings.notificationPreferences, icon: Bell },
+    { id: 'preferences', label: t.settings.preferences, icon: Globe },
   ] as const;
 
   const handleSaveProfile = async () => {
@@ -617,8 +617,8 @@ export default function SettingsPage() {
       });
 
       toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved successfully",
+        title: t.settings.profileUpdated,
+        description: t.settings.profileUpdatedDesc,
         className: "bg-green-50 text-green-900 border-green-200",
       });
       setEditing(false);
@@ -627,7 +627,7 @@ export default function SettingsPage() {
       logError("Profile update error:", msg);
       setError(msg);
       toast({
-        title: "Error",
+        title: t.error.title,
         description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
@@ -639,8 +639,8 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: t.error.title,
+        description: t.settings.passwordMismatch,
         className: "bg-red-50 text-red-900 border-red-200",
       });
       return;
@@ -657,8 +657,8 @@ export default function SettingsPage() {
       });
 
       toast({
-        title: "Success",
-        description: "Your password has been updated",
+        title: t.common.success,
+        description: t.settings.passwordChangedDesc,
         className: "bg-green-50 text-green-900 border-green-200",
       });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -684,15 +684,15 @@ export default function SettingsPage() {
       });
 
       toast({
-        title: "Privacy Settings Updated",
-        description: "Your privacy preferences have been saved",
+        title: t.settings.profileUpdated,
+        description: t.settings.profileUpdatedDesc,
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update settings";
       logError("Privacy settings update error:", msg);
       toast({
-        title: "Error",
+        title: t.error.title,
         description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
@@ -710,15 +710,15 @@ export default function SettingsPage() {
       });
 
       toast({
-        title: "Notification Settings Updated",
-        description: "Your preferences have been saved",
+        title: t.settings.profileUpdated,
+        description: t.settings.profileUpdatedDesc,
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update settings";
       logError("Notification settings update error:", msg);
       toast({
-        title: "Error",
+        title: t.error.title,
         description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
@@ -744,15 +744,15 @@ export default function SettingsPage() {
       });
 
       toast({
-        title: "Preferences Updated",
-        description: "Your preferences have been saved",
+        title: t.settings.profileUpdated,
+        description: t.settings.profileUpdatedDesc,
         className: "bg-green-50 text-green-900 border-green-200",
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to update preferences";
       logError("Preferences update error:", msg);
       toast({
-        title: "Error",
+        title: t.error.title,
         description: msg,
         className: "bg-red-50 text-red-900 border-red-200",
       });
@@ -773,7 +773,7 @@ export default function SettingsPage() {
             <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 text-white">
               <Settings size={20} />
             </div>
-            <span className="text-slate-900 dark:text-white">Settings</span>
+            <span className="text-slate-900 dark:text-white">{t.settings.title}</span>
           </motion.div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -942,7 +942,7 @@ export default function SettingsPage() {
                       icon={loading ? Loader : Lock}
                       disabled={loading}
                     >
-                      {loading ? "Updating..." : "Change Password"}
+                      {loading ? t.settings.saving : t.settings.changePassword}
                     </LiveButton>
                   </div>
                 </AnimatedCard>
@@ -978,7 +978,7 @@ export default function SettingsPage() {
                     icon={loading ? Loader : Save}
                     disabled={loading}
                   >
-                    {loading ? "Saving..." : "Save Privacy Settings"}
+                    {loading ? t.settings.saving : t.settings.saveChanges}
                   </LiveButton>
                 </div>
               </AnimatedCard>
@@ -1013,7 +1013,7 @@ export default function SettingsPage() {
                     icon={loading ? Loader : Save}
                     disabled={loading}
                   >
-                    {loading ? "Saving..." : "Save Notification Settings"}
+                    {loading ? t.settings.saving : t.settings.saveChanges}
                   </LiveButton>
                 </div>
               </AnimatedCard>
@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
                     icon={loading ? Loader : Save}
                     disabled={loading}
                   >
-                    {loading ? "Saving..." : "Save Preferences"}
+                    {loading ? t.settings.saving : t.settings.saveChanges}
                   </LiveButton>
                 </div>
               </AnimatedCard>
