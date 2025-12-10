@@ -61,18 +61,18 @@ export default function AuthPage() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!email) {
-      e.email = "Email is required.";
+      e.email = t.auth.emailRequired;
     } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      e.email = "Please enter a valid email address.";
+      e.email = t.auth.invalidEmail;
     }
     if (!password) {
-      e.password = "Password is required.";
+      e.password = t.auth.passwordRequired;
     } else if (password.length < 8) {
-      e.password = "Password must be at least 8 characters.";
+      e.password = t.auth.passwordTooShort;
     }
     if (mode === "register") {
       if (!firstName.trim()) {
-        e.firstName = "First name is required.";
+        e.firstName = t.auth.emailRequired;
       }
     }
     setErrors(e);
@@ -91,22 +91,22 @@ export default function AuthPage() {
       if (mode === "login") {
         await login(email, password);
         toast({
-          title: "Success",
-          description: "Logged in successfully!",
+          title: t.common.success,
+          description: t.auth.signIn + " " + t.common.success,
         });
       } else {
         await register(email, password, firstName, lastName, role);
         toast({
-          title: "Success",
-          description: "Account created! Please check your email to verify your account.",
+          title: t.common.success,
+          description: t.auth.register + " " + t.common.success,
         });
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      setErrors({ submit: message || `${mode === 'login' ? 'Login' : 'Registration'} failed. Please try again.` });
+      setErrors({ submit: message || `${mode === 'login' ? t.auth.signIn : t.auth.register} ` + t.common.error });
       toast({
-        title: 'Error',
-        description: message || 'An error occurred',
+        title: t.error.title,
+        description: message || t.error.message,
         variant: 'destructive',
       });
     } finally {
@@ -129,7 +129,7 @@ export default function AuthPage() {
             }}
             className={`flex-1 py-2 px-4 rounded-xl font-bold transition ${mode === "login" ? "bg-brand-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           >
-            Login
+            {t.auth.signIn}
           </button>
           <button
             onClick={() => {
@@ -138,20 +138,20 @@ export default function AuthPage() {
             }}
             className={`flex-1 py-2 px-4 rounded-xl font-bold transition ${mode === "register" ? "bg-brand-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           >
-            Register
+            {t.auth.register}
           </button>
         </div>
 
         <h2 className="text-3xl font-extrabold mb-2 text-slate-900 dark:text-white">
-          {mode === "login" ? t.auth.applicantLogin : "Create Account"}
+          {mode === "login" ? t.auth.applicantLogin : t.auth.register}
         </h2>
-        <p className="text-slate-500 mb-8">{mode === "login" ? t.auth.enterDetails : "Sign up to get started"}</p>
+        <p className="text-slate-500 mb-8">{mode === "login" ? t.auth.enterDetails : t.auth.enterDetails}</p>
 
         <form onSubmit={handleSubmit} noValidate>
           {mode === "register" && (
             <>
               <Input
-                label="First Name"
+                label={t.auth.firstName}
                 id="auth-firstname"
                 type="text"
                 required
@@ -161,7 +161,7 @@ export default function AuthPage() {
                 error={errors.firstName}
               />
               <Input
-                label="Last Name"
+                label={t.auth.lastName}
                 id="auth-lastname"
                 type="text"
                 required
@@ -171,14 +171,14 @@ export default function AuthPage() {
                 error={errors.lastName}
               />
               <div className="mb-4">
-                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">Account Type</label>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-1">{t.auth.accountType || 'Account Type'}</label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as "applicant" | "lawyer")}
                   className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none"
                 >
-                  <option value="applicant">Applicant</option>
-                  <option value="lawyer">Lawyer</option>
+                  <option value="applicant">{t.roles.applicant}</option>
+                  <option value="lawyer">{t.roles.lawyer}</option>
                 </select>
               </div>
             </>
@@ -202,7 +202,7 @@ export default function AuthPage() {
             onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
             placeholder="••••••••"
             error={errors.password}
-            hint={mode === "register" ? "Minimum 8 characters" : t.auth.minChars}
+            hint={mode === "register" ? t.auth.minChars : t.auth.minChars}
           />
           {errors.submit && (
             <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
@@ -210,7 +210,7 @@ export default function AuthPage() {
             </div>
           )}
           <Button type="submit" className="w-full py-4 mt-4 h-14 text-lg shadow-brand-500/40" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin" /> : mode === "login" ? t.auth.signIn : "Create Account"}
+            {loading ? <Loader2 className="animate-spin" /> : mode === "login" ? t.auth.signIn : t.auth.register}
           </Button>
         </form>
 
@@ -227,12 +227,12 @@ export default function AuthPage() {
             </p>
           ) : (
             <p>
-              Already have an account?{" "}
+              {t.auth.noAccount}{" "}
               <span
                 className="text-brand-600 dark:text-brand-400 font-bold cursor-pointer hover:underline"
                 onClick={() => setMode("login")}
               >
-                Sign in
+                {t.auth.signIn}
               </span>
             </p>
           )}
