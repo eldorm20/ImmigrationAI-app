@@ -1023,8 +1023,8 @@ export default function LawyerDashboard() {
           {t.lawyerDashboard?.title || t.lawyer?.title || "Lawyer Dashboard"}
         </div>
         <div className="flex items-center gap-4">
-           <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>Export CSV</ActionButton>
-           <ActionButton variant="ghost" icon={Code} onClick={handleExportJSON}>Export JSON</ActionButton>
+           <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>{t.research?.download || 'Download'} CSV</ActionButton>
+           <ActionButton variant="ghost" icon={Code} onClick={handleExportJSON}>{t.research?.download || 'Download'} JSON</ActionButton>
            <div className="hidden md:flex flex-col items-end">
              <span className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</span>
              <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Senior Partner</span>
@@ -1050,7 +1050,7 @@ export default function LawyerDashboard() {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            Applications
+            {t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -1063,7 +1063,7 @@ export default function LawyerDashboard() {
             }`}
           >
             <Bell size={18} />
-            Consultation Requests
+            {t.lawyerDashboard?.consultations || t.lawyer?.consultations || 'Consultations'}
           </motion.button>
         </div>
 
@@ -1159,10 +1159,10 @@ export default function LawyerDashboard() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                 >
-                  <option value="date_desc">Date ↓</option>
-                  <option value="date_asc">Date ↑</option>
-                  <option value="fee_desc">Fee ↓</option>
-                  <option value="fee_asc">Fee ↑</option>
+                  <option value="date_desc">{t.common?.date || 'Date'} ↓</option>
+                  <option value="date_asc">{t.common?.date || 'Date'} ↑</option>
+                  <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↓</option>
+                  <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↑</option>
                 </select>
               </div>
             </div>
@@ -1179,19 +1179,19 @@ export default function LawyerDashboard() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider">
                     <tr>
-                      <th className="px-6 py-4">Applicant</th>
-                      <th className="px-6 py-4">Visa Details</th>
-                      <th className="px-6 py-4">Fee</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Date</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
+                      <th className="px-6 py-4">{t.lawyer?.clientInfo || 'Applicant'}</th>
+                      <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
+                      <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
+                      <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
+                      <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
+                      <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {pageData.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                          {t.research.noResults.replace('resources', 'applications')}
+                          {t.research?.noResults?.replace('resources', 'applications') || 'No applications found'}
                         </td>
                       </tr>
                     ) : (
@@ -1235,7 +1235,7 @@ export default function LawyerDashboard() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ActionButton 
+                        <ActionButton 
                         variant="ghost" 
                         icon={Eye} 
                         onClick={() => {
@@ -1244,19 +1244,19 @@ export default function LawyerDashboard() {
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                       >
-                        View
+                        {t.common?.view || 'View'}
                       </ActionButton>
                       {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
                         <ActionButton 
                           variant="success" 
                           icon={CheckCircle} 
                           onClick={() => {
-                            if (confirm(`Approve application for ${lead.name}?`)) {
+                            if (confirm(`${t.success?.message || 'Approve'} ${lead.name}?`)) {
                               handleStatusChange(lead.id, 'Approved');
                             }
                           }}
                         >
-                          Approve
+                          {t.lawyer?.approveApplication || 'Approve'}
                         </ActionButton>
                       )}
                       {lead.status === 'New' && (
@@ -1264,12 +1264,12 @@ export default function LawyerDashboard() {
                           variant="danger" 
                           icon={XCircle} 
                           onClick={() => {
-                            if (confirm(`Reject application for ${lead.name}?`)) {
+                            if (confirm(`${t.error?.message || 'Reject'} ${lead.name}?`)) {
                               handleStatusChange(lead.id, 'Rejected');
                             }
                           }}
                         >
-                          Reject
+                          {t.lawyer?.rejectApplication || 'Reject'}
                         </ActionButton>
                       )}
                       {lead.status === 'New' && (
@@ -1291,23 +1291,23 @@ export default function LawyerDashboard() {
               </div>
               {totalPages > 1 && (
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    Page {page} of {totalPages}
-                  </div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      {t.common?.page || 'Page'} {page} {t.common?.of || 'of'} {totalPages}
+                    </div>
                   <div className="flex gap-2">
                     <ActionButton 
                       variant="ghost" 
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}
                     >
-                      Previous
+                      {t.common?.previous || 'Previous'}
                     </ActionButton>
                     <ActionButton 
                       variant="ghost" 
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
                     >
-                      Next
+                      {t.common?.next || 'Next'}
                     </ActionButton>
                   </div>
                 </div>
