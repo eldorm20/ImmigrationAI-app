@@ -1615,6 +1615,8 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 const TRANSLATIONS = {
   uz: {
+    brand: { name: "ImmigrationAI" },
+    langNames: { en: "English", uz: "O'zbekcha", ru: "Русский", de: "Deutsch", fr: "Français", es: "Español" },
     common: { success: "Muvaffaq", error: "Xato", connected: "Ulangan", disconnected: "Uzilgan" },
     nav: { login: "Kirish", start: "Boshlash", features: "Xususiyatlar", pricing: "Narxlar", partner: "Hamkor", help: "Yordam" },
     hero: { title: "Visa Rad'i Xavfini 90% Kamaytiring.", sub: "O'zbek mutaxassislari uchun AI visa baholash. 2 daqiqada shaxsiy yo'riqnama.", cta: "Bepul Baholash", trusted: "10,000+ o'zbek foydalanuvchisiga ishonchi" },
@@ -1641,6 +1643,8 @@ const TRANSLATIONS = {
   },
 
   en: {
+    brand: { name: "ImmigrationAI" },
+    langNames: { en: "English", uz: "O'zbek", ru: "Rusian", de: "Deutsch", fr: "Français", es: "Español" },
     common: { success: "Success", error: "Error", connected: "Connected", disconnected: "Disconnected" },
     nav: { login: "Sign In", start: "Get Started", features: "Features", pricing: "Pricing", partner: "Partner", help: "Help" },
     hero: { title: "Reduce Visa Rejection Risk by 90%.", sub: "AI-Powered Assessment & Documents for Uzbek Professionals. Get personalized guidance in 2 minutes.", cta: "Get Free Assessment", trusted: "Trusted by 10,000+ Uzbek users" },
@@ -1667,6 +1671,8 @@ const TRANSLATIONS = {
   },
 
   ru: {
+    brand: { name: "ImmigrationAI" },
+    langNames: { en: "English", uz: "O'zbek", ru: "Русский", de: "Deutsch", fr: "Français", es: "Español" },
     common: { success: "Успешно", error: "Ошибка", connected: "Подключено", disconnected: "Отключено" },
     nav: { login: "Войти", start: "Начать", features: "Возможности", pricing: "Цены", partner: "Партнер", help: "Помощь" },
     hero: { title: "Снизьте риск отказа на 90%.", sub: "AI-оценка и документы для узбеков. Персональная консультация за 2 минуты.", cta: "Получить оценку", trusted: "Доверяют 10,000+ узбеков" },
