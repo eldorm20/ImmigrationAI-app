@@ -1123,8 +1123,9 @@ export default function UserDash() {
         e.preventDefault();
         const tabs = ['roadmap', 'docs', 'upload', 'translate', 'chat', 'messages', 'lawyer', 'research'];
         const currentIndex = tabs.indexOf(activeTab);
-        setActiveTab(tabs[(currentIndex + 1) % tabs.length]);
-        toast({ title: "Tab Switched", description: `Switched to ${tabs[(currentIndex + 1) % tabs.length]}`, className: "bg-blue-50 text-blue-900 border-blue-200" });
+        const nextTabId = tabs[(currentIndex + 1) % tabs.length];
+        setActiveTab(nextTabId);
+        toast({ title: t.dash?.tabSwitched || "Tab Switched", description: t.dash?.[nextTabId] || `Switched to ${nextTabId}`, className: "bg-blue-50 text-blue-900 border-blue-200" });
       }
     };
     window.addEventListener('keydown', handleKeyPress);
@@ -1151,7 +1152,7 @@ export default function UserDash() {
              <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
                <Globe size={20} />
              </div>
-             <span className="text-slate-900 dark:text-white hidden md:inline">IA</span>
+             <span className="text-slate-900 dark:text-white hidden md:inline">{t.brand.name}</span>
           </motion.div>
           <div className="md:hidden">
              <ThemeToggle />
@@ -1215,7 +1216,7 @@ export default function UserDash() {
             onClick={() => setLocation("/notifications")}
             icon={Bell}
           >
-            Notifications
+            {t.settings?.notificationPreferences || "Notifications"}
           </LiveButton>
           <LiveButton 
             variant="ghost" 
@@ -1223,7 +1224,7 @@ export default function UserDash() {
             onClick={() => setLocation("/settings")}
             icon={Settings}
           >
-            Settings
+            {t.settings?.title || "Settings"}
           </LiveButton>
           <LiveButton 
             variant="ghost" 
@@ -1248,7 +1249,7 @@ export default function UserDash() {
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Immigration Status: <span className="text-brand-600 dark:text-brand-400 font-bold">Active</span>
+              {t.dashStatus?.label || 'Immigration Status:'} <span className="text-brand-600 dark:text-brand-400 font-bold">{t.dashStatus?.active || 'Active'}</span>
             </p>
           </motion.div>
           <div className="flex items-center gap-4">
@@ -1352,10 +1353,10 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
   }
 
   const items = roadmapItems.length > 0 ? roadmapItems : [
-    { title: 'Eligibility Assessment', status: 'done', description: 'Passed with 85 points' },
-    { title: 'Document Collection', status: 'current', description: 'Passport, Degree, TB Test' },
-    { title: 'Official Translation', status: 'pending', description: 'Notarized translations required' },
-    { title: 'Visa Application Submission', status: 'pending', description: 'Home Office portal' }
+    { title: t.roadmap?.eligibility || 'Eligibility Assessment', status: 'done', description: t.roadmap?.defaults?.eligibilityDesc || 'Passed with 85 points' },
+    { title: t.roadmap?.collection || 'Document Collection', status: 'current', description: t.roadmap?.defaults?.collectionDesc || 'Passport, Degree, TB Test' },
+    { title: t.roadmap?.translation || 'Official Translation', status: 'pending', description: t.roadmap?.defaults?.translationDesc || 'Notarized translations required' },
+    { title: t.roadmap?.submission || 'Visa Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Home Office portal' }
   ];
 
   return (
@@ -1370,11 +1371,11 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
               {application?.visaType || 'Skilled Worker Visa'} ({application?.country || 'UK'})
               <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">{application?.status || 'In Progress'}</span>
             </h3>
-            <p className="text-slate-500 mt-1">Application Reference: #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
+            <p className="text-slate-500 mt-1">{t.roadmap?.applicationReference || 'Application Reference:'} #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
           </div>
-          <div className="text-right">
+            <div className="text-right">
             <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress}%</div>
-            <div className="text-xs font-bold text-slate-400 uppercase">Completion</div>
+            <div className="text-xs font-bold text-slate-400 uppercase">{t.roadmap?.completionLabel || 'Completion'}</div>
           </div>
         </div>
         
@@ -1387,9 +1388,9 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
           </motion.div>
         </div>
         
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
           <Zap size={16} className="text-yellow-500 fill-yellow-500" /> 
-          Next Step: <span className="font-bold">{items.find(i => i.status === 'current')?.title || 'Complete Application'}</span>
+          {t.roadmap?.nextStepLabel || 'Next Step:'} <span className="font-bold">{items.find(i => i.status === 'current')?.title || (t.roadmap?.defaults?.submissionDesc || 'Complete Application')}</span>
         </p>
       </AnimatedCard>
 
@@ -1425,15 +1426,15 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
                  <p className="text-sm text-slate-500">{step.description || step.desc}</p>
                </div>
                
-               {step.status === 'current' && (
+                 {step.status === 'current' && (
                  <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
                    toast({ 
-                     title: "Next Step", 
-                     description: `Starting ${step.title}...`,
+                     title: t.tools?.nextStep || "Next Step", 
+                     description: `${t.roadmap?.starting || 'Starting'} ${step.title}...`,
                      className: "bg-blue-50 text-blue-900 border-blue-200"
                    });
                  }}>
-                   Next <ArrowRight size={16} />
+                   {t.tools?.next || 'Next'} <ArrowRight size={16} />
                  </LiveButton>
                )}
              </div>

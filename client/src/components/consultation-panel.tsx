@@ -66,8 +66,8 @@ export default function ConsultationPanel() {
         const msg = error instanceof Error ? error.message : String(error);
         logError("Failed to load consultations:", msg);
         toast({
-          title: "Error",
-          description: msg || "Failed to load consultations",
+          title: t.error?.title || "Error",
+          description: msg || t.error?.message || "Failed to load consultations",
           variant: "destructive",
         });
       } finally {
@@ -175,7 +175,7 @@ export default function ConsultationPanel() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h3 className="font-semibold">{t.consultation.consultationChat}</h3>
+            <h3 className="font-semibold">{t.consultation?.consultationChat}</h3>
             <p className="text-xs text-slate-500">
               {new Date(selectedConsultation.scheduledTime).toLocaleDateString()} at{" "}
               {new Date(selectedConsultation.scheduledTime).toLocaleTimeString()}
@@ -187,7 +187,7 @@ export default function ConsultationPanel() {
           <RealtimeChat recipientId={selectedConsultation.lawyerId} />
         </div>
 
-        {selectedConsultation.meetingLink && (
+          {selectedConsultation.meetingLink && (
           <a
             href={selectedConsultation.meetingLink}
             target="_blank"
@@ -195,7 +195,7 @@ export default function ConsultationPanel() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
           >
             <CheckCircle size={16} />
-            {t.consultation.joinVideoCall}
+            {t.consultation?.joinVideoCall}
           </a>
         )}
       </div>
@@ -213,7 +213,7 @@ export default function ConsultationPanel() {
           className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
         >
           <Plus size={18} />
-          Request Consultation
+          {t.consultation?.requestConsultation || 'Request Consultation'}
         </motion.button>
       </div>
 
@@ -290,7 +290,7 @@ export default function ConsultationPanel() {
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800 resize-none"
                     rows={3}
-                    placeholder="Describe your consultation needs..."
+                    placeholder={t.consultation?.notesPlaceholder || "Describe your consultation needs..."}
                   />
                 </div>
 
@@ -337,13 +337,14 @@ export default function ConsultationPanel() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <User size={16} className="text-brand-600" />
-                    <span className="font-semibold">Lawyer Consultation</span>
+                    <span className="font-semibold">{t.consultation?.title || 'Lawyer Consultation'}</span>
                   </div>
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(consultation.status)}`}>
                     {(() => {
                       const st = String(consultation?.status || "");
                       if (!st) return "";
-                      return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
+                      const key = st === 'no_show' ? 'noShow' : st;
+                      return t.consultation?.[key] || st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
                     })()}
                   </span>
                 </div>
@@ -381,7 +382,7 @@ export default function ConsultationPanel() {
                   className="inline-flex items-center gap-2 px-4 py-2 mb-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full justify-center"
                 >
                   <CheckCircle size={16} />
-                  Join Video Call
+                  {t.consultation?.joinVideoCall}
                 </motion.a>
               )}
 
@@ -409,7 +410,7 @@ export default function ConsultationPanel() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">
                   <MessageSquare size={16} />
-                  <span>{t.consultation.consultationChat}</span>
+                  <span>{t.consultation?.consultationChat}</span>
                 </div>
                 {consultation.meetingLink && (
                   <a
@@ -420,7 +421,7 @@ export default function ConsultationPanel() {
                     className="inline-flex items-center gap-1 text-xs text-green-600 hover:underline"
                   >
                     <CheckCircle size={14} />
-                    Join Meeting
+                    {t.consultation?.joinVideoCall}
                   </a>
                 )}
               </div>
