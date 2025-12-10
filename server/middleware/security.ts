@@ -93,6 +93,16 @@ export const uploadLimiter = rateLimit({
   skip: () => false,
 });
 
+// AI-specific limiter to guard expensive operations (chat, generation, translation)
+export const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  // Production: tighter limit to avoid excessive model calls; Development: relaxed
+  max: process.env.NODE_ENV === "production" ? 60 : 600,
+  message: "Too many AI requests from this IP, please try again later.",
+  keyGenerator: getSafeClientIp,
+  skip: () => false,
+});
+
 export function sanitizeInput(input: string): string {
   if (!input) return "";
   return String(input).replace(/[<>]/g, "").trim();

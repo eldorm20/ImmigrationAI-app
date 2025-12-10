@@ -40,6 +40,19 @@ Set-RailwayVar 'S3_ENDPOINT' $s3Endpoint
 Set-RailwayVar 'AWS_REGION' $awsRegion
 Set-RailwayVar 'STRIPE_SECRET_KEY' $stripeKey
 
+# Optional AI provider vars
+$hfToken = Prompt-Secret 'HUGGINGFACE_API_TOKEN (optional)'
+$hfModel = Read-Host 'HF_MODEL (optional; e.g., meta-llama/Llama-2-7b-chat-hf) — leave empty to skip'
+$hfInference = Read-Host 'HF_INFERENCE_URL (optional; custom TGI/HF inference host) — leave empty to skip'
+$localAi = Read-Host 'LOCAL_AI_URL (optional; e.g., http://host.docker.internal:8080/generate or Ollama endpoint) — leave empty to skip'
+$openai = Prompt-Secret 'OPENAI_API_KEY (optional)'
+
+Set-RailwayVar 'HUGGINGFACE_API_TOKEN' $hfToken
+Set-RailwayVar 'HF_MODEL' $hfModel
+Set-RailwayVar 'HF_INFERENCE_URL' $hfInference
+Set-RailwayVar 'LOCAL_AI_URL' $localAi
+Set-RailwayVar 'OPENAI_API_KEY' $openai
+
 Write-Host "Env vars set (where provided). You can now redeploy the service from the Railway UI or use the CLI to deploy."
 Write-Host "To trigger a deploy via CLI (if supported), run: railway up --deploy"
 Write-Host "To tail logs: railway logs --follow"

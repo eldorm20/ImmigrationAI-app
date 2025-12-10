@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth";
-import { apiLimiter } from "../middleware/security";
+import { apiLimiter, aiLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { validateBody } from "../middleware/validate";
 import {
@@ -81,6 +81,7 @@ router.post(
 // Analyze document
 router.post(
   "/documents/analyze/:documentId",
+  aiLimiter,
   asyncHandler(async (req, res) => {
     const { documentId } = req.params;
     const userId = req.user!.userId;
@@ -120,6 +121,7 @@ const interviewQuestionsSchema = z.object({ visaType: z.string().min(1), country
 
 router.post(
   "/interview/questions",
+  aiLimiter,
   validateBody(interviewQuestionsSchema),
   asyncHandler(async (req, res) => {
     const { visaType, country } = req.parsedBody as { visaType: string; country: string };
@@ -132,6 +134,7 @@ router.post(
 // Evaluate interview answer
 router.post(
   "/interview/evaluate",
+  aiLimiter,
   asyncHandler(async (req, res) => {
     const { question, answer } = z
       .object({
@@ -150,6 +153,7 @@ router.post(
 // Generate professional document via AI
 router.post(
   "/documents/generate",
+  aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
 
@@ -323,6 +327,7 @@ router.get(
 // Translate text
 router.post(
   "/translate",
+  aiLimiter,
   asyncHandler(async (req, res) => {
     const { fromLang, toLang, text } = z
       .object({ fromLang: z.string().min(2), toLang: z.string().min(2), text: z.string().min(1) })
@@ -336,6 +341,7 @@ router.post(
 // Chat endpoint
 router.post(
   "/chat",
+  aiLimiter,
   asyncHandler(async (req, res) => {
     const { message, language } = z.object({ message: z.string().min(1), language: z.string().optional() }).parse(req.body);
     const reply = await chatRespond(message, language || 'en');
