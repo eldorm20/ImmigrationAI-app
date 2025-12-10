@@ -15,6 +15,12 @@ export function serveStatic(app: Express) {
   // Serve static assets (JS, CSS, images, etc.)
   app.use(express.static(distPath));
 
+  // Serve uploaded files when using local filesystem fallback
+  const uploadsPath = path.resolve(process.cwd(), "uploads");
+  if (fs.existsSync(uploadsPath)) {
+    app.use("/uploads", express.static(uploadsPath));
+  }
+
   // SPA fallback: always return index.html for any non-API route
   app.get("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));

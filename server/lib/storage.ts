@@ -1,6 +1,8 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomBytes } from "crypto";
+import fs from "fs";
+import path from "path";
 import { logger } from "./logger";
 
 // Initialize S3 client (works with Railway storage or AWS S3)
@@ -18,7 +20,7 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
 if (!BUCKET_NAME) {
-  logger.warn("S3 bucket not configured - file uploads will fail without S3_BUCKET or AWS_S3_BUCKET");
+  logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
 }
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
@@ -149,12 +151,35 @@ export async function uploadFile(
   if (!validation.valid) {
     throw new Error(validation.error);
   }
-
   const key = generateFileKey(userId, applicationId, file.originalname);
 
+  // If BUCKET_NAME is not configured, fall back to local filesystem storage
   if (!BUCKET_NAME) {
-    logger.error({ key, userId }, "No bucket configured for upload");
-    throw new Error("Storage bucket not configured");
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+    const destPath = path.resolve(uploadsDir, key);
+
+    // Ensure directory exists
+    const dir = path.dirname(destPath);
+    fs.mkdirSync(dir, { recursive: true });
+
+    try {
+      fs.writeFileSync(destPath, file.buffer);
+      logger.info({ key, userId, applicationId, size: file.size }, "File saved to local uploads folder");
+
+      // Return a URL that will be served from /uploads
+      const url = `${process.env.APP_URL || ""}/uploads/${key}`;
+
+      return {
+        key,
+        url,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      };
+    } catch (err: any) {
+      logger.error({ err, key, userId }, "Local file write failed");
+      throw new Error("Failed to save file locally");
+    }
   }
 
   try {
@@ -203,6 +228,12 @@ export async function uploadFile(
 // Get presigned URL for file access
 export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
   try {
+    // If using local filesystem fallback, return a direct URL path
+    if (!BUCKET_NAME) {
+      const base = process.env.APP_URL || "";
+      return `${base}/uploads/${key}`;
+    }
+
     return await retryWithBackoff(
       async () => {
         const command = new GetObjectCommand({
@@ -225,6 +256,19 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
 // Delete file from storage
 export async function deleteFile(key: string): Promise<void> {
   try {
+    if (!BUCKET_NAME) {
+      const uploadsDir = path.resolve(process.cwd(), "uploads");
+      const filePath = path.resolve(uploadsDir, key);
+      try {
+        fs.unlinkSync(filePath);
+        logger.info({ key }, "Local file deleted successfully");
+        return;
+      } catch (err) {
+        logger.warn({ err, key }, "Failed to delete local file");
+        throw new Error("Failed to delete local file");
+      }
+    }
+
     const command = new DeleteObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,

@@ -437,10 +437,47 @@ async function generateTextWithProvider(
   prompt: string,
   systemPrompt: string
 ): Promise<string> {
+  const localAIUrl = process.env.LOCAL_AI_URL; // e.g., http://localhost:11434/generate or custom endpoint
+  const hasLocalAI = Boolean(localAIUrl);
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
   );
+
+  // Prefer a local AI server if configured (Ollama, local inference server, etc.)
+  if (hasLocalAI) {
+    try {
+      const res = await fetch(localAIUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: `${systemPrompt}\n\n${prompt}` }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`Local AI error: ${res.status} ${text}`);
+      }
+
+      // Try parse JSON, otherwise return plain text
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const j = await res.json();
+        // common shapes: { text } or { result } or { generations: [{ text }] }
+        if (j.text) return j.text;
+        if (j.result) return j.result;
+        if (Array.isArray(j.generations) && j.generations[0]?.text) return j.generations[0].text;
+        // fallback to stringified JSON
+        return JSON.stringify(j);
+      }
+
+      return await res.text();
+    } catch (err) {
+      logger.warn({ err }, "Local AI provider failed, falling back");
+      // continue to other providers
+    }
+  }
 
   if (hasOpenAI) {
     try {

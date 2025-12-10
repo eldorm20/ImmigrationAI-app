@@ -21,7 +21,10 @@ interface SocketUser {
 export function setupSocketIO(httpServer: HTTPServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5000"],
+      // Allow origins from env (comma-separated) or APP_URL, with localhost fallback
+      origin:
+        process.env.ALLOWED_ORIGINS?.split(",") ||
+        (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000"]),
       credentials: true,
     },
   });
