@@ -25,6 +25,7 @@ const router = Router();
 router.use(authenticate);
 router.use(apiLimiter);
 
+<<<<<<< HEAD
 // Quick status endpoint to see which AI provider is configured
 router.get(
   "/status",
@@ -36,6 +37,25 @@ router.get(
     };
 
     res.json({ providers, note: 'Set HUGGINGFACE_API_TOKEN and HF_MODEL to use local/hosted Hugging Face models.' });
+=======
+// Status endpoint to report AI provider availability
+router.get(
+  "/status",
+  asyncHandler(async (req, res) => {
+    const hasLocalAI = Boolean(process.env.LOCAL_AI_URL);
+    const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+    const hasHF = Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL);
+    const hfModel = process.env.HF_MODEL || null;
+    const localUrl = process.env.LOCAL_AI_URL || null;
+
+    res.json({
+      providers: {
+        local: hasLocalAI ? { enabled: true, url: localUrl } : { enabled: false },
+        openai: hasOpenAI ? { enabled: true } : { enabled: false },
+        huggingface: hasHF ? { enabled: true, model: hfModel } : { enabled: false },
+      },
+    });
+>>>>>>> 7306f0f (feat(ai): improve HF/TGI/local AI handling; add AI status endpoint; add Stripe validate endpoint; add research seed script)
   })
 );
 

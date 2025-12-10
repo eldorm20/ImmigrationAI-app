@@ -1016,12 +1016,15 @@ async function generateTextWithProvider(
   // Prefer a local AI server if configured (Ollama, local inference server, etc.)
   if (hasLocalAI) {
     try {
+      // Try to be flexible with local server implementations (Ollama, llama.cpp frontends, TGI)
+      const bodyPayload = { prompt: `${systemPrompt}\n\n${prompt}` };
+      // Ollama uses { model, prompt } in /api/generate style endpoints; allow custom path too
       const res = await fetch(localAIUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: `${systemPrompt}\n\n${prompt}` }),
+        body: JSON.stringify(bodyPayload),
       });
 
       if (!res.ok) {
@@ -1033,10 +1036,17 @@ async function generateTextWithProvider(
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json")) {
         const j = await res.json();
-        // common shapes: { text } or { result } or { generations: [{ text }] }
+        // common shapes: { text } or { result } or { generations: [{ text }] } or { choices: [{ text }] }
         if (j.text) return j.text;
         if (j.result) return j.result;
         if (Array.isArray(j.generations) && j.generations[0]?.text) return j.generations[0].text;
+        if (Array.isArray(j) && j[0]?.generated_text) return j[0].generated_text;
+        if (j.generated_text) return j.generated_text;
+        if (Array.isArray(j.choices) && j.choices[0]?.text) return j.choices[0].text;
+        if (j.output && Array.isArray(j.output) && j.output[0]?.content) {
+          // Ollama-like response: { output: [{ type: 'message', content: '...' }] }
+          return String(j.output[0].content || JSON.stringify(j.output));
+        }
         // fallback to stringified JSON
         return JSON.stringify(j);
       }
@@ -1091,35 +1101,71 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
 
   const url = customUrl || `https://api-inference.huggingface.co/models/${model}`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 512,
-        temperature: 0.7,
+  // Try the standard HF Inference API first
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 512,
+          temperature: 0.7,
+        },
+      }),
+    });
 
-  if (!res.ok) {
-    throw new Error(
-      `Hugging Face error: ${res.status} ${await res.text()}`
-    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Hugging Face error: ${res.status} ${text}`);
+    }
+
+    const json = await res.json();
+    // HF Inference may return an array of generations or object with generated_text
+    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
+    if ((json as any).generated_text) return (json as any).generated_text;
+    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
+    // Some model endpoints return [{generated_text}] or { generated_text }
+    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
+    // Fallback to stringified response
+    return JSON.stringify(json);
+  } catch (err) {
+    logger.warn({ err }, "HF Inference API failed, trying TGI-style /generate endpoint");
   }
 
-  const json = await res.json();
-  if (Array.isArray(json) && json[0]?.generated_text) {
-    return json[0].generated_text;
+  // If HF Inference failed, try Text-Generation-Inference (TGI) compatible /generate
+  try {
+    const tgiUrl = url.endsWith("/") ? `${url}generate` : `${url}/generate`;
+    const res2 = await fetch(tgiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: { max_new_tokens: 512, temperature: 0.7 },
+      }),
+    });
+
+    if (!res2.ok) {
+      throw new Error(`TGI /generate failed: ${res2.status} ${await res2.text().catch(() => "")}`);
+    }
+
+    const j2 = await res2.json();
+    // TGI often returns { generated_text } or { results: [{ text }] }
+    if ((j2 as any).generated_text) return (j2 as any).generated_text;
+    if (Array.isArray(j2?.results) && j2.results[0]?.text) return j2.results[0].text;
+    if (Array.isArray(j2) && j2[0]?.generated_text) return j2[0].generated_text;
+    if (j2?.data && Array.isArray(j2.data) && j2.data[0]?.generated_text) return j2.data[0].generated_text;
+    return JSON.stringify(j2);
+  } catch (err) {
+    logger.warn({ err }, "TGI-style generation failed");
+    throw new Error(`Hugging Face generation failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-  if (json.generated_text) {
-    return json.generated_text;
-  }
-  return JSON.stringify(json);
 }
 
 // Export singleton instance
