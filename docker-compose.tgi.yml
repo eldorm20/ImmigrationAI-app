@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  tgi:
+    image: ghcr.io/huggingface/text-generation-inference:latest
+    container_name: tgi
+    # Expose TGI on host 8080
+    ports:
+      - "8080:8080"
+    # Mount a local models directory (place model under ./models/<model-id>)
+    volumes:
+      - ./models:/models:rw
+    # Example command: point to a local model folder inside /models/<MODEL_FOLDER>
+    # Replace <MODEL_FOLDER> with the folder name you placed under ./models
+    command: ["--model-id", "/models/<MODEL_FOLDER>", "--port", "8080", "--enable-text-generation", "--no-stream"]
+    environment:
+      # Optional: if TGI needs HF Hub access to download model, pass token here
+      - HUGGINGFACEHUB_API_TOKEN=${HUGGINGFACE_API_TOKEN}
+    restart: unless-stopped
+
+# Note: This compose file only runs TGI. Your application backend (server) should be started separately.
+# To use TGI with the app, set HF_INFERENCE_URL=http://host.docker.internal:8080 (on Windows) or http://localhost:8080
+# and set HF_MODEL to the model id or leave HF_MODEL unset when using LOCAL_AI_URL instead.
