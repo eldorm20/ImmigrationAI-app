@@ -11,7 +11,12 @@ import { generatePaymentConfirmationEmail } from "../lib/email";
 const router = Router();
 
 let stripe: any;
-if (process.env.STRIPE_SECRET_KEY) {
+const initializeStripe = async () => {
+  if (stripe) return;
+  if (!process.env.STRIPE_SECRET_KEY) {
+    logger.warn("STRIPE_SECRET_KEY missing - webhooks disabled");
+    return;
+  }
   try {
     const StripePkg = await import("stripe");
     const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
@@ -19,14 +24,13 @@ if (process.env.STRIPE_SECRET_KEY) {
   } catch (err) {
     logger.warn("Stripe SDK failed to initialize for webhooks", err);
   }
-} else {
-  logger.warn("STRIPE_SECRET_KEY missing - webhooks disabled");
-}
+};
 
 // Stripe webhook endpoint (raw body, not JSON parsed)
 router.post(
   "/webhook",
   asyncHandler(async (req, res) => {
+    await initializeStripe();
     if (!stripe) {
       logger.warn("Received webhook but Stripe is not configured");
       return res.status(400).json({ error: "Stripe not configured for webhooks" });
