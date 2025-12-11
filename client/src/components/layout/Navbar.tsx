@@ -53,7 +53,7 @@ export function Navbar() {
             </span>
         </Link>
 
-        {/* Desktop Nav */}
+        {/* Desktop Nav: center links */}
         <div className="hidden md:flex items-center gap-6">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -98,7 +98,10 @@ export function Navbar() {
               {t.nav?.help || "Help"}
             </Button>
           </Link>
+        </div>
 
+        {/* Desktop Auth / User area (right-aligned) */}
+        <div className="hidden md:flex items-center gap-4 ml-auto">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
