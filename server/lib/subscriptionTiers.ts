@@ -31,6 +31,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     features: {
       documentUploadLimit: 5,
       aiDocumentGenerations: 2,
+      aiMonthlyRequests: 100,
       consultationsPerMonth: 1,
       researchLibraryAccess: true,
       prioritySupport: false,
@@ -47,6 +48,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     features: {
       documentUploadLimit: 50,
       aiDocumentGenerations: 20,
+      aiMonthlyRequests: 2000,
       consultationsPerMonth: 10,
       researchLibraryAccess: true,
       prioritySupport: true,
@@ -63,6 +65,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     features: {
       documentUploadLimit: 200,
       aiDocumentGenerations: 100,
+      aiMonthlyRequests: 10000,
       consultationsPerMonth: 50,
       researchLibraryAccess: true,
       prioritySupport: true,
