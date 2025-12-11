@@ -27,6 +27,13 @@ RUN npm run build   # uses your updated package.json to build server + client
 FROM node:20-bullseye-slim AS production
 WORKDIR /app
 
+# Install runtime dependencies: curl for health checks and Ollama init, postgresql client for migrations
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+  && rm -rf /var/lib/apt/lists/*
+
 # Bring runtime dependencies from the builder to avoid rebuilding native modules
 COPY package*.json tsconfig.json ./
 COPY --from=builder /app/node_modules ./node_modules
@@ -40,9 +47,14 @@ COPY --from=builder /app/drizzle.config.ts ./
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/shared ./shared
 
+# Copy startup scripts
+COPY scripts/entrypoint.sh scripts/init-ollama.sh ./scripts/
+RUN chmod +x ./scripts/*.sh
+
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const port = process.env.PORT || 5000; require('http').get(`http://localhost:${port}/health`, (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+  CMD curl -f http://localhost:5000/health || exit 1
 
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["node", "dist/index.cjs"]
