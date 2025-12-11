@@ -14,6 +14,7 @@ import {
   translateText,
   chatRespond,
 } from "../lib/ai";
+import { incrementUsage } from "../lib/aiUsage";
 import { db } from "../db";
 import { documents, users } from "@shared/schema";
 import { eq, and, gte } from "drizzle-orm";
@@ -106,6 +107,14 @@ router.post(
       document.ocrData || undefined
     );
 
+      // Increment generic AI request usage (1 unit per analyze)
+      try {
+        await incrementUsage(userId, 'aiMonthlyRequests', 1);
+      } catch (err) {
+        // If quota exceeded, return 403
+        return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
+      }
+
     // Update document with analysis
     await db
       .update(documents)
@@ -126,6 +135,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const { visaType, country } = req.parsedBody as { visaType: string; country: string };
 
+    const userId = req.user!.userId;
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
+    }
+
     const questions = await generateInterviewQuestions(visaType, country);
     res.json({ questions });
   })
@@ -143,6 +159,13 @@ router.post(
       })
       .parse(req.body);
 
+    const userId = req.user!.userId;
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
+    }
+
     const feedback = await evaluateInterviewAnswer(question, answer);
     res.json(feedback);
   })
@@ -157,31 +180,12 @@ router.post(
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
 
-    // Check subscription tier and enforce AI document generation limit
-    const tier = await getUserSubscriptionTier(userId);
-    const tierFeatures = getTierFeatures(tier);
-    const genLimit = tierFeatures.features.aiDocumentGenerations;
-
-    // Track usage in user metadata
-    const currentMonth = new Date();
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    const metadata = user?.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
-    const lastResetMonth = metadata?.aiGenLastResetMonth;
-    const generationCount = metadata?.aiGenCount || 0;
-
-    // Reset counter if we've entered a new month
-    let currentGenCount = generationCount;
-    if (!lastResetMonth || lastResetMonth !== currentMonth.toISOString().slice(0, 7)) {
-      currentGenCount = 0;
-    }
-
-    if (currentGenCount >= genLimit) {
-      throw new AppError(
-        403,
-        `You have reached the AI document generation limit (${genLimit}/month) for your ${tier} plan. Upgrade to generate more documents.`
-      );
+    // Increment document-generation usage and generic AI usage (both enforced)
+    try {
+      await incrementUsage(userId, 'aiDocumentGenerations', 1);
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
     }
 
     const { template, data, language } = z
@@ -200,19 +204,7 @@ router.post(
       throw err;
     }
 
-    // Increment generation count
-    await db
-      .update(users)
-      .set({
-        metadata: JSON.parse(
-          JSON.stringify({
-            ...metadata,
-            aiGenCount: currentGenCount + 1,
-            aiGenLastResetMonth: currentMonth.toISOString().slice(0, 7),
-          })
-        ),
-      } as any)
-      .where(eq(users.id, userId));
+    // (Usage already incremented via incrementUsage)
 
     res.json({ document: doc });
   })
