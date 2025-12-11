@@ -14,6 +14,7 @@ export default function Home() {
   const [_, setLocation] = useLocation();
   const [age, setAge] = useState(25);
   const [score, setScore] = useState(65);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let s = 40;
