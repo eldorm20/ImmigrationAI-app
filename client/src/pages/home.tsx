@@ -2,15 +2,9 @@ import React, { useState, useEffect } from "react";
 import type { Language } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { useI18n } from "@/lib/i18n";
-<<<<<<< HEAD
-import { Plane, ArrowRight, Check, Play, Shield, Users, Globe, Star, ArrowUpRight } from "lucide-react";
-import { motion } from "framer-motion";
-import { LiveButton } from "@/components/ui/live-elements";
-=======
 import { Plane, ArrowRight, Check, Menu, X, Play, Shield, Users, Globe, Star, ArrowUpRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { EligibilityQuiz } from "@/components/EligibilityQuiz";
 // Background handled via CSS gradients - no image asset needed
@@ -62,8 +56,6 @@ export default function Home() {
         <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-accent-500/10 dark:bg-accent-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
       </div>
 
-<<<<<<< HEAD
-=======
       {/* Navigation */}
       <nav className="fixed w-full z-50 px-6 py-4 transition-all duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -132,7 +124,6 @@ export default function Home() {
         )}
       </AnimatePresence>
 
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
       {/* Hero Section */}
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
         <motion.div 
@@ -501,29 +492,6 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {[
               {
-<<<<<<< HEAD
-                name: "Davron Karimov",
-                role: "Software Engineer",
-                location: "Tashkent → Berlin",
-                visa: "Germany EU Blue Card",
-                content: "ImmigrationAI showed me exactly what documents I needed for the Blue Card. The AI assessment predicted 85% approval chance—I got approved in 6 weeks! Saved me months of guessing.",
-                rating: 5
-              },
-              {
-                name: "Amaliya Sultanova",
-                role: "Project Manager",
-                location: "Tashkent → London",
-                visa: "UK Skilled Worker",
-                content: "The eligibility checker helped me find employers sponsoring the Skilled Worker visa. The document drafter saved hours on my visa application. Highly recommended for Uzbek professionals!",
-                rating: 5
-              },
-              {
-                name: "Olim Rahimov",
-                role: "Data Analyst",
-                location: "Samarkand → Warsaw",
-                visa: "Poland D Visa",
-                content: "As a student, I was confused about visa options. ImmigrationAI broke down each visa route clearly. The AI chat answered all my questions about Poland's requirements in detail.",
-=======
                 name: "Davron Mirzaev",
                 role: "Software Engineer",
                 company: "Tashkent → Berlin (4 months)",
@@ -542,7 +510,6 @@ export default function Home() {
                 role: "Business Owner",
                 company: "Samarkand → Warsaw (3 months)",
                 content: "Used ImmigrationAI for my family's visa applications. The lawyer chat answered every question about Polish requirements. Our applications were approved in record time.",
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
                 rating: 5
               }
             ].map((testimonial, i) => (
@@ -571,35 +538,6 @@ export default function Home() {
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Blog Highlights */}
-      <div className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
-            <div>
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Immigration insights</h2>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">Fresh guidance, policy updates, and success stories.</p>
-            </div>
-            <LiveButton variant="secondary" onClick={() => setLocation("/blog")}>
-              View all articles <ArrowRight size={16} />
-            </LiveButton>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {blogHighlights.map((post, idx) => (
-              <div key={idx} className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-brand-400/60 dark:hover:border-brand-500/60 transition-colors">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase text-brand-600 dark:text-brand-400 mb-3">
-                  <span className="px-2 py-1 rounded-full bg-brand-50 dark:bg-brand-900/30">{post.tag}</span>
-                  <span className="text-slate-400">•</span>
-                  <span className="text-slate-500 dark:text-slate-400">{post.date}</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{post.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">{post.excerpt}</p>
-                <LiveButton variant="ghost" className="px-0" onClick={() => setLocation("/blog")}>
-                  Read more <ArrowRight size={14} />
-                </LiveButton>
-              </div>
-=======
       {/* Quick Assessment Section */}
       <div className="py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto">
@@ -674,7 +612,6 @@ export default function Home() {
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-3">{item.q}</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{item.a}</p>
               </motion.div>
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
             ))}
           </div>
         </div>
@@ -805,13 +742,6 @@ export default function Home() {
           >
             <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Ready to Move Forward?</h2>
             <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-<<<<<<< HEAD
-              Get a free visa eligibility assessment in 2 minutes. No credit card required.
-            </p>
-            <LiveButton variant="secondary" size="lg" onClick={() => goLogin('applicant')}>
-              Start Your Free Assessment <ArrowRight size={20} />
-            </LiveButton>
-=======
               Join thousands of users who trust ImmigrationAI for their immigration journey. Start your free trial today—no credit card required.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
@@ -822,7 +752,6 @@ export default function Home() {
                 View Pricing
               </LiveButton>
             </div>
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
           </motion.div>
         </div>
       </div>

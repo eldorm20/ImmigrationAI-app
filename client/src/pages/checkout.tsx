@@ -21,14 +21,9 @@ export default function Checkout() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-<<<<<<< HEAD
-  const [stripe, setStripe] = useState<any>(null);
-  const [elements, setElements] = useState<any>(null);
-  const [cardElement, setCardElement] = useState<any>(null);
-=======
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [elements, setElements] = useState<StripeElements | null>(null);
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
+  const [cardElement, setCardElement] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);

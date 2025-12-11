@@ -4,11 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
 import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
-<<<<<<< HEAD
-=======
-import { useI18n } from "@/lib/i18n";
 import { error as logError } from "@/lib/logger";
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
 

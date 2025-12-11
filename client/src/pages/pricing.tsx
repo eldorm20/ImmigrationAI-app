@@ -1,24 +1,14 @@
-<<<<<<< HEAD
-import React, { useMemo, useState } from "react";
-import { useLocation } from "wouter";
-import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Globe, Shield, Users, Loader } from "lucide-react";
-=======
 import React, { useState } from "react";
 import type { Language } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, FileText, Globe, Shield, Users, MessageSquare, Download, Loader, X } from "lucide-react";
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 import { motion } from "framer-motion";
 import { LiveButton } from "@/components/ui/live-elements";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/api";
-<<<<<<< HEAD
-import { useToast } from "@/hooks/use-toast";
-=======
 import { error as logError } from "@/lib/logger";
 import { trackEvent } from "../lib/analytics";
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 
 export default function Pricing() {
   const [_, setLocation] = useLocation();
@@ -28,97 +18,6 @@ export default function Pricing() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
 
-<<<<<<< HEAD
-  const plans = useMemo(() => {
-    const proMonthly = 29;
-    const premiumMonthly = 79;
-    const discountFactor = 0.8; // 20% off annually
-
-    return [
-      {
-        id: "free",
-        name: t.pricing.starter,
-        priceLabel: "$0",
-        priceCents: 0,
-        period: t.pricing.forever,
-        description: "Perfect for individuals exploring immigration options",
-        audience: "Individual visa applicants and students",
-        icon: Zap,
-        color: "from-blue-500 to-cyan-500",
-        features: [
-          "AI Eligibility Checker",
-          "Basic AI Chat Assistant",
-          "Document Templates (3/month)",
-          "Community Support",
-          "Basic Roadmap Tracking",
-          "Email Support",
-        ],
-        cta: t.pricing.getStarted,
-        popular: false,
-      },
-      {
-        id: "pro",
-        name: t.pricing.professional,
-        priceLabel:
-          billingPeriod === "monthly"
-            ? `$${proMonthly}`
-            : `$${Math.round(proMonthly * 12 * discountFactor)}`,
-        priceCents:
-          billingPeriod === "monthly"
-            ? proMonthly * 100
-            : Math.round(proMonthly * 12 * discountFactor * 100),
-        period: billingPeriod === "monthly" ? t.pricing.perMonth : "/year (Save 20%)",
-        description: "For serious applicants and professionals",
-        audience: "Active visa applicants, professionals relocating",
-        icon: Crown,
-        color: "from-purple-500 to-pink-500",
-        features: [
-          "Everything in Starter",
-          "Unlimited AI Document Generation",
-          "Advanced AI Chat with Legal Context",
-          "Document Upload & Analysis",
-          "AI Translation (10/month)",
-          "Priority Support",
-          "Case Management",
-          "Export Reports (CSV/JSON)",
-          "Advanced Analytics",
-        ],
-        cta: t.pricing.startTrial,
-        popular: true,
-      },
-      {
-        id: "premium",
-        name: t.pricing.enterprise,
-        priceLabel:
-          billingPeriod === "monthly"
-            ? `$${premiumMonthly}`
-            : `$${Math.round(premiumMonthly * 12 * discountFactor)}`,
-        priceCents:
-          billingPeriod === "monthly"
-            ? premiumMonthly * 100
-            : Math.round(premiumMonthly * 12 * discountFactor * 100),
-        period: billingPeriod === "monthly" ? t.pricing.perMonth : "/year (Save 20%)",
-        description: "For law firms and organizations",
-        audience: "Immigration lawyers, agencies, HR departments, staffing firms",
-        icon: Building2,
-        color: "from-orange-500 to-red-500",
-        features: [
-          "Everything in Professional",
-          "Unlimited Everything",
-          "White-label Options",
-          "Custom AI Training",
-          "Dedicated Account Manager",
-          "API Access",
-          "On-premise Deployment",
-          "Custom Integrations",
-          "SLA Guarantee",
-        ],
-        cta: t.pricing.contactSales,
-        popular: false,
-      },
-    ];
-  }, [billingPeriod, t.pricing]);
-=======
   const plans = [
     {
       id: "starter",
@@ -216,7 +115,6 @@ export default function Pricing() {
       popular: false
     }
   ];
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
 
   // Feature comparison data
   const comparisonFeatures = [
@@ -255,16 +153,10 @@ export default function Pricing() {
         body: JSON.stringify({ tier: plan.id }),
       });
 
-<<<<<<< HEAD
-      if (session?.checkoutUrl) {
-        window.location.href = session.checkoutUrl;
-        return;
-=======
       if (response.clientSecret) {
         try { trackEvent('checkout_started', { planId: plan.id }); } catch {}
         // Redirect to checkout page with payment intent
         setLocation(`/checkout?clientSecret=${response.clientSecret}&planId=${plan.id}`);
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
       }
 
       // Fallback to payment intent + in-app checkout if Checkout is not configured
@@ -291,16 +183,7 @@ export default function Pricing() {
         variant: "destructive",
       });
     } catch (error) {
-<<<<<<< HEAD
-      console.error('Checkout error:', error);
-      toast({
-        title: "Payment failed",
-        description: "We could not start the checkout session. Please try again.",
-        variant: "destructive",
-      });
-=======
       logError('Checkout error:', error);
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
     } finally {
       setLoadingPlan(null);
     }
@@ -308,8 +191,6 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-<<<<<<< HEAD
-=======
       {/* Navigation */}
       <nav className="fixed w-full z-50 px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -338,7 +219,6 @@ export default function Pricing() {
         </div>
       </nav>
 
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
       {/* Hero Section */}
       <div className="pt-28 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
@@ -360,56 +240,12 @@ export default function Pricing() {
         </div>
 
         {/* Billing Period Toggle */}
-<<<<<<< HEAD
-        <div className="flex justify-center mb-16">
-          <div className="inline-flex items-center gap-4 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-            <button
-              onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-3 rounded-xl font-bold transition-all ${
-                billingPeriod === 'monthly'
-                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingPeriod('annual')}
-              className={`px-6 py-3 rounded-xl font-bold transition-all relative ${
-                billingPeriod === 'annual'
-                  ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Annual
-              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                Save 25%
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`relative rounded-3xl p-8 border-2 transition-all ${
-                plan.popular
-                  ? 'bg-white dark:bg-slate-900 border-brand-500 shadow-2xl shadow-brand-500/20 scale-105'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-              }`}
-=======
         <div className="max-w-2xl mx-auto mb-16">
           <div className="flex justify-center items-center gap-4">
             <span className={`text-sm font-semibold ${billingPeriod === 'monthly' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Monthly</span>
             <motion.div 
               className="relative w-14 h-8 bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer"
               onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'annual' : 'monthly')}
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
             >
               <motion.div 
                 className="absolute top-1 left-1 w-6 h-6 bg-white dark:bg-slate-900 rounded-full shadow-md"
@@ -456,19 +292,6 @@ export default function Pricing() {
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{plan.audience}</p>
                 <p className="text-slate-600 dark:text-slate-300 text-sm mb-6 h-10">{plan.description}</p>
 
-<<<<<<< HEAD
-              <h3 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{plan.name}</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-2 text-sm">{plan.description}</p>
-              <p className="text-xs text-brand-600 dark:text-brand-400 font-bold mb-6 bg-brand-50 dark:bg-brand-900/30 px-3 py-1.5 rounded-lg inline-block">
-                For: {plan.audience}
-              </p>
-
-              <div className="mb-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-slate-900 dark:text-white">{plan.priceLabel}</span>
-                  {plan.priceCents > 0 && (
-                    <span className="text-slate-500 dark:text-slate-400">/mo</span>
-=======
                 <div className="mb-8">
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-extrabold text-slate-900 dark:text-white">{displayPrice}</span>
@@ -478,7 +301,6 @@ export default function Pricing() {
                   </div>
                   {billingPeriod === 'annual' && plan.annualPrice && (
                     <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-semibold">Save {Math.round((1 - parseInt(plan.annualPrice) / (parseInt(plan.price) * 12)) * 100)}%</p>
->>>>>>> 3358f8f (feat: Implement all 5 growth optimizations - pricing redesign, eligibility quiz, partner program, feature badges, mobile optimization)
                   )}
                 </div>
 
