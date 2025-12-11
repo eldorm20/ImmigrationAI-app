@@ -198,6 +198,31 @@ npm run test:e2e
 - `POST /api/auth/logout` - Logout
 - `POST /api/auth/refresh` - Refresh access token
 - `GET /api/auth/me` - Get current user
+
+## ⚙️ Automating Railway Environment Variable Changes
+
+You can update Railway environment variables from a GitHub Action that ships with this repository: `.github/workflows/set-railway-vars.yml`.
+
+Required GitHub repository Secrets:
+- `RAILWAY_API_TOKEN` — a Railway API token with permission to change variables
+- `RAILWAY_PROJECT_ID` — your Railway project id
+- `RAILWAY_VARS` — newline-separated KEY=VALUE pairs (example below)
+
+Example `RAILWAY_VARS` value (store as a single secret):
+```
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+HUGGINGFACE_API_TOKEN=hf_xxx
+HF_MODEL=OpenAssistant/replit-1b-instruct
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+JWT_SECRET=your-jwt-secret
+```
+
+How to run:
+1. Add the three repository secrets above in GitHub (Settings → Secrets & variables → Actions).
+2. Run the workflow from the Actions tab or push to `main` to trigger it. The workflow will login to Railway and set the variables for the configured project.
+
+Security: Keep secrets in GitHub Secrets. Do NOT check secret values into the repository.
 - `POST /api/auth/verify-email` - Verify email
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
+import Header from '@/components/Header';
 import { motion } from "framer-motion";
 
 export default function ContactPage() {
@@ -45,18 +46,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center gap-4">
-          <button
-            onClick={() => setLocation("/")}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-3xl font-bold">Contact Us</h1>
-        </div>
-      </header>
+      <Header title="Contact Us" showBack onBack={() => setLocation('/')} simple />
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

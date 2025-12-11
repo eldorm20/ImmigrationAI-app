@@ -24,6 +24,20 @@ const router = Router();
 router.use(authenticate);
 router.use(apiLimiter);
 
+// Quick status endpoint to see which AI provider is configured
+router.get(
+  "/status",
+  asyncHandler(async (_req, res) => {
+    const providers: Record<string, boolean> = {
+      openai: Boolean(process.env.OPENAI_API_KEY),
+      huggingface: Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL),
+      hf_custom_url: Boolean(process.env.HF_INFERENCE_URL),
+    };
+
+    res.json({ providers, note: 'Set HUGGINGFACE_API_TOKEN and HF_MODEL to use local/hosted Hugging Face models.' });
+  })
+);
+
 // Get eligibility questions
 router.get(
   "/eligibility/questions",
@@ -297,6 +311,44 @@ router.post(
     const { message, language } = z.object({ message: z.string().min(1), language: z.string().optional() }).parse(req.body);
     const reply = await chatRespond(message, language || 'en');
     res.json({ reply });
+  })
+);
+
+// Proxy / simple generate endpoint to call Hugging Face Inference API or custom HF_INFERENCE_URL
+router.post(
+  "/proxy",
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+
+    const hfToken = process.env.HUGGINGFACE_API_TOKEN;
+    const hfModel = process.env.HF_MODEL;
+    const hfUrl = process.env.HF_INFERENCE_URL || (hfModel ? `https://api-inference.huggingface.co/models/${hfModel}` : undefined);
+
+    if (!hfUrl) {
+      return res.status(400).json({ error: 'No Hugging Face model configured (set HF_MODEL or HF_INFERENCE_URL)' });
+    }
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+
+    try {
+      const r = await fetch(hfUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+
+      const text = await r.text();
+      let json: any = null;
+      try { json = JSON.parse(text); } catch (_) { json = text; }
+      if (!r.ok) {
+        return res.status(502).json({ error: 'Hugging Face error', details: json });
+      }
+
+      return res.json({ result: json });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to call Hugging Face', details: err?.message || String(err) });
+    }
   })
 );
 

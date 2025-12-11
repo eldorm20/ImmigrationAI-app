@@ -1,25 +1,29 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { CreditCard, AlertCircle, Check, X, Calendar, DollarSign, Settings, LogOut, History } from "lucide-react";
+import { CreditCard, AlertCircle, Check, LogOut, History } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
 
-interface Subscription {
-  id: string;
-  userId: string;
-  plan: "starter" | "professional" | "enterprise";
-  status: "active" | "cancelled" | "expired";
-  amount: number;
-  currency: string;
-  startDate: string;
-  renewalDate: string;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+type TierId = "free" | "pro" | "premium";
+
+interface Plan {
+  tier: TierId;
+  name: string;
+  monthlyPrice: number;
+  features: Record<string, number | boolean>;
+}
+
+interface CurrentSubscription {
+  tier: TierId;
+  name: string;
+  monthlyPrice: number;
+  features: Record<string, number | boolean>;
+  providerStatus?: string | null;
 }
 
 interface BillingHistory {
@@ -27,66 +31,18 @@ interface BillingHistory {
   date: string;
   amount: number;
   status: string;
-  invoice: string;
+  invoice?: string;
 }
-
-const plans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 0,
-    period: "forever",
-    description: "Perfect for getting started",
-    features: [
-      "5 Document Uploads/Month",
-      "Basic AI Analysis",
-      "Email Support",
-      "1 Free Consultation",
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 29,
-    period: "month",
-    description: "For serious applicants",
-    features: [
-      "Unlimited Documents",
-      "Advanced AI Analysis",
-      "Priority Email Support",
-      "4 Consultations/Month",
-      "Real-time Chat",
-      "Video Consultations",
-    ],
-    popular: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 99,
-    period: "month",
-    description: "For immigration firms",
-    features: [
-      "Unlimited Everything",
-      "Dedicated Account Manager",
-      "24/7 Phone Support",
-      "Unlimited Consultations",
-      "Custom Integrations",
-      "White Label Options",
-    ],
-  },
-];
 
 export default function SubscriptionPage() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
 
   useEffect(() => {
     if (!user) {
@@ -97,8 +53,17 @@ export default function SubscriptionPage() {
     const loadSubscription = async () => {
       try {
         setLoading(true);
-        const subs = await apiRequest<Subscription>("/subscription/current");
-        setSubscription(subs);
+        const planRes = await apiRequest<{ plans: Plan[] }>("/subscription/plans");
+        setPlans(planRes.plans || []);
+
+        const details = await apiRequest<any>("/subscription/details");
+        setSubscription({
+          tier: (details.tier || "free") as TierId,
+          name: details.name,
+          monthlyPrice: details.monthlyPrice,
+          features: details.features || {},
+          providerStatus: details.subscription?.status || null,
+        });
 
         const history = await apiRequest<BillingHistory[]>("/subscription/billing-history");
         setBillingHistory(history || []);
@@ -114,13 +79,15 @@ export default function SubscriptionPage() {
 
   const handleUpgrade = async (planId: string) => {
     try {
-      const response = await apiRequest("/subscription/upgrade", {
+      // Use server-side Checkout Session redirect flow
+      const response = await apiRequest<{ checkoutUrl?: string }>("/stripe/create-checkout-session", {
         method: "POST",
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ tier: planId }),
       });
 
       if (response.checkoutUrl) {
         window.location.href = response.checkoutUrl;
+        return;
       }
 
       toast({
@@ -159,8 +126,26 @@ export default function SubscriptionPage() {
 
   if (!user) return null;
 
-  const currentPlan = subscription?.plan || "starter";
-  const currentPlanData = plans.find(p => p.id === currentPlan);
+  const currentTier = subscription?.tier || "free";
+  const currentPlanData = useMemo(() => plans.find((p) => p.tier === currentTier), [plans, currentTier]);
+
+  const formatFeature = (key: string, value: number | boolean) => {
+    const titleMap: Record<string, string> = {
+      documentUploadLimit: "Document uploads/month",
+      aiDocumentGenerations: "AI documents/month",
+      consultationsPerMonth: "Consultations/month",
+      researchLibraryAccess: "Research library",
+      prioritySupport: "Priority support",
+      advancedAnalytics: "Advanced analytics",
+      customReports: "Custom reports",
+      lawyerDirectory: "Lawyer directory",
+    };
+
+    if (typeof value === "boolean") {
+      return `${titleMap[key] || key}: ${value ? "Included" : "Not included"}`;
+    }
+    return `${titleMap[key] || key}: ${value}`;
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -197,50 +182,47 @@ export default function SubscriptionPage() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-                    {currentPlanData?.name} Plan
+                    {currentPlanData?.name || subscription.name} Plan
                   </h2>
                   <p className="text-slate-600 dark:text-slate-400">
-                    {currentPlanData?.description}
+                    {`$${subscription.monthlyPrice}/month`}
                   </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full text-sm font-bold ${subscription.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"}`}>
-                  {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                <span
+                  className={`px-4 py-2 rounded-full text-sm font-bold ${
+                    subscription.providerStatus === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                  }`}
+                >
+                  {(subscription.providerStatus || "active").replace("_", " ")}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.price}</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">${subscription.amount}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">${subscription.monthlyPrice.toFixed(2)}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.billingCycle}</p>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">{t.subscription.monthly}</p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.started}</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(subscription.startDate).toLocaleDateString()}</p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.renews}</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(subscription.renewalDate).toLocaleDateString()}</p>
-                </div>
               </div>
 
               <div className="flex gap-4">
-                {subscription.status === "active" && currentPlan !== "enterprise" && (
-                  <LiveButton variant="primary" onClick={() => {
-                    setSelectedPlan(currentPlan === "starter" ? "professional" : "enterprise");
-                    setShowUpgradeModal(true);
-                  }}>
+                {currentTier !== "premium" && (
+                  <LiveButton
+                    variant="primary"
+                    onClick={() => {
+                      const target = currentTier === "free" ? "pro" : "premium";
+                      handleUpgrade(target);
+                    }}
+                  >
                     Upgrade Plan
                   </LiveButton>
                 )}
-                {subscription.status === "active" && (
-                  <LiveButton variant="ghost" className="text-red-600 hover:bg-red-50" onClick={handleCancel}>
-                    Cancel Subscription
-                  </LiveButton>
-                )}
+                <LiveButton variant="ghost" className="text-red-600 hover:bg-red-50" onClick={handleCancel}>
+                  Cancel Subscription
+                </LiveButton>
               </div>
             </AnimatedCard>
           </motion.div>
@@ -251,50 +233,61 @@ export default function SubscriptionPage() {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">{t.subscription.upgradeYourPlan}</h2>
           
           <div className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan, i) => (
-              <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <AnimatedCard className={`flex flex-col h-full ${plan.popular ? "border-2 border-brand-500 relative" : "border border-slate-200 dark:border-slate-700"}`}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold">
-                      {t.subscription.mostPopular}
-                    </div>
-                  )}
+            {plans.map((plan, i) => {
+              const isCurrent = plan.tier === currentTier;
+              return (
+                <motion.div key={plan.tier} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                  <AnimatedCard className={`flex flex-col h-full ${plan.tier === "pro" ? "border-2 border-brand-500 relative" : "border border-slate-200 dark:border-slate-700"}`}>
+                    {plan.tier === "pro" && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold">
+                        {t.subscription.mostPopular}
+                      </div>
+                    )}
 
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">{plan.description}</p>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold text-slate-900 dark:text-white">${plan.price}</span>
-                      <span className="text-slate-600 dark:text-slate-400">/{plan.period}</span>
+                    <div className="mb-6">
+                      <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">
+                        {plan.tier === "free"
+                          ? "Perfect for getting started"
+                          : plan.tier === "pro"
+                            ? "For serious applicants"
+                            : "For immigration firms"}
+                      </p>
+                      <div className="mt-4">
+                        <span className="text-4xl font-bold text-slate-900 dark:text-white">
+                          ${plan.monthlyPrice.toFixed(0)}
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400">/month</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex-1 mb-6">
-                    <div className="space-y-3">
-                      {plan.features.map((feature, j) => (
-                        <div key={j} className="flex items-start gap-3">
-                          <Check size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-slate-600 dark:text-slate-400 text-sm">{feature}</span>
-                        </div>
-                      ))}
+                    <div className="flex-1 mb-6">
+                      <div className="space-y-3">
+                        {Object.entries(plan.features || {}).map(([key, value]) => (
+                          <div key={key} className="flex items-start gap-3">
+                            <Check size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-600 dark:text-slate-400 text-sm">{formatFeature(key, value)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <LiveButton
-                    variant={plan.id === currentPlan ? "ghost" : "primary"}
-                    className="w-full"
-                    disabled={plan.id === currentPlan}
-                    onClick={() => {
-                      if (plan.id !== currentPlan) {
-                        handleUpgrade(plan.id);
-                      }
-                    }}
-                  >
-                    {plan.id === currentPlan ? t.subscription.currentPlan : t.subscription.upgradeNow}
-                  </LiveButton>
-                </AnimatedCard>
-              </motion.div>
-            ))}
+                    <LiveButton
+                      variant={isCurrent ? "ghost" : "primary"}
+                      className="w-full"
+                      disabled={isCurrent}
+                      onClick={() => {
+                        if (!isCurrent) {
+                          handleUpgrade(plan.tier);
+                        }
+                      }}
+                    >
+                      {isCurrent ? t.subscription.currentPlan : t.subscription.upgradeNow}
+                    </LiveButton>
+                  </AnimatedCard>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
@@ -330,9 +323,13 @@ export default function SubscriptionPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <a href={`#invoice-${item.id}`} className="text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium">
-                            {t.subscription.download}
-                          </a>
+                          {item.invoice ? (
+                            <a href={item.invoice} className="text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium">
+                              {t.subscription.download}
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">N/A</span>
+                          )}
                         </td>
                       </tr>
                     ))}

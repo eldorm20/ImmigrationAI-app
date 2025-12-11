@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth";
+import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { db } from "../db";
 import {
@@ -110,11 +110,16 @@ router.post(
         });
       }
 
+      // If Stripe returned a payment intent (incomplete subscription flow), expose the client_secret
+      const paymentIntentClientSecret =
+        (subscription as any)?.latest_invoice?.payment_intent?.client_secret || null;
+
       res.json({
         success: true,
         message: `Upgraded to ${tierConfig.name} tier`,
         tier,
         subscription: { id: subscription.id, status: subscription.status },
+        paymentIntentClientSecret,
       });
     } catch (error) {
       console.error("Subscription upgrade error:", error);
@@ -181,6 +186,22 @@ router.get(
   })
 );
 
+// Admin: list subscriptions (debugging)
+router.get(
+  "/admin/list",
+  authenticate,
+  requireRole("admin"),
+  asyncHandler(async (req, res) => {
+    try {
+      const subs = await db.query.subscriptions.findMany();
+      res.json({ subscriptions: subs });
+    } catch (err) {
+      console.error("Failed to list subscriptions:", err);
+      res.status(500).json({ message: "Failed to fetch subscriptions" });
+    }
+  })
+);
+
 // Cancel subscription
 router.post(
   "/cancel",
@@ -220,3 +241,4 @@ router.post(
 );
 
 export default router;
+

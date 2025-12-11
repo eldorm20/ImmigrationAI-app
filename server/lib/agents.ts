@@ -441,6 +441,7 @@ async function generateTextWithProvider(
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
   );
+  const hasOllama = Boolean(process.env.OLLAMA_URL || process.env.OLLAMA_MODEL);
 
   if (hasOpenAI) {
     try {
@@ -468,6 +469,15 @@ async function generateTextWithProvider(
       );
     } catch (err) {
       logger.warn({ err }, "Hugging Face provider failed");
+      if (!hasOllama) throw err;
+    }
+  }
+
+  if (hasOllama) {
+    try {
+      return await generateWithOllama(`${systemPrompt}\n\n${prompt}`);
+    } catch (err) {
+      logger.warn({ err }, "Ollama provider failed");
       throw err;
     }
   }
@@ -514,6 +524,43 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
     return json.generated_text;
   }
   return JSON.stringify(json);
+}
+
+/**
+ * Ollama / local LLM support
+ * - Uses `OLLAMA_URL` env var (defaults to http://127.0.0.1:11434/api/generate)
+ * - Accepts `OLLAMA_MODEL` if the remote endpoint requires a model field
+ */
+async function generateWithOllama(prompt: string): Promise<string> {
+  const url = (process.env.OLLAMA_URL as string) || "http://127.0.0.1:11434/api/generate";
+  const model = process.env.OLLAMA_MODEL as string | undefined;
+
+  const payload: any = model ? { model, prompt } : { prompt };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const text = await res.text();
+
+  // Try to parse as JSON and extract a sensible text field
+  try {
+    const json = JSON.parse(text);
+    // Common shapes: { response: "..." } or { results: [{ content: '...' }] }
+    if (typeof json === "string") return json;
+    if (json?.response && typeof json.response === "string") return json.response;
+    if (Array.isArray(json?.results)) {
+      return json.results.map((r: any) => r.content || r.text || JSON.stringify(r)).join("\n");
+    }
+    if (json?.output && typeof json.output === "string") return json.output;
+    // fallback to returning stringified JSON
+    return JSON.stringify(json);
+  } catch (e) {
+    // not JSON -> return raw text
+    return text;
+  }
 }
 
 // Export singleton instance

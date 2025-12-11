@@ -1,12 +1,39 @@
-import Stripe from "stripe";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-08-16",
-});
+let stripe: any | null = null;
+
+async function getStripe() {
+  if (stripe) return stripe;
+
+  if (process.env.STRIPE_SECRET_KEY) {
+    try {
+      const StripePkg = await import("stripe");
+      const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
+      return stripe;
+    } catch (err) {
+      // leave stripe null and rely on runtime guards further down
+      stripe = null;
+      return null;
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const { createMockStripe } = await import("./mockStripe");
+      stripe = createMockStripe();
+      return stripe;
+    } catch (err) {
+      stripe = null;
+      return null;
+    }
+  }
+
+  return null;
+}
 
 export interface UserSubscription {
   subscriptionId: string;
@@ -21,9 +48,10 @@ export async function createSubscription(
   email: string
 ): Promise<Stripe.Subscription | null> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      logger.warn("Stripe key not configured");
-      throw new Error("Stripe key not configured");
+    const stripeClient = await getStripe();
+    if (!stripeClient) {
+      logger.warn("Stripe key not configured or stripe client unavailable");
+      throw new Error("Stripe client not available");
     }
 
     // First, ensure customer exists or create one
@@ -77,7 +105,7 @@ export async function createSubscription(
     // Create subscription
     let subscription: Stripe.Subscription;
     try {
-      subscription = await stripe.subscriptions.create({
+      subscription = await stripeClient.subscriptions.create({
         customer: customer.id,
         items: [{ price: planId }],
         metadata: { userId, planId },
@@ -125,11 +153,10 @@ export async function createSubscription(
 
 export async function cancelSubscription(subscriptionId: string): Promise<boolean> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return false;
-    }
+    const stripeClient = await getStripe();
+    if (!stripeClient) return false;
 
-    await stripe.subscriptions.update(subscriptionId, {
+    await stripeClient.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
 
@@ -145,11 +172,10 @@ export async function getSubscriptionStatus(
   subscriptionId: string
 ): Promise<UserSubscription | null> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return null;
-    }
+    const stripeClient = await getStripe();
+    if (!stripeClient) return null;
 
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId as any);
 
     return {
       subscriptionId: subscription.id,
@@ -168,15 +194,14 @@ export async function updateSubscriptionPlan(
   newPlanId: string
 ): Promise<boolean> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return false;
-    }
+    const stripeClient = await getStripe();
+    if (!stripeClient) return false;
 
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripeClient.subscriptions.retrieve(subscriptionId as any);
     const currentItem = subscription.items.data[0];
 
     if (currentItem) {
-      await stripe.subscriptions.update(subscriptionId, {
+      await stripeClient.subscriptions.update(subscriptionId, {
         items: [
           {
             id: currentItem.id,
@@ -201,11 +226,10 @@ export async function getInvoices(
   limit: number = 10
 ): Promise<Stripe.Invoice[]> {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return [];
-    }
+    const stripeClient = await getStripe();
+    if (!stripeClient) return [];
 
-    const invoices = await stripe.invoices.list({
+    const invoices = await stripeClient.invoices.list({
       customer: customerId,
       limit,
     });

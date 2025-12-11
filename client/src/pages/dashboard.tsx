@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import Header from '@/components/Header';
 import { apiRequest } from "@/lib/api";
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
@@ -23,6 +24,15 @@ export default function UserDash() {
   const { t } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [compactNav, setCompactNav] = useState<boolean>(() => {
+    try { return localStorage.getItem('navbarCompact') === '1'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    const onChange = () => setCompactNav(localStorage.getItem('navbarCompact') === '1');
+    window.addEventListener('navbarCompactChange', onChange);
+    return () => window.removeEventListener('navbarCompactChange', onChange);
+  }, []);
   
   const [activeTab, setActiveTab] = useState('roadmap');
   
@@ -50,7 +60,7 @@ export default function UserDash() {
       <motion.aside 
         initial={{ x: -50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="w-full md:w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen sticky top-0 z-20 shadow-sm"
+        className={`w-full ${compactNav ? 'md:w-20' : 'md:w-72'} bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen sticky top-0 z-20 shadow-sm`}
       >
         <div className="p-8 flex justify-between items-center">
           <motion.div 
@@ -148,6 +158,7 @@ export default function UserDash() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto relative">
+        <Header />
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/50 to-transparent dark:from-brand-900/10 pointer-events-none" />
         

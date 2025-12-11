@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useI18n } from "@/lib/i18n";
-import { Plane, ArrowRight, Check, Menu, X, Play, Shield, Users, Globe, Star, ArrowUpRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import { Plane, ArrowRight, Check, Play, Shield, Users, Globe, Star, ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { LiveButton } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 // Background handled via CSS gradients - no image asset needed
 
@@ -12,7 +12,6 @@ export default function Home() {
   const [_, setLocation] = useLocation();
   const [age, setAge] = useState(25);
   const [score, setScore] = useState(65);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let s = 40;
@@ -25,6 +24,27 @@ export default function Home() {
     setLocation(`/auth?role=${role}`);
   };
 
+  const blogHighlights = [
+    {
+      title: "Top Immigration Visa Requirements for 2025",
+      excerpt: "Latest updates on EU, UK, and Poland visa rules, documents, and timelines.",
+      tag: "Visa Guides",
+      date: "Dec 2024",
+    },
+    {
+      title: "How to Prepare Your Immigration Application",
+      excerpt: "A practical checklist to avoid rejections and keep your dossier complete.",
+      tag: "Application Tips",
+      date: "Nov 2024",
+    },
+    {
+      title: "Success Stories: Real Immigration Journeys",
+      excerpt: "See how Uzbek professionals used ImmigrationAI to get approvals faster.",
+      tag: "Success",
+      date: "Oct 2024",
+    },
+  ];
+
   return (
     <div className="min-h-screen relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
@@ -33,76 +53,6 @@ export default function Home() {
         <div className="absolute -top-[40%] -right-[20%] w-[80%] h-[80%] bg-brand-500/10 dark:bg-brand-500/20 rounded-full blur-[120px] animate-float"></div>
         <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-accent-500/10 dark:bg-accent-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
       </div>
-
-      {/* Navigation */}
-      <nav className="fixed w-full z-50 px-6 py-4 transition-all duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
-            onClick={() => setLocation('/')}
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 text-white">
-              <Plane className="transform -rotate-45" size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-slate-900 dark:text-white">Immigration<span className="text-brand-600 dark:text-brand-400">AI</span></span>
-          </motion.div>
-          
-          {/* Desktop Nav */}
-          <div className="hidden md:flex gap-4 items-center">
-            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
-              {['en','uz','ru'].map(l => (
-                <button key={l} onClick={()=>setLang(l as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang===l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <ThemeToggle />
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
-            <LiveButton variant="ghost" className="py-2 px-4 text-sm" onClick={() => setLocation('/features')}>Features</LiveButton>
-            <LiveButton variant="ghost" className="py-2 px-4 text-sm" onClick={() => setLocation('/pricing')}>Pricing</LiveButton>
-            <LiveButton variant="secondary" className="py-2 px-4 text-sm" onClick={() => setLocation('/partner')}>Partner</LiveButton>
-            <LiveButton variant="primary" onClick={() => goLogin('applicant')} icon={ArrowRight}>{t.nav.login}</LiveButton>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <div className="flex gap-4 md:hidden items-center">
-             <ThemeToggle />
-             <button className="p-2 text-slate-900 dark:text-white" onClick={() => setMenuOpen(!menuOpen)}>
-               {menuOpen ? <X /> : <Menu />}
-             </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-white dark:bg-slate-950 pt-24 px-6 md:hidden"
-          >
-            <div className="flex flex-col gap-4">
-               <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg w-fit mb-4 self-center">
-                  {['en','uz','ru'].map(l => (
-                    <button key={l} onClick={()=>setLang(l as any)}
-                            className={`px-6 py-3 text-sm font-bold rounded-lg uppercase ${lang===l ? 'bg-white dark:bg-slate-800 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              <LiveButton variant="ghost" className="w-full justify-start py-4 text-slate-900 dark:text-white" onClick={() => { setMenuOpen(false); setLocation('/features'); }}>Features</LiveButton>
-              <LiveButton variant="ghost" className="w-full justify-start py-4 text-slate-900 dark:text-white" onClick={() => { setMenuOpen(false); setLocation('/pricing'); }}>Pricing</LiveButton>
-              <LiveButton variant="secondary" className="w-full justify-start py-4" onClick={() => { setMenuOpen(false); setLocation('/partner'); }}>Partner Program</LiveButton>
-              <LiveButton variant="primary" className="w-full justify-start py-4" onClick={() => goLogin('applicant')}>{t.nav.login}</LiveButton>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Hero Section */}
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
@@ -462,6 +412,38 @@ export default function Home() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">{testimonial.location} • {testimonial.visa}</p>
                 </div>
               </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Blog Highlights */}
+      <div className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Immigration insights</h2>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">Fresh guidance, policy updates, and success stories.</p>
+            </div>
+            <LiveButton variant="secondary" onClick={() => setLocation("/blog")}>
+              View all articles <ArrowRight size={16} />
+            </LiveButton>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {blogHighlights.map((post, idx) => (
+              <div key={idx} className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-brand-400/60 dark:hover:border-brand-500/60 transition-colors">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase text-brand-600 dark:text-brand-400 mb-3">
+                  <span className="px-2 py-1 rounded-full bg-brand-50 dark:bg-brand-900/30">{post.tag}</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-500 dark:text-slate-400">{post.date}</span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{post.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">{post.excerpt}</p>
+                <LiveButton variant="ghost" className="px-0" onClick={() => setLocation("/blog")}>
+                  Read more <ArrowRight size={14} />
+                </LiveButton>
+              </div>
             ))}
           </div>
         </div>

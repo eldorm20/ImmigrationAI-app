@@ -25,6 +25,12 @@ export function Navbar() {
   }, []);
 
   const isDark = location === "/lawyer";
+  const navItems = [
+    { label: "Features", href: "/features" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Blog", href: "/blog" },
+    { label: "Contact", href: "/contact" },
+  ];
 
   return (
     <nav
@@ -70,6 +76,19 @@ export function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`${location === item.href ? "text-primary" : ""} ${
+                  !isScrolled && location === "/" ? "text-white hover:text-white/80 hover:bg-white/10" : ""
+                }`}
+              >
+                {item.label}
+              </Button>
+            </Link>
+          ))}
           <Link href="/help">
             <Button
               variant="ghost"
@@ -132,6 +151,12 @@ export function Navbar() {
                 <Button variant={lang === 'fr' ? 'default' : 'outline'} size="sm" onClick={() => setLang('fr')}>FR</Button>
                 <Button variant={lang === 'es' ? 'default' : 'outline'} size="sm" onClick={() => setLang('es')}>ES</Button>
               </div>
+
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Button variant="outline" className="w-full justify-start">{item.label}</Button>
+                </Link>
+              ))}
 
               <Link href="/help">
                 <Button variant="outline" className="w-full justify-start">Help & Support</Button>

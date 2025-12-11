@@ -32,6 +32,15 @@ export const consultationStatusEnum = pgEnum("consultation_status", [
   "cancelled",
   "no_show"
 ]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "incomplete",
+  "incomplete_expired",
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "unpaid",
+]);
 export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
   "processing",
@@ -266,6 +275,25 @@ export const insertUserSchema = createInsertSchema(users, {
   phone: true,
 });
 
+// Subscriptions table (normalized storage for provider subscriptions)
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: paymentProviderEnum("provider").notNull().default("stripe"),
+  providerSubscriptionId: varchar("provider_subscription_id", { length: 255 }).notNull().unique(),
+  planId: varchar("plan_id", { length: 255 }),
+  status: subscriptionStatusEnum("status").notNull().default("incomplete"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  metadata: jsonb("metadata"),
+  lastEventId: varchar("last_event_id", { length: 255 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("subscriptions_user_id_idx").on(table.userId),
+  providerSubIdx: index("subscriptions_provider_subscription_id_idx").on(table.providerSubscriptionId),
+  statusIdx: index("subscriptions_status_idx").on(table.status),
+}));
+
 export const insertApplicationSchema = createInsertSchema(applications, {
   visaType: z.string().min(1).max(100),
   country: z.string().length(2), // ISO country code
@@ -356,6 +384,22 @@ export const insertRoadmapItemSchema = createInsertSchema(roadmapItems, {
   metadata: true,
 });
 
+export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
+  userId: z.string().uuid().optional(),
+  providerSubscriptionId: z.string().min(1).max(255),
+  planId: z.string().max(255).optional(),
+  status: z.enum(["incomplete","incomplete_expired","trialing","active","past_due","canceled","unpaid"]).optional(),
+  currentPeriodEnd: z.date().optional(),
+  metadata: z.any().optional(),
+}).pick({
+  userId: true,
+  providerSubscriptionId: true,
+  planId: true,
+  status: true,
+  currentPeriodEnd: true,
+  metadata: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -375,4 +419,6 @@ export type InsertResearchArticle = z.infer<typeof insertResearchArticleSchema>;
 export type ResearchArticle = typeof researchArticles.$inferSelect;
 export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
 export type RoadmapItem = typeof roadmapItems.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
 

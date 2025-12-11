@@ -31,6 +31,7 @@ import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import VisaComparison from "@/pages/visa-comparison";
 import CommunityForum from "@/pages/forum";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminSubscriptions from "@/pages/admin/subscriptions";
 import Partner from "@/pages/partner";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
@@ -127,6 +128,9 @@ function Router() {
 
         <Route path="/admin">
           <ProtectedRoute component={AdminDashboard} role="admin" />
+        </Route>
+        <Route path="/admin/subscriptions">
+          <ProtectedRoute component={AdminSubscriptions} role="admin" />
         </Route>
         
         <Route path="/lawyer">

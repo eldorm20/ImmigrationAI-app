@@ -66,6 +66,10 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 Note: Configure webhook endpoint in Stripe dashboard to: `https://<your-railway-domain>/api/webhooks/stripe`
 
+#### Development note: mock Stripe
+
+If you do not set `STRIPE_SECRET_KEY` in development, the server will automatically use a small in-memory mock Stripe client (only on non-production). This lets you exercise the payment flow locally without a real Stripe key — the mock returns `clientSecret` values prefixed with `cs_mock_...` and payment intent ids `pi_mock_...` which the app treats as succeeded in the local confirm flow.
+
 ### AI/LLM Configuration (choose one approach)
 
 #### Option A: Use Hugging Face Inference API (easiest, no GPU needed)
@@ -80,6 +84,25 @@ Replace `HF_MODEL` with a community model of choice (examples: `openassistant/oa
 HUGGINGFACE_API_TOKEN=hf_xxxxx
 HF_INFERENCE_URL=https://your-inference-server.example.com/v1/models/mymodel:predict
 ```
+
+#### Using Hugging Face on Railway (recommended for open-source LLMs)
+
+1. In Railway Project → Variables add:
+  - `HUGGINGFACE_API_TOKEN` — your Hugging Face token (keep private)
+  - `HF_MODEL` — model repo id (e.g., `OpenAssistant/replit-1b-instruct`)
+
+2. If you prefer a self-hosted inference server (e.g., `text-generation-inference`), set `HF_INFERENCE_URL` to the full inference URL and optionally set `HUGGINGFACE_API_TOKEN` if your server requires it.
+
+3. Notes on model size and performance:
+  - Railway free tier is CPU-only and not suitable for large models (7B+). Use hosted HF Inference API or an external GPU provider for large models.
+  - Pick a model size compatible with CPU inference (1–3B) for acceptable latency.
+
+4. Testing the AI configuration:
+  - Start the app and visit `GET /api/ai/status` which reports which providers are configured (OpenAI, Hugging Face, or custom URL).
+  - Example (local):
+    ```bash
+    curl http://localhost:5000/api/ai/status
+    ```
 
 #### Option C: OpenAI (optional, paid)
 ```

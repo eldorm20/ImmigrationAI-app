@@ -6,19 +6,29 @@ import { db } from "../db";
 import { payments, applications } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { TIER_CONFIGURATIONS } from "../lib/subscriptionTiers";
 
 const router = Router();
 
 let stripe: any;
-try {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    logger.warn("STRIPE_SECRET_KEY not set - Stripe disabled");
-  } else {
-    stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+(async () => {
+  try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      // No Stripe key — in development use a lightweight mock to allow local testing
+      logger.warn("STRIPE_SECRET_KEY not set - using mock Stripe in development");
+      if (process.env.NODE_ENV !== "production") {
+        const { createMockStripe } = await import("../lib/mockStripe");
+        stripe = createMockStripe();
+      }
+    } else {
+      const StripePkg = await import("stripe");
+      const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
+    }
+  } catch (err) {
+    logger.warn({ err }, "Stripe not initialized - payment features disabled");
   }
-} catch (err) {
-  logger.warn("Stripe not initialized - payment features disabled");
-}
+})();
 
 // Create payment intent
 router.post(
@@ -74,7 +84,76 @@ router.post(
     res.json({
       clientSecret: paymentIntent.client_secret,
       paymentId: payment.id,
+      paymentIntentId: paymentIntent.id,
     });
+  })
+);
+
+// Public configuration for client (publishable key, plan info)
+router.get(
+  "/config",
+  asyncHandler(async (_req, res) => {
+    res.json({
+      publicKey: process.env.STRIPE_PUBLIC_KEY || null,
+    });
+  })
+);
+
+// Create a Checkout Session for subscription (redirect flow)
+router.post(
+  "/create-checkout-session",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    if (!stripe) {
+      throw new AppError(503, "Payment service not available");
+    }
+
+    const { tier } = z
+      .object({ tier: z.string() })
+      .parse(req.body);
+
+    const userId = req.user!.userId;
+
+    // Find price id from server-side config
+    const tierKey = tier as keyof typeof TIER_CONFIGURATIONS;
+    const tierCfg = TIER_CONFIGURATIONS[tierKey];
+
+    if (!tierCfg || !tierCfg.stripePriceId) {
+      throw new AppError(400, "Invalid pricing tier");
+    }
+
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+
+    let session: any;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: tierCfg.stripePriceId, quantity: 1 }],
+        success_url: `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${clientUrl}/subscription`,
+        metadata: { userId },
+      });
+    } catch (err: any) {
+      logger.error({ err, userId, tier }, "Failed to create checkout session");
+      throw new AppError(502, "Payment provider error");
+    }
+
+    // Persist a payment record for tracking
+    try {
+      await db.insert(payments).values({
+        userId,
+        applicationId: null,
+        amount: tierCfg.monthlyPrice.toString(),
+        currency: "USD",
+        provider: "stripe",
+        providerTransactionId: session.id,
+        status: "processing",
+      });
+    } catch (err) {
+      logger.warn({ err, sessionId: session.id }, "Failed to persist checkout session to payments table");
+    }
+
+    res.json({ checkoutUrl: session.url, sessionId: session.id });
   })
 );
 
@@ -93,11 +172,16 @@ router.post(
       })
       .parse(req.body);
 
+    // Allow client_secret to be passed; extract the actual intent id if needed
+    const normalizedIntentId = paymentIntentId.startsWith("pi_")
+      ? paymentIntentId
+      : paymentIntentId.split("_secret")[0];
+
     let paymentIntent: any;
     try {
-      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      paymentIntent = await stripe.paymentIntents.retrieve(normalizedIntentId);
     } catch (err: any) {
-      logger.error({ err, paymentIntentId }, "Failed to retrieve payment intent");
+      logger.error({ err, paymentIntentId: normalizedIntentId }, "Failed to retrieve payment intent");
       throw new AppError(502, "Payment provider error");
     }
 
@@ -105,10 +189,10 @@ router.post(
       await db
         .update(payments)
         .set({ status: "completed" })
-        .where(eq(payments.providerTransactionId, paymentIntentId));
+        .where(eq(payments.providerTransactionId, paymentIntent.id));
 
       logger.info(
-        { paymentIntentId, userId: req.user!.userId },
+        { paymentIntentId: paymentIntent.id, userId: req.user!.userId },
         "Payment confirmed"
       );
 

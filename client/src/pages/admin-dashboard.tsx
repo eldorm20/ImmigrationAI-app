@@ -3,6 +3,8 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { Users, TrendingUp, DollarSign, AlertCircle, User, Zap, BarChart3 } from "lucide-react";
+import { Link } from "wouter";
+import { CreditCard } from "lucide-react";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -44,7 +46,17 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div>
+          <Link href="/admin/subscriptions">
+            <a className="inline-flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-sm hover:shadow">
+              <CreditCard className="text-green-600" />
+              View Subscriptions
+            </a>
+          </Link>
+        </div>
+      </div>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -72,6 +84,24 @@ export default function AdminDashboard() {
           value={`${stats?.metrics?.newUsersThisMonth || 0}%`}
           subtitle="This month"
         />
+      </div>
+
+      {/* Quick Admin Links */}
+      <div className="mt-6">
+        <h3 className="text-xl font-bold mb-3">Admin Quick Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Link href="/admin/subscriptions">
+            <a className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 flex items-center gap-4 hover:shadow">
+              <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/20 text-green-600">
+                <CreditCard />
+              </div>
+              <div>
+                <div className="text-sm text-slate-500">Subscriptions</div>
+                <div className="font-bold">View all subscriptions</div>
+              </div>
+            </a>
+          </Link>
+        </div>
       </div>
 
       {/* User Analytics */}

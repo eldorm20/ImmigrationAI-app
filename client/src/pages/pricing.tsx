@@ -1,95 +1,110 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, FileText, Globe, Shield, Users, MessageSquare, Download, Loader } from "lucide-react";
+import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, Globe, Shield, Users, Loader } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton } from "@/components/ui/live-elements";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
-import { Plane } from "lucide-react";
 import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Pricing() {
   const [_, setLocation] = useLocation();
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
 
-  const plans = [
-    {
-      id: "starter",
-      name: t.pricing.starter,
-      price: t.pricing.free,
-      priceValue: 0,
-      annualPrice: null,
-      period: t.pricing.forever,
-      description: "Perfect for individuals exploring immigration options",
-      audience: "Individual visa applicants and students",
-      icon: Zap,
-      color: "from-blue-500 to-cyan-500",
-      features: [
-        "AI Eligibility Checker",
-        "Basic AI Chat Assistant",
-        "Document Templates (3/month)",
-        "Community Support",
-        "Basic Roadmap Tracking",
-        "Email Support"
-      ],
-      cta: t.pricing.getStarted,
-      popular: false
-    },
-    {
-      id: "professional",
-      name: t.pricing.professional,
-      price: billingPeriod === 'monthly' ? "$99" : "$990",
-      priceValue: billingPeriod === 'monthly' ? 9900 : 99000,
-      annualPrice: 99000,
-      period: billingPeriod === 'monthly' ? t.pricing.perMonth : "/year (Save 25%)",
-      description: "For serious applicants and professionals",
-      audience: "Active visa applicants, professionals relocating",
-      icon: Crown,
-      color: "from-purple-500 to-pink-500",
-      features: [
-        "Everything in Starter",
-        "Unlimited AI Document Generation",
-        "Advanced AI Chat with Legal Context",
-        "Document Upload & Analysis",
-        "AI Translation (10/month)",
-        "Priority Support",
-        "Case Management",
-        "Export Reports (CSV/JSON)",
-        "Advanced Analytics"
-      ],
-      cta: t.pricing.startTrial,
-      popular: true
-    },
-    {
-      id: "enterprise",
-      name: t.pricing.enterprise,
-      price: "Custom",
-      priceValue: 0,
-      annualPrice: null,
-      period: t.pricing.contactUs,
-      description: "For law firms and organizations",
-      audience: "Immigration lawyers, agencies, HR departments, staffing firms",
-      icon: Building2,
-      color: "from-orange-500 to-red-500",
-      features: [
-        "Everything in Professional",
-        "Unlimited Everything",
-        "White-label Options",
-        "Custom AI Training",
-        "Dedicated Account Manager",
-        "API Access",
-        "On-premise Deployment",
-        "Custom Integrations",
-        "SLA Guarantee"
-      ],
-      cta: t.pricing.contactSales,
-      popular: false
-    }
-  ];
+  const plans = useMemo(() => {
+    const proMonthly = 29;
+    const premiumMonthly = 79;
+    const discountFactor = 0.8; // 20% off annually
+
+    return [
+      {
+        id: "free",
+        name: t.pricing.starter,
+        priceLabel: "$0",
+        priceCents: 0,
+        period: t.pricing.forever,
+        description: "Perfect for individuals exploring immigration options",
+        audience: "Individual visa applicants and students",
+        icon: Zap,
+        color: "from-blue-500 to-cyan-500",
+        features: [
+          "AI Eligibility Checker",
+          "Basic AI Chat Assistant",
+          "Document Templates (3/month)",
+          "Community Support",
+          "Basic Roadmap Tracking",
+          "Email Support",
+        ],
+        cta: t.pricing.getStarted,
+        popular: false,
+      },
+      {
+        id: "pro",
+        name: t.pricing.professional,
+        priceLabel:
+          billingPeriod === "monthly"
+            ? `$${proMonthly}`
+            : `$${Math.round(proMonthly * 12 * discountFactor)}`,
+        priceCents:
+          billingPeriod === "monthly"
+            ? proMonthly * 100
+            : Math.round(proMonthly * 12 * discountFactor * 100),
+        period: billingPeriod === "monthly" ? t.pricing.perMonth : "/year (Save 20%)",
+        description: "For serious applicants and professionals",
+        audience: "Active visa applicants, professionals relocating",
+        icon: Crown,
+        color: "from-purple-500 to-pink-500",
+        features: [
+          "Everything in Starter",
+          "Unlimited AI Document Generation",
+          "Advanced AI Chat with Legal Context",
+          "Document Upload & Analysis",
+          "AI Translation (10/month)",
+          "Priority Support",
+          "Case Management",
+          "Export Reports (CSV/JSON)",
+          "Advanced Analytics",
+        ],
+        cta: t.pricing.startTrial,
+        popular: true,
+      },
+      {
+        id: "premium",
+        name: t.pricing.enterprise,
+        priceLabel:
+          billingPeriod === "monthly"
+            ? `$${premiumMonthly}`
+            : `$${Math.round(premiumMonthly * 12 * discountFactor)}`,
+        priceCents:
+          billingPeriod === "monthly"
+            ? premiumMonthly * 100
+            : Math.round(premiumMonthly * 12 * discountFactor * 100),
+        period: billingPeriod === "monthly" ? t.pricing.perMonth : "/year (Save 20%)",
+        description: "For law firms and organizations",
+        audience: "Immigration lawyers, agencies, HR departments, staffing firms",
+        icon: Building2,
+        color: "from-orange-500 to-red-500",
+        features: [
+          "Everything in Professional",
+          "Unlimited Everything",
+          "White-label Options",
+          "Custom AI Training",
+          "Dedicated Account Manager",
+          "API Access",
+          "On-premise Deployment",
+          "Custom Integrations",
+          "SLA Guarantee",
+        ],
+        cta: t.pricing.contactSales,
+        popular: false,
+      },
+    ];
+  }, [billingPeriod, t.pricing]);
 
   const handleCheckout = async (plan: typeof plans[0]) => {
     try {
@@ -102,33 +117,52 @@ export default function Pricing() {
       setLoadingPlan(plan.id);
 
       // If free plan, just redirect to dashboard
-      if (plan.priceValue === 0) {
-        setLocation('/dashboard');
+      if (plan.priceCents === 0) {
+        setLocation("/dashboard");
         return;
       }
 
-      // If enterprise, send email
-      if (plan.id === 'enterprise') {
-        window.location.href = 'mailto:sales@immigrationai.com?subject=Enterprise Pricing Inquiry';
-        setLoadingPlan(null);
-        return;
-      }
-
-      // Create payment intent
-      const response = await apiRequest<any>('/stripe/create-intent', {
-        method: 'POST',
-        body: JSON.stringify({
-          amount: plan.priceValue / 100,
-          description: `${plan.name} Subscription (${billingPeriod})`
-        })
+      // Use Stripe Checkout Sessions for subscription tiers when available
+      const session = await apiRequest<any>("/stripe/create-checkout-session", {
+        method: "POST",
+        body: JSON.stringify({ tier: plan.id }),
       });
 
-      if (response.clientSecret) {
-        // Redirect to checkout page with payment intent
-        setLocation(`/checkout?clientSecret=${response.clientSecret}&planId=${plan.id}&billingPeriod=${billingPeriod}`);
+      if (session?.checkoutUrl) {
+        window.location.href = session.checkoutUrl;
+        return;
       }
+
+      // Fallback to payment intent + in-app checkout if Checkout is not configured
+      const intent = await apiRequest<any>("/stripe/create-intent", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: plan.priceCents / 100,
+          description: `${plan.name} Subscription (${billingPeriod})`,
+        }),
+      });
+
+      if (intent?.clientSecret && intent?.paymentIntentId) {
+        setLocation(
+          `/checkout?clientSecret=${encodeURIComponent(intent.clientSecret)}&paymentIntentId=${encodeURIComponent(
+            intent.paymentIntentId
+          )}&planId=${plan.id}&billingPeriod=${billingPeriod}`
+        );
+        return;
+      }
+
+      toast({
+        title: "Unable to start checkout",
+        description: "Payment provider is not fully configured. Please try again or contact support.",
+        variant: "destructive",
+      });
     } catch (error) {
       console.error('Checkout error:', error);
+      toast({
+        title: "Payment failed",
+        description: "We could not start the checkout session. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoadingPlan(null);
     }
@@ -136,36 +170,8 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Navigation */}
-      <nav className="fixed w-full z-50 px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <motion.div 
-            className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
-            onClick={() => setLocation('/')}
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-400 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 text-white">
-              <Plane className="transform -rotate-45" size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-slate-900 dark:text-white">Immigration<span className="text-brand-600 dark:text-brand-400">AI</span></span>
-          </motion.div>
-          <div className="flex items-center gap-4">
-            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
-              {['en','uz','ru'].map(l => (
-                <button key={l} onClick={()=>setLang(l as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang===l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <ThemeToggle />
-            <LiveButton variant="ghost" onClick={() => setLocation('/auth')}>{t.nav.login}</LiveButton>
-            <LiveButton onClick={() => setLocation('/auth')}>{t.nav.start}</LiveButton>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
-      <div className="pt-32 pb-20 px-6">
+      <div className="pt-28 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -245,8 +251,8 @@ export default function Pricing() {
 
               <div className="mb-8">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold text-slate-900 dark:text-white">{plan.price}</span>
-                  {plan.price !== "Custom" && plan.price !== "Free" && (
+                  <span className="text-5xl font-extrabold text-slate-900 dark:text-white">{plan.priceLabel}</span>
+                  {plan.priceCents > 0 && (
                     <span className="text-slate-500 dark:text-slate-400">/mo</span>
                   )}
                 </div>
