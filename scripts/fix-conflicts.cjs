@@ -2,9 +2,9 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-function listFiles() {
+function listFiles(targetDir = 'client') {
   try {
-    const out = execSync('git grep -l "^<<<<<<< HEAD" -- client', { encoding: 'utf8' });
+    const out = execSync(`git grep -l "^<<<<<<< HEAD" -- ${targetDir}`, { encoding: 'utf8' });
     return out.split(/\r?\n/).filter(Boolean);
   } catch (e) {
     return [];
@@ -27,7 +27,8 @@ function fixFile(file) {
   }
 }
 
-const files = listFiles();
+const target = process.argv[2] || 'client';
+const files = listFiles(target);
 if (files.length === 0) {
   console.log('No files with conflict markers found.');
   process.exit(0);
