@@ -439,7 +439,8 @@ async function generateTextWithProvider(
 ): Promise<string> {
   const localAIUrl = process.env.LOCAL_AI_URL; // e.g., http://localhost:11434/generate or custom endpoint
   const hasLocalAI = Boolean(localAIUrl);
-  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+  // OpenAI usage intentionally disabled — prefer local/HuggingFace open-source providers
+  const hasOpenAI = false;
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
   );
@@ -489,24 +490,8 @@ async function generateTextWithProvider(
     }
   }
 
-  if (hasOpenAI) {
-    try {
-      const OpenAI = await import("openai").then((m) => m.default);
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const completion = await openai.chat.completions.create({
-        model: (process.env.OPENAI_MODEL as string) || "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      });
-      return completion.choices[0]?.message?.content || "";
-    } catch (err) {
-      logger.warn({ err }, "OpenAI provider failed");
-      if (!hasHuggingFace) throw err;
-    }
-  }
+  // OpenAI integration disabled by configuration — skipping OpenAI provider.
+  // If you later want to re-enable OpenAI, set OPENAI_API_KEY and remove the explicit disable above.
 
   if (hasHuggingFace) {
     try {

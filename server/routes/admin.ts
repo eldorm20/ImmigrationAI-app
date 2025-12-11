@@ -6,6 +6,8 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
+import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
 
 const router = Router();
 
@@ -152,6 +154,58 @@ router.get(
         analytics: "operational",
       },
     });
+  })
+);
+
+// Admin: get AI usage for users (optionally for a specific month YYYY-MM)
+router.get(
+  "/ai-usage",
+  asyncHandler(async (req, res) => {
+    const { month } = req.query as any;
+    const targetMonth = typeof month === "string" && month.length === 7 ? month : undefined; // YYYY-MM
+
+    const allUsers = await db.query.users.findMany();
+
+    const rows = [] as any[];
+    for (const u of allUsers) {
+      const usageObj = (u.metadata && typeof u.metadata === 'object' ? (u.metadata as any).aiUsage || {} : {});
+      const monthKey = targetMonth || new Date().toISOString().slice(0, 7);
+      const monthUsage = usageObj[monthKey] || {};
+      const tier = (u.metadata && typeof u.metadata === 'object' ? (u.metadata as any).subscriptionTier : 'free') || 'free';
+
+      const remaining = await getUsageRemaining(u.id, 'aiMonthlyRequests').catch(() => ({ limit: null, used: monthUsage.aiMonthlyRequests || 0, remaining: null }));
+
+      rows.push({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        role: u.role,
+        tier,
+        usage: monthUsage,
+        remaining,
+      });
+    }
+
+    res.json({ month: targetMonth || new Date().toISOString().slice(0, 7), users: rows });
+  })
+);
+
+// Admin: adjust user subscription tier (non-destructive)
+router.post(
+  "/users/:userId/adjust-tier",
+  asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { tier } = req.body as any;
+
+    if (!tier || !["free", "pro", "premium"].includes(tier)) {
+      return res.status(400).json({ message: "Invalid tier" });
+    }
+
+    const ok = await setUserSubscriptionTier(userId, tier as any);
+    if (!ok) return res.status(500).json({ message: "Failed to set tier" });
+
+    res.json({ success: true, message: `User tier set to ${tier}` });
   })
 );
 

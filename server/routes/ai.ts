@@ -31,7 +31,7 @@ router.get(
   "/status",
   asyncHandler(async (req, res) => {
     const hasLocalAI = Boolean(process.env.LOCAL_AI_URL);
-    const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+    const hasOpenAI = false; // OpenAI disabled — using open-source providers only
     const hasHF = Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL);
     const hfModel = process.env.HF_MODEL || null;
     const localUrl = process.env.LOCAL_AI_URL || null;
