@@ -400,6 +400,87 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
   metadata: true,
 });
 
+// Employer verification table
+export const employerVerifications = pgTable("employer_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  country: varchar("country", { length: 2 }).notNull(), // ISO country code
+  registryType: varchar("registry_type", { length: 50 }).notNull(), // e.g., "uk_companies_house", "eu_registry"
+  registryId: varchar("registry_id", { length: 255 }), // Company registration number
+  verificationStatus: varchar("verification_status", { length: 50 }).notNull().default("pending"), // pending, verified, invalid, error
+  companyData: jsonb("company_data"), // Store registry response data
+  registeredAddress: text("registered_address"),
+  businessType: varchar("business_type", { length: 100 }),
+  registrationDate: timestamp("registration_date"),
+  status: varchar("status", { length: 50 }), // active, dissolved, removed, etc.
+  companyNumber: varchar("company_number", { length: 100 }),
+  directorNames: jsonb("director_names"), // Array of director names
+  shareholderInfo: jsonb("shareholder_info"), // Store shareholding data if available
+  sic_codes: jsonb("sic_codes"), // Standard Industrial Classification codes
+  verificationDate: timestamp("verification_date"),
+  expiresAt: timestamp("expires_at"), // Cache expiration for re-verification
+  metadata: jsonb("metadata"), // Store additional verification notes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("employer_verifications_user_id_idx").on(table.userId),
+  applicationIdIdx: index("employer_verifications_application_id_idx").on(table.applicationId),
+  countryIdx: index("employer_verifications_country_idx").on(table.country),
+  statusIdx: index("employer_verifications_status_idx").on(table.verificationStatus),
+  registryIdIdx: index("employer_verifications_registry_id_idx").on(table.registryId),
+}));
+
+// Employer directory cache - stores frequently checked employers for quick reference
+export const employerDirectory = pgTable("employer_directory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  country: varchar("country", { length: 2 }).notNull(),
+  registryType: varchar("registry_type", { length: 50 }).notNull(),
+  registryId: varchar("registry_id", { length: 255 }).notNull(),
+  companyData: jsonb("company_data").notNull(),
+  status: varchar("status", { length: 50 }), // active, dissolved, removed
+  lastVerifiedAt: timestamp("last_verified_at"),
+  verificationsCount: integer("verifications_count").default(0), // Track how many times verified
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  companyCountryRegistryIdx: index("employer_directory_company_country_registry_idx").on(table.companyName, table.country, table.registryType),
+  registryIdIdx: index("employer_directory_registry_id_idx").on(table.registryId),
+  lastVerifiedIdx: index("employer_directory_last_verified_idx").on(table.lastVerifiedAt),
+}));
+
+export const insertEmployerVerificationSchema = createInsertSchema(employerVerifications, {
+  companyName: z.string().min(2).max(255),
+  country: z.string().length(2),
+  registryType: z.string().min(1).max(50),
+  verificationStatus: z.enum(["pending", "verified", "invalid", "error"]).default("pending"),
+  registeredAddress: z.string().optional(),
+  businessType: z.string().optional(),
+  companyNumber: z.string().optional(),
+  directorNames: z.array(z.string()).optional(),
+  shareholderInfo: z.any().optional(),
+  metadata: z.any().optional(),
+}).pick({
+  applicationId: true,
+  userId: true,
+  companyName: true,
+  country: true,
+  registryType: true,
+  registryId: true,
+  verificationStatus: true,
+  companyData: true,
+  registeredAddress: true,
+  businessType: true,
+  registrationDate: true,
+  status: true,
+  companyNumber: true,
+  directorNames: true,
+  shareholderInfo: true,
+  metadata: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -421,4 +502,6 @@ export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
 export type RoadmapItem = typeof roadmapItems.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
-
+export type InsertEmployerVerification = z.infer<typeof insertEmployerVerificationSchema>;
+export type EmployerVerification = typeof employerVerifications.$inferSelect;
+export type EmployerDirectory = typeof employerDirectory.$inferSelect;
