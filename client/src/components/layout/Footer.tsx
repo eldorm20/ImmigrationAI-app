@@ -70,10 +70,10 @@ export const Footer = () => {
           <div>
             <h4 className="font-bold text-md mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="/contact" className="hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="/blog" className="hover:text-white transition-colors">Blog</a></li>
+              <li><a href="/privacy" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Terms of Service</a></li>
+              <li><a href="/contact" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Contact Us</a></li>
+              <li><a href="/blog" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Blog</a></li>
             </ul>
           </div>
         </div>

@@ -51,7 +51,7 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const body = employerSearchSchema.parse(req.body);
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const params: CompanySearchParams = {
       companyName: body.companyName,
@@ -154,7 +154,7 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const body = multiRegistrySearchSchema.parse(req.body);
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     logger.info({ userId, companyName: body.companyName }, 'Multi-registry search');
 
@@ -210,7 +210,7 @@ router.get(
   '/history',
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { applicationId } = req.query;
 
     let query = db
@@ -250,7 +250,7 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const record = await db
       .select()
@@ -286,7 +286,7 @@ router.get(
     const { country, limit = 20 } = req.query;
     const maxLimit = Math.min(parseInt(limit as string) || 20, 100);
 
-    let query = db.select().from(employerDirectory);
+    let query: any = db.select().from(employerDirectory);
 
     if (country && typeof country === 'string') {
       query = db
@@ -315,7 +315,7 @@ router.delete(
   authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     // Verify ownership
     const record = await db
@@ -367,7 +367,7 @@ router.post(
       })
       .parse(req.body);
 
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const results = [];
 
     for (const employer of body.employers) {

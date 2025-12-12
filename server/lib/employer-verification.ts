@@ -143,7 +143,7 @@ async function verifyGermanCompany(
   companyName: string
 ): Promise<CompanyVerificationResult | null> {
   // For now, using mock data as direct API integration requires specific setup
-  logger.info('Searching German company registry for:', companyName);
+  logger.info({ companyName }, 'Searching German company registry for:');
   return createMockGermanResult(companyName);
 }
 
@@ -154,7 +154,7 @@ async function verifyFrenchCompany(
   companyName: string
 ): Promise<CompanyVerificationResult | null> {
   // For now, using mock data as direct API integration requires specific setup
-  logger.info('Searching French company registry for:', companyName);
+  logger.info({ companyName }, 'Searching French company registry for:');
   return createMockFrenchResult(companyName);
 }
 
@@ -165,7 +165,7 @@ async function verifyDutchCompany(
   companyName: string
 ): Promise<CompanyVerificationResult | null> {
   // For now, using mock data as direct API integration requires specific setup
-  logger.info('Searching Netherlands company registry for:', companyName);
+  logger.info({ companyName }, 'Searching Netherlands company registry for:');
   return createMockDutchResult(companyName);
 }
 
@@ -176,7 +176,7 @@ async function verifySpanishCompany(
   companyName: string
 ): Promise<CompanyVerificationResult | null> {
   // For now, using mock data as direct API integration requires specific setup
-  logger.info('Searching Spanish company registry for:', companyName);
+  logger.info({ companyName }, 'Searching Spanish company registry for:');
   return createMockSpanishResult(companyName);
 }
 
@@ -331,7 +331,7 @@ export async function verifyEmployer(
           result = await verifySpanishCompany(companyName);
           break;
         default:
-          logger.warn('Unknown registry type:', registryType);
+          logger.warn({ registryType }, 'Unknown registry type:');
       }
 
       if (result) {

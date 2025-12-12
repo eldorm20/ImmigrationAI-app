@@ -136,6 +136,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/ws": "^8.5.13",
+    "@types/supertest": "^6.0.2",
     "@vitejs/plugin-react": "^5.0.4",
     "@vitest/ui": "^2.1.0",
     "autoprefixer": "^10.4.21",
