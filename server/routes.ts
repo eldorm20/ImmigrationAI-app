@@ -18,6 +18,7 @@ import settingsRoutes from "./routes/settings";
 import adminRoutes from "./routes/admin";
 import visaRoutes from "./routes/visa";
 import analyticsRoutes from "./routes/analytics";
+import debugRoutes from "./routes/debug";
 
 export function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -41,4 +42,5 @@ export function registerRoutes(app: Express) {
   app.use("/api/admin", adminRoutes);
   app.use("/api/visa", visaRoutes);
   app.use("/api/analytics", analyticsRoutes);
+  app.use("/api/debug", debugRoutes);
 }

@@ -19,28 +19,41 @@ interface SocketUser {
 }
 
 export function setupSocketIO(httpServer: HTTPServer) {
+  const allowedOrigins =
+    process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) ||
+    (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000", "http://localhost:3000"]);
+
+  logger.info({ allowedOrigins }, "Socket.IO initializing with origins");
+
   const io = new SocketIOServer(httpServer, {
     cors: {
-      // Allow origins from env (comma-separated) or APP_URL, with localhost fallback
-      origin:
-        process.env.ALLOWED_ORIGINS?.split(",") ||
-        (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000"]),
+      origin: allowedOrigins,
       credentials: true,
+      methods: ["GET", "POST"],
     },
+    transports: ["websocket", "polling"],
   });
 
   // Middleware: authenticate socket connection via JWT token
   io.use(async (socket: Socket, next: (err?: any) => void) => {
     try {
       const token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
-      if (!token) return next(new Error("Authentication token required"));
+      if (!token) {
+        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token");
+        return next(new Error("Authentication token required"));
+      }
 
       const payload = await verifyAccessToken(token);
-      if (!payload) return next(new Error("Invalid or expired token"));
+      if (!payload) {
+        logger.warn({ socketId: socket.id, token: token.slice(0, 20) }, "Socket.IO token verification failed");
+        return next(new Error("Invalid or expired token"));
+      }
 
       socket.data.user = payload;
+      logger.debug({ userId: payload.id, socketId: socket.id }, "Socket.IO client authenticated");
       return next();
     } catch (err) {
+      logger.error({ err, socketId: socket.id }, "Socket.IO authentication error");
       return next(err as any);
     }
   });

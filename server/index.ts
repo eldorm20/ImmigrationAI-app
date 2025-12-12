@@ -132,19 +132,21 @@ app.get("/health", async (_req, res) => {
       // continue startup; migrations failure might be transient but we want the app to start for debugging
     }
 
-    // Register API routes first
-    // registerRoutes expects the Express `app` instance (not the HTTP server)
-    await registerRoutes(app);
-
     // ============================================
-    // Setup Socket.IO for real-time messaging
+    // Setup Socket.IO FIRST (before routes)
     // ============================================
+    // Socket.IO must be initialized on httpServer before routes
+    // so it can handle /socket.io/* requests before the API middleware
     try {
       setupSocketIO(httpServer);
       logger.info("Socket.IO messaging server initialized");
     } catch (err) {
       logger.error({ err }, "Failed to setup Socket.IO");
     }
+
+    // Register API routes after Socket.IO
+    // registerRoutes expects the Express `app` instance (not the HTTP server)
+    await registerRoutes(app);
 
     // ============================================
     // FIX #6: Serve static assets (after routes)
