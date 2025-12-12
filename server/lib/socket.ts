@@ -23,15 +23,52 @@ export function setupSocketIO(httpServer: HTTPServer) {
     process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) ||
     (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000", "http://localhost:3000"]);
 
-  logger.info({ allowedOrigins }, "Socket.IO initializing with origins");
+  // Add common production domains and localhost variants
+  const fullAllowedOrigins = new Set([
+    ...allowedOrigins,
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5000",
+  ]);
+
+  logger.info({ allowedOrigins: Array.from(fullAllowedOrigins) }, "Socket.IO initializing with origins");
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests without origin (e.g., WebSocket handshake)
+        if (!origin) {
+          logger.debug("Socket.IO connection without origin (likely WebSocket)");
+          return callback(null, true);
+        }
+
+        if (Array.from(fullAllowedOrigins).some(allowed => {
+          // Exact match
+          if (origin === allowed) return true;
+          // Domain-based match (for wildcard or suffix matching)
+          if (allowed.includes("*")) {
+            const pattern = allowed.replace(/\*/g, ".*");
+            return new RegExp(`^${pattern}$`).test(origin);
+          }
+          return false;
+        })) {
+          logger.debug({ origin }, "Socket.IO CORS allowed");
+          callback(null, true);
+        } else {
+          logger.warn({ origin, allowedOrigins: Array.from(fullAllowedOrigins) }, "Socket.IO CORS rejected");
+          callback(new Error(`CORS origin not allowed: ${origin}`), false);
+        }
+      },
       credentials: true,
       methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
+    // Improve polling reliability on production
+    pingInterval: 25000,
+    pingTimeout: 20000,
+    // Allow longer upgrade path
+    upgradeTimeout: 10000,
   });
 
   // Middleware: authenticate socket connection via JWT token

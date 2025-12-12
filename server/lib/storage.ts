@@ -153,8 +153,10 @@ export async function uploadFile(
   }
   const key = generateFileKey(userId, applicationId, file.originalname);
 
-  // If BUCKET_NAME is not configured, fall back to local filesystem storage
+  // If BUCKET_NAME is not configured, use local filesystem storage
+  // (even if S3_ENDPOINT is configured but bucket name is missing)
   if (!BUCKET_NAME) {
+    logger.info({ key, userId, applicationId, size: file.size }, "Using local filesystem storage (S3 bucket not configured)");
     const uploadsDir = path.resolve(process.cwd(), "uploads");
     const destPath = path.resolve(uploadsDir, key);
 
@@ -165,7 +167,7 @@ export async function uploadFile(
 
       // Write file to disk
       fs.writeFileSync(destPath, file.buffer);
-      logger.info({ key, userId, applicationId, size: file.size }, "File saved to local filesystem (S3 not configured)");
+      logger.info({ key, userId, applicationId, size: file.size }, "File saved to local filesystem");
 
       // Return a URL that will be served from /uploads
       const url = `${process.env.APP_URL || "/"}/uploads/${key}`;
@@ -178,13 +180,15 @@ export async function uploadFile(
         fileSize: file.size,
       };
     } catch (err: any) {
-      logger.error({ err, key, userId, errno: (err as any).errno }, "Local filesystem storage failed");
-      const errMsg = (err as any).code === "EACCES" ? "Permission denied writing to uploads folder" : "Failed to save file locally";
+      logger.error({ err, key, userId, errno: (err as any).errno, code: (err as any).code }, "Local filesystem storage failed");
+      const errMsg = (err as any).code === "EACCES" ? "Permission denied writing to uploads folder" : `Failed to save file locally: ${err.message}`;
       throw new Error(errMsg);
     }
   }
 
   try {
+    logger.info({ key, userId, applicationId, size: file.size, bucket: BUCKET_NAME }, "Uploading file to S3");
+    
     // Retry the upload operation with exponential backoff
     await retryWithBackoff(
       async () => {
@@ -201,7 +205,7 @@ export async function uploadFile(
         await s3Client.send(command);
       },
       "S3 file upload",
-      { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype }
+      { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype, bucket: BUCKET_NAME }
     );
 
     // Generate presigned URL for access (valid for 1 hour)

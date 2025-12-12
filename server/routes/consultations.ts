@@ -130,7 +130,6 @@ router.post(
 // Get consultations for current user (lawyer or applicant)
 router.get(
   "/",
-  authenticate,
   asyncHandler(async (req, res) => {
     const user = req.user!;
     const { status, from, to } = req.query;
@@ -184,7 +183,6 @@ router.get(
 // Get available lawyers for consultation
 router.get(
   "/available/lawyers",
-  authenticate,
   asyncHandler(async (req, res) => {
     const lawyers = await db.query.users.findMany({
       where: eq(users.role, "lawyer"),
