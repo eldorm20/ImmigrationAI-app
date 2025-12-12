@@ -71,8 +71,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
   const userMeta = new Map<string, { userName: string; email: string; role: string }>();
 
   io.on("connection", (socket: Socket) => {
-    const user = socket.data.user as SocketUser;
-    const userId = user.id;
+    const user = socket.data.user as SocketUser | undefined;
+    const userId = user?.id || `guest:${socket.id}`;
 
     logger.info({ userId, socketId: socket.id }, "Socket.IO client connected");
 
@@ -86,17 +86,24 @@ export function setupSocketIO(httpServer: HTTPServer) {
     // Attempt to seed metadata for presence
     if (user && (user as any).email) {
       userMeta.set(userId, { userName: (user as any).email.split('@')[0], email: (user as any).email, role: (user as any).role });
+    } else {
+      // Guest connections are tracked but limited
+      userMeta.set(userId, { userName: `guest_${socket.id.slice(0,6)}`, email: "", role: "guest" });
     }
 
     // Send greeting
     socket.emit("connect:success", { message: "Connected to messaging server", userId });
 
     // Send current online users list to this socket
-    const currentOnline = Array.from(userMeta.entries()).map(([id, meta]) => ({ userId: id, userName: meta.userName, role: meta.role }));
+    const currentOnline = Array.from(userMeta.entries()).map(([id, meta]) => ({ userId: id, userName: meta.userName, role: meta.role, lastSeen: (meta as any).lastSeen || null }));
     socket.emit('online_users', currentOnline);
 
     // Handle incoming messages (support both server and frontend event names)
     const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
+      // Require authenticated user for sending messages
+      if (!user || !user.id) {
+        return ack?.({ success: false, error: "Authentication required to send messages" });
+      }
       try {
         const { content, receiverId, applicationId } = payload;
 
@@ -148,6 +155,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle message read status (support both names)
     const handleMarkRead = async (data: any) => {
+      if (!user || !user.id) return;
       try {
         const messageId = typeof data === 'string' ? data : data.messageId;
         await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
@@ -164,33 +172,34 @@ export function setupSocketIO(httpServer: HTTPServer) {
     // Typing indicators (support multiple event names)
     socket.on('user_typing', (data) => {
       const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
-      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId });
+      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
     });
 
     socket.on('user_stop_typing', (data) => {
       const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
-      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId });
+      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
     });
 
     socket.on('typing', (data) => {
       const rid = data && data.recipientId;
-      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId });
+      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
     });
 
     socket.on('stop_typing', (data) => {
       const rid = data && data.recipientId;
-      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId });
+      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
     });
 
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
       try {
         const m = { userName: meta.name || meta.userName || user.email.split('@')[0], email: meta.email || user.email, role: meta.role || user.role };
+        (m as any).lastSeen = Date.now();
         userMeta.set(userId, m);
         // Broadcast status change
-        io.emit('user_status_changed', { userId, userName: m.userName, status: 'online', role: m.role });
+        io.emit('user_status_changed', { userId, userName: m.userName, status: 'online', role: m.role, lastSeen: (m as any).lastSeen });
         // Broadcast full online list
-        const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role }));
+        const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
         io.emit('online_users', list);
       } catch (err) {
         logger.error({ err, meta }, 'Failed to update user presence');
@@ -204,9 +213,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
         sockets.delete(socket.id);
         if (sockets.size === 0) {
           userSockets.delete(userId);
-          userMeta.delete(userId);
-          io.emit('user_status_changed', { userId, status: 'offline' });
-          const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role }));
+          // mark last seen timestamp
+          const meta = userMeta.get(userId) || { userName: user?.email?.split('@')[0] || 'unknown', role: user?.role || 'guest' };
+          (meta as any).lastSeen = Date.now();
+          userMeta.set(userId, meta as any);
+          io.emit('user_status_changed', { userId, status: 'offline', lastSeen: (meta as any).lastSeen });
+          const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
           io.emit('online_users', list);
         }
       }

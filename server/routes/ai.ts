@@ -30,17 +30,12 @@ router.use(apiLimiter);
 router.get(
   "/status",
   asyncHandler(async (req, res) => {
-    const hasLocalAI = Boolean(process.env.LOCAL_AI_URL);
-    const hasOpenAI = false; // OpenAI disabled — using open-source providers only
-    const hasHF = Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL);
-    const hfModel = process.env.HF_MODEL || null;
     const localUrl = process.env.LOCAL_AI_URL || null;
+    const hasLocalAI = Boolean(localUrl);
 
     res.json({
       providers: {
-        local: hasLocalAI ? { enabled: true, url: localUrl } : { enabled: false },
-        openai: hasOpenAI ? { enabled: true } : { enabled: false },
-        huggingface: hasHF ? { enabled: true, model: hfModel } : { enabled: false },
+        local: hasLocalAI ? { enabled: true, url: localUrl, model: process.env.OLLAMA_MODEL || null } : { enabled: false },
       },
     });
   })
@@ -186,7 +181,7 @@ router.post(
       const msg = (err?.message || String(err)).toLowerCase();
       if (msg.includes('no ai provider') || msg.includes('provider available')) {
         return res.status(503).json({ 
-          message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL or HUGGINGFACE_API_TOKEN)'
+          message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL / OLLAMA_MODEL)'
         });
       }
       if (msg.includes('quota') || msg.includes('rate limit')) {

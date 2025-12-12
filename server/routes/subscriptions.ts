@@ -92,12 +92,12 @@ router.post(
       });
     }
 
-    // Free tier doesn't need Stripe
-    if (requestedTier === "free") {
+    // Starter (free) tier doesn't need Stripe
+    if (requestedTier === "starter") {
       return res.json({
         success: true,
-        message: "Switched to Free tier",
-        tier: "free",
+        message: "Switched to Starter tier",
+        tier: "starter",
       });
     }
 

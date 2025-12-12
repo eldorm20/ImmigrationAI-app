@@ -171,7 +171,7 @@ router.get(
       const usageObj = (u.metadata && typeof u.metadata === 'object' ? (u.metadata as any).aiUsage || {} : {});
       const monthKey = targetMonth || new Date().toISOString().slice(0, 7);
       const monthUsage = usageObj[monthKey] || {};
-      const tier = (u.metadata && typeof u.metadata === 'object' ? (u.metadata as any).subscriptionTier : 'free') || 'free';
+      const tier = (u.metadata && typeof u.metadata === 'object' ? (u.metadata as any).subscriptionTier : 'starter') || 'starter';
 
       const remaining = await getUsageRemaining(u.id, 'aiMonthlyRequests').catch(() => ({ limit: null, used: monthUsage.aiMonthlyRequests || 0, remaining: null }));
 
@@ -198,7 +198,7 @@ router.post(
     const { userId } = req.params;
     const { tier } = req.body as any;
 
-    if (!tier || !["free", "pro", "premium"].includes(tier)) {
+    if (!tier || !["starter", "pro", "premium"].includes(tier)) {
       return res.status(400).json({ message: "Invalid tier" });
     }
 

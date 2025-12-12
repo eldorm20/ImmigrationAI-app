@@ -484,9 +484,6 @@ async function generateTextWithProvider(
         // Fallback heuristics for other local providers
         if (j.text) return j.text;
         if (j.result) return j.result;
-        if (Array.isArray(j.generations) && j.generations[0]?.text) return j.generations[0].text;
-        if (Array.isArray(j) && j[0]?.generated_text) return j[0].generated_text;
-        if (j.generated_text) return j.generated_text;
         if (Array.isArray(j.choices) && j.choices[0]?.text) return j.choices[0].text;
         if (j.output && Array.isArray(j.output) && j.output[0]?.content) {
           return String(j.output[0].content || JSON.stringify(j.output));
@@ -543,16 +540,6 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
         parameters: {
           max_new_tokens: 512,
           temperature: 0.7,
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Hugging Face error: ${res.status} ${text}`);
-    }
-
-    const json = await res.json();
     // HF Inference may return an array of generations or object with generated_text
     if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
     if ((json as any).generated_text) return (json as any).generated_text;
