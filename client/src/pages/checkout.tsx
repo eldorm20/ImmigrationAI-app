@@ -23,7 +23,6 @@ export default function Checkout() {
   
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [elements, setElements] = useState<StripeElements | null>(null);
-  const [cardElement, setCardElement] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
@@ -31,7 +30,6 @@ export default function Checkout() {
   const params = new URLSearchParams(location.split('?')[1]);
   const clientSecret = params.get('clientSecret');
   const planId = params.get('planId');
-  const paymentIntentId = params.get('paymentIntentId');
 
   useEffect(() => {
     if (!user) {
@@ -44,60 +42,9 @@ export default function Checkout() {
       return;
     }
 
-      // Try to fetch Stripe publishable key from server and initialize Stripe.js
-    let mounted = true;
-    (async () => {
-      try {
-        const cfg = await fetch('/api/stripe/config').then((r) => r.json());
-        const key = cfg?.publicKey;
-        if (key) {
-          // Load Stripe.js dynamically
-          if (!window.Stripe) {
-            await new Promise<void>((resolve, reject) => {
-              const s = document.createElement('script');
-              s.src = 'https://js.stripe.com/v3/';
-              s.onload = () => resolve();
-              s.onerror = () => reject(new Error('Failed to load Stripe.js'));
-              document.head.appendChild(s);
-            });
-          }
-
-          if (mounted && window.Stripe) {
-            try {
-              const stripeClient = (window.Stripe as any)(key);
-              setStripe(stripeClient);
-
-              // Initialize Elements and mount a Card element
-              try {
-                const _elements = stripeClient.elements();
-                setElements(_elements);
-                const card = _elements.create("card");
-                // mount into the placeholder div
-                setTimeout(() => {
-                  const mountPoint = document.getElementById("card-element");
-                  if (mountPoint && card) card.mount(mountPoint);
-                }, 10);
-                setCardElement(card);
-              } catch (err) {
-                // If Elements initialization fails, fall back to mock
-                setElements(null);
-                setCardElement(null);
-              }
-            } catch (e) {
-              // fallback to mock
-              setStripe({ mockStripe: true });
-            }
-          }
-        } else {
-          // No publishable key configured - use mock
-          setStripe({ mockStripe: true });
-        }
-      } catch (err) {
-        setStripe({ mockStripe: true });
-      }
-    })();
-
-    return () => { mounted = false };
+    // Initialize Stripe (mock implementation for now)
+    // In production, load Stripe from CDN: https://js.stripe.com/v3/
+    setStripe({ mockStripe: true });
   }, [user, clientSecret]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,64 +56,26 @@ export default function Checkout() {
     setError(null);
 
     try {
-      if ((stripe && (stripe as any).mockStripe) || !stripe || !elements || !cardElement) {
-        // Mock / fallback confirmation for local/dev without Stripe configured
-        const response = await apiRequest<any>("/stripe/confirm", {
-          method: "POST",
-          body: JSON.stringify({ paymentIntentId: paymentIntentId || clientSecret }),
-        });
-
-        if (response.status === "success") {
-          setPaymentComplete(true);
-          toast({
-            title: "Payment Successful!",
-            description: "Your subscription has been activated. Redirecting to dashboard...",
-            className: "bg-green-50 text-green-900 border-green-200",
-          });
-
-          setTimeout(() => {
-            setLocation("/dashboard");
-          }, 2000);
-        } else {
-          throw new Error("Payment confirmation failed");
-        }
-        return;
-      }
-
-      // Confirm using Stripe Elements
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: user?.name,
-            email: user?.email,
-          },
-        },
+      // Mock payment confirmation
+      // In production, this would use Stripe Elements
+      const response = await apiRequest<any>('/stripe/confirm', {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentIntentId: clientSecret
+        })
       });
 
-      if (result.error) {
-        throw result.error;
-      }
-
-      const paymentIntent = result.paymentIntent;
-
-      // Inform server of the successful payment so we can update DB/server state
-      await apiRequest("/stripe/confirm", {
-        method: "POST",
-        body: JSON.stringify({ paymentIntentId: paymentIntent.id }),
-      });
-
-      if (paymentIntent && paymentIntent.status === "succeeded") {
+      if (response.status === 'success') {
         setPaymentComplete(true);
         toast({
           title: "Payment Successful!",
           description: "Your subscription has been activated. Redirecting to dashboard...",
-          className: "bg-green-50 text-green-900 border-green-200",
+          className: "bg-green-50 text-green-900 border-green-200"
         });
 
-        setTimeout(() => setLocation("/dashboard"), 2000);
-      } else {
-        throw new Error("Payment not completed");
+        setTimeout(() => {
+          setLocation('/dashboard');
+        }, 2000);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -181,15 +90,11 @@ export default function Checkout() {
     }
   };
 
-  const planNames: Record<string, { label: string; price: string }> = {
-    free: { label: "Starter - Free", price: "$0.00" },
-    starter: { label: "Starter - Free", price: "$0.00" },
-    pro: { label: "Professional - $29/month", price: "$29.00" },
-    professional: { label: "Professional - $29/month", price: "$29.00" },
-    premium: { label: "Premium - $79/month", price: "$79.00" },
+  const planNames: Record<string, string> = {
+    starter: 'Starter - Free',
+    professional: 'Professional - $99/month',
+    enterprise: 'Enterprise - Custom'
   };
-
-  const displayPlan = planNames[planId || "pro"] || planNames.pro;
 
   if (paymentComplete) {
     return (
@@ -255,21 +160,21 @@ export default function Checkout() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">
-                    {displayPlan.label}
+                    {planNames[planId || 'professional']}
                   </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     Monthly subscription
                   </p>
                 </div>
                 <p className="font-bold text-slate-900 dark:text-white">
-                  {displayPlan.price}
+                  {planId === 'professional' ? '$99.00' : 'Free'}
                 </p>
               </div>
             </div>
             <div className="flex justify-between items-center font-bold text-lg">
               <span className="text-slate-900 dark:text-white">Total</span>
               <span className="text-brand-600 dark:text-brand-400">
-                {displayPlan.price}
+                {planId === 'professional' ? '$99.00' : '$0.00'}
               </span>
             </div>
 
@@ -326,10 +231,10 @@ export default function Checkout() {
                 />
               </div>
 
-              {/* Card Details - Stripe Elements mount point */}
-              <div id="card-element" className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+              {/* Card Details - Placeholder */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  {stripe && !(stripe as any).mockStripe ? "Enter your card details" : "Card entry is disabled in this environment"}
+                  💳 In production, Stripe Elements would load here for secure card entry
                 </p>
               </div>
 
@@ -365,7 +270,7 @@ export default function Checkout() {
                 ) : (
                   <>
                     <Lock size={18} />
-                    Pay {displayPlan.price === "$0.00" ? "Now" : displayPlan.price}
+                    Pay {planId === 'professional' ? '$99.00' : 'Now'}
                   </>
                 )}
               </LiveButton>

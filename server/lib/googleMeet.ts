@@ -12,6 +12,7 @@ interface MeetingOptions {
   startTime?: Date;
   endTime?: Date;
   attendees?: string[];
+  durationMinutes?: number;
 }
 
 /**
@@ -45,21 +46,64 @@ export async function createCalendarEventWithMeet(
   eventId?: string;
   calendarLink?: string;
 }> {
+  // Try to create a real Google Calendar event if service account key provided
+  const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (saKey) {
+    try {
+      const { google } = await import("googleapis");
+      const key = typeof saKey === "string" ? JSON.parse(saKey) : saKey;
+
+      const jwtClient = new google.auth.JWT({
+        email: key.client_email,
+        key: key.private_key,
+        scopes: ["https://www.googleapis.com/auth/calendar"],
+      } as any);
+
+      await jwtClient.authorize();
+
+      const calendar = google.calendar({ version: "v3", auth: jwtClient });
+
+      const start = options.startTime || new Date();
+      const end = options.endTime || new Date(start.getTime() + (options.durationMinutes || 60) * 60000);
+
+      const event: any = {
+        summary: options.title,
+        description: `${options.description || ""}\n\nMeeting created by ImmigrationAI`,
+        start: { dateTime: start.toISOString() },
+        end: { dateTime: end.toISOString() },
+        attendees: (options.attendees || []).map((email) => ({ email })),
+        conferenceData: {
+          createRequest: {
+            requestId: `immigrationai-${Date.now()}`,
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
+      };
+
+      const res = await calendar.events.insert({
+        calendarId: key.client_email, // service account calendar; may need delegation
+        requestBody: event,
+        conferenceDataVersion: 1,
+      });
+
+      const meetLink = res.data.conferenceData?.entryPoints?.find((p: any) => p.entryPointType === "video")?.uri || generateGoogleMeetLink();
+      const eventId = res.data.id;
+      const calendarLink = `https://www.google.com/calendar/event?eid=${eventId}`;
+
+      logger.info({ meetLink, eventId }, "Google Calendar event created with Meet link");
+
+      return { meetLink, eventId, calendarLink };
+    } catch (err) {
+      logger.error({ err }, "Google Calendar API failed — falling back to generated Meet link");
+      // fallback to generated link below
+    }
+  }
+
   try {
     const meetLink = generateGoogleMeetLink();
 
-    // For now, return just the meet link
-    // In production, this would create a Google Calendar event
-    logger.info(
-      {
-        title: options.title,
-        meetLink,
-        attendees: options.attendees?.length || 0,
-      },
-      "Google Meet link generated for consultation"
-    );
+    logger.info({ title: options.title, meetLink, attendees: options.attendees?.length || 0 }, "Google Meet link generated for consultation (fallback)");
 
-    // Generate a calendar link for easy sharing
     const calendarLink = generateCalendarLink({
       title: options.title,
       description: options.description,

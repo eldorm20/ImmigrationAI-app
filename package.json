@@ -19,8 +19,9 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "tools:gen-doc": "tsx server/tools/generate_doc_cli.ts",
-    "ai:test:local": "NODE_ENV=development tsx server/tools/local-llama.ts"
+    "i18n:audit": "node scripts/i18n-audit.js"
   },
+  "bin": {},
   "dependencies": {
     "@aws-sdk/client-s3": "^3.654.0",
     "@aws-sdk/s3-request-presigner": "^3.654.0",
@@ -145,8 +146,7 @@
     "tsx": "^4.20.5",
     "typescript": "^5.6.3",
     "vite": "^7.2.6",
-    "vitest": "^2.1.0",
-    "supertest": "^6.3.3"
+    "vitest": "^2.1.0"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

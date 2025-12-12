@@ -804,43 +804,67 @@ const UploadView = () => {
 
   const handleFiles = async (fileList: File[]) => {
     setUploading(true);
+    let uploadedCount = 0;
     
     try {
       for (const file of fileList) {
+        // Validate file size (10MB max)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE) {
+          toast({ 
+            title: 'File Too Large', 
+            description: `${file.name} exceeds 10MB limit`,
+            className: "bg-orange-50 text-orange-900 border-orange-200",
+            variant: 'destructive'
+          });
+          continue;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
         formData.append('documentType', 'application_document');
 
-        // Use apiRequest so auth/refresh logic and error handling are consistent
-        const uploadedDoc = await apiRequest<any>("/documents/upload", {
-          method: 'POST',
-          body: formData,
-          // apiRequest now omits Content-Type when body is FormData
-        }).catch((err) => {
-          const msg = err instanceof Error ? err.message : 'Upload failed';
-          throw new Error(msg);
-        });
-        try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch {};
-        
-        const newFile = {
-          id: uploadedDoc.id,
-          name: uploadedDoc.fileName,
-          size: uploadedDoc.fileSize,
-          type: uploadedDoc.mimeType,
-          uploadedAt: uploadedDoc.createdAt || new Date().toISOString(),
-          status: 'analyzed',
-          url: uploadedDoc.url
-        };
-        
-        setFiles(prev => [newFile as any, ...prev]);
+        try {
+          // Use apiRequest so auth/refresh logic and error handling are consistent
+          const uploadedDoc = await apiRequest<any>("/documents/upload", {
+            method: 'POST',
+            body: formData,
+            // apiRequest now omits Content-Type when body is FormData
+          });
+
+          try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch {};
+          
+          const newFile = {
+            id: uploadedDoc.id,
+            name: uploadedDoc.fileName,
+            size: uploadedDoc.fileSize,
+            type: uploadedDoc.mimeType,
+            uploadedAt: uploadedDoc.createdAt || new Date().toISOString(),
+            status: 'analyzed' as const,
+            url: uploadedDoc.url
+          };
+          
+          setFiles(prev => [newFile, ...prev]);
+          uploadedCount++;
+        } catch (fileError) {
+          const errorMsg = fileError instanceof Error ? fileError.message : 'Upload failed';
+          toast({ 
+            title: 'Upload Error', 
+            description: `${file.name}: ${errorMsg}`,
+            className: "bg-red-50 text-red-900 border-red-200",
+            variant: 'destructive'
+          });
+        }
       }
       
       setUploading(false);
-      toast({ 
-        title: t.upload.uploadedSuccess, 
-        description: `${fileList.length} ${t.upload.uploadedDesc}`,
-        className: "bg-green-50 text-green-900 border-green-200"
-      });
+      if (uploadedCount > 0) {
+        toast({ 
+          title: t.upload.uploadedSuccess, 
+          description: `${uploadedCount} of ${fileList.length} file(s) ${t.upload.uploadedDesc}`,
+          className: "bg-green-50 text-green-900 border-green-200"
+        });
+      }
     } catch (error) {
       setUploading(false);
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';

@@ -30,17 +30,12 @@ router.use(apiLimiter);
 router.get(
   "/status",
   asyncHandler(async (req, res) => {
-    const hasLocalAI = Boolean(process.env.LOCAL_AI_URL);
-    const hasOpenAI = false; // OpenAI disabled — using open-source providers only
-    const hasHF = Boolean(process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL);
-    const hfModel = process.env.HF_MODEL || null;
     const localUrl = process.env.LOCAL_AI_URL || null;
+    const hasLocalAI = Boolean(localUrl);
 
     res.json({
       providers: {
-        local: hasLocalAI ? { enabled: true, url: localUrl } : { enabled: false },
-        openai: hasOpenAI ? { enabled: true } : { enabled: false },
-        huggingface: hasHF ? { enabled: true, model: hfModel } : { enabled: false },
+        local: hasLocalAI ? { enabled: true, url: localUrl, model: process.env.OLLAMA_MODEL || null } : { enabled: false },
       },
     });
   })
@@ -183,10 +178,23 @@ router.post(
       doc = await generateDocument(template, data || {}, language || 'en');
     } catch (err: any) {
       // Provide a clear service-level message if AI providers are not configured
-      const msg = err?.message || String(err);
-      if (msg.includes('No AI provider')) {
-        return res.status(503).json({ message: 'AI provider not configured. Please set OPENAI_API_KEY or HUGGINGFACE_API_TOKEN in environment.' });
+      const msg = (err?.message || String(err)).toLowerCase();
+      if (msg.includes('no ai provider') || msg.includes('provider available')) {
+        return res.status(503).json({ 
+          message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL / OLLAMA_MODEL)'
+        });
       }
+      if (msg.includes('quota') || msg.includes('rate limit')) {
+        return res.status(429).json({ 
+          message: 'Too many requests. Please wait a moment and try again.' 
+        });
+      }
+      if (msg.includes('timeout')) {
+        return res.status(504).json({ 
+          message: 'AI service request timed out. Please try again.' 
+        });
+      }
+      logger.error({ err, template }, 'Document generation failed');
       throw err;
     }
 
@@ -311,8 +319,26 @@ router.post(
       .object({ fromLang: z.string().min(2), toLang: z.string().min(2), text: z.string().min(1) })
       .parse(req.body);
 
-    const translation = await translateText(fromLang, toLang, text);
-    res.json({ translation });
+    try {
+      const translation = await translateText(fromLang, toLang, text);
+      res.json({ translation });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, fromLang, toLang }, "Translation failed");
+      
+      // Return 503 if AI provider unavailable, 500 for other errors
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
+        return res.status(503).json({ 
+          error: "Translation service unavailable",
+          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Translation failed",
+        message: errorMsg
+      });
+    }
   })
 );
 
@@ -322,45 +348,26 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const { message, language } = z.object({ message: z.string().min(1), language: z.string().optional() }).parse(req.body);
-    const reply = await chatRespond(message, language || 'en');
-    res.json({ reply });
-  })
-);
-
-// Proxy / simple generate endpoint to call Hugging Face Inference API or custom HF_INFERENCE_URL
-router.post(
-  "/proxy",
-  asyncHandler(async (req, res) => {
-    const body = req.body || {};
-
-    const hfToken = process.env.HUGGINGFACE_API_TOKEN;
-    const hfModel = process.env.HF_MODEL;
-    const hfUrl = process.env.HF_INFERENCE_URL || (hfModel ? `https://api-inference.huggingface.co/models/${hfModel}` : undefined);
-
-    if (!hfUrl) {
-      return res.status(400).json({ error: 'No Hugging Face model configured (set HF_MODEL or HF_INFERENCE_URL)' });
-    }
-
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
-
+    
     try {
-      const r = await fetch(hfUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      });
-
-      const text = await r.text();
-      let json: any = null;
-      try { json = JSON.parse(text); } catch (_) { json = text; }
-      if (!r.ok) {
-        return res.status(502).json({ error: 'Hugging Face error', details: json });
+      const reply = await chatRespond(message, language || 'en');
+      res.json({ reply });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, message }, "Chat response failed");
+      
+      // Return 503 if AI provider unavailable, 500 for other errors
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
+        return res.status(503).json({ 
+          error: "Chat service unavailable",
+          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
+        });
       }
-
-      return res.json({ result: json });
-    } catch (err: any) {
-      return res.status(500).json({ error: 'Failed to call Hugging Face', details: err?.message || String(err) });
+      
+      res.status(500).json({ 
+        error: "Chat response failed",
+        message: errorMsg
+      });
     }
   })
 );

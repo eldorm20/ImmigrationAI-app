@@ -1,0 +1,93 @@
+import { Router } from "express";
+import { logger } from "../lib/logger";
+
+const router = Router();
+
+// Diagnostic endpoint to help debug issues
+router.get("/errors", (req, res) => {
+  const errors = {
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT || "5000",
+      APP_URL: process.env.APP_URL || "not set",
+      ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || "not set",
+    },
+    storage: {
+      S3_BUCKET: process.env.S3_BUCKET || "not set",
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || "not set",
+      S3_ENDPOINT: process.env.S3_ENDPOINT ? "configured" : "not set",
+      AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? "configured" : "not set",
+      AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? "configured" : "not set",
+    },
+    ai: {
+      LOCAL_AI_URL: process.env.LOCAL_AI_URL || "not set",
+      OLLAMA_MODEL: process.env.OLLAMA_MODEL || "not set",
+      HUGGINGFACE_API_TOKEN: process.env.HUGGINGFACE_API_TOKEN ? "configured" : "not set",
+      HF_MODEL: process.env.HF_MODEL || "not set",
+    },
+    stripe: {
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ? "configured" : "not set",
+    },
+    redis: {
+      REDIS_URL: process.env.REDIS_URL ? "configured" : "not set",
+    },
+    database: {
+      DATABASE_URL: process.env.DATABASE_URL ? "configured" : "not set",
+    },
+    issues: [] as string[],
+  };
+
+  // Check for common issues
+  if (!process.env.S3_BUCKET && !process.env.AWS_S3_BUCKET) {
+    errors.issues.push(
+      "❌ No S3 bucket configured (S3_BUCKET or AWS_S3_BUCKET). Document uploads will use local fallback or fail."
+    );
+  }
+
+  if (!process.env.LOCAL_AI_URL && !process.env.HUGGINGFACE_API_TOKEN) {
+    errors.issues.push(
+      "❌ No AI provider configured. Set LOCAL_AI_URL (Ollama) or HUGGINGFACE_API_TOKEN + HF_MODEL"
+    );
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    errors.issues.push("⚠️  No Stripe key configured. Payments disabled.");
+  }
+
+  if (!process.env.APP_URL) {
+    errors.issues.push(
+      "⚠️  APP_URL not set. CORS and redirect URLs may not work correctly."
+    );
+  }
+
+  if (!process.env.ALLOWED_ORIGINS) {
+    errors.issues.push(
+      "⚠️  ALLOWED_ORIGINS not set. Using APP_URL or localhost only."
+    );
+  }
+
+  res.json(errors);
+});
+
+router.get("/socket-config", (req, res) => {
+  const allowedOrigins =
+    process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) ||
+    (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000", "http://localhost:3000"]);
+
+  res.json({
+    timestamp: new Date().toISOString(),
+    socketIOConfig: {
+      cors: {
+        origin: allowedOrigins,
+        credentials: true,
+        methods: ["GET", "POST"],
+      },
+      transports: ["websocket", "polling"],
+    },
+    allowedOrigins,
+    APP_URL: process.env.APP_URL || "not set",
+  });
+});
+
+export default router;

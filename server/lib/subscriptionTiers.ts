@@ -3,7 +3,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
-export type SubscriptionTier = "free" | "pro" | "premium";
+export type SubscriptionTier = "starter" | "pro" | "premium";
 
 export interface TierFeatures {
   tier: SubscriptionTier;
@@ -23,11 +23,11 @@ export interface TierFeatures {
 }
 
 export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
-  free: {
-    tier: "free",
-    name: "Free",
+  starter: {
+    tier: "starter",
+    name: "Starter",
     monthlyPrice: 0,
-    stripePriceId: "price_free",
+    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || "price_starter",
     features: {
       documentUploadLimit: 5,
       aiDocumentGenerations: 2,
@@ -83,7 +83,7 @@ export async function getUserSubscriptionTier(userId: string): Promise<Subscript
     });
 
     if (!user) {
-      return "free";
+        return "starter";
     }
 
     const metadata = user.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
@@ -93,10 +93,10 @@ export async function getUserSubscriptionTier(userId: string): Promise<Subscript
       return tier;
     }
 
-    return "free";
+    return "starter";
   } catch (error) {
     logger.error({ error, userId }, "Failed to get user subscription tier");
-    return "free";
+    return "starter";
   }
 }
 

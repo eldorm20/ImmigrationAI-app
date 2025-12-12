@@ -141,35 +141,19 @@ export default function Home() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
-            Move to Europe.<br/>
+            {t.hero.title} <br/>
             <span className="text-gradient">
-              Reduce Rejections 90%.
+              AI Powered.
             </span>
           </h1>
           
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-8 max-w-lg leading-relaxed font-medium">
-            AI-powered visa assessment for Uzbek professionals. Get personalized guidance for UK, Germany, and Poland visas in 2 minutes—not weeks.
+          <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-lg leading-relaxed font-medium">
+            {t.hero.sub} We simplify the complex legal journey into a clear, guided path using advanced AI.
           </p>
-          
-          {/* Key Benefits */}
-          <div className="space-y-3 mb-10">
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-              <Check size={20} className="text-green-500 flex-shrink-0" />
-              <span className="font-medium">Get instant eligibility assessment (no signup needed)</span>
-            </div>
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-              <Check size={20} className="text-green-500 flex-shrink-0" />
-              <span className="font-medium">Discover your best visa routes (UK Skilled, Germany EU Blue Card, Poland D Visa)</span>
-            </div>
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-              <Check size={20} className="text-green-500 flex-shrink-0" />
-              <span className="font-medium">Get AI help drafting documents and preparing for interviews</span>
-            </div>
-          </div>
           
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <LiveButton size="lg" onClick={() => goLogin('applicant')} icon={Play} className="w-full sm:w-auto px-8">
-              Get Free Eligibility Report
+              {t.hero.cta}
             </LiveButton>
             
             <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
@@ -182,7 +166,7 @@ export default function Home() {
               </div>
               <div className="text-sm">
                 <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">4.9/5 <Star size={14} className="fill-yellow-400 text-yellow-400"/></p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">10K+ Uzbek users</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">{t.hero.trusted}</p>
               </div>
             </div>
           </div>
@@ -281,7 +265,7 @@ export default function Home() {
                 className="w-full py-4 border-2 border-slate-100 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-transparent" 
                 onClick={() => goLogin('applicant')}
               >
-                Get Full Assessment <ArrowRight size={16} />
+                Full Assessment <ArrowRight size={16} />
               </LiveButton>
             </div>
           </motion.div>
@@ -377,113 +361,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* How It Works Section */}
-      <div className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">How It Works</h2>
-            <p className="text-slate-500 dark:text-slate-400">Get your visa assessment in just 3 simple steps</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {[
-              {
-                step: "1",
-                title: "Answer Quick Questions",
-                desc: "Tell us about your education, work experience, language skills, and target country. Takes just 2 minutes."
-              },
-              {
-                step: "2",
-                title: "Get Instant Assessment",
-                desc: "Our AI analyzes your profile against real visa requirements. See your approval probability and top visa routes."
-              },
-              {
-                step: "3",
-                title: "Get Help & Documents",
-                desc: "Use our AI tools to draft documents, prepare for interviews, and chat with our AI assistant anytime."
-              }
-            ].map((item, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className="relative"
-              >
-                <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 h-full">
-                  <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-extrabold mb-4 text-lg">
-                    {item.step}
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">{item.title}</h3>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{item.desc}</p>
-                </div>
-                {i < 2 && (
-                  <div className="hidden md:block absolute top-16 -right-4 text-slate-300 dark:text-slate-600">
-                    <ArrowRight size={24} strokeWidth={1.5} />
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* FAQ Section */}
-      <div className="py-24 bg-slate-50 dark:bg-slate-900/50">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Frequently Asked Questions</h2>
-            <p className="text-slate-500 dark:text-slate-400">Everything you need to know about ImmigrationAI</p>
-          </div>
-          <div className="max-w-3xl mx-auto space-y-4">
-            {[
-              {
-                q: "Is the assessment really accurate?",
-                a: "Our AI is trained on real visa requirements from UK Visas and Immigration, German Federal Foreign Office, and Polish Ministry sources. However, visa decisions also depend on factors we can't predict. We recommend consulting a lawyer before applying."
-              },
-              {
-                q: "What's included in the free assessment?",
-                a: "The free 2-minute assessment gives you an eligibility percentage, top 3 visa routes, and next steps. For the detailed 20-page report with document checklist, you'll need a Pro subscription."
-              },
-              {
-                q: "How much does the Pro plan cost?",
-                a: "Pro is $99/month (or $990/year with 25% discount). It includes unlimited assessments, document drafting, AI chat, and lawyer consultations."
-              },
-              {
-                q: "Can I use ImmigrationAI to actually apply for my visa?",
-                a: "No. ImmigrationAI provides guidance and helps you prepare documents, but you'll submit your official application directly to the immigration authority. We're not a law firm—always verify information with official sources."
-              },
-              {
-                q: "Is my personal data safe?",
-                a: "Yes. We use AES-256 encryption, store data in EU data centers (GDPR compliant), and never share your information with third parties. See our Privacy Policy for details."
-              },
-              {
-                q: "Do you offer refunds?",
-                a: "Yes. We offer a 14-day money-back guarantee on all Pro subscriptions. If you're not satisfied, contact support@immigrationai.com."
-              }
-            ].map((faq, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-700 transition-colors"
-              >
-                <details className="group cursor-pointer">
-                  <summary className="flex justify-between items-center font-bold text-slate-900 dark:text-white">
-                    <span>{faq.q}</span>
-                    <span className="text-brand-600 dark:text-brand-400 group-open:rotate-180 transition-transform">
-                      <ArrowUpRight size={20} />
-                    </span>
-                  </summary>
-                  <p className="mt-4 text-slate-600 dark:text-slate-400 leading-relaxed">{faq.a}</p>
-                </details>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Testimonials Section */}
       <div className="py-24 bg-slate-50 dark:bg-slate-900/50">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -531,7 +409,7 @@ export default function Home() {
                 <p className="text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">"{testimonial.content}"</p>
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">{testimonial.name}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{testimonial.location} • {testimonial.visa}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{testimonial.role}, {testimonial.company}</p>
                 </div>
               </motion.div>
             ))}
@@ -741,7 +619,7 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Ready to Move Forward?</h2>
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Ready to Get Started?</h2>
             <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
               Join thousands of users who trust ImmigrationAI for their immigration journey. Start your free trial today—no credit card required.
             </p>
@@ -754,56 +632,6 @@ export default function Home() {
               </LiveButton>
             </div>
           </motion.div>
-        </div>
-      </div>
-
-      {/* Trust & Security Section */}
-      <div className="py-16 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            <div className="text-center">
-              <div className="mb-3 flex justify-center">
-                <Shield size={28} className="text-brand-600 dark:text-brand-400" />
-              </div>
-              <p className="font-bold text-slate-900 dark:text-white mb-1">Bank-Level Security</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">AES-256 encryption for all data</p>
-            </div>
-            <div className="text-center">
-              <div className="mb-3 flex justify-center">
-                <Globe size={28} className="text-brand-600 dark:text-brand-400" />
-              </div>
-              <p className="font-bold text-slate-900 dark:text-white mb-1">GDPR Compliant</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">EU data centers, full compliance</p>
-            </div>
-            <div className="text-center">
-              <div className="mb-3 flex justify-center">
-                <Users size={28} className="text-brand-600 dark:text-brand-400" />
-              </div>
-              <p className="font-bold text-slate-900 dark:text-white mb-1">Not Legal Advice</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">AI guidance only—consult lawyers</p>
-            </div>
-            <div className="text-center">
-              <div className="mb-3 flex justify-center">
-                <Check size={28} className="text-brand-600 dark:text-brand-400" />
-              </div>
-              <p className="font-bold text-slate-900 dark:text-white mb-1">Trusted by 10K+</p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">Uzbek professionals in Europe</p>
-            </div>
-          </div>
-          
-          {/* Legal Disclaimers */}
-          <div className="mt-12 pt-12 border-t border-slate-200 dark:border-slate-700 max-w-4xl mx-auto text-center">
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              <strong>Important:</strong> ImmigrationAI provides AI-powered guidance and tools to help with your immigration journey. We are not a law firm and do not provide legal advice. Always consult with qualified immigration lawyers before making official applications. Your personal data is encrypted and stored securely in EU data centers.
-            </p>
-            <div className="flex justify-center gap-6 text-sm">
-              <a href="/privacy" className="text-brand-600 dark:text-brand-400 hover:underline">Privacy Policy</a>
-              <span className="text-slate-400">•</span>
-              <a href="/terms" className="text-brand-600 dark:text-brand-400 hover:underline">Terms of Service</a>
-              <span className="text-slate-400">•</span>
-              <a href="/help" className="text-brand-600 dark:text-brand-400 hover:underline">Help & Support</a>
-            </div>
-          </div>
         </div>
       </div>
     </div>

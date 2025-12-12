@@ -4,17 +4,18 @@ import { useLocation } from "wouter";
 import { Check, Zap, Crown, Building2, ArrowRight, Sparkles, FileText, Globe, Shield, Users, MessageSquare, Download, Loader, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton } from "@/components/ui/live-elements";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { Plane } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { error as logError } from "@/lib/logger";
 import { trackEvent } from "../lib/analytics";
 
 export default function Pricing() {
   const [_, setLocation] = useLocation();
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const { user } = useAuth();
-  const { toast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");
 
@@ -142,15 +143,25 @@ export default function Pricing() {
       setLoadingPlan(plan.id);
 
       // If free plan, just redirect to dashboard
-      if (plan.priceCents === 0) {
-        setLocation("/dashboard");
+      if (plan.priceValue === 0) {
+        setLocation('/dashboard');
         return;
       }
 
-      // Use Stripe Checkout Sessions for subscription tiers when available
-      const session = await apiRequest<any>("/stripe/create-checkout-session", {
-        method: "POST",
-        body: JSON.stringify({ tier: plan.id }),
+      // If enterprise, send email
+      if (plan.id === 'enterprise') {
+        window.location.href = 'mailto:sales@immigrationai.com?subject=Enterprise Pricing Inquiry';
+        setLoadingPlan(null);
+        return;
+      }
+
+      // Create payment intent
+      const response = await apiRequest<any>('/stripe/create-intent', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: plan.priceValue / 100,
+          description: `${plan.name} Subscription`
+        })
       });
 
       if (response.clientSecret) {
@@ -158,30 +169,6 @@ export default function Pricing() {
         // Redirect to checkout page with payment intent
         setLocation(`/checkout?clientSecret=${response.clientSecret}&planId=${plan.id}`);
       }
-
-      // Fallback to payment intent + in-app checkout if Checkout is not configured
-      const intent = await apiRequest<any>("/stripe/create-intent", {
-        method: "POST",
-        body: JSON.stringify({
-          amount: plan.priceCents / 100,
-          description: `${plan.name} Subscription (${billingPeriod})`,
-        }),
-      });
-
-      if (intent?.clientSecret && intent?.paymentIntentId) {
-        setLocation(
-          `/checkout?clientSecret=${encodeURIComponent(intent.clientSecret)}&paymentIntentId=${encodeURIComponent(
-            intent.paymentIntentId
-          )}&planId=${plan.id}&billingPeriod=${billingPeriod}`
-        );
-        return;
-      }
-
-      toast({
-        title: "Unable to start checkout",
-        description: "Payment provider is not fully configured. Please try again or contact support.",
-        variant: "destructive",
-      });
     } catch (error) {
       logError('Checkout error:', error);
     } finally {
@@ -220,7 +207,7 @@ export default function Pricing() {
       </nav>
 
       {/* Hero Section */}
-      <div className="pt-28 pb-20 px-6">
+      <div className="pt-32 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -379,74 +366,6 @@ export default function Pricing() {
                     <td className="text-center py-4 px-4">
                       {typeof row.enterprise === 'boolean' ? (
                         row.enterprise ? <Check className="w-5 h-5 text-green-500 inline" /> : <X className="w-5 h-5 text-slate-300" />
-                      ) : (
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{row.enterprise}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Feature Comparison Table */}
-        <div className="max-w-7xl mx-auto mt-32 mb-32">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Plan Comparison</h2>
-            <p className="text-slate-600 dark:text-slate-400">See which features are included in each plan</p>
-          </div>
-          
-          <div className="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-100 dark:bg-slate-800">
-                  <th className="px-6 py-4 text-left font-bold text-slate-900 dark:text-white">Feature</th>
-                  <th className="px-6 py-4 text-center font-bold text-slate-900 dark:text-white">Starter (Free)</th>
-                  <th className="px-6 py-4 text-center font-bold text-slate-900 dark:text-white">Professional</th>
-                  <th className="px-6 py-4 text-center font-bold text-slate-900 dark:text-white">Enterprise</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: "AI Eligibility Checker", starter: true, pro: true, enterprise: true },
-                  { feature: "AI Chat Assistant", starter: true, pro: true, enterprise: true },
-                  { feature: "Document Templates", starter: "3/month", pro: "Unlimited", enterprise: "Unlimited" },
-                  { feature: "Document Upload & Analysis", starter: false, pro: true, enterprise: true },
-                  { feature: "AI Translation", starter: false, pro: "10/month", enterprise: "Unlimited" },
-                  { feature: "Case Management", starter: false, pro: true, enterprise: true },
-                  { feature: "Advanced Analytics", starter: false, pro: true, enterprise: true },
-                  { feature: "Export Reports", starter: false, pro: true, enterprise: true },
-                  { feature: "Priority Support", starter: false, pro: true, enterprise: true },
-                  { feature: "API Access", starter: false, pro: false, enterprise: true },
-                  { feature: "White-label", starter: false, pro: false, enterprise: true },
-                  { feature: "Dedicated Manager", starter: false, pro: false, enterprise: true }
-                ].map((row, i) => (
-                  <tr key={i} className={`border-t border-slate-200 dark:border-slate-800 ${i % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
-                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{row.feature}</td>
-                    <td className="px-6 py-4 text-center">
-                      {row.starter === true ? (
-                        <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      ) : row.starter === false ? (
-                        <span className="text-slate-400">—</span>
-                      ) : (
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{row.starter}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {row.pro === true ? (
-                        <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      ) : row.pro === false ? (
-                        <span className="text-slate-400">—</span>
-                      ) : (
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{row.pro}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {row.enterprise === true ? (
-                        <Check className="w-5 h-5 text-green-500 mx-auto" />
-                      ) : row.enterprise === false ? (
-                        <span className="text-slate-400">—</span>
                       ) : (
                         <span className="text-sm text-slate-600 dark:text-slate-400">{row.enterprise}</span>
                       )}

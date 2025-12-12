@@ -7,11 +7,15 @@ import { requestLogger } from "./lib/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./lib/logger";
 import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
 import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
+import { probeOllamaEndpoint } from "./lib/ollama";
+import { isStripeAvailable } from "./lib/subscription";
 
 import "dotenv/config";
 
@@ -123,6 +127,43 @@ app.get("/health", async (_req, res) => {
       logger.warn("Redis not connected - caching disabled");
     }
 
+    // Probe LOCAL AI (Ollama) endpoint if configured so we log early
+    let aiProviderAvailable = false;
+    if (process.env.LOCAL_AI_URL) {
+      try {
+        const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, process.env.OLLAMA_MODEL, 3000);
+        if (aiProbe.reachable) {
+          logger.info({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable");
+          aiProviderAvailable = true;
+        } else {
+          logger.error({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "❌ Local AI provider (Ollama) NOT reachable - AI features will fail");
+        }
+      } catch (err) {
+        logger.error({ err }, "❌ Error probing local AI provider - AI features will fail");
+      }
+    } else if (process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL) {
+      logger.info({ model: process.env.HF_MODEL }, "✅ HuggingFace configured as AI provider fallback");
+      aiProviderAvailable = true;
+    } else {
+      logger.error("❌ CRITICAL: No AI provider configured! Set either LOCAL_AI_URL (Ollama) or HUGGINGFACE_API_TOKEN + HF_MODEL");
+    }
+
+    if (!aiProviderAvailable && process.env.NODE_ENV === "production") {
+      logger.error("AI provider unavailable in production - some features will not work");
+    }
+
+    // Probe Stripe availability
+    try {
+      const stripeOk = await isStripeAvailable();
+      if (stripeOk) {
+        logger.info("Stripe client initialized");
+      } else {
+        logger.warn("Stripe not configured or failed to initialize. Payments/subscriptions are disabled.");
+      }
+    } catch (err) {
+      logger.warn({ err }, "Error probing Stripe availability");
+    }
+
     // Optionally run migrations automatically in production if enabled.
     // Set `AUTO_RUN_MIGRATIONS=true` in Railway project variables to enable.
     try {
@@ -132,13 +173,11 @@ app.get("/health", async (_req, res) => {
       // continue startup; migrations failure might be transient but we want the app to start for debugging
     }
 
-    // Register API routes first
-    // registerRoutes expects the Express `app` instance (not the HTTP server)
-    await registerRoutes(app);
-
     // ============================================
-    // Setup Socket.IO for real-time messaging
+    // Setup Socket.IO FIRST (before routes)
     // ============================================
+    // Socket.IO must be initialized on httpServer before routes
+    // so it can handle /socket.io/* requests before the API middleware
     try {
       setupSocketIO(httpServer);
       logger.info("Socket.IO messaging server initialized");
@@ -146,11 +185,29 @@ app.get("/health", async (_req, res) => {
       logger.error({ err }, "Failed to setup Socket.IO");
     }
 
+    // Register API routes after Socket.IO
+    // registerRoutes expects the Express `app` instance (not the HTTP server)
+    await registerRoutes(app);
+
     // ============================================
     // FIX #6: Serve static assets (after routes)
     // ============================================
     if (process.env.NODE_ENV === "production") {
       try {
+        // Ensure uploads directory exists for local storage fallback
+        try {
+          const uploadsDir = path.resolve(process.cwd(), "uploads");
+          fs.mkdirSync(uploadsDir, { recursive: true });
+          try {
+            fs.chmodSync(uploadsDir, 0o755);
+          } catch (_) {
+            // ignore chmod failures on some platforms
+          }
+          logger.info({ uploadsDir }, "Uploads directory ensured");
+        } catch (err) {
+          logger.warn({ err }, "Could not ensure uploads directory");
+        }
+
         serveStatic(app);
       } catch (err) {
         logger.error({ err }, "Failed to setup static file serving");

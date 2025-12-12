@@ -20,12 +20,25 @@ interface MessageEvent {
   recipientId?: string;
 }
 
+interface UserPresence {
+  userId: string;
+  userName: string;
+  role: string;
+  lastSeen?: number | null;
+}
+
+interface TypingEvent {
+  senderId: string;
+  timestamp: number;
+}
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
   const [messages, setMessages] = useState<MessageEvent[]>([]);
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Map<string, TypingEvent>>(new Map());
+  const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const {
     userId,
@@ -76,7 +89,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     });
 
     // User status events
-    socket.on('online_users', (users) => {
+    socket.on('online_users', (users: UserPresence[]) => {
       setOnlineUsers(users);
     });
 
@@ -90,10 +103,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             userId: data.userId,
             userName: data.userName,
             role: data.role,
+            lastSeen: data.lastSeen || null,
           },
         ]);
       } else {
-        setOnlineUsers((prev) => prev.filter((u) => u.userId !== data.userId));
+        setOnlineUsers((prev) =>
+          prev.map((u) =>
+            u.userId === data.userId
+              ? { ...u, lastSeen: data.lastSeen || Date.now() }
+              : u
+          )
+        );
       }
     });
 
@@ -131,18 +151,41 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // Typing indicators
     socket.on('user_typing', (data) => {
-      setTypingUsers((prev) => new Set(prev).add(data.senderId));
+      const typingEvent: TypingEvent = { senderId: data.senderId, timestamp: data.timestamp || Date.now() };
+      setTypingUsers((prev) => new Map(prev).set(data.senderId, typingEvent));
+
+      // Clear existing timeout for this user
+      const existingTimeout = typingTimeoutRef.current.get(data.senderId);
+      if (existingTimeout) clearTimeout(existingTimeout);
+
+      // Auto-clear typing after 5 seconds of inactivity
+      const timeout = setTimeout(() => {
+        setTypingUsers((prev) => {
+          const next = new Map(prev);
+          next.delete(data.senderId);
+          return next;
+        });
+      }, 5000);
+
+      typingTimeoutRef.current.set(data.senderId, timeout);
     });
 
     socket.on('user_stop_typing', (data) => {
       setTypingUsers((prev) => {
-        const next = new Set(prev);
+        const next = new Map(prev);
         next.delete(data.senderId);
         return next;
       });
+      // Clear timeout
+      const timeout = typingTimeoutRef.current.get(data.senderId);
+      if (timeout) clearTimeout(timeout);
+      typingTimeoutRef.current.delete(data.senderId);
     });
 
     return () => {
+      // Clear all typing timeouts
+      typingTimeoutRef.current.forEach((timeout) => clearTimeout(timeout));
+      typingTimeoutRef.current.clear();
       socket.disconnect();
     };
   }, [userId, userName, userEmail, userRole, autoConnect]);

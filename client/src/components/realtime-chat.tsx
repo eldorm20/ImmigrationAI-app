@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow } from 'date-fns';
-import { Send, User, CheckCheck, Check } from 'lucide-react';
+import { formatDistanceToNow, formatDistance } from 'date-fns';
+import { Send, User, CheckCheck, Check, Clock } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -22,6 +22,7 @@ interface ChatUser {
   userId: string;
   userName: string;
   role: string;
+  lastSeen?: number | null;
 }
 
 export function RealtimeChat({ recipientId }: { recipientId: string }) {
@@ -46,6 +47,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const [isTyping, setIsTyping] = useState(false);
   const [filteredMessages, setFilteredMessages] = useState<ChatMessage[]>([]);
   const [recipientUser, setRecipientUser] = useState<ChatUser | null>(null);
+  const [remoteTyping, setRemoteTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +56,12 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     const recipient = onlineUsers.find((u) => u.userId === recipientId);
     setRecipientUser(recipient || null);
   }, [onlineUsers, recipientId]);
+
+  // Track remote typing
+  useEffect(() => {
+    const isRemoteTyping = typingUsers.has(recipientId);
+    setRemoteTyping(isRemoteTyping);
+  }, [typingUsers, recipientId]);
 
   // Filter messages for current conversation
   useEffect(() => {
@@ -122,15 +130,36 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     <Card className="h-full flex flex-col">
       <CardHeader className="border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
+          <CardTitle className="flex items-center gap-3">
+            <div
+              className={`w-3 h-3 rounded-full ${
+                recipientUser?.lastSeen === null ? 'bg-green-500' : 'bg-gray-400'
+              }`}
+              title={recipientUser?.lastSeen === null ? 'Online' : 'Offline'}
+            />
             {recipientUser ? (
-              <>
-                <span>{recipientUser.userName}</span>
-                <span className="text-sm font-normal text-gray-500">
-                  ({recipientUser.role})
-                </span>
-              </>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span>{recipientUser.userName}</span>
+                  <span className="text-sm font-normal text-gray-500">
+                    ({recipientUser.role})
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {recipientUser.lastSeen === null ? (
+                    <span className="text-green-600">Online now</span>
+                  ) : recipientUser.lastSeen ? (
+                    <span>
+                      Last seen{' '}
+                      {formatDistance(new Date(recipientUser.lastSeen), new Date(), {
+                        addSuffix: true,
+                      })}
+                    </span>
+                  ) : (
+                    <span>Unknown</span>
+                  )}
+                </div>
+              </div>
             ) : (
               <span>Loading...</span>
             )}
@@ -186,6 +215,24 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
                 </div>
               </div>
             ))
+          )}
+          {remoteTyping && (
+            <div className="flex justify-start">
+              <div className="bg-gray-200 text-gray-900 rounded-lg px-4 py-2 flex items-center gap-1">
+                <span className="text-xs font-medium">Typing</span>
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
+                  <div
+                    className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.1s' }}
+                  />
+                  <div
+                    className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.2s' }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </ScrollArea>

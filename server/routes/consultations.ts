@@ -12,6 +12,9 @@ import { generateGoogleMeetLink, createCalendarEventWithMeet } from "../lib/goog
 
 const router = Router();
 
+// All routes require authentication
+router.use(authenticate);
+
 // Validation schemas
 const createConsultationSchema = z.object({
   lawyerId: z.string().min(1, "Lawyer ID required"),
@@ -30,7 +33,6 @@ const updateConsultationSchema = z.object({
 // Create consultation request (Applicant requests lawyer)
 router.post(
   "/",
-  authenticate,
   asyncHandler(async (req, res) => {
     const user = req.user!;
     if (user.role !== "applicant") {
@@ -128,7 +130,6 @@ router.post(
 // Get consultations for current user (lawyer or applicant)
 router.get(
   "/",
-  authenticate,
   asyncHandler(async (req, res) => {
     const user = req.user!;
     const { status, from, to } = req.query;
@@ -182,7 +183,6 @@ router.get(
 // Get available lawyers for consultation
 router.get(
   "/available/lawyers",
-  authenticate,
   asyncHandler(async (req, res) => {
     const lawyers = await db.query.users.findMany({
       where: eq(users.role, "lawyer"),

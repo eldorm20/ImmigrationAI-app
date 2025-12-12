@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -25,12 +26,6 @@ export function Navbar() {
   }, []);
 
   const isDark = location === "/lawyer";
-  const navItems = [
-    { label: "Features", href: "/features" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Blog", href: "/blog" },
-    { label: "Contact", href: "/contact" },
-  ];
 
   return (
     <nav
@@ -43,14 +38,19 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-primary/30 transition-transform group-hover:scale-110">
+          <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-2 cursor-pointer">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold shadow-lg transition-transform ${!isScrolled && location === "/" ? 'bg-gradient-to-br from-brand-600 to-brand-400 shadow-brand-400/30' : 'bg-primary'}`}>
               IA
             </div>
-            <span className={`font-heading font-bold text-xl tracking-tight ${
-               !isScrolled && location === "/" ? "text-white" : "text-foreground"
-            }`}>
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              className={`font-heading font-bold text-xl tracking-tight ${!isScrolled && location === "/" ? "text-white" : "text-foreground"}`}
+            >
               {t.brand?.name || "ImmigrationAI"}
-            </span>
+            </motion.span>
+          </motion.div>
         </Link>
 
         {/* Desktop Nav: center links */}
@@ -76,19 +76,6 @@ export function Navbar() {
               </DropdownMenuContent>
           </DropdownMenu>
 
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`${location === item.href ? "text-primary" : ""} ${
-                  !isScrolled && location === "/" ? "text-white hover:text-white/80 hover:bg-white/10" : ""
-                }`}
-              >
-                {item.label}
-              </Button>
-            </Link>
-          ))}
           <Link href="/help">
             <Button
               variant="ghost"
@@ -154,12 +141,6 @@ export function Navbar() {
                   <Button variant={lang === 'fr' ? 'default' : 'outline'} size="sm" onClick={() => setLang('fr')}>{t.langNames?.fr || 'FR'}</Button>
                   <Button variant={lang === 'es' ? 'default' : 'outline'} size="sm" onClick={() => setLang('es')}>{t.langNames?.es || 'ES'}</Button>
                 </div>
-
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Button variant="outline" className="w-full justify-start">{item.label}</Button>
-                </Link>
-              ))}
 
               <Link href="/help">
                 <Button variant="outline" className="w-full justify-start">{t.nav?.help || 'Help & Support'}</Button>
