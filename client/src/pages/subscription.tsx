@@ -246,16 +246,23 @@ export default function SubscriptionPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.price}</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">${subscription.amount}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.price || "Price"}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">${subscription?.amount || 0}
+                    {subscription?.plan !== "starter" && <span className="text-sm text-slate-500 dark:text-slate-400">/month</span>}
+                  </p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.billingCycle}</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{t.subscription.monthly}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.billingCycle || "Billing Cycle"}</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{subscription?.plan === "starter" ? "Forever Free" : "Monthly"}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.started}</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(subscription.startDate).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.started || "Started"}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.startDate ? new Date(subscription.startDate).toLocaleDateString() : "N/A"}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.renewal || "Renewal"}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.plan === "starter" ? "N/A" : (subscription?.renewalDate ? new Date(subscription.renewalDate).toLocaleDateString() : "N/A")}</p>
+                </div>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription.renews}</p>

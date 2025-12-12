@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/lib/auth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Download, Code, LogOut, Eye, Filter } from 'lucide-react';
+import { Download, Code, LogOut, Eye, Filter, Briefcase } from 'lucide-react';
 import { LiveButton } from '@/components/ui/live-elements';
 
 interface HeaderProps {
@@ -58,6 +58,9 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
           <>
             <LiveButton variant="ghost" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event('exportCsv'))} icon={Download}>Export CSV</LiveButton>
             <LiveButton variant="ghost" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event('exportJson'))} icon={Code}>Export JSON</LiveButton>
+            <LiveButton variant="ghost" className="hidden sm:inline-flex text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => setLocation('/employer-verification')} icon={Briefcase}>
+              Employer Verification
+            </LiveButton>
           </>
         )}
 

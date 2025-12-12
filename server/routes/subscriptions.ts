@@ -41,8 +41,17 @@ router.get(
     const userId = req.user!.id;
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
+    const now = new Date();
 
     res.json({
+      id: `sub_${userId}`,
+      userId,
+      plan: tier,
+      status: "active",
+      amount: tierFeatures.monthlyPrice,
+      currency: "USD",
+      startDate: now.toISOString(),
+      renewalDate: tier === "starter" ? null : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       tier,
       name: tierFeatures.name,
       monthlyPrice: tierFeatures.monthlyPrice,

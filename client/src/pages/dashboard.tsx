@@ -138,14 +138,6 @@ export default function UserDash() {
           >
             {t.settings?.title || "Settings"}
           </LiveButton>
-          <LiveButton
-            variant="ghost"
-            className="w-full justify-start text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20"
-            onClick={() => setLocation("/employer-verification")}
-            icon={Briefcase}
-          >
-            {t.employer?.title || "Employer Verification"}
-          </LiveButton>
           <LiveButton 
             variant="ghost" 
             className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
