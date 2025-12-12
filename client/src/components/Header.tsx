@@ -72,9 +72,14 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
           {compactNav ? <Filter size={18} /> : <Eye size={18} />}
         </button>
 
-        <button onClick={logout} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors">
-          <LogOut size={18} />
-        </button>
+        <LiveButton
+          variant="ghost"
+          className="p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors animate-pulse"
+          onClick={() => { logout(); setLocation('/'); }}
+          icon={LogOut}
+        >
+          {"Logout"}
+        </LiveButton>
       </div>
     </header>
   );
