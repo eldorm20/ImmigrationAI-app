@@ -540,10 +540,18 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
         parameters: {
           max_new_tokens: 512,
           temperature: 0.7,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`HF Inference failed: ${res.status} ${await res.text().catch(() => "")}`);
+    }
+
+    const json = await res.json();
     // HF Inference may return an array of generations or object with generated_text
     if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
     if ((json as any).generated_text) return (json as any).generated_text;
-    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
     // Some model endpoints return [{generated_text}] or { generated_text }
     if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
     // Fallback to stringified response
