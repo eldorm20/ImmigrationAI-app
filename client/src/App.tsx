@@ -17,6 +17,7 @@ import Pricing from "@/pages/pricing";
 import Checkout from "@/pages/checkout";
 import Features from "@/pages/features";
 import Research from "@/pages/research";
+import Blog from "@/pages/blog";
 import Help from "@/pages/help";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
@@ -75,6 +76,10 @@ function Router() {
         
         <Route path="/research">
           <Research />
+        </Route>
+
+        <Route path="/blog">
+          <Blog />
         </Route>
 
         <Route path="/help">
