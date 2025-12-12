@@ -158,16 +158,17 @@ export async function uploadFile(
     const uploadsDir = path.resolve(process.cwd(), "uploads");
     const destPath = path.resolve(uploadsDir, key);
 
-    // Ensure directory exists
-    const dir = path.dirname(destPath);
-    fs.mkdirSync(dir, { recursive: true });
-
     try {
+      // Ensure directory exists
+      const dir = path.dirname(destPath);
+      fs.mkdirSync(dir, { recursive: true });
+
+      // Write file to disk
       fs.writeFileSync(destPath, file.buffer);
-      logger.info({ key, userId, applicationId, size: file.size }, "File saved to local uploads folder");
+      logger.info({ key, userId, applicationId, size: file.size }, "File saved to local filesystem (S3 not configured)");
 
       // Return a URL that will be served from /uploads
-      const url = `${process.env.APP_URL || ""}/uploads/${key}`;
+      const url = `${process.env.APP_URL || "/"}/uploads/${key}`;
 
       return {
         key,
@@ -177,8 +178,9 @@ export async function uploadFile(
         fileSize: file.size,
       };
     } catch (err: any) {
-      logger.error({ err, key, userId }, "Local file write failed");
-      throw new Error("Failed to save file locally");
+      logger.error({ err, key, userId, errno: (err as any).errno }, "Local filesystem storage failed");
+      const errMsg = (err as any).code === "EACCES" ? "Permission denied writing to uploads folder" : "Failed to save file locally";
+      throw new Error(errMsg);
     }
   }
 

@@ -12,6 +12,9 @@ import { generateGoogleMeetLink, createCalendarEventWithMeet } from "../lib/goog
 
 const router = Router();
 
+// All routes require authentication
+router.use(authenticate);
+
 // Validation schemas
 const createConsultationSchema = z.object({
   lawyerId: z.string().min(1, "Lawyer ID required"),
@@ -30,7 +33,6 @@ const updateConsultationSchema = z.object({
 // Create consultation request (Applicant requests lawyer)
 router.post(
   "/",
-  authenticate,
   asyncHandler(async (req, res) => {
     const user = req.user!;
     if (user.role !== "applicant") {

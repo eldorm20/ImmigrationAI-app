@@ -183,10 +183,23 @@ router.post(
       doc = await generateDocument(template, data || {}, language || 'en');
     } catch (err: any) {
       // Provide a clear service-level message if AI providers are not configured
-      const msg = err?.message || String(err);
-      if (msg.includes('No AI provider')) {
-        return res.status(503).json({ message: 'AI provider not configured. Please set LOCAL_AI_URL (your Ollama/TGI endpoint) or HUGGINGFACE_API_TOKEN/HF_MODEL in environment.' });
+      const msg = (err?.message || String(err)).toLowerCase();
+      if (msg.includes('no ai provider') || msg.includes('provider available')) {
+        return res.status(503).json({ 
+          message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL or HUGGINGFACE_API_TOKEN)'
+        });
       }
+      if (msg.includes('quota') || msg.includes('rate limit')) {
+        return res.status(429).json({ 
+          message: 'Too many requests. Please wait a moment and try again.' 
+        });
+      }
+      if (msg.includes('timeout')) {
+        return res.status(504).json({ 
+          message: 'AI service request timed out. Please try again.' 
+        });
+      }
+      logger.error({ err, template }, 'Document generation failed');
       throw err;
     }
 

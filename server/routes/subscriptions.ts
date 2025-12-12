@@ -76,15 +76,24 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.id;
-    const { tier } = req.body;
+    const { tier, planId } = req.body;
+
+    // Accept both 'tier' and 'planId' for compatibility
+    const requestedTier = tier || planId;
+
+    if (!requestedTier) {
+      return res.status(400).json({ message: "Please specify a tier or planId" });
+    }
 
     // Validate tier
-    if (!Object.keys(TIER_CONFIGURATIONS).includes(tier)) {
-      return res.status(400).json({ message: "Invalid subscription tier" });
+    if (!Object.keys(TIER_CONFIGURATIONS).includes(requestedTier)) {
+      return res.status(400).json({ 
+        message: `Invalid subscription tier: ${requestedTier}. Valid options: ${Object.keys(TIER_CONFIGURATIONS).join(", ")}`
+      });
     }
 
     // Free tier doesn't need Stripe
-    if (tier === "free") {
+    if (requestedTier === "free") {
       return res.json({
         success: true,
         message: "Switched to Free tier",
@@ -94,7 +103,7 @@ router.post(
 
     // For paid tiers, create Stripe subscription
     const user = req.user!;
-    const tierConfig = TIER_CONFIGURATIONS[tier as SubscriptionTier];
+    const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
       const subscription = await createSubscription(
@@ -104,24 +113,23 @@ router.post(
       );
 
       if (!subscription) {
-        // createSubscription returns null on failure — return a clearer message
-        return res.status(500).json({
+        return res.status(503).json({
           success: false,
-          message: "Subscription creation failed — see server logs for details",
+          message: "Stripe integration is not available. Please contact support.",
         });
       }
 
       res.json({
         success: true,
         message: `Upgraded to ${tierConfig.name} tier`,
-        tier,
+        tier: requestedTier,
         subscription: { id: subscription.id, status: subscription.status },
       });
     } catch (error) {
-      console.error("Subscription upgrade error:", error);
-      logger.error({ error }, "Error fetching billing history");
-      res.status(400).json({
-        error: error instanceof Error ? error.message : "Unknown error",
+      logger.error({ error, userId }, "Subscription upgrade error");
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Subscription upgrade failed",
       });
     }
   })

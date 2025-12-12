@@ -96,12 +96,22 @@ router.post(
       );
     } catch (err: any) {
       logger.error({ err, userId, fileName: req.file.originalname }, "File upload failed");
-      const msg = err.message || "File upload failed";
-      // Check if this is an S3 configuration issue and provide helpful message
-      if (msg.includes("S3") || msg.includes("bucket") || msg.includes("credentials")) {
-        throw new AppError(503, "File storage service is not configured. Please contact support.");
+      const msg = (err.message || "File upload failed").toLowerCase();
+      
+      // Provide specific error messages for common issues
+      if (msg.includes("s3") || msg.includes("bucket") || msg.includes("credentials") || msg.includes("enoent")) {
+        throw new AppError(
+          503,
+          "File storage service is temporarily unavailable. Using local fallback storage. Please try again or contact support if the issue persists."
+        );
       }
-      throw new AppError(500, msg);
+      if (msg.includes("permission") || msg.includes("access denied")) {
+        throw new AppError(
+          403,
+          "You do not have permission to upload files. This may be a configuration issue."
+        );
+      }
+      throw new AppError(500, msg.includes("size") ? "File is too large. Maximum 10MB allowed." : msg);
     }
 
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.

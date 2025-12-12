@@ -58,6 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load user on mount
   useEffect(() => {
+    // Check if token exists before attempting to fetch user
+    const token = getAccessToken();
+    if (!token) {
+      // No token, user not authenticated
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
     refreshUser().finally(() => setIsLoading(false));
   }, []);
 
