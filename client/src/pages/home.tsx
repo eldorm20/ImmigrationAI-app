@@ -271,7 +271,49 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
-
+      {/* Blog Highlights Section */}
+      <div className="py-24 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Latest Immigration Insights</h2>
+            <p className="text-slate-600 dark:text-slate-400">Read guides, tips, and success stories from our community</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {blogHighlights.map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                onClick={() => setLocation("/research")}
+                className="group p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-brand-500 cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300">
+                    {item.tag}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{item.date}</span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{item.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">{item.excerpt}</p>
+                <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 font-bold text-sm group-hover:gap-3 transition-all">
+                  Read More <ArrowRight size={16} />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <LiveButton 
+              variant="secondary"
+              size="lg"
+              onClick={() => setLocation("/research")}
+            >
+              Browse All Articles <ArrowRight size={18} />
+            </LiveButton>
+          </div>
+        </div>
+      </div>
       {/* How It Works Section */}
       <div className="py-24 px-6 bg-slate-50 dark:bg-slate-900/50">
         <div className="max-w-6xl mx-auto">
