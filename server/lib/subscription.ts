@@ -29,6 +29,16 @@ async function getStripe() {
   return null;
 }
 
+// Exported helper to check Stripe availability from other modules (startup probe)
+export async function isStripeAvailable(): Promise<boolean> {
+  try {
+    const s = await getStripe();
+    return !!s;
+  } catch (err) {
+    return false;
+  }
+}
+
 export interface UserSubscription {
   subscriptionId: string;
   status: "active" | "past_due" | "cancelled" | "unpaid";

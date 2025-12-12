@@ -14,6 +14,8 @@ import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
+import { probeOllamaEndpoint } from "./lib/ollama";
+import { isStripeAvailable } from "./lib/subscription";
 
 import "dotenv/config";
 
@@ -123,6 +125,34 @@ app.get("/health", async (_req, res) => {
     const redisConnected = await checkRedisConnection();
     if (!redisConnected) {
       logger.warn("Redis not connected - caching disabled");
+    }
+
+    // Probe LOCAL AI (Ollama) endpoint if configured so we log early
+    if (process.env.LOCAL_AI_URL) {
+      try {
+        const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, process.env.OLLAMA_MODEL, 3000);
+        if (aiProbe.reachable) {
+          logger.info({ url: process.env.LOCAL_AI_URL, status: aiProbe.status }, "Local AI provider reachable");
+        } else {
+          logger.warn({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "Local AI provider not reachable");
+        }
+      } catch (err) {
+        logger.warn({ err }, "Error probing local AI provider");
+      }
+    } else {
+      logger.warn("LOCAL_AI_URL not configured - AI features will be unavailable unless HUGGINGFACE_API_TOKEN + HF_MODEL are set");
+    }
+
+    // Probe Stripe availability
+    try {
+      const stripeOk = await isStripeAvailable();
+      if (stripeOk) {
+        logger.info("Stripe client initialized");
+      } else {
+        logger.warn("Stripe not configured or failed to initialize. Payments/subscriptions are disabled.");
+      }
+    } catch (err) {
+      logger.warn({ err }, "Error probing Stripe availability");
     }
 
     // Optionally run migrations automatically in production if enabled.
