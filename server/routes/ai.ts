@@ -324,8 +324,26 @@ router.post(
       .object({ fromLang: z.string().min(2), toLang: z.string().min(2), text: z.string().min(1) })
       .parse(req.body);
 
-    const translation = await translateText(fromLang, toLang, text);
-    res.json({ translation });
+    try {
+      const translation = await translateText(fromLang, toLang, text);
+      res.json({ translation });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, fromLang, toLang }, "Translation failed");
+      
+      // Return 503 if AI provider unavailable, 500 for other errors
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
+        return res.status(503).json({ 
+          error: "Translation service unavailable",
+          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Translation failed",
+        message: errorMsg
+      });
+    }
   })
 );
 
@@ -335,8 +353,27 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const { message, language } = z.object({ message: z.string().min(1), language: z.string().optional() }).parse(req.body);
-    const reply = await chatRespond(message, language || 'en');
-    res.json({ reply });
+    
+    try {
+      const reply = await chatRespond(message, language || 'en');
+      res.json({ reply });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error({ err, message }, "Chat response failed");
+      
+      // Return 503 if AI provider unavailable, 500 for other errors
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
+        return res.status(503).json({ 
+          error: "Chat service unavailable",
+          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Chat response failed",
+        message: errorMsg
+      });
+    }
   })
 );
 

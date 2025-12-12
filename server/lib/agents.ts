@@ -55,13 +55,19 @@ Fallback responses if uncertain: ${this.fallbacks.join("; ")}.`;
   protected async generateResponse(prompt: string): Promise<string> {
     // Try configured AI provider first
     try {
-      return await generateTextWithProvider(prompt, this.getSystemPrompt());
+      const response = await generateTextWithProvider(prompt, this.getSystemPrompt());
+      if (!response || response.trim().length === 0) {
+        throw new Error("Empty response from AI provider");
+      }
+      return response;
     } catch (err) {
-      logger.warn(
-        { err, agent: this.name },
-        `AI provider failed for ${this.name}, using fallback`
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      logger.error(
+        { err, agent: this.name, error: errorMsg },
+        `AI provider failed for ${this.name}: ${errorMsg}`
       );
-      return this.getFallbackResponse();
+      // Don't use fallback - propagate error so caller knows AI failed
+      throw err;
     }
   }
 

@@ -128,19 +128,28 @@ app.get("/health", async (_req, res) => {
     }
 
     // Probe LOCAL AI (Ollama) endpoint if configured so we log early
+    let aiProviderAvailable = false;
     if (process.env.LOCAL_AI_URL) {
       try {
         const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, process.env.OLLAMA_MODEL, 3000);
         if (aiProbe.reachable) {
-          logger.info({ url: process.env.LOCAL_AI_URL, status: aiProbe.status }, "Local AI provider reachable");
+          logger.info({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable");
+          aiProviderAvailable = true;
         } else {
-          logger.warn({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "Local AI provider not reachable");
+          logger.error({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "❌ Local AI provider (Ollama) NOT reachable - AI features will fail");
         }
       } catch (err) {
-        logger.warn({ err }, "Error probing local AI provider");
+        logger.error({ err }, "❌ Error probing local AI provider - AI features will fail");
       }
+    } else if (process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL) {
+      logger.info({ model: process.env.HF_MODEL }, "✅ HuggingFace configured as AI provider fallback");
+      aiProviderAvailable = true;
     } else {
-      logger.warn("LOCAL_AI_URL not configured - AI features will be unavailable unless HUGGINGFACE_API_TOKEN + HF_MODEL are set");
+      logger.error("❌ CRITICAL: No AI provider configured! Set either LOCAL_AI_URL (Ollama) or HUGGINGFACE_API_TOKEN + HF_MODEL");
+    }
+
+    if (!aiProviderAvailable && process.env.NODE_ENV === "production") {
+      logger.error("AI provider unavailable in production - some features will not work");
     }
 
     // Probe Stripe availability
