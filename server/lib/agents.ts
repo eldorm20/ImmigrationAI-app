@@ -443,7 +443,8 @@ async function generateTextWithProvider(
   prompt: string,
   systemPrompt: string
 ): Promise<string> {
-  const localAIUrl = process.env.LOCAL_AI_URL; // e.g., http://localhost:11434/generate or custom endpoint
+  // Accept multiple environment variable names for local Ollama-like endpoints
+  const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || process.env.OLLAMA_LOCAL_URL;
   const hasLocalAI = Boolean(localAIUrl);
   // OpenAI usage intentionally disabled — prefer local/HuggingFace open-source providers
   const hasOpenAI = false;

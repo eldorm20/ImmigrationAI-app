@@ -153,6 +153,38 @@ export async function uploadFile(
   }
   const key = generateFileKey(userId, applicationId, file.originalname);
 
+  // If configured, allow using PostgreSQL as storage when USE_PG_STORAGE=1
+  if (process.env.USE_PG_STORAGE === "1") {
+    // Store file blob in Postgres table `file_blobs` (created on-demand)
+    const { Pool } = await import('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const key = generateFileKey(userId, applicationId, file.originalname);
+    const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
+      key text PRIMARY KEY,
+      file_data bytea NOT NULL,
+      file_name text NOT NULL,
+      mime_type text NOT NULL,
+      file_size integer NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`;
+    const client = await pool.connect();
+    try {
+      await client.query(createSql);
+      await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
+      const url = `${process.env.APP_URL || ''}/api/documents/blob/${encodeURIComponent(key)}`;
+      return {
+        key,
+        url,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      };
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  }
+
   // If BUCKET_NAME is not configured, use local filesystem storage
   // (even if S3_ENDPOINT is configured but bucket name is missing)
   if (!BUCKET_NAME) {
@@ -186,49 +218,49 @@ export async function uploadFile(
     }
   }
 
-  try {
-    logger.info({ key, userId, applicationId, size: file.size, bucket: BUCKET_NAME }, "Uploading file to S3");
-    
-    // Retry the upload operation with exponential backoff
-    await retryWithBackoff(
-      async () => {
-        const command = new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          ContentLength: file.size,
-          // Make files private by default
-          ACL: "private",
-        });
+    try {
+      logger.info({ key, userId, applicationId, size: file.size, bucket: BUCKET_NAME }, "Uploading file to S3");
 
-        await s3Client.send(command);
-      },
-      "S3 file upload",
-      { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype, bucket: BUCKET_NAME }
-    );
+      // Retry the upload operation with exponential backoff
+      await retryWithBackoff(
+        async () => {
+          const command = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            ContentLength: file.size,
+            // Make files private by default
+            ACL: "private",
+          });
 
-    // Generate presigned URL for access (valid for 1 hour)
-    // Also retry presigned URL generation
-    const url = await retryWithBackoff(
-      async () => getPresignedUrl(key),
-      "presigned URL generation",
-      { key, userId }
-    );
+          await s3Client.send(command);
+        },
+        "S3 file upload",
+        { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype, bucket: BUCKET_NAME }
+      );
 
-    logger.info({ key, userId, applicationId, size: file.size }, "File uploaded successfully");
+      // Generate presigned URL for access (valid for 1 hour)
+      // Also retry presigned URL generation
+      const url = await retryWithBackoff(
+        async () => getPresignedUrl(key),
+        "presigned URL generation",
+        { key, userId }
+      );
 
-    return {
-      key,
-      url,
-      fileName: file.originalname,
-      mimeType: file.mimetype,
-      fileSize: file.size,
-    };
-  } catch (error) {
-    logger.error({ error, key, userId }, "Failed to upload file after retries");
-    throw new Error("Failed to upload file");
-  }
+      logger.info({ key, userId, applicationId, size: file.size }, "File uploaded successfully");
+
+      return {
+        key,
+        url,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      };
+    } catch (error) {
+      logger.error({ error, key, userId }, "Failed to upload file after retries");
+      throw new Error("Failed to upload file");
+    }
 }
 
 // Get presigned URL for file access

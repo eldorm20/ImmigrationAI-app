@@ -137,7 +137,8 @@ export async function setUserSubscriptionTier(
 }
 
 export function getTierFeatures(tier: SubscriptionTier): TierFeatures {
-  return TIER_CONFIGURATIONS[tier] || TIER_CONFIGURATIONS.free;
+  // Default to starter if tier not found
+  return TIER_CONFIGURATIONS[tier] || TIER_CONFIGURATIONS.starter;
 }
 
 export async function checkFeatureAccess(
