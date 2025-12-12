@@ -38,7 +38,7 @@ router.get(
   "/current",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
 
@@ -56,7 +56,7 @@ router.get(
   "/check/:feature",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { feature } = req.params;
 
     const hasAccess = await checkFeatureAccess(userId, feature as any);
@@ -75,7 +75,7 @@ router.post(
   "/upgrade",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { tier } = req.body;
 
     // Validate tier
@@ -132,7 +132,7 @@ router.get(
   "/details",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
 
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
@@ -167,7 +167,7 @@ router.get(
   "/billing-history",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     try {
       // For now, return empty billing history
@@ -187,7 +187,7 @@ router.post(
   "/cancel",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     try {
       const subscription = await db

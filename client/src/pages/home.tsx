@@ -27,6 +27,27 @@ export default function Home() {
     setLocation(`/auth?role=${role}`);
   };
 
+  const blogHighlights = [
+    {
+      title: "Top Immigration Visa Requirements for 2025",
+      excerpt: "Latest updates on EU, UK, and Poland visa rules, documents, and timelines.",
+      tag: "Visa Guides",
+      date: "Dec 2024",
+    },
+    {
+      title: "How to Prepare Your Immigration Application",
+      excerpt: "A practical checklist to avoid rejections and keep your dossier complete.",
+      tag: "Application Tips",
+      date: "Nov 2024",
+    },
+    {
+      title: "Success Stories: Real Immigration Journeys",
+      excerpt: "See how Uzbek professionals used ImmigrationAI to get approvals faster.",
+      tag: "Success",
+      date: "Oct 2024",
+    },
+  ];
+
   return (
     <div className="min-h-screen relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       

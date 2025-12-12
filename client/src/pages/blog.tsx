@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
+import Header from '@/components/Header';
 import { useI18n } from "@/lib/i18n";
 import { ArrowLeft, Search, Calendar, User, Tag } from "lucide-react";
 
@@ -85,23 +86,7 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Header */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center gap-4">
-          <button
-            onClick={() => setLocation("/")}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold">Immigration Blog</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">
-              Insights, guides, and expert tips for your immigration journey
-            </p>
-          </div>
-        </div>
-      </header>
+      <Header title="Immigration Blog" showBack onBack={() => setLocation('/')} simple />
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
