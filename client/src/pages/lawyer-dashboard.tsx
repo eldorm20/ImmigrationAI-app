@@ -358,6 +358,37 @@ export default function LawyerDashboard() {
           <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
         </div>
 
+        {/* Quick Actions for lawyers */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <h4 className="font-bold mb-2">Quick Actions</h4>
+            <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
+            <div className="flex gap-2">
+              <ActionButton variant="primary" onClick={() => setLocation('/messages')}>Message Client</ActionButton>
+              <ActionButton variant="success" onClick={() => setLocation('/consultations')}>New Consultation</ActionButton>
+              <ActionButton variant="ghost" onClick={() => setLocation('/documents')}>Upload Doc</ActionButton>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <h4 className="font-bold mb-2">AI Tools</h4>
+            <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
+            <div className="flex gap-2">
+              <ActionButton variant="primary" onClick={() => setLocation('/dashboard?tab=ai-docs')}>Generate Doc</ActionButton>
+              <ActionButton variant="ghost" onClick={() => setLocation('/dashboard?tab=ai-chat')}>Open Chat</ActionButton>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <h4 className="font-bold mb-2">Case Tools</h4>
+            <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
+            <div className="flex flex-col gap-2">
+              <ActionButton variant="ghost" onClick={() => setLocation('/applications')}>All Applications</ActionButton>
+              <ActionButton variant="ghost" onClick={() => setLocation('/analytics-dashboard')}>Analytics</ActionButton>
+            </div>
+          </div>
+        </div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">

@@ -48,6 +48,43 @@ router.get(
       offset: parseInt(offset, 10),
     });
 
+    // If no articles found in DB, return a small curated fallback set so the UI isn't empty on fresh installs
+    if ((!articles || articles.length === 0) && (!search && category === "all")) {
+      const fallback: ResearchItem[] = [
+        {
+          id: 'sample-1',
+          title: 'UK Skilled Worker Visa — Eligibility Overview',
+          summary: 'A concise guide for applicants seeking to apply for the UK Skilled Worker visa, including salary thresholds and required documents.',
+          category: 'visa',
+          type: 'guide',
+          tags: ['UK','Skilled Worker','Visa'],
+          source: 'UK Home Office',
+          sourceUrl: 'https://www.gov.uk/skilled-worker-visa'
+        },
+        {
+          id: 'sample-2',
+          title: 'Germany Opportunity Card — What You Need to Know',
+          summary: 'Overview of eligibility and application steps for Germany’s Opportunity Card and relevant employment requirements.',
+          category: 'visa',
+          type: 'guide',
+          tags: ['Germany','Opportunity Card'],
+          source: 'Bundesregierung',
+          sourceUrl: 'https://www.bundesregierung.de'
+        },
+        {
+          id: 'sample-3',
+          title: 'Case Study: Successful Family Reunification in Poland',
+          summary: 'A real-world case study summarizing best practices for family reunification and common pitfalls to avoid.',
+          category: 'cases',
+          type: 'case_study',
+          tags: ['Poland','Family'],
+          source: 'ImmigrationAI Research'
+        }
+      ];
+
+      return res.json({ items: fallback });
+    }
+
     res.json({ items: articles });
   }),
 );

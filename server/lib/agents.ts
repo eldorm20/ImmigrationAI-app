@@ -448,9 +448,11 @@ async function generateTextWithProvider(
   // Prefer a local AI server if configured (Ollama, local inference server, etc.)
   if (hasLocalAI) {
     try {
-      // Try to be flexible with local server implementations (Ollama, llama.cpp frontends, TGI)
-      const bodyPayload = { prompt: `${systemPrompt}\n\n${prompt}` };
-      // Ollama uses { model, prompt } in /api/generate style endpoints; allow custom path too
+      // Use Ollama adapter helpers when available
+      const { buildOllamaPayload, parseOllamaResponse } = await import("./ollama");
+
+      const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
+
       const res = await fetch(localAIUrl, {
         method: "POST",
         headers: {
@@ -464,11 +466,16 @@ async function generateTextWithProvider(
         throw new Error(`Local AI error: ${res.status} ${text}`);
       }
 
-      // Try parse JSON, otherwise return plain text
+      // Try parse JSON, prefer specialized Ollama parsing
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json")) {
         const j = await res.json();
-        // common shapes: { text } or { result } or { generations: [{ text }] } or { choices: [{ text }] }
+
+        // First try the Ollama parser
+        const parsed = parseOllamaResponse(j);
+        if (parsed) return parsed;
+
+        // Fallback heuristics for other local providers
         if (j.text) return j.text;
         if (j.result) return j.result;
         if (Array.isArray(j.generations) && j.generations[0]?.text) return j.generations[0].text;
@@ -476,9 +483,9 @@ async function generateTextWithProvider(
         if (j.generated_text) return j.generated_text;
         if (Array.isArray(j.choices) && j.choices[0]?.text) return j.choices[0].text;
         if (j.output && Array.isArray(j.output) && j.output[0]?.content) {
-          // Ollama-like response: { output: [{ type: 'message', content: '...' }] }
           return String(j.output[0].content || JSON.stringify(j.output));
         }
+
         // fallback to stringified JSON
         return JSON.stringify(j);
       }

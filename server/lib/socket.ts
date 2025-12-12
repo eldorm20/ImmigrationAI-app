@@ -47,6 +47,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
   // In-memory room mapping: userId -> socketId set
   const userSockets = new Map<string, Set<string>>();
+  // Map of user metadata for presence broadcasts
+  const userMeta = new Map<string, { userName: string; email: string; role: string }>();
 
   io.on("connection", (socket: Socket) => {
     const user = socket.data.user as SocketUser;
@@ -61,11 +63,20 @@ export function setupSocketIO(httpServer: HTTPServer) {
     // Join user room (e.g., for private notifications)
     socket.join(`user:${userId}`);
 
+    // Attempt to seed metadata for presence
+    if (user && (user as any).email) {
+      userMeta.set(userId, { userName: (user as any).email.split('@')[0], email: (user as any).email, role: (user as any).role });
+    }
+
     // Send greeting
     socket.emit("connect:success", { message: "Connected to messaging server", userId });
 
-    // Handle incoming messages
-    socket.on("message:send", async (payload: MessagePayload, ack?: (res: any) => void) => {
+    // Send current online users list to this socket
+    const currentOnline = Array.from(userMeta.entries()).map(([id, meta]) => ({ userId: id, userName: meta.userName, role: meta.role }));
+    socket.emit('online_users', currentOnline);
+
+    // Handle incoming messages (support both server and frontend event names)
+    const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
       try {
         const { content, receiverId, applicationId } = payload;
 
@@ -87,33 +98,82 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
         logger.info({ messageId: savedMessage.id, senderId: userId, receiverId }, "Message persisted");
 
-        // Emit to receiver's connected sockets (if they're online)
-        const receiverSockets = userSockets.get(receiverId);
-        if (receiverSockets && receiverSockets.size > 0) {
-          io.to(`user:${receiverId}`).emit("message:received", {
-            id: savedMessage.id,
-            content,
-            senderId: userId,
-            receiverId,
-            applicationId,
-            timestamp: savedMessage.createdAt,
-            isRead: false,
-          });
-        }
+        const payloadOut = {
+          id: savedMessage.id,
+          content,
+          senderId: userId,
+          senderName: user.email,
+          receiverId,
+          applicationId,
+          timestamp: savedMessage.createdAt,
+          isRead: false,
+        };
+
+        // Emit to receiver's connected sockets (if they're online) using both event names
+        io.to(`user:${receiverId}`).emit('new_message', payloadOut);
+        io.to(`user:${receiverId}`).emit('message:received', payloadOut);
+
+        // Acknowledge back to sender with message_sent
+        socket.emit('message_sent', payloadOut);
 
         ack?.({ success: true, messageId: savedMessage.id });
       } catch (err) {
         logger.error({ err, payload }, "Failed to send message");
         ack?.({ success: false, error: "Failed to send message" });
       }
+    };
+
+    socket.on('message:send', handleIncomingMessage as any);
+    socket.on('send_message', handleIncomingMessage as any);
+
+    // Handle message read status (support both names)
+    const handleMarkRead = async (data: any) => {
+      try {
+        const messageId = typeof data === 'string' ? data : data.messageId;
+        await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
+        io.to(`user:${userId}`).emit('message_read', { messageId });
+        io.to(`user:${userId}`).emit('message:read', { messageId });
+      } catch (err) {
+        logger.error({ err, data }, "Failed to mark message as read");
+      }
+    };
+
+    socket.on('message:mark-read', handleMarkRead as any);
+    socket.on('mark_message_read', handleMarkRead as any);
+
+    // Typing indicators (support multiple event names)
+    socket.on('user_typing', (data) => {
+      const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
+      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId });
     });
 
-    // Handle message read status
-    socket.on("message:mark-read", async (messageId: string) => {
+    socket.on('user_stop_typing', (data) => {
+      const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
+      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId });
+    });
+
+    socket.on('typing', (data) => {
+      const rid = data && data.recipientId;
+      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId });
+    });
+
+    socket.on('stop_typing', (data) => {
+      const rid = data && data.recipientId;
+      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId });
+    });
+
+    // Handle client presence update (client may emit user_online with more metadata)
+    socket.on('user_online', (meta: any) => {
       try {
-        await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
+        const m = { userName: meta.name || meta.userName || user.email.split('@')[0], email: meta.email || user.email, role: meta.role || user.role };
+        userMeta.set(userId, m);
+        // Broadcast status change
+        io.emit('user_status_changed', { userId, userName: m.userName, status: 'online', role: m.role });
+        // Broadcast full online list
+        const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role }));
+        io.emit('online_users', list);
       } catch (err) {
-        logger.error({ err, messageId }, "Failed to mark message as read");
+        logger.error({ err, meta }, 'Failed to update user presence');
       }
     });
 
@@ -122,7 +182,13 @@ export function setupSocketIO(httpServer: HTTPServer) {
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
-        if (sockets.size === 0) userSockets.delete(userId);
+        if (sockets.size === 0) {
+          userSockets.delete(userId);
+          userMeta.delete(userId);
+          io.emit('user_status_changed', { userId, status: 'offline' });
+          const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role }));
+          io.emit('online_users', list);
+        }
       }
       logger.info({ userId, socketId: socket.id }, "Socket.IO client disconnected");
     });

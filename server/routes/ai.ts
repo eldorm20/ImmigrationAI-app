@@ -185,7 +185,7 @@ router.post(
       // Provide a clear service-level message if AI providers are not configured
       const msg = err?.message || String(err);
       if (msg.includes('No AI provider')) {
-        return res.status(503).json({ message: 'AI provider not configured. Please set OPENAI_API_KEY or HUGGINGFACE_API_TOKEN in environment.' });
+        return res.status(503).json({ message: 'AI provider not configured. Please set LOCAL_AI_URL (your Ollama/TGI endpoint) or HUGGINGFACE_API_TOKEN/HF_MODEL in environment.' });
       }
       throw err;
     }

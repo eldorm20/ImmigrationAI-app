@@ -18,8 +18,10 @@
     "db:migrate": "tsx server/migrate.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
-    "tools:gen-doc": "tsx server/tools/generate_doc_cli.ts"
+    "tools:gen-doc": "tsx server/tools/generate_doc_cli.ts",
+    "i18n:audit": "node scripts/i18n-audit.js"
   },
+  "bin": {},
   "dependencies": {
     "@aws-sdk/client-s3": "^3.654.0",
     "@aws-sdk/s3-request-presigner": "^3.654.0",
