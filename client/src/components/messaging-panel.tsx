@@ -51,7 +51,11 @@ export default function MessagingPanel() {
   // Initialize Socket.IO connection
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      logError("No auth token found for messaging");
+      return;
+    }
 
     const newSocket = io(window.location.origin, {
       auth: { token },
@@ -59,10 +63,12 @@ export default function MessagingPanel() {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'],
     });
 
     newSocket.on("connect", () => {
       logInfo("Connected to messaging server");
+      setLoading(false);
       toast({
         title: t.common.connected,
         description: t.messaging.connected,
@@ -96,6 +102,19 @@ export default function MessagingPanel() {
         description: t.messaging.disconnected,
         variant: "destructive",
       });
+    });
+
+    newSocket.on("error", (error: any) => {
+      logError("Socket.IO error:", error);
+      toast({
+        title: "Connection Error",
+        description: error?.message || "Failed to connect to messaging",
+        variant: "destructive",
+      });
+    });
+
+    newSocket.on("connect_error", (error: any) => {
+      logError("Socket.IO connect error:", error);
     });
 
     setSocket(newSocket);

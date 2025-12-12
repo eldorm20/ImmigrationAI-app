@@ -52,15 +52,27 @@ export default function ConsultationPanel() {
         setLoading(true);
         
         // Fetch consultations
-        const consultsData = await apiRequest<Consultation[]>("/consultations");
-        setConsultations(consultsData || []);
+        try {
+          const consultsData = await apiRequest<Consultation[]>("/consultations");
+          setConsultations(Array.isArray(consultsData) ? consultsData : []);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logError("Failed to load consultations:", msg);
+          setConsultations([]);
+        }
 
         // Fetch available lawyers
-        const lawyersData = await apiRequest<Lawyer[]>("/consultations/available/lawyers");
-        setLawyers(lawyersData || []);
+        try {
+          const lawyersData = await apiRequest<Lawyer[]>("/consultations/available/lawyers");
+          setLawyers(Array.isArray(lawyersData) ? lawyersData : []);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          logError("Failed to load lawyers:", msg);
+          setLawyers([]);
+        }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        logError("Failed to load consultations:", msg);
+        logError("Failed to load consultation data:", msg);
         toast({
           title: t.error?.title || "Error",
           description: msg || t.error?.message || "Failed to load consultations",
