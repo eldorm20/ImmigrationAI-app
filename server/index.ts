@@ -7,6 +7,8 @@ import { requestLogger } from "./lib/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./lib/logger";
 import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
 import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
@@ -153,6 +155,20 @@ app.get("/health", async (_req, res) => {
     // ============================================
     if (process.env.NODE_ENV === "production") {
       try {
+        // Ensure uploads directory exists for local storage fallback
+        try {
+          const uploadsDir = path.resolve(process.cwd(), "uploads");
+          fs.mkdirSync(uploadsDir, { recursive: true });
+          try {
+            fs.chmodSync(uploadsDir, 0o755);
+          } catch (_) {
+            // ignore chmod failures on some platforms
+          }
+          logger.info({ uploadsDir }, "Uploads directory ensured");
+        } catch (err) {
+          logger.warn({ err }, "Could not ensure uploads directory");
+        }
+
         serveStatic(app);
       } catch (err) {
         logger.error({ err }, "Failed to setup static file serving");

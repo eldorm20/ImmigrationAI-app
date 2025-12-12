@@ -511,7 +511,7 @@ async function generateTextWithProvider(
     }
   }
 
-  throw new Error("No AI provider available");
+  throw new Error("No AI provider available. Set LOCAL_AI_URL (Ollama) or HUGGINGFACE_API_TOKEN + HF_MODEL in environment.");
 }
 
 /**

@@ -15,23 +15,17 @@ async function getStripe() {
       stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
       return stripe;
     } catch (err) {
-      // leave stripe null and rely on runtime guards further down
+      // leave stripe null and return null - caller will handle missing Stripe
       stripe = null;
+      logger.error({ err }, "Failed to initialize Stripe client");
       return null;
     }
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      const { createMockStripe } = await import("./mockStripe");
-      stripe = createMockStripe();
-      return stripe;
-    } catch (err) {
-      stripe = null;
-      return null;
-    }
-  }
-
+  // No STRIPE_SECRET_KEY set - do not use a mock in production. Return null
+  // so callers can respond with 503/service unavailable and avoid false
+  // production behavior. Requiring STRIPE_SECRET_KEY keeps behavior explicit.
+  logger.warn("STRIPE_SECRET_KEY not configured; Stripe integration unavailable");
   return null;
 }
 

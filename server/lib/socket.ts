@@ -37,6 +37,16 @@ export function setupSocketIO(httpServer: HTTPServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // If no explicit origins are configured (APP_URL / ALLOWED_ORIGINS),
+        // allow all origins to avoid blocking WebSocket handshakes in proxy
+        // environments (e.g., Railway). This is permissive but prevents
+        // production breakage when env vars are missing.
+        const allowAll = !process.env.ALLOWED_ORIGINS && !process.env.APP_URL;
+        if (allowAll) {
+          logger.warn({ origin }, "No ALLOWED_ORIGINS or APP_URL configured — allowing all origins for Socket.IO (insecure)");
+          return callback(null, true);
+        }
+
         // Allow requests without origin (e.g., WebSocket handshake)
         if (!origin) {
           logger.debug("Socket.IO connection without origin (likely WebSocket)");
@@ -48,8 +58,9 @@ export function setupSocketIO(httpServer: HTTPServer) {
           if (origin === allowed) return true;
           // Domain-based match (for wildcard or suffix matching)
           if (allowed.includes("*")) {
-            const pattern = allowed.replace(/\*/g, ".*");
-            return new RegExp(`^${pattern}$`).test(origin);
+            // Convert wildcard to regex-friendly pattern
+            const regexStr = allowed.replace(/\./g, "\\.").replace(/\*/g, "[^.]+");
+            return new RegExp(`^${regexStr}(:[0-9]+)?$`).test(origin);
           }
           return false;
         })) {
