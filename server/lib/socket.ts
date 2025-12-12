@@ -19,60 +19,18 @@ interface SocketUser {
 }
 
 export function setupSocketIO(httpServer: HTTPServer) {
-  const allowedOrigins =
-    process.env.ALLOWED_ORIGINS?.split(",").map(o => o.trim()) ||
-    (process.env.APP_URL ? [process.env.APP_URL] : ["http://localhost:5000", "http://localhost:3000"]);
-
-  // Add common production domains and localhost variants
-  const fullAllowedOrigins = new Set([
-    ...allowedOrigins,
-    "http://localhost:3000",
-    "http://localhost:5000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5000",
-  ]);
-
-  logger.info({ allowedOrigins: Array.from(fullAllowedOrigins) }, "Socket.IO initializing with origins");
+  // In production (Railway), allow all origins since the proxy strips headers
+  // In dev, use configured origins or default
+  const isProd = process.env.NODE_ENV === "production";
+  
+  logger.info({ env: process.env.NODE_ENV, isProd }, "Socket.IO initializing");
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-        // If no explicit origins are configured (APP_URL / ALLOWED_ORIGINS),
-        // allow all origins to avoid blocking WebSocket handshakes in proxy
-        // environments (e.g., Railway). This is permissive but prevents
-        // production breakage when env vars are missing.
-        const allowAll = !process.env.ALLOWED_ORIGINS && !process.env.APP_URL;
-        if (allowAll) {
-          logger.warn({ origin }, "No ALLOWED_ORIGINS or APP_URL configured — allowing all origins for Socket.IO (insecure)");
-          return callback(null, true);
-        }
-
-        // Allow requests without origin (e.g., WebSocket handshake)
-        if (!origin) {
-          logger.debug("Socket.IO connection without origin (likely WebSocket)");
-          return callback(null, true);
-        }
-
-        if (Array.from(fullAllowedOrigins).some(allowed => {
-          // Exact match
-          if (origin === allowed) return true;
-          // Domain-based match (for wildcard or suffix matching)
-          if (allowed.includes("*")) {
-            // Convert wildcard to regex-friendly pattern
-            const regexStr = allowed.replace(/\./g, "\\.").replace(/\*/g, "[^.]+");
-            return new RegExp(`^${regexStr}(:[0-9]+)?$`).test(origin);
-          }
-          return false;
-        })) {
-          logger.debug({ origin }, "Socket.IO CORS allowed");
-          callback(null, true);
-        } else {
-          logger.warn({ origin, allowedOrigins: Array.from(fullAllowedOrigins) }, "Socket.IO CORS rejected");
-          callback(new Error(`CORS origin not allowed: ${origin}`), false);
-        }
-      },
+      origin: isProd ? true : (process.env.ALLOWED_ORIGINS?.split(",")[0] || "http://localhost:3000"),
       credentials: true,
-      methods: ["GET", "POST"],
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
     },
     transports: ["websocket", "polling"],
     // Improve polling reliability on production
@@ -87,8 +45,9 @@ export function setupSocketIO(httpServer: HTTPServer) {
     try {
       const token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
       if (!token) {
-        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token");
-        return next(new Error("Authentication token required"));
+        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token - allowing to proceed");
+        // Don't block unauthenticated connections - let them connect but fail on message send
+        return next();
       }
 
       const payload = await verifyAccessToken(token);
@@ -98,7 +57,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
       }
 
       socket.data.user = payload;
-      logger.debug({ userId: payload.id, socketId: socket.id }, "Socket.IO client authenticated");
+      logger.info({ userId: payload.id, socketId: socket.id }, "Socket.IO client authenticated");
       return next();
     } catch (err) {
       logger.error({ err, socketId: socket.id }, "Socket.IO authentication error");
