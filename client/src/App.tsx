@@ -112,7 +112,6 @@ function Router() {
         <Route path="/payment-history">
           <ProtectedRoute component={PaymentHistory} role="applicant" />
         </Route>
-<<<<<<< HEAD
 
         <Route path="/analytics">
           <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
