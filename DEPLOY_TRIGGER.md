@@ -17,6 +17,8 @@ git commit --allow-empty -m "ci: redeploy after client fixes"
 git push origin main
 ```
 
+Last redeploy trigger: 2025-12-12T00:00:00Z
+
 After deploy, perform a hard reload in the browser (Ctrl+Shift+R) and verify the pages: `/lawyer`, `/subscription`, `/research`, `/settings`, `/dashboard`.
 
 If issues persist, capture Network responses and Console stack traces and paste them into the issue for further debugging.
