@@ -110,4 +110,23 @@ router.get(
   }
 );
 
+// Debug: run one-off SQL to ensure lawyer_id exists (AUTHENTICATED ONLY)
+router.post(
+  "/run/ensure-lawyercol",
+  authenticate,
+  async (req, res) => {
+    try {
+      await db.execute(sql`
+        ALTER TABLE "applications" ADD COLUMN IF NOT EXISTS "lawyer_id" varchar(255);
+        ALTER TABLE "applications" ADD CONSTRAINT IF NOT EXISTS "applications_lawyer_id_users_id_fk" FOREIGN KEY ("lawyer_id") REFERENCES "users" ("id") ON DELETE SET NULL;
+        CREATE INDEX IF NOT EXISTS "applications_lawyer_id_idx" ON "applications" USING btree ("lawyer_id");
+      `);
+      res.json({ success: true, message: "lawyer_id column ensured" });
+    } catch (err) {
+      logger.error({ err }, "Failed to ensure lawyer_id column via debug endpoint");
+      res.status(500).json({ error: String(err) });
+    }
+  }
+);
+
 export default router;
