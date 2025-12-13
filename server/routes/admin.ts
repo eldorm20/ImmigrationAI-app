@@ -211,6 +211,24 @@ router.post(
   })
 );
 
+// Admin endpoint: ensure applications.lawyer_id column exists (idempotent)
+router.post(
+  "/db/ensure-lawyer-column",
+  asyncHandler(async (req, res) => {
+    try {
+      await db.execute(sql`
+        ALTER TABLE "applications" ADD COLUMN IF NOT EXISTS "lawyer_id" varchar(255);
+        ALTER TABLE "applications" ADD CONSTRAINT IF NOT EXISTS "applications_lawyer_id_users_id_fk" FOREIGN KEY ("lawyer_id") REFERENCES "users" ("id") ON DELETE SET NULL;
+        CREATE INDEX IF NOT EXISTS "applications_lawyer_id_idx" ON "applications" USING btree ("lawyer_id");
+      `);
+      res.json({ success: true, message: "lawyer_id column ensured" });
+    } catch (err) {
+      logger.error({ err }, "Failed to ensure lawyer_id column");
+      res.status(500).json({ success: false, message: "Failed to ensure lawyer_id column", error: String(err) });
+    }
+  })
+);
+
 // Admin: bulk-fix tiers for lawyers missing subscriptionTier
 router.post(
   "/users/bulk-fix-tiers",
