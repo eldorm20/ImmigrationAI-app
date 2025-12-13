@@ -259,7 +259,63 @@ export async function uploadFile(
       };
     } catch (error) {
       logger.error({ error, key, userId }, "Failed to upload file after retries");
-      throw new Error("Failed to upload file");
+
+      // Attempt graceful fallback: try Postgres blob storage if available
+      if (process.env.DATABASE_URL) {
+        try {
+          const { Pool } = await import('pg');
+          const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+          const client = await pool.connect();
+          try {
+            const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
+              key text PRIMARY KEY,
+              file_data bytea NOT NULL,
+              file_name text NOT NULL,
+              mime_type text NOT NULL,
+              file_size integer NOT NULL,
+              created_at timestamptz NOT NULL DEFAULT now()
+            )`;
+            await client.query(createSql);
+            await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
+            const url = `${process.env.APP_URL || ''}/api/documents/blob/${encodeURIComponent(key)}`;
+            logger.info({ key, userId }, 'Stored file in Postgres as fallback after S3 failure');
+            return {
+              key,
+              url,
+              fileName: file.originalname,
+              mimeType: file.mimetype,
+              fileSize: file.size,
+            } as UploadResult;
+          } finally {
+            client.release();
+            await pool.end();
+          }
+        } catch (pgErr) {
+          logger.warn({ pgErr, key, userId }, 'Postgres fallback failed after S3 upload error');
+        }
+      }
+
+      // Try local filesystem fallback as a last resort
+      try {
+        const uploadsDir = path.resolve(process.cwd(), "uploads");
+        const destPath = path.resolve(uploadsDir, key);
+        const dir = path.dirname(destPath);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(destPath, file.buffer);
+        const url = `${process.env.APP_URL || "/"}/uploads/${key}`;
+        logger.info({ key, userId }, 'Stored file on local filesystem as fallback after S3 failure');
+        return {
+          key,
+          url,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+        } as UploadResult;
+      } catch (fsErr) {
+        logger.error({ fsErr, key, userId }, 'Local filesystem fallback also failed');
+      }
+
+      throw new Error((error as any)?.message || "Failed to upload file");
     }
 }
 
