@@ -155,6 +155,74 @@ After first deploy, run migrations:
 railway run npm run db:migrate
 ```
 
+## ✅ Post-Deployment Smoke Tests (curl)
+
+After Railway finishes deploying and migrations have been run, verify core features using these steps:
+
+1) Create or login an applicant (if you don't have an account, register one):
+
+```bash
+# Register
+curl -s -X POST https://<YOUR-APP-URL>/api/auth/register -H "Content-Type: application/json" -d '{"email":"test.user@example.com","password":"TestPass123!","firstName":"Test","lastName":"User"}'
+
+# Login (store access token for next requests)
+TOKEN=$(curl -s -X POST https://<YOUR-APP-URL>/api/auth/login -H "Content-Type: application/json" -d '{"email":"test.user@example.com","password":"TestPass123!"}' | jq -r '.accessToken')
+```
+
+2) Create an application (assessment creates this on the client; or call API directly):
+
+```bash
+APP_ID=$(curl -s -X POST https://<YOUR-APP-URL>/api/applications -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d '{"visaType":"Skilled Worker","country":"CA"}' | jq -r '.id')
+echo "Created application: $APP_ID"
+```
+
+3) Verify that the applicant can list their applications:
+
+```bash
+curl -s -X GET https://<YOUR-APP-URL>/api/applications -H "Authorization: Bearer ${TOKEN}" | jq
+```
+
+4) Login as a seeded lawyer (seeder creates sample lawyers, default password: `LawyerPass123!`):
+
+```bash
+LAWYER_TOKEN=$(curl -s -X POST https://<YOUR-APP-URL>/api/auth/login -H "Content-Type: application/json" -d '{"email":"alice.johnson@immigration.com","password":"LawyerPass123!"}' | jq -r '.accessToken')
+```
+
+5) Use `me` endpoint to discover the lawyer's ID:
+
+```bash
+LAWYER_ID=$(curl -s -X GET https://<YOUR-APP-URL>/api/auth/me -H "Authorization: Bearer ${LAWYER_TOKEN}" | jq -r '.id')
+echo "Lawyer ID: ${LAWYER_ID}"
+```
+
+6) Assign the app to the lawyer (as a lawyer):
+
+```bash
+curl -s -X PATCH https://<YOUR-APP-URL>/api/applications/${APP_ID} -H "Authorization: Bearer ${LAWYER_TOKEN}" -H "Content-Type: application/json" -d "{\"lawyerId\": \"${LAWYER_ID}\"}" | jq
+```
+
+7) Verify assigned filter returns the app:
+
+```bash
+curl -s -X GET "https://<YOUR-APP-URL>/api/applications?assigned=true" -H "Authorization: Bearer ${LAWYER_TOKEN}" | jq
+```
+
+8) Confirm KPI stats reflect the new application and fees:
+
+```bash
+curl -s -X GET https://<YOUR-APP-URL>/api/stats -H "Authorization: Bearer ${LAWYER_TOKEN}" | jq
+```
+
+Expected results:
+- POST /api/applications: 201 with application `id` and `status: new`.
+- GET /api/applications (applicant): includes created application.
+- PATCH /api/applications/:id by lawyer: returns updated application with `lawyerId` set.
+- GET /api/applications?assigned=true (lawyer): includes assigned application.
+- GET /api/stats: `newThisWeek` and `totalFees` reflect new application and fee.
+
+If any step fails, check server logs (Railway logs) and ensure environment variables + DB migrations were applied.
+
+
 Or add to your startup command in Railway settings.
 
 ## 📁 Project Structure
