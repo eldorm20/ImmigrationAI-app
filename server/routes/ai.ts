@@ -316,11 +316,49 @@ router.post(
   "/translate",
   aiLimiter,
   asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    
+    // Increment AI usage
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
+        message: (err as any).message || 'AI quota exceeded' 
+      });
+    }
+
     const { fromLang, toLang, text } = z
       .object({ fromLang: z.string().min(2), toLang: z.string().min(2), text: z.string().min(1) })
       .parse(req.body);
 
     try {
+      // Try to use Ollama directly for translation if available
+      const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL;
+      if (localAIUrl) {
+        try {
+          const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
+          const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
+          const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat');
+          
+          const response = await fetch(localAIUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.ok) {
+            const json = await response.json();
+            const parsed = parseOllamaResponse(json);
+            if (parsed) {
+              return res.json({ translation: parsed.trim() });
+            }
+          }
+        } catch (ollamaErr) {
+          logger.warn({ err: ollamaErr }, "Ollama translation failed, falling back to agent");
+        }
+      }
+
+      // Fallback to agent-based translation
       const translation = await translateText(fromLang, toLang, text);
       res.json({ translation });
     } catch (err) {
@@ -348,6 +386,17 @@ router.post(
   "/chat",
   aiLimiter,
   asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    
+    // Increment AI usage
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
+        message: (err as any).message || 'AI quota exceeded' 
+      });
+    }
+
     // Accept either { message: string } or { messages: [{role,content}] } for compatibility
     const parsed = z
       .union([
@@ -358,25 +407,65 @@ router.post(
 
     try {
       let messageText = '';
-      let history = parsed.history || [];
+      let history: Array<{role: string, content: string}> = parsed.history || [];
 
       if (parsed.messages) {
         // Build message from last user message and use previous items as history
         const msgs = parsed.messages as Array<any>;
-        history = msgs.slice(0, -1);
+        history = msgs.slice(0, -1).map((m: any) => ({ 
+          role: m.role === 'ai' ? 'assistant' : 'user', 
+          content: m.content 
+        }));
         const last = msgs[msgs.length - 1];
         messageText = last.role === 'user' ? last.content : '';
       } else {
         messageText = parsed.message;
       }
 
-      // Build conversation context from history
-      const conversationContext = history && history.length > 0
-        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'ai' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: `
-        : '';
+      // Use improved chat function that properly handles conversation history
+      const language = (parsed.language as string) || 'en';
+      const systemPrompt = `You are an expert immigration and visa assistant. Answer questions in ${language === 'uz' ? 'Uzbek' : language === 'ru' ? 'Russian' : 'English'}. Provide accurate, helpful information about visas, immigration processes, document requirements, and related topics. Be concise but thorough.`;
 
-      const contextualMessage = conversationContext + messageText;
-      const reply = await chatRespond(contextualMessage, (parsed.language as string) || 'en');
+      // Build full conversation with history for context
+      const allMessages = [
+        ...history,
+        { role: 'user', content: messageText }
+      ];
+
+      // Try to use Ollama with messages format if available
+      const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL;
+      if (localAIUrl) {
+        try {
+          const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
+          
+          // Use /api/chat endpoint if available (better for conversation)
+          const chatUrl = localAIUrl.replace('/api/generate', '/api/chat');
+          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
+          
+          const response = await fetch(chatUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.ok) {
+            const json = await response.json();
+            const parsed = parseOllamaResponse(json);
+            if (parsed) {
+              return res.json({ reply: parsed });
+            }
+          }
+        } catch (ollamaErr) {
+          logger.warn({ err: ollamaErr }, "Ollama chat endpoint failed, falling back to generate");
+        }
+      }
+
+      // Fallback to standard chatRespond function
+      const contextualMessage = history && history.length > 0
+        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: ${messageText}`
+        : messageText;
+
+      const reply = await chatRespond(contextualMessage, language);
       res.json({ reply });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);

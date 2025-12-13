@@ -85,17 +85,12 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
         body.applicationId = applicationId;
       }
 
-      const res = await fetch('/api/employers/verify', {
+      // Use apiRequest helper for proper authentication
+      const { apiRequest } = await import('@/lib/api');
+      const data: VerificationResponse = await apiRequest<VerificationResponse>('/employers/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        throw new Error(`API error: ${res.statusText}`);
-      }
-
-      const data: VerificationResponse = await res.json();
       setResponse(data);
       setResults(data.results || []);
 
@@ -130,17 +125,12 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
         body.applicationId = applicationId;
       }
 
-      const res = await fetch('/api/employers/search-multi', {
+      // Use apiRequest helper for proper authentication
+      const { apiRequest } = await import('@/lib/api');
+      const data: VerificationResponse = await apiRequest<VerificationResponse>('/employers/search-multi', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        throw new Error(`API error: ${res.statusText}`);
-      }
-
-      const data: VerificationResponse = await res.json();
       setResponse(data);
       setResults(data.results || []);
 
@@ -157,31 +147,32 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
 
   return (
     <div className="w-full space-y-4">
-      <Card>
+      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <Globe className="w-5 h-5" />
             Employer Verification
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-600 dark:text-slate-400">
             Verify employers across European company registries
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleVerify} className="space-y-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium">Company Name</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white">Company Name</label>
               <Input
                 type="text"
                 placeholder="Enter company name (e.g., Apple Ltd)"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 disabled={loading}
+                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium">Country</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white">Country</label>
               <Select value={country} onValueChange={setCountry} disabled={loading}>
                 <SelectTrigger>
                   <SelectValue />
@@ -239,36 +230,36 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
       </Card>
 
       {response && (
-        <Card>
+        <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
               {response.status === 'verified' ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                   Verification Results
                 </>
               ) : (
                 <>
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   Verification Results
                 </>
               )}
             </CardTitle>
-            <CardDescription>{response.message}</CardDescription>
+            <CardDescription className="text-slate-600 dark:text-slate-400">{response.message}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {results.length > 0 ? (
               results.map((result, index) => (
                 <div
                   key={index}
-                  className="border rounded-lg p-4 space-y-3 bg-slate-50"
+                  className="border rounded-lg p-4 space-y-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-semibold text-lg">
+                      <h4 className="font-semibold text-lg text-slate-900 dark:text-white">
                         {result.companyName}
                       </h4>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
                         {COUNTRIES.find((c) => c.code === result.country)?.name ||
                           result.country}
                       </p>
@@ -276,17 +267,17 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
                     <div className="text-right">
                       <div className="text-xs font-medium">
                         {result.found ? (
-                          <span className="text-green-700 bg-green-100 px-2 py-1 rounded">
+                          <span className="text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
                             ✓ Found
                           </span>
                         ) : (
-                          <span className="text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                          <span className="text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
                             Not Found
                           </span>
                         )}
                       </div>
                       {result.confidence && (
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                           Confidence: {result.confidence}%
                         </p>
                       )}
@@ -297,46 +288,46 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                       {result.registryId && (
                         <div>
-                          <p className="text-gray-600">Registration Number</p>
-                          <p className="font-mono font-semibold">
+                          <p className="text-slate-600 dark:text-slate-400">Registration Number</p>
+                          <p className="font-mono font-semibold text-slate-900 dark:text-white">
                             {result.registryId}
                           </p>
                         </div>
                       )}
                       {result.businessType && (
                         <div>
-                          <p className="text-gray-600">Business Type</p>
-                          <p className="font-semibold">{result.businessType}</p>
+                          <p className="text-slate-600 dark:text-slate-400">Business Type</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{result.businessType}</p>
                         </div>
                       )}
                       {result.status && (
                         <div>
-                          <p className="text-gray-600">Company Status</p>
-                          <p className="font-semibold capitalize">
+                          <p className="text-slate-600 dark:text-slate-400">Company Status</p>
+                          <p className="font-semibold capitalize text-slate-900 dark:text-white">
                             {result.status}
                           </p>
                         </div>
                       )}
                       {result.registrationDate && (
                         <div>
-                          <p className="text-gray-600">Registration Date</p>
-                          <p className="font-semibold">
+                          <p className="text-slate-600 dark:text-slate-400">Registration Date</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">
                             {new Date(result.registrationDate).toLocaleDateString()}
                           </p>
                         </div>
                       )}
                       {result.registeredAddress && (
                         <div className="col-span-2">
-                          <p className="text-gray-600">Registered Address</p>
-                          <p className="font-semibold">{result.registeredAddress}</p>
+                          <p className="text-slate-600 dark:text-slate-400">Registered Address</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{result.registeredAddress}</p>
                         </div>
                       )}
                       {result.directors && result.directors.length > 0 && (
                         <div className="col-span-2">
-                          <p className="text-gray-600">Directors</p>
+                          <p className="text-slate-600 dark:text-slate-400">Directors</p>
                           <ul className="mt-1">
                             {result.directors.map((director, idx) => (
-                              <li key={idx} className="text-sm">
+                              <li key={idx} className="text-sm text-slate-900 dark:text-white">
                                 • {director}
                               </li>
                             ))}
@@ -346,7 +337,7 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Registry: {result.registryType} | Verified:{' '}
                     {new Date(response.timestamp).toLocaleDateString()}
                   </p>
@@ -354,7 +345,7 @@ export const EmployerVerification: React.FC<EmployerVerificationProps> = ({
               ))
             ) : (
               <div className="text-center py-6">
-                <p className="text-gray-600">No results found</p>
+                <p className="text-slate-600 dark:text-slate-400">No results found</p>
               </div>
             )}
           </CardContent>

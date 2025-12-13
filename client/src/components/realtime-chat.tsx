@@ -32,6 +32,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     isConnected,
     onlineUsers,
     messages,
+    typingUsers,
     sendMessage,
     markMessageRead,
     emitTyping,
@@ -59,8 +60,8 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
 
   // Track remote typing
   useEffect(() => {
-    const isRemoteTyping = typingUsers.has(recipientId);
-    setRemoteTyping(isRemoteTyping);
+    const isRemoteTyping = typingUsers && typingUsers.has && typingUsers.has(recipientId);
+    setRemoteTyping(isRemoteTyping || false);
   }, [typingUsers, recipientId]);
 
   // Filter messages for current conversation

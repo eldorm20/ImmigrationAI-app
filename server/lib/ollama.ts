@@ -1,6 +1,21 @@
 import { logger } from "./logger";
 
-export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?: string) {
+export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?: string, messages?: Array<{role: string, content: string}>) {
+  // Ollama supports both /api/generate (prompt-based) and /api/chat (messages-based)
+  // Use messages format if conversation history is provided for better context
+  if (messages && messages.length > 0) {
+    const body: any = {
+      model: model || "neural-chat",
+      messages: [
+        ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+        ...messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }))
+      ],
+      stream: false
+    };
+    return body;
+  }
+  
+  // Fallback to prompt-based format
   const body: any = { prompt: `${systemPrompt || ""}\n\n${prompt}`.trim() };
   if (model) body.model = model;
   return body;

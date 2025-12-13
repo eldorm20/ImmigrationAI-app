@@ -393,9 +393,19 @@ export default function LawyerDashboard() {
             <h4 className="font-bold mb-2">Quick Actions</h4>
             <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
             <div className="flex flex-col gap-2">
-              <ActionButton variant="primary" onClick={() => setLocation('/messages')}>Message Client</ActionButton>
-              <ActionButton variant="success" onClick={() => setLocation('/consultations')}>New Consultation</ActionButton>
-              <ActionButton variant="ghost" onClick={() => setLocation('/documents')}>Upload Doc</ActionButton>
+              <ActionButton variant="primary" onClick={() => {
+                // Open messaging panel in current dashboard
+                toast({ title: "Messages", description: "Use the consultations tab to message clients" });
+              }}>Message Client</ActionButton>
+              <ActionButton variant="success" onClick={() => {
+                // Switch to consultations tab
+                setActiveTab('consultations');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}>New Consultation</ActionButton>
+              <ActionButton variant="ghost" onClick={() => {
+                // Navigate to applicant dashboard for document upload (lawyers can also upload)
+                window.location.href = '/dashboard?tab=upload';
+              }}>Upload Doc</ActionButton>
             </div>
           </div>
 
@@ -403,8 +413,12 @@ export default function LawyerDashboard() {
             <h4 className="font-bold mb-2">AI Tools</h4>
             <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
             <div className="flex flex-col gap-2">
-              <ActionButton variant="primary" onClick={() => setLocation('/dashboard?tab=ai-docs')}>Generate Doc</ActionButton>
-              <ActionButton variant="ghost" onClick={() => setLocation('/dashboard?tab=ai-chat')}>Open Chat</ActionButton>
+              <ActionButton variant="primary" onClick={() => {
+                window.location.href = '/dashboard?tab=ai-docs';
+              }}>Generate Doc</ActionButton>
+              <ActionButton variant="ghost" onClick={() => {
+                window.location.href = '/dashboard?tab=ai-chat';
+              }}>Open Chat</ActionButton>
             </div>
           </div>
 
@@ -412,8 +426,15 @@ export default function LawyerDashboard() {
             <h4 className="font-bold mb-2">Case Tools</h4>
             <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
             <div className="flex flex-col gap-2">
-              <ActionButton variant="ghost" onClick={() => setLocation('/applications')}>All Applications</ActionButton>
-              <ActionButton variant="ghost" onClick={() => setLocation('/analytics-dashboard')}>Analytics</ActionButton>
+              <ActionButton variant="ghost" onClick={() => {
+                // Show all applications in current view
+                setActiveTab('applications');
+                setFilterStatus('All');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}>All Applications</ActionButton>
+              <ActionButton variant="ghost" onClick={() => {
+                window.location.href = '/analytics';
+              }}>Analytics</ActionButton>
             </div>
           </div>
         </div>

@@ -11,9 +11,9 @@ import {
   type SubscriptionTier,
 } from "../lib/subscriptionTiers";
 import { createSubscription, getSubscriptionStatus } from "../lib/subscription";
-import { users } from "@shared/schema";
+import { users, subscriptions } from "@shared/schema";
 import { logger } from "../lib/logger";
-import { eq } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 
 const router = Router();
 
@@ -189,7 +189,7 @@ router.get(
     try {
       // For now, return empty billing history
       // In production, this would fetch from Stripe
-      const billingHistory = [];
+      const billingHistory: any[] = [];
 
       res.json(billingHistory);
     } catch (error) {
@@ -207,31 +207,50 @@ router.post(
     const userId = req.user!.id;
     
     try {
-      const subscription = await db
-        .selectFrom("subscriptions")
-        .selectAll()
-        .where("user_id", "=", userId)
-        .orderBy("created_at", "desc")
-        .limit(1)
-        .executeTakeFirst();
+      // Find active subscription for user
+      const subscription = await db.query.subscriptions.findFirst({
+        where: and(
+          eq(subscriptions.userId, userId),
+          or(
+            eq(subscriptions.status, "active"),
+            eq(subscriptions.status, "trialing")
+          )
+        ),
+        orderBy: [desc(subscriptions.createdAt)],
+      });
 
       if (!subscription) {
         return res.status(404).json({ message: "No active subscription found" });
       }
 
-      // Update subscription status to cancelled
+      // If subscription has Stripe ID, cancel via Stripe
+      if (subscription.providerSubscriptionId) {
+        try {
+          const { getStripeClient } = await import("../lib/subscription");
+          const stripe = await getStripeClient();
+          if (stripe) {
+            await stripe.subscriptions.cancel(subscription.providerSubscriptionId);
+          }
+        } catch (stripeErr) {
+          logger.warn({ err: stripeErr, subscriptionId: subscription.providerSubscriptionId }, "Failed to cancel Stripe subscription");
+        }
+      }
+
+      // Update subscription status to canceled
       await db
-        .updateTable("subscriptions")
-        .set({ status: "cancelled" })
-        .where("id", "=", subscription.id)
-        .execute();
+        .update(subscriptions)
+        .set({ 
+          status: "canceled",
+          updatedAt: new Date()
+        })
+        .where(eq(subscriptions.id, subscription.id));
 
       res.json({
         success: true,
         message: "Subscription cancelled successfully",
       });
     } catch (error) {
-      console.error("Error cancelling subscription:", error);
+      logger.error({ error, userId }, "Error cancelling subscription");
       res.status(500).json({ message: "Failed to cancel subscription" });
     }
   })

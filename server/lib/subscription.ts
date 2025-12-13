@@ -39,6 +39,11 @@ export async function isStripeAvailable(): Promise<boolean> {
   }
 }
 
+// Export Stripe client getter for use in other modules
+export async function getStripeClient() {
+  return await getStripe();
+}
+
 export interface UserSubscription {
   subscriptionId: string;
   status: "active" | "past_due" | "cancelled" | "unpaid";
