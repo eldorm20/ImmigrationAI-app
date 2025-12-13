@@ -76,7 +76,7 @@ router.post(
       const application = await db.query.applications.findFirst({
         where: eq(applications.id, body.applicationId),
       });
-
+      
       if (!application) {
         throw new AppError(404, "Application not found");
       }
@@ -86,7 +86,7 @@ router.post(
       }
     }
 
-    // Upload to storage
+    // Upload to storage with comprehensive error handling
     let uploadResult;
     try {
       uploadResult = await uploadFile(
@@ -95,8 +95,8 @@ router.post(
         body.applicationId || null
       );
     } catch (err: any) {
-      logger.error({ err, userId, fileName: req.file.originalname }, "File upload failed");
-      const msg = (err.message || "File upload failed").toLowerCase();
+      logger.error({ err, userId, fileName: req.file?.originalname }, "File upload failed");
+      const msg = (err?.message || "File upload failed").toLowerCase();
       
       // Provide specific error messages for common issues
       if (msg.includes("s3") || msg.includes("bucket") || msg.includes("credentials") || msg.includes("enoent")) {
@@ -132,7 +132,7 @@ router.post(
         })
         .returning();
       document = res[0];
-    } catch (err) {
+    } catch (err: any) {
       // Fallback: older DB schema without s3_key column
       try {
         const res2 = await db
@@ -148,9 +148,10 @@ router.post(
           })
           .returning();
         document = res2[0];
-      } catch (err2) {
-        // If fallback also fails, rethrow the original error for visibility
-        throw err;
+      } catch (err2: any) {
+        // If fallback also fails, log and rethrow for better debugging
+        logger.error({ originalErr: err, fallbackErr: err2, userId }, "Database insert failed for document");
+        throw new AppError(500, "Failed to save document. Please try again.");
       }
     }
 
@@ -169,8 +170,6 @@ router.post(
       res.status(201).json(document);
     }
   })
-);
-
 // Get documents
 router.get(
   "/",

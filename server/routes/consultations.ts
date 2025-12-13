@@ -134,49 +134,52 @@ router.get(
     const user = req.user!;
     const { status, from, to } = req.query;
 
-    let query = db.query.consultations.findMany({
-      where: user.role === "lawyer"
-        ? eq(consultations.lawyerId, user.id)
-        : eq(consultations.userId, user.id),
-      orderBy: desc(consultations.scheduledTime),
-    });
+    try {
+      let results;
 
-    // Filter by status if provided
-    if (status && typeof status === "string") {
-      query = db.query.consultations.findMany({
-        where:
+      // Filter by date range if provided
+      if (from || to) {
+        const filters = [
           user.role === "lawyer"
-            ? and(eq(consultations.lawyerId, user.id), eq(consultations.status, status as any))
-            : and(eq(consultations.userId, user.id), eq(consultations.status, status as any)),
-        orderBy: desc(consultations.scheduledTime),
-      });
-    }
+            ? eq(consultations.lawyerId, user.id)
+            : eq(consultations.userId, user.id),
+        ];
 
-    // Filter by date range if provided
-    if (from || to) {
-      const filters = [
-        user.role === "lawyer"
-          ? eq(consultations.lawyerId, user.id)
-          : eq(consultations.userId, user.id),
-      ];
+        if (from && typeof from === "string") {
+          filters.push(gte(consultations.scheduledTime, new Date(from)));
+        }
+        if (to && typeof to === "string") {
+          filters.push(lt(consultations.scheduledTime, new Date(to)));
+        }
 
-      if (from) {
-        filters.push(gte(consultations.scheduledTime, new Date(from as string)));
+        results = await db.query.consultations.findMany({
+          where: and(...filters),
+          orderBy: desc(consultations.scheduledTime),
+        });
+      } else if (status && typeof status === "string") {
+        // Filter by status if provided
+        results = await db.query.consultations.findMany({
+          where:
+            user.role === "lawyer"
+              ? and(eq(consultations.lawyerId, user.id), eq(consultations.status, status as any))
+              : and(eq(consultations.userId, user.id), eq(consultations.status, status as any)),
+          orderBy: desc(consultations.scheduledTime),
+        });
+      } else {
+        // Get all consultations for user
+        results = await db.query.consultations.findMany({
+          where: user.role === "lawyer"
+            ? eq(consultations.lawyerId, user.id)
+            : eq(consultations.userId, user.id),
+          orderBy: desc(consultations.scheduledTime),
+        });
       }
-      if (to) {
-        filters.push(lt(consultations.scheduledTime, new Date(to as string)));
-      }
 
-      const results = await db.query.consultations.findMany({
-        where: and(...filters),
-        orderBy: desc(consultations.scheduledTime),
-      });
-
-      return res.json(results);
+      res.json(results || []);
+    } catch (err: any) {
+      logger.error({ err, userId: user.id }, "Failed to fetch consultations");
+      throw new AppError(500, "Failed to fetch consultations");
     }
-
-    const results = await query;
-    res.json(results);
   })
 );
 
