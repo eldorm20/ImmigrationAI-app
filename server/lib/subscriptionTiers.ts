@@ -111,9 +111,10 @@ export async function getUserSubscriptionTier(userId: string): Promise<Subscript
       return tier;
     }
 
-    // If user is a lawyer and doesn't have an explicit tier, grant enterprise by default
+    // If user is a lawyer and doesn't have an explicit tier, default to starter
+    // (removed temporary enterprise fallback now that migration applied)
     if (user.role === "lawyer") {
-      return "enterprise";
+      return "starter";
     }
 
     return "starter";

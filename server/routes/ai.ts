@@ -185,6 +185,12 @@ router.post(
           message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL / OLLAMA_MODEL)'
         });
       }
+      // Provide clearer guidance when template validation fails
+      if (msg.includes('template')) {
+        return res.status(400).json({
+          message: 'Invalid template or missing template field. See /api/ai/documents/templates for available templates.'
+        });
+      }
       if (msg.includes('quota') || msg.includes('rate limit')) {
         return res.status(429).json({ 
           message: 'Too many requests. Please wait a moment and try again.' 
