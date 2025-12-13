@@ -703,9 +703,19 @@ const ChatView = () => {
     setIsTyping(true);
     (async () => {
       try {
+        // Send conversation history with the request for better context
+        const conversationHistory = messages.map(m => ({
+          role: m.role,
+          content: m.text
+        }));
+        
         const resp = await apiRequest<{ reply: string }>("/ai/chat", {
           method: "POST",
-          body: JSON.stringify({ message: userMsg, language: lang }),
+          body: JSON.stringify({ 
+            message: userMsg, 
+            language: lang,
+            history: conversationHistory  // Include conversation history
+          }),
         });
         setIsTyping(false);
         setMessages(prev => [...prev, { role: 'ai', text: resp.reply, ts: new Date().toISOString() }]);

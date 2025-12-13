@@ -19,6 +19,7 @@ import { db } from "../db";
 import { documents, users } from "@shared/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -347,10 +348,23 @@ router.post(
   "/chat",
   aiLimiter,
   asyncHandler(async (req, res) => {
-    const { message, language } = z.object({ message: z.string().min(1), language: z.string().optional() }).parse(req.body);
+    const { message, language, history } = z.object({ 
+      message: z.string().min(1), 
+      language: z.string().optional(),
+      history: z.array(z.object({
+        role: z.enum(['user', 'ai']),
+        content: z.string()
+      })).optional()
+    }).parse(req.body);
     
     try {
-      const reply = await chatRespond(message, language || 'en');
+      // Build conversation context from history
+      const conversationContext = history && history.length > 0 
+        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'ai' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: ` 
+        : '';
+      
+      const contextualMessage = conversationContext + message;
+      const reply = await chatRespond(contextualMessage, language || 'en');
       res.json({ reply });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
