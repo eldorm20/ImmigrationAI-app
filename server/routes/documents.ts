@@ -170,6 +170,8 @@ router.post(
       res.status(201).json(document);
     }
   })
+);
+
 // Get documents
 router.get(
   "/",
