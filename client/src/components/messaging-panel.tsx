@@ -136,7 +136,14 @@ export default function MessagingPanel() {
     (async () => {
       try {
         setLoading(true);
-        const consultations = await apiRequest<ConsultationSummary[]>("/consultations");
+        let consultations;
+        try {
+          consultations = await apiRequest<ConsultationSummary[]>("/consultations");
+        } catch (err) {
+          logError("Failed to load consultations:", err instanceof Error ? err.message : String(err));
+          consultations = [];
+        }
+
         const uniqueParticipants = new Map<string, ChatParticipant>();
 
         consultations.forEach((c) => {
@@ -146,8 +153,8 @@ export default function MessagingPanel() {
             if (!uniqueParticipants.has(lawyerId)) {
               uniqueParticipants.set(lawyerId, {
                 id: lawyerId,
-                name: `${t.roles.lawyer} (${c.id.slice(0, 8)})`,
-                email: `lawyer-${lawyerId.slice(0, 8)}@example.com`,
+                name: `Lawyer`,
+                email: ``,
                 role: "lawyer",
                 unreadCount: 0,
               });
@@ -158,8 +165,8 @@ export default function MessagingPanel() {
             if (!uniqueParticipants.has(applicantId)) {
               uniqueParticipants.set(applicantId, {
                 id: applicantId,
-                name: `${t.roles.applicant} (${c.id.slice(0, 8)})`,
-                email: `applicant-${applicantId.slice(0, 8)}@example.com`,
+                name: `Applicant`,
+                email: ``,
                 role: "applicant",
                 unreadCount: 0,
               });
@@ -171,6 +178,7 @@ export default function MessagingPanel() {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         logError("Failed to load participants:", msg);
+        setParticipants([]);
       } finally {
         setLoading(false);
       }

@@ -328,7 +328,7 @@ export default function SubscriptionPage() {
                       }
                     }}
                   >
-                    {plan.id === currentPlan ? t.subscription.currentPlan : t.subscription.upgradeNow}
+                    {plan.id === currentPlan ? (t.subscription?.currentPlan || "Current Plan") : (t.subscription?.upgrade || "Upgrade")}
                   </LiveButton>
                 </AnimatedCard>
               </motion.div>
