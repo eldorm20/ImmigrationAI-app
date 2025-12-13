@@ -1,5 +1,8 @@
 import { Router } from "express";
 import { logger } from "../lib/logger";
+import { authenticate } from "../middleware/auth";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -89,5 +92,22 @@ router.get("/socket-config", (req, res) => {
     APP_URL: process.env.APP_URL || "not set",
   });
 });
+
+// Debug: list applications table columns
+router.get(
+  "/schema/applications",
+  authenticate,
+  async (req, res) => {
+    try {
+      const result = await db.execute(sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'applications' ORDER BY ordinal_position`);
+      // Drizzle returns { rows } in many drivers
+      const rows = (result as any).rows || result;
+      res.json({ columns: rows });
+    } catch (err) {
+      logger.error({ err }, 'Failed to query information_schema for applications columns');
+      res.status(500).json({ error: String(err) });
+    }
+  }
+);
 
 export default router;
