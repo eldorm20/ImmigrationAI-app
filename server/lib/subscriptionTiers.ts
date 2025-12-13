@@ -3,7 +3,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
-export type SubscriptionTier = "starter" | "pro" | "premium";
+export type SubscriptionTier = "starter" | "pro" | "premium" | "enterprise";
 
 export interface TierFeatures {
   tier: SubscriptionTier;
@@ -74,6 +74,23 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       lawyerDirectory: true,
     },
   },
+  enterprise: {
+    tier: "enterprise",
+    name: "Enterprise",
+    monthlyPrice: 249,
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise",
+    features: {
+      documentUploadLimit: 1000,
+      aiDocumentGenerations: 1000,
+      aiMonthlyRequests: 100000,
+      consultationsPerMonth: 1000,
+      researchLibraryAccess: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      customReports: true,
+      lawyerDirectory: true,
+    },
+  },
 };
 
 export async function getUserSubscriptionTier(userId: string): Promise<SubscriptionTier> {
@@ -83,14 +100,20 @@ export async function getUserSubscriptionTier(userId: string): Promise<Subscript
     });
 
     if (!user) {
-        return "starter";
+      return "starter";
     }
 
     const metadata = user.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
     const tier = metadata?.subscriptionTier as SubscriptionTier | undefined;
 
+    // If user has explicit tier in metadata, respect it
     if (tier && Object.keys(TIER_CONFIGURATIONS).includes(tier)) {
       return tier;
+    }
+
+    // If user is a lawyer and doesn't have an explicit tier, grant enterprise by default
+    if (user.role === "lawyer") {
+      return "enterprise";
     }
 
     return "starter";

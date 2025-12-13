@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
 import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -198,7 +200,7 @@ router.post(
     const { userId } = req.params;
     const { tier } = req.body as any;
 
-    if (!tier || !["starter", "pro", "premium"].includes(tier)) {
+    if (!tier || !["starter", "pro", "premium", "enterprise"].includes(tier)) {
       return res.status(400).json({ message: "Invalid tier" });
     }
 
@@ -206,6 +208,47 @@ router.post(
     if (!ok) return res.status(500).json({ message: "Failed to set tier" });
 
     res.json({ success: true, message: `User tier set to ${tier}` });
+  })
+);
+
+// Admin: bulk-fix tiers for lawyers missing subscriptionTier
+router.post(
+  "/users/bulk-fix-tiers",
+  asyncHandler(async (req, res) => {
+    // Safety: run in transaction and only touch users with role=lawyer and no subscriptionTier
+    try {
+      const result = await db.execute(sql`
+        BEGIN;
+        UPDATE users
+        SET metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('subscriptionTier', 'enterprise', 'subscriptionUpdatedAt', now()::text)
+        WHERE role = 'lawyer' AND (metadata IS NULL OR (metadata->>'subscriptionTier') IS NULL);
+        COMMIT;
+      `);
+
+      res.json({ success: true, message: 'Bulk fix executed. Check admin logs for details.' });
+    } catch (err) {
+      logger.error({ err }, 'Bulk tier fix failed');
+      res.status(500).json({ success: false, message: 'Bulk fix failed', error: String(err) });
+    }
+  })
+);
+
+// Admin: dry-run — list lawyers that would be updated by the bulk-fix
+router.get(
+  "/users/bulk-fix-tiers/dry-run",
+  asyncHandler(async (req, res) => {
+    try {
+      const lawyers = await db.query.users.findMany({ where: eq(users.role, 'lawyer') });
+
+      const affected = lawyers
+        .map((u: any) => ({ id: u.id, email: u.email, firstName: u.firstName, lastName: u.lastName, metadata: u.metadata }))
+        .filter((u: any) => !u.metadata || !u.metadata.subscriptionTier);
+
+      res.json({ count: affected.length, users: affected });
+    } catch (err) {
+      logger.error({ err }, 'Dry-run bulk tier fix failed');
+      res.status(500).json({ success: false, message: 'Dry-run failed', error: String(err) });
+    }
   })
 );
 

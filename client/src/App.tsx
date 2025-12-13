@@ -34,6 +34,7 @@ import VisaComparison from "@/pages/visa-comparison";
 import CommunityForum from "@/pages/forum";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
+import AdminUsersPage from "@/pages/admin/users";
 import Partner from "@/pages/partner";
 import EmployerVerificationPage from "@/pages/employer-verification";
 
@@ -139,6 +140,9 @@ function Router() {
         </Route>
         <Route path="/admin/subscriptions">
           <ProtectedRoute component={AdminSubscriptions} role="admin" />
+        </Route>
+        <Route path="/admin/users">
+          <ProtectedRoute component={AdminUsersPage} role="admin" />
         </Route>
         
         <Route path="/lawyer">

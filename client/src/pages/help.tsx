@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { MessageCircle, Mail, Users, HelpCircle, ExternalLink } from "lucide-react";
@@ -292,9 +293,9 @@ export default function HelpCenter() {
               <p className="text-slate-600 dark:text-slate-400 mb-4">
                 Learn how to use all features of ImmigrationAI with our comprehensive guides.
               </p>
-              <a href="/docs" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
+              <Link href="/docs" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
                 View Docs →
-              </a>
+              </Link>
             </AnimatedCard>
 
             <AnimatedCard delay={0.1}>
@@ -302,9 +303,9 @@ export default function HelpCenter() {
               <p className="text-slate-600 dark:text-slate-400 mb-4">
                 Read immigration tips, success stories, and latest updates on visa requirements.
               </p>
-              <a href="/blog" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
+              <Link href="/blog" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
                 Read Articles →
-              </a>
+              </Link>
             </AnimatedCard>
 
             <AnimatedCard delay={0.2}>
@@ -312,9 +313,9 @@ export default function HelpCenter() {
               <p className="text-slate-600 dark:text-slate-400 mb-4">
                 Access curated immigration law resources, case studies, and regulations.
               </p>
-              <a href="/research" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
+              <Link href="/research" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
                 Explore Library →
-              </a>
+              </Link>
             </AnimatedCard>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Mail, MessageCircle, MapPin, Phone } from "lucide-react";
+import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 
 export const Footer = () => {
@@ -21,10 +22,10 @@ export const Footer = () => {
           <div>
             <h4 className="font-bold text-md mb-4">Product</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="/features" className="hover:text-white transition-colors">Features</a></li>
-              <li><a href="/pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><a href="/research" className="hover:text-white transition-colors">Research Library</a></li>
-              <li><a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a></li>
+              <li><Link href="/features" className="hover:text-white transition-colors">Features</Link></li>
+              <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link href="/research" className="hover:text-white transition-colors">Research Library</Link></li>
+              <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
             </ul>
           </div>
 
@@ -70,10 +71,10 @@ export const Footer = () => {
           <div>
             <h4 className="font-bold text-md mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="/privacy" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Privacy Policy</a></li>
-              <li><a href="/terms" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Terms of Service</a></li>
-              <li><a href="/contact" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Contact Us</a></li>
-              <li><a href="/blog" className="hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>Blog</a></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
             </ul>
           </div>
         </div>
