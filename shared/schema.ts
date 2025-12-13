@@ -98,6 +98,7 @@ export const users = pgTable("users", {
 export const applications = pgTable("applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  lawyerId: varchar("lawyer_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   visaType: varchar("visa_type", { length: 100 }).notNull(),
   country: varchar("country", { length: 100 }).notNull(),
   status: applicationStatusEnum("status").notNull().default("new"),
@@ -108,6 +109,7 @@ export const applications = pgTable("applications", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   userIdIdx: index("applications_user_id_idx").on(table.userId),
+  lawyerIdIdx: index("applications_lawyer_id_idx").on(table.lawyerId),
   statusIdx: index("applications_status_idx").on(table.status),
   createdAtIdx: index("applications_created_at_idx").on(table.createdAt),
 }));
@@ -298,11 +300,13 @@ export const insertApplicationSchema = createInsertSchema(applications, {
   visaType: z.string().min(1).max(100),
   country: z.string().length(2), // ISO country code
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  lawyerId: z.string().optional(),
 }).pick({
   userId: true,
   visaType: true,
   country: true,
   fee: true,
+  lawyerId: true,
   notes: true,
   metadata: true,
 });

@@ -11,6 +11,8 @@ import { Layout } from "@/components/layout/Layout";
 // Pages
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
+import Applications from "@/pages/applications";
+import ApplicationView from "@/pages/application-view";
 import Dashboard from "@/pages/dashboard";
 import LawyerDashboard from "@/pages/lawyer-dashboard";
 import Pricing from "@/pages/pricing";
@@ -101,6 +103,13 @@ function Router() {
         
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} role="applicant" />
+        </Route>
+        <Route path="/applications">
+          <ProtectedRoute component={Applications} role="applicant" />
+        </Route>
+
+        <Route path="/applications/:id">
+          <ProtectedRoute component={ApplicationView} role="applicant" />
         </Route>
 
         <Route path="/subscription">

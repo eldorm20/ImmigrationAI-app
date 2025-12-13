@@ -16,6 +16,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx server/migrate.ts",
+    "db:seed": "npm run db:migrate && npx tsx server/seed-lawyers.ts && npx tsx server/seed-applications.ts",
     "test": "vitest",
     "test:e2e": "playwright test",
     "tools:gen-doc": "tsx server/tools/generate_doc_cli.ts",

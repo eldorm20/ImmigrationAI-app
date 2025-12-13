@@ -77,6 +77,7 @@ export default function UserDash() {
             { id: 'docs', icon: FileText, label: t.dash.docs },
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
+            { id: 'applications', icon: FileText, label: 'Applications' },
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
             { id: 'messages', icon: Send, label: t.dash.messages },
@@ -85,7 +86,7 @@ export default function UserDash() {
           ].map(item => (
             <motion.button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
               whileHover={{ x: 5 }}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
@@ -229,10 +230,11 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
     const loadRoadmapData = async () => {
       try {
         setLoading(true);
-        // Fetch user's applications
-        const appData = await apiRequest<ApplicationSummary[]>('/applications');
-        if (appData && appData.length > 0) {
-          const activeApp = appData[0]; // Get first application
+        // Fetch user's applications (supports paginated response or array)
+        const appsResp: any = await apiRequest('/applications');
+        const appArray = Array.isArray(appsResp) ? appsResp : appsResp.applications || [];
+        if (appArray && appArray.length > 0) {
+          const activeApp = appArray[0]; // Get first application
           setApplication(activeApp);
 
           // Fetch roadmap items for this application

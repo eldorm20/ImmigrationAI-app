@@ -12,10 +12,12 @@ export function AssessmentPage() {
   const { t } = useI18n();
   const [quizComplete, setQuizComplete] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
+  const [createdAppId, setCreatedAppId] = useState<string | null>(null);
 
-  const handleQuizComplete = (score: number, answers: Record<string, string>) => {
+  const handleQuizComplete = (score: number, answers: Record<string, string>, application?: any) => {
     setFinalScore(score);
     setQuizComplete(true);
+    if (application && application.id) setCreatedAppId(application.id);
     try {
       trackEvent("assessment_completed", { score, answersCount: Object.keys(answers).length });
     } catch {}
@@ -138,6 +140,11 @@ export function AssessmentPage() {
 
             {/* FAQ */}
             <div className="space-y-6">
+              {createdAppId && (
+                <div className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-sm">
+                  <strong>Application Created:</strong> <a href={`/applications/${createdAppId}`} className="text-brand-600">View Application</a>
+                </div>
+              )}
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h3>
               <div className="grid gap-4">
                 {[

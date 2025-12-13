@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import { 
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
@@ -114,10 +114,12 @@ export default function LawyerDashboard() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
+  const [assignedOnly, setAssignedOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [showReport, setShowReport] = useState(false);
+  const [stats, setStats] = useState<any>(null);
   const pageSize = 10;
 
   // Show loading while auth resolves
@@ -154,8 +156,9 @@ export default function LawyerDashboard() {
     const fetchLeads = async () => {
       try {
         setLoading(true);
+        const assignedQuery = assignedOnly ? `&assigned=true` : "";
         const data = await apiRequest<{ applications: BackendApplication[]; total: number }>(
-          `/applications?page=${page}&pageSize=${pageSize}&status=${filterStatus === "All" ? "all" : filterStatus.toLowerCase()}&sortBy=${sortBy}`
+          `/applications?page=${page}&pageSize=${pageSize}&status=${filterStatus === "All" ? "all" : filterStatus.toLowerCase()}&sortBy=${sortBy}${assignedQuery}`
         );
         // Map backend applications to lead-like objects for UI
         const mapped: Lead[] = (data.applications || []).map((app: BackendApplication) => ({
@@ -166,6 +169,7 @@ export default function LawyerDashboard() {
           visa: app.visaType,
           status: (app.status || "new").replace("_", " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
           fee: app.fee ? Number(app.fee) : 0,
+          lawyerId: (app as any).lawyerId,
           date: app.createdAt,
           createdAt: app.createdAt,
         }));
@@ -177,7 +181,19 @@ export default function LawyerDashboard() {
       }
     };
     fetchLeads();
-  }, [page, pageSize, filterStatus, sortBy]);
+  }, [page, pageSize, filterStatus, sortBy, assignedOnly]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const s = await apiRequest('/stats');
+        setStats(s);
+      } catch (err) {
+        setStats(null);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
@@ -205,6 +221,19 @@ export default function LawyerDashboard() {
     });
     if (selectedLead && selectedLead.id === id) {
       setSelectedLead({ ...selectedLead, status: newStatus });
+    }
+  };
+
+  const handleAssignToMe = async (id: string) => {
+    try {
+      await apiRequest(`/applications/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ lawyerId: user?.id }),
+      });
+      setLeads(prev => prev.map(l => l.id === id ? { ...l, assigned: user?.id, lawyerId: user?.id } : l));
+      toast({ title: 'Assigned', description: `Application assigned to you`, className: 'bg-green-50 text-green-900 border-green-200' });
+    } catch (err) {
+      // ignore
     }
   };
 
@@ -352,10 +381,10 @@ export default function LawyerDashboard() {
           <>
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={leads.length} icon={Users} color="blue" trend="+12%" />
-          <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${totalRevenue.toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
-          <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
-          <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
+          <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={stats?.totalLeads ?? leads.length} icon={Users} color="blue" trend="+12%" />
+          <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${(stats?.totalRevenue ?? totalRevenue).toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
+          <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={stats?.pendingLeads ?? leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
+          <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
         </div>
 
         {/* Quick Actions for lawyers */}
@@ -387,6 +416,11 @@ export default function LawyerDashboard() {
               <ActionButton variant="ghost" onClick={() => setLocation('/analytics-dashboard')}>Analytics</ActionButton>
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard title={'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
+          <StatCard title={'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
         </div>
 
         {/* Charts Section */}
@@ -475,6 +509,9 @@ export default function LawyerDashboard() {
                   <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↓</option>
                   <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↑</option>
                 </select>
+                <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                  {assignedOnly ? 'Assigned to me' : 'All'}
+                </button>
               </div>
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -495,6 +532,7 @@ export default function LawyerDashboard() {
                       <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
                       <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
                       <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
+                      <th className="px-6 py-4">Assigned</th>
                       <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
                     </tr>
                   </thead>
@@ -544,6 +582,11 @@ export default function LawyerDashboard() {
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
                       {new Date(lead.date || lead.createdAt).toLocaleDateString()}
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-600">
+                        {lead.lawyerId ? (lead.lawyerId === user?.id ? 'You' : `Lawyer ${lead.lawyerId.slice(0,8)}`) : 'Unassigned'}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <ActionButton 
@@ -590,6 +633,11 @@ export default function LawyerDashboard() {
                           onClick={() => handleStatusChange(lead.id, 'Reviewing')}
                         >
                           {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
+                        </ActionButton>
+                      )}
+                      {(!lead.lawyerId || lead.lawyerId !== user?.id) && (
+                        <ActionButton variant="primary" icon={Users} onClick={() => handleAssignToMe(lead.id)}>
+                          Assign to me
                         </ActionButton>
                       )}
                       </div>

@@ -21,6 +21,7 @@ const createApplicationSchema = z.object({
   country: z.string().length(2),
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
+  lawyerId: z.string().optional(),
 });
 
 const updateApplicationSchema = z.object({
@@ -38,6 +39,7 @@ const updateApplicationSchema = z.object({
   country: z.string().length(2).optional(),
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
+  lawyerId: z.string().optional(),
 });
 
 // Get all applications (with filters)
@@ -60,7 +62,7 @@ router.get(
     // Admins can see all
 
     // Apply filters
-    const { status, search, sortBy, page = "1", pageSize = "10" } = req.query;
+    const { status, search, sortBy, page = "1", pageSize = "10", assigned } = req.query;
 
     if (status && status !== "all") {
       query = query.where(
@@ -72,8 +74,16 @@ router.get(
     }
 
     // TODO: Implement search and sorting properly with Drizzle
+    // If the logged-in user is a lawyer and asked for assigned list, filter by lawyerId
+    const whereClause =
+      role === "applicant"
+        ? eq(applications.userId, userId)
+        : role === "lawyer" && assigned === "true"
+        ? eq(applications.lawyerId, userId)
+        : undefined;
+
     const allApps = await db.query.applications.findMany({
-      where: role === "applicant" ? eq(applications.userId, userId) : undefined,
+      where: whereClause as any,
       orderBy: [desc(applications.createdAt)],
     });
 
@@ -101,8 +111,20 @@ router.get(
     const end = start + size;
     const paginated = filtered.slice(start, end);
 
+    // Join user info (non-performant for large datasets but acceptable for demo)
+    const userIds = Array.from(new Set(filtered.map((a) => a.userId)));
+    const usersList = userIds.length ? await db.query.users.findMany({ where: or(...userIds.map((id) => eq(users.id, id))) }) : [];
+    const userMap: Record<string, any> = {};
+    usersList.forEach((u) => (userMap[u.id] = u));
+
+    const enriched = paginated.map((a) => ({
+      ...a,
+      userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
+      userEmail: userMap[a.userId]?.email,
+    }));
+
     res.json({
-      applications: paginated,
+      applications: enriched,
       total: filtered.length,
       page: pageNum,
       pageSize: size,
@@ -142,6 +164,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const body = createApplicationSchema.parse(req.body);
     const userId = req.user!.userId;
+    const role = req.user!.role;
 
     // Validate country code
     if (!isValidCountryCode(body.country)) {
@@ -153,14 +176,33 @@ router.post(
       throw new AppError(400, "Invalid visa type");
     }
 
+    const insertData: any = {
+      userId,
+      visaType: sanitizeInput(body.visaType),
+      country: body.country.toUpperCase(),
+      fee: body.fee || "0",
+      notes: body.notes ? sanitizeInput(body.notes) : null,
+    };
+
+    // Only allow assigning lawyer if the current user is a lawyer or admin and provided a lawyerId
+    if (req.body.lawyerId && (role === "lawyer" || role === "admin")) {
+      // Validate that provided user exists and is a lawyer
+      const assignedUser = await db.query.users.findFirst({ where: eq(users.id, req.body.lawyerId) });
+      if (assignedUser && assignedUser.role === 'lawyer') {
+        insertData.lawyerId = req.body.lawyerId;
+      }
+    }
+
+    // Add applicant metadata for easy display in UIs
+    const applicant = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (applicant) {
+      insertData.metadata = { applicantName: `${applicant.firstName || ''} ${applicant.lastName || ''}`.trim(), email: applicant.email };
+    }
+
     const [newApplication] = await db
       .insert(applications)
       .values({
-        userId,
-        visaType: sanitizeInput(body.visaType),
-        country: body.country.toUpperCase(),
-        fee: body.fee || "0",
-        notes: body.notes ? sanitizeInput(body.notes) : null,
+        ...insertData,
       })
       .returning();
 
@@ -218,6 +260,13 @@ router.patch(
     }
     if (body.fee !== undefined) updateData.fee = body.fee;
     if (body.notes !== undefined) updateData.notes = body.notes ? sanitizeInput(body.notes) : null;
+    if (body.lawyerId && (role === "lawyer" || role === "admin")) {
+      const assignedUser = await db.query.users.findFirst({ where: eq(users.id, body.lawyerId) });
+      if (!assignedUser || assignedUser.role !== 'lawyer') {
+        throw new AppError(400, 'Invalid lawyerId');
+      }
+      updateData.lawyerId = body.lawyerId;
+    }
 
     const [updated] = await db
       .update(applications)

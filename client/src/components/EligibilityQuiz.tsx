@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiRequest } from "../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, Sparkles } from "lucide-react";
 import { LiveButton } from "./ui/live-elements";
@@ -106,7 +107,7 @@ const APPROVAL_SCORES: Record<string, number> = {
 };
 
 interface EligibilityQuizProps {
-  onComplete?: (score: number, answers: Record<string, string>) => void;
+  onComplete?: (score: number, answers: Record<string, string>, application?: any) => void;
   compact?: boolean; // Show as compact inline version
 }
 
@@ -389,8 +390,21 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
               className="space-y-3"
             >
               <LiveButton
-                onClick={() => {
-                  onComplete?.(approvalScore, answers);
+                onClick={async () => {
+                  let createdApp: any = undefined;
+                  try {
+                    const countryMap: Record<string, string> = { canada: "CA", uk: "GB", usa: "US", australia: "AU", europe: "EU", other: "OT" };
+                    const visaMap: Record<string, string> = { canada: "Skilled Worker", uk: "Skilled Worker", usa: "Work Permit", australia: "Skilled Worker", europe: "Residence Permit", other: "General" };
+                    const country = countryMap[answers["country"]] || "OT";
+                    const visaType = visaMap[answers["country"]] || "General";
+                    createdApp = await apiRequest("/applications", {
+                      method: "POST",
+                      body: JSON.stringify({ visaType, country }),
+                    });
+                  } catch (err) {
+                    // if not logged in or error, navigate to login
+                  }
+                  onComplete?.(approvalScore, answers, createdApp);
                   navigate("/auth?plan=professional");
                 }}
                 className="w-full"

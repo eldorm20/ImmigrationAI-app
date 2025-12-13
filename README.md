@@ -88,6 +88,13 @@ npm run db:generate
 npm run db:migrate
 ```
 
+### 3.1 Seeding Demo Data
+
+```bash
+# Run migrations (if not already) and seed sample lawyers and applications
+npm run db:seed
+```
+
 ### 4. Start Development Server
 
 ```bash
