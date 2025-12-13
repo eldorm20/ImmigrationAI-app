@@ -348,27 +348,39 @@ router.post(
   "/chat",
   aiLimiter,
   asyncHandler(async (req, res) => {
-    const { message, language, history } = z.object({ 
-      message: z.string().min(1), 
-      language: z.string().optional(),
-      history: z.array(z.object({
-        role: z.enum(['user', 'ai']),
-        content: z.string()
-      })).optional()
-    }).parse(req.body);
-    
+    // Accept either { message: string } or { messages: [{role,content}] } for compatibility
+    const parsed = z
+      .union([
+        z.object({ message: z.string().min(1), language: z.string().optional(), history: z.array(z.object({ role: z.enum(['user','ai']), content: z.string() })).optional() }),
+        z.object({ messages: z.array(z.object({ role: z.enum(['user','ai']), content: z.string() })).min(1), language: z.string().optional() })
+      ])
+      .parse(req.body as any) as any;
+
     try {
+      let messageText = '';
+      let history = parsed.history || [];
+
+      if (parsed.messages) {
+        // Build message from last user message and use previous items as history
+        const msgs = parsed.messages as Array<any>;
+        history = msgs.slice(0, -1);
+        const last = msgs[msgs.length - 1];
+        messageText = last.role === 'user' ? last.content : '';
+      } else {
+        messageText = parsed.message;
+      }
+
       // Build conversation context from history
-      const conversationContext = history && history.length > 0 
-        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'ai' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: ` 
+      const conversationContext = history && history.length > 0
+        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'ai' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: `
         : '';
-      
-      const contextualMessage = conversationContext + message;
-      const reply = await chatRespond(contextualMessage, language || 'en');
+
+      const contextualMessage = conversationContext + messageText;
+      const reply = await chatRespond(contextualMessage, (parsed.language as string) || 'en');
       res.json({ reply });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      logger.error({ err, message }, "Chat response failed");
+      logger.error({ err }, "Chat response failed");
       
       // Return 503 if AI provider unavailable, 500 for other errors
       if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
