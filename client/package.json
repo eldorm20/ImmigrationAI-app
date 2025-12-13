@@ -10,7 +10,5 @@
     "test": "echo \"No tests defined\""
   }
   ,
-  "dependencies": {
-    "@stripe/stripe-js": "^1.80.0"
-  }
+  "dependencies": {}
 }

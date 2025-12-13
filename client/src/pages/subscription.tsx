@@ -86,6 +86,7 @@ export default function SubscriptionPage() {
   const [, setLocation] = useLocation();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
+  const [usage, setUsage] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -103,6 +104,16 @@ export default function SubscriptionPage() {
         setError(null);
         const subs = await apiRequest<Subscription>("/subscription/current");
         setSubscription(subs);
+
+          // fetch usage/quotas
+          try {
+            const u = await apiRequest<any>("/subscription/usage");
+            setUsage(u);
+          } catch (uErr) {
+            // non-fatal
+            console.warn("Failed to load usage:", uErr);
+            setUsage(null);
+          }
 
         const history = await apiRequest<BillingHistory[]>("/subscription/billing-history");
         setBillingHistory(history || []);
@@ -262,6 +273,27 @@ export default function SubscriptionPage() {
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.renewal || "Renewal"}</p>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.plan === "starter" ? "N/A" : (subscription?.renewalDate ? new Date(subscription.renewalDate).toLocaleDateString() : "N/A")}</p>
+                </div>
+              </div>
+
+              {/* Usage / Quotas */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">Document Uploads (this month)</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{usage && usage.documentUploads ? `${usage.documentUploads.remaining} / ${usage.documentUploads.limit}` : "-"}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Used: {usage && usage.documentUploads ? usage.documentUploads.used : "-"}</p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">AI Document Generations (this month)</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{usage && usage.aiDocumentGenerations ? `${usage.aiDocumentGenerations.remaining} / ${usage.aiDocumentGenerations.limit}` : "-"}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Used: {usage && usage.aiDocumentGenerations ? usage.aiDocumentGenerations.used : "-"}</p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">AI Requests (this month)</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{usage && usage.aiMonthlyRequests ? `${usage.aiMonthlyRequests.remaining} / ${usage.aiMonthlyRequests.limit}` : "-"}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Used: {usage && usage.aiMonthlyRequests ? usage.aiMonthlyRequests.used : "-"}</p>
                 </div>
               </div>
 

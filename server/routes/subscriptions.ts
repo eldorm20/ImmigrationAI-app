@@ -11,6 +11,7 @@ import {
   type SubscriptionTier,
 } from "../lib/subscriptionTiers";
 import { createSubscription, getSubscriptionStatus } from "../lib/subscription";
+import { getUsageRemaining } from "../lib/aiUsage";
 import { users, subscriptions } from "@shared/schema";
 import { logger } from "../lib/logger";
 import { eq, desc, and, or } from "drizzle-orm";
@@ -76,6 +77,30 @@ router.get(
       hasAccess,
       limit,
     });
+  })
+);
+
+// Get current usage and remaining allowances for common AI/document features
+router.get(
+  "/usage",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.id;
+
+    try {
+      const aiDocs = await getUsageRemaining(userId, "aiDocumentGenerations");
+      const uploads = await getUsageRemaining(userId, "documentUploadLimit");
+      const monthly = await getUsageRemaining(userId, "aiMonthlyRequests");
+
+      res.json({
+        aiDocumentGenerations: aiDocs,
+        documentUploads: uploads,
+        aiMonthlyRequests: monthly,
+      });
+    } catch (err) {
+      logger.error({ err, userId }, "Failed to fetch usage for user");
+      res.status(500).json({ message: "Failed to fetch usage" });
+    }
   })
 );
 
