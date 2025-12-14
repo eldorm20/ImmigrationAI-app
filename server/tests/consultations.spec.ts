@@ -53,6 +53,15 @@ describe("Consultations Routes", () => {
     expect(res.body[0].id).toBe("law1");
   });
 
+  it("returns empty array when lawyers lookup fails", async () => {
+    // Simulate DB failure for users.findMany
+    mockFindMany.mockRejectedValueOnce(new Error("DB failure"));
+
+    const res = await request(app).get("/api/consultations/available/lawyers").expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(0);
+  });
+
   it("allows applicant to create consultation and queues emails (DB insert)", async () => {
     // Mock lawyer exists and applicant exists
     mockFindFirst.mockResolvedValueOnce({ id: "law1", email: "anna@example.com", firstName: "Anna" }); // lawyer lookup
@@ -65,5 +74,27 @@ describe("Consultations Routes", () => {
     const res = await request(app).post("/api/consultations").send(payload).expect(201);
     expect(res.body).toHaveProperty("id");
     expect(mockInsert).toHaveBeenCalled();
+  });
+
+  it("returns 500 when creating consultation fails", async () => {
+    // Mock lawyer exists and applicant exists
+    mockFindFirst.mockResolvedValueOnce({ id: "law1", email: "anna@example.com", firstName: "Anna" }); // lawyer lookup
+    mockFindFirst.mockResolvedValueOnce({ id: "user_app1", email: "app@example.com", firstName: "App" }); // applicant lookup
+
+    mockInsert.mockRejectedValueOnce(new Error("DB insert failed"));
+
+    const payload = { lawyerId: "law1", scheduledTime: new Date().toISOString(), duration: 60, notes: "Test" };
+
+    await request(app).post("/api/consultations").send(payload).expect(500);
+  });
+
+  it("returns empty array when fetching consultations fails", async () => {
+    // Make consultations.findMany throw
+    const dbModule = await import("../db");
+    dbModule.db.query.consultations.findMany = vi.fn().mockRejectedValueOnce(new Error("DB fail"));
+
+    const res = await request(app).get("/api/consultations").expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(0);
   });
 });

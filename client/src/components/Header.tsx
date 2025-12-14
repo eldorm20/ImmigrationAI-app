@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Download, Code, LogOut, Eye, Filter, Briefcase } from 'lucide-react';
 import { LiveButton } from '@/components/ui/live-elements';
+import { useI18n, Language } from '@/lib/i18n';
 
 interface HeaderProps {
   title?: string;
@@ -15,6 +16,7 @@ interface HeaderProps {
 export default function Header({ title, showBack, onBack, simple }: HeaderProps) {
   const [, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const { lang, setLang, t } = useI18n();
   const [compactNav, setCompactNav] = useState<boolean>(false);
 
   useEffect(() => {
@@ -54,6 +56,19 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Language selector - Uzbek first, then Russian, then English */}
+        <div className="hidden sm:flex items-center">
+          <select
+            aria-label="Select language"
+            value={lang}
+            onChange={(e) => setLang(e.target.value as Language)}
+            className="rounded-md border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 px-2 py-1 text-sm"
+          >
+            <option value="uz">{t.langNames?.uz || "O'zbekcha"}</option>
+            <option value="ru">{t.langNames?.ru || 'Русский'}</option>
+            <option value="en">{t.langNames?.en || 'English'}</option>
+          </select>
+        </div>
         {!compactNav && (
           <>
             <LiveButton variant="ghost" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event('exportCsv'))} icon={Download}>Export CSV</LiveButton>

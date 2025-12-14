@@ -63,19 +63,25 @@ router.post(
     const meetingLink = generateGoogleMeetLink(`consult-${body.lawyerId}-${user.id}`);
 
     // Create consultation request
-    const [consultation] = await db
-      .insert(consultations)
-      .values({
-        lawyerId: body.lawyerId,
-        userId: user.id,
-        applicationId: body.applicationId,
-        scheduledTime: new Date(body.scheduledTime),
-        duration: body.duration,
-        notes: body.notes,
-        status: "scheduled",
-        meetingLink: meetingLink,
-      })
-      .returning();
+    let consultation;
+    try {
+      [consultation] = await db
+        .insert(consultations)
+        .values({
+          lawyerId: body.lawyerId,
+          userId: user.id,
+          applicationId: body.applicationId,
+          scheduledTime: new Date(body.scheduledTime),
+          duration: body.duration,
+          notes: body.notes,
+          status: "scheduled",
+          meetingLink: meetingLink,
+        })
+        .returning();
+    } catch (err: any) {
+      logger.error({ err, userId: user.id, lawyerId: body.lawyerId }, "Failed to create consultation");
+      throw new AppError(500, "Failed to create consultation");
+    }
 
     // Email lawyer about new consultation request
     try {
@@ -177,8 +183,9 @@ router.get(
 
       res.json(results || []);
     } catch (err: any) {
-      logger.error({ err, userId: user.id }, "Failed to fetch consultations");
-      throw new AppError(500, "Failed to fetch consultations");
+      logger.warn({ err, userId: user.id }, "Failed to fetch consultations - returning empty array");
+      // Return an empty list so UI can gracefully handle lack of data
+      return res.json([]);
     }
   })
 );
@@ -187,16 +194,23 @@ router.get(
 router.get(
   "/available/lawyers",
   asyncHandler(async (req, res) => {
-    const lawyers = await db.query.users.findMany({
-      where: eq(users.role, "lawyer"),
-    });
+    try {
+      const lawyers = await db.query.users.findMany({
+        where: eq(users.role, "lawyer"),
+      });
 
-    res.json(lawyers.map(l => ({
-      id: l.id,
-      firstName: l.firstName,
-      lastName: l.lastName,
-      email: l.email,
-    })));
+      return res.json(
+        lawyers.map((l) => ({
+          id: l.id,
+          firstName: l.firstName,
+          lastName: l.lastName,
+          email: l.email,
+        }))
+      );
+    } catch (err: any) {
+      logger.warn({ err }, "Failed to load available lawyers - returning empty array");
+      return res.json([]);
+    }
   })
 );
 

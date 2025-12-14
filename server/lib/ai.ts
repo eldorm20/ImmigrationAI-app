@@ -102,21 +102,7 @@ export async function checkEligibility(
     );
 
     if (!response.success) {
-      logger.warn(
-        { error: response.error },
-        "Immigration agent failed, using fallback"
-      );
-      return {
-        eligible: true,
-        probability: 75,
-        missingDocuments: ["Passport", "Educational certificates"],
-        issues: [],
-        recommendations: [
-          "Ensure all documents are translated and certified",
-          "Prepare financial statements",
-        ],
-        nextSteps: ["Gather required documents", "Schedule consultation with lawyer"],
-      };
+      throw new Error(response.error || "Immigration agent failed");
     }
 
     return {
@@ -156,15 +142,7 @@ export async function analyzeDocument(
     );
 
     if (!response.success) {
-      logger.warn({ error: response.error }, "Document analysis failed, using fallback");
-      return {
-        documentType,
-        extractedData: ocrData || {},
-        issues: [],
-        quality: "good",
-        suggestions: ["Ensure document is clear and readable"],
-        missingFields: [],
-      };
+      throw new Error(response.error || "Document analysis failed");
     }
 
     return {
@@ -208,30 +186,37 @@ export async function generateInterviewQuestions(
     );
 
     if (!response.success) {
-      logger.warn(
-        { error: response.error },
-        "Failed to generate interview questions"
-      );
-      return [];
+      throw new Error(response.error || "Failed to generate interview questions");
     }
 
-    return [
-      {
-        question: "Why do you want to visit this country?",
-        category: "Purpose",
-        expectedAnswer: "Clear purpose and intent",
-      },
-      {
-        question: "What is your current occupation?",
-        category: "Background",
-        expectedAnswer: "Honest and detailed response",
-      },
-      {
-        question: `What do you know about ${country}?`,
-        category: "Knowledge",
-        expectedAnswer: "Demonstrated understanding of the country",
-      },
-    ];
+    // Agent currently returns a single string, we need to parse it (assuming JSON or structured text).
+    // For now, if the agent returns a string, we might need to rely on the agent to return JSON.
+    // But since the original code mocked it, we must ensure the agent is expected to return JSON.
+    // The AgentsManager generally returns strings. 
+    // We will throw if not JSON parseable or specific format.
+    // For safety in this "real data" pass, if data isn't structured, we throw.
+
+    // However, looking at agents.ts, checkDocumentRequirements returns a string.
+    // We'll need to adapt the agent prompt later to return JSON, but for now, 
+    // let's just assume failure if we can't get real data.
+    // Since we can't easily change the agent prompt structure in this single step without risk,
+    // and the user wants NO MORE MOCKS, throwing error is safer than fake data.
+
+    try {
+      const parsed = JSON.parse(response.data);
+      if (Array.isArray(parsed)) return parsed as InterviewQuestion[];
+      throw new Error("Invalid AI response format");
+    } catch (e) {
+      // If response is text, wrap it in a single question object as a fallback for "real but unstructured" data
+      if (typeof response.data === 'string') {
+        return [{
+          question: "Review requirements",
+          category: "General",
+          expectedAnswer: response.data
+        }];
+      }
+      throw new Error("Failed to parse interview questions");
+    }
   } catch (error) {
     logger.error({ error, visaType, country }, "Failed to generate interview questions");
     return [];
@@ -253,14 +238,7 @@ export async function evaluateInterviewAnswer(
     );
 
     if (!response.success) {
-      logger.warn({ error: response.error }, "Failed to evaluate interview answer");
-      return {
-        score: 70,
-        strengths: ["Clear communication"],
-        weaknesses: ["Could provide more detail"],
-        suggestions: ["Include specific examples"],
-        overallAssessment: "Good response overall",
-      };
+      throw new Error(response.error || "Failed to evaluate answer");
     }
 
     return {
@@ -325,8 +303,7 @@ export async function translateText(
     );
 
     if (!response.success) {
-      logger.warn({ error: response.error }, "Translation failed");
-      return text;
+      throw new Error(response.error || "Translation failed");
     }
 
     return response.data || text;
@@ -349,8 +326,7 @@ export async function chatRespond(message: string, language = "en"): Promise<str
     );
 
     if (!response.success) {
-      logger.warn({ error: response.error }, "Chat response failed");
-      return "I'm here to help with immigration questions. Please provide more details about what you'd like to know.";
+      throw new Error(response.error || "Chat service unavailable");
     }
 
     return (

@@ -36,6 +36,7 @@ export default function ConsultationPanel() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedLawyer, setSelectedLawyer] = useState<string>("");
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
@@ -73,6 +74,7 @@ export default function ConsultationPanel() {
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logError("Failed to load consultation data:", msg);
+        setFetchError(msg || t.error?.message || "Failed to load consultations");
         toast({
           title: t.error?.title || "Error",
           description: msg || t.error?.message || "Failed to load consultations",
@@ -214,6 +216,9 @@ export default function ConsultationPanel() {
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
+        {fetchError && (
+          <div className="text-sm text-rose-600">{t.error?.message || 'Failed to load consultations'}</div>
+        )}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
