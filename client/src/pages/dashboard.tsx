@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle, 
+import {
+  LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle,
   ArrowRight, Download, Send, User, X, Sparkles, Briefcase,
   Loader2, ChevronRight, Globe, Zap, FileCheck, RefreshCw, Edit3, Check,
   Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard, Bell, BadgeCheck
@@ -25,9 +25,9 @@ export default function UserDash() {
   const { t } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
+
   const [activeTab, setActiveTab] = useState('roadmap');
-  
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -43,34 +43,34 @@ export default function UserDash() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [activeTab, toast]);
-  
+
   if (!user) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 flex flex-col md:flex-row overflow-hidden transition-colors duration-300">
-      
+
       {/* Sidebar */}
-      <motion.aside 
+      <motion.aside
         initial={{ x: -50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className="w-full md:w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen sticky top-0 z-20 shadow-sm"
       >
         <div className="p-8 flex justify-between items-center">
-          <motion.div 
+          <motion.div
             className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
             whileHover={{ scale: 1.05 }}
             onClick={() => window.location.href = "/"}
           >
-             <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
-               <Globe size={20} />
-             </div>
-             <span className="text-slate-900 dark:text-white hidden md:inline">{t.brand.name}</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+              <Globe size={20} />
+            </div>
+            <span className="text-slate-900 dark:text-white hidden md:inline">{t.brand.name}</span>
           </motion.div>
           <div className="md:hidden">
-             <ThemeToggle />
+            <ThemeToggle />
           </div>
         </div>
-        
+
         <nav className="flex-1 px-4 space-y-2">
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
@@ -91,13 +91,13 @@ export default function UserDash() {
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
               {activeTab === item.id && (
-                <motion.div 
+                <motion.div
                   layoutId="activeTabIndicator"
                   className="absolute left-0 w-1 h-8 bg-brand-600 rounded-r-full"
                 />
               )}
               <span className="relative z-10 flex items-center gap-3">
-                <item.icon size={20} className={activeTab === item.id ? "text-brand-600 dark:text-brand-400" : ""} /> 
+                <item.icon size={20} className={activeTab === item.id ? "text-brand-600 dark:text-brand-400" : ""} />
                 {item.label}
               </span>
             </motion.button>
@@ -116,34 +116,34 @@ export default function UserDash() {
               <p className="text-xs text-slate-400 truncate">{user.email}</p>
             </div>
           </div>
-          <LiveButton 
-            variant="ghost" 
-            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20" 
+          <LiveButton
+            variant="ghost"
+            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
             onClick={() => setLocation("/subscription")}
             icon={CreditCard}
           >
             {t.subscription?.manage || "Subscription"}
           </LiveButton>
-          <LiveButton 
-            variant="ghost" 
-            className="w-full justify-start text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20" 
+          <LiveButton
+            variant="ghost"
+            className="w-full justify-start text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20"
             onClick={() => setLocation("/notifications")}
             icon={Bell}
           >
             {t.settings?.notificationPreferences || "Notifications"}
           </LiveButton>
-          <LiveButton 
-            variant="ghost" 
-            className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800" 
+          <LiveButton
+            variant="ghost"
+            className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => setLocation("/settings")}
             icon={Settings}
           >
             {t.settings?.title || "Settings"}
           </LiveButton>
-          <LiveButton 
-            variant="ghost" 
-            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" 
-            onClick={logout} 
+          <LiveButton
+            variant="ghost"
+            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+            onClick={logout}
             icon={LogOut}
           >
             {t.dash.logout}
@@ -155,7 +155,7 @@ export default function UserDash() {
       <main className="flex-1 p-6 md:p-10 overflow-y-auto relative">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/50 to-transparent dark:from-brand-900/10 pointer-events-none" />
-        
+
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10 gap-4">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
@@ -167,7 +167,7 @@ export default function UserDash() {
             </p>
           </motion.div>
           <div className="flex items-center gap-4">
-             <div className="hidden md:block"><ThemeToggle /></div>
+            <div className="hidden md:block"><ThemeToggle /></div>
           </div>
         </header>
 
@@ -206,16 +206,19 @@ export default function UserDash() {
 
 type ToastHandler = ReturnType<typeof import('@/hooks/use-toast').toast>;
 
+interface ApplicationSummary {
+  id: string;
+  status?: string;
+  visaType?: string;
+  country?: string;
+}
+
 interface RoadmapItem {
   id?: string;
   title: string;
   status?: string;
   description?: string;
-}
-
-interface ApplicationSummary {
-  id: string;
-  status?: string;
+  desc?: string;
 }
 
 const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void; toast: ToastHandler }) => {
@@ -248,6 +251,11 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
         }
       } catch (error) {
         logError('Failed to load roadmap:', error);
+        toast({
+          title: "Error loading roadmap",
+          description: "Could not load application progress.",
+          variant: "destructive"
+        });
         setProgress(35); // Fallback for demo
       } finally {
         setLoading(false);
@@ -277,7 +285,7 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="space-y-8"
     >
@@ -290,71 +298,71 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
             </h3>
             <p className="text-slate-500 mt-1">{t.roadmap?.applicationReference || 'Application Reference:'} #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
           </div>
-            <div className="text-right">
+          <div className="text-right">
             <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress}%</div>
             <div className="text-xs font-bold text-slate-400 uppercase">{t.roadmap?.completionLabel || 'Completion'}</div>
           </div>
         </div>
-        
+
         <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 mb-6 overflow-hidden">
-          <motion.div 
+          <motion.div
             initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
             className="bg-gradient-to-r from-brand-500 to-purple-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] relative"
           >
-             <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
+            <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
           </motion.div>
         </div>
-        
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
-          <Zap size={16} className="text-yellow-500 fill-yellow-500" /> 
+
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+          <Zap size={16} className="text-yellow-500 fill-yellow-500" />
           {t.roadmap?.nextStepLabel || 'Next Step:'} <span className="font-bold">{items.find(i => i.status === 'current')?.title || (t.roadmap?.defaults?.submissionDesc || 'Complete Application')}</span>
         </p>
       </AnimatedCard>
 
       <div className="grid gap-4">
         {items.map((step: RoadmapItem, i: number) => (
-          <AnimatedCard 
-            key={i} 
-            delay={i * 0.1} 
+          <AnimatedCard
+            key={i}
+            delay={i * 0.1}
             className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} ${step.status !== 'pending' ? 'hover:shadow-lg' : ''}`}
             onClick={() => step.status !== 'pending' && (
-              step.title.includes('Document') ? setActiveTab('upload') : 
-              step.title.includes('Translation') ? setActiveTab('translate') : null
+              step.title.includes('Document') ? setActiveTab('upload') :
+                step.title.includes('Translation') ? setActiveTab('translate') : null
             )}
           >
-             <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
-               {step.status === 'done' || step.status === 'completed' ? (
-                 <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shadow-sm">
-                   <CheckCircle size={20} />
-                 </div>
-               ) : step.status === 'current' ? (
-                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm relative">
-                   <div className="absolute inset-0 bg-brand-500 rounded-full opacity-20 animate-ping"></div>
-                   <Loader2 size={20} className="animate-spin" />
-                 </div>
-               ) : (
-                 <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                   <Circle size={20} />
-                 </div>
-               )}
-               
-               <div className="flex-1">
-                 <h4 className={`font-bold text-lg ${step.status === 'pending' ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{step.title}</h4>
-                 <p className="text-sm text-slate-500">{step.description || step.desc}</p>
-               </div>
-               
-                 {step.status === 'current' && (
-                 <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
-                   toast({ 
-                     title: t.tools?.nextStep || "Next Step", 
-                     description: `${t.roadmap?.starting || 'Starting'} ${step.title}...`,
-                     className: "bg-blue-50 text-blue-900 border-blue-200"
-                   });
-                 }}>
-                   {t.tools?.next || 'Next'} <ArrowRight size={16} />
-                 </LiveButton>
-               )}
-             </div>
+            <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
+              {step.status === 'done' || step.status === 'completed' ? (
+                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shadow-sm">
+                  <CheckCircle size={20} />
+                </div>
+              ) : step.status === 'current' ? (
+                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm relative">
+                  <div className="absolute inset-0 bg-brand-500 rounded-full opacity-20 animate-ping"></div>
+                  <Loader2 size={20} className="animate-spin" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
+                  <Circle size={20} />
+                </div>
+              )}
+
+              <div className="flex-1">
+                <h4 className={`font-bold text-lg ${step.status === 'pending' ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{step.title}</h4>
+                <p className="text-sm text-slate-500">{step.description || step.desc}</p>
+              </div>
+
+              {step.status === 'current' && (
+                <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
+                  toast({
+                    title: t.tools?.nextStep || "Next Step",
+                    description: `${t.roadmap?.starting || 'Starting'} ${step.title}...`,
+                    className: "bg-blue-50 text-blue-900 border-blue-200"
+                  });
+                }}>
+                  {t.tools?.next || 'Next'} <ArrowRight size={16} />
+                </LiveButton>
+              )}
+            </div>
           </AnimatedCard>
         ))}
       </div>
@@ -364,9 +372,9 @@ const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => v
 
 const EmployerVerificationView = () => {
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-2xl p-8"
     >
@@ -380,7 +388,7 @@ const EmployerVerificationView = () => {
             Verify employers across European company registries to validate employment information for visa applications
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-900 shadow-sm dark:shadow-black/30">
             <CheckCircle className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-3" />
@@ -419,9 +427,10 @@ const DocsView = () => {
   const { t, lang } = useI18n();
 
   const generateMotivationLetter = (data: Record<string, unknown>) => {
-    const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const skills = typeof data.skills === 'string' ? data.skills : '';
+    const skillsList = skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
     const skillsText = skillsList.length > 0 ? skillsList.join(', ') : '[Your key skills]';
-    
+
     return `Dear Hiring Manager,
 
 I am writing to express my strong interest in the ${data.role || '[Position Title]'} position at ${data.company || '[Company Name]'}. With ${data.experience || '[X]'} years of professional experience and a proven track record in ${skillsText}, I am confident that I would be a valuable addition to your team.
@@ -448,8 +457,9 @@ ${new Date().toLocaleDateString()}`;
   };
 
   const generateCVEnhancement = (data: Record<string, unknown>) => {
-    const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-    
+    const skills = typeof data.skills === 'string' ? data.skills : '';
+    const skillsList = skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+
     return `PROFESSIONAL SUMMARY
 
 Results-driven ${data.role || 'professional'} with ${data.experience || '[X]'} years of experience in [industry/field]. Proven expertise in ${skillsList.length > 0 ? skillsList.join(', ') : '[key skills]'} with a track record of delivering exceptional results in ${data.company ? `organizations like ${data.company}` : 'diverse professional environments'}.
@@ -476,6 +486,9 @@ ${data.achievements ? `KEY ACHIEVEMENTS\n${data.achievements}` : ''}`;
   };
 
   const generateReferenceLetter = (data: Record<string, unknown>) => {
+    const skills = typeof data.skills === 'string' ? data.skills : '';
+    const skillsList = skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+
     return `To Whom It May Concern,
 
 RE: Reference Letter for ${user?.name || '[Employee Name]'}
@@ -486,13 +499,13 @@ EMPLOYMENT PERIOD
 ${data.experience ? `During their ${data.experience} years of service` : 'During their tenure'} with ${data.company || 'our organization'}, ${user?.name || 'the employee'} demonstrated exceptional professionalism, dedication, and competence.
 
 KEY STRENGTHS
-${data.skills ? data.skills.split(',').map((s: string) => `• ${s.trim()}`).join('\n') : '• [Strength 1]\n• [Strength 2]\n• [Strength 3]'}
+${skillsList.length > 0 ? skillsList.map((s: string) => `• ${s.trim()}`).join('\n') : '• [Strength 1]\n• [Strength 2]\n• [Strength 3]'}
 
 PERFORMANCE HIGHLIGHTS
 ${data.achievements || '• Consistently met and exceeded performance expectations\n• Demonstrated strong problem-solving abilities\n• Worked effectively both independently and as part of a team'}
 
 RECOMMENDATION
-I can confidently recommend ${user?.name || '[Employee Name]'} for any position that requires ${data.skills ? data.skills.split(',').slice(0, 2).join(' and ') : '[relevant skills]'}. They would be a valuable asset to any organization.
+I can confidently recommend ${user?.name || '[Employee Name]'} for any position that requires ${skillsList.length > 0 ? skillsList.slice(0, 2).join(' and ') : '[relevant skills]'}. They would be a valuable asset to any organization.
 
 If you require any additional information, please do not hesitate to contact me.
 
@@ -533,7 +546,7 @@ ${new Date().toLocaleDateString()}`;
         });
 
         const targetText = resp.document || "";
-        try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch {};
+        try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch { };
         let i = 0;
 
         const interval = setInterval(() => {
@@ -563,121 +576,121 @@ ${new Date().toLocaleDateString()}`;
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="grid md:grid-cols-12 gap-8 h-full">
       <div className="md:col-span-4 space-y-6">
         <AnimatedCard className="h-full flex flex-col">
-           <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><Sparkles className="text-brand-500" /> {t.dash.docs}</h3>
-           
-           <div className="space-y-2 mb-6">
-             <label className="text-xs font-bold uppercase text-slate-500">{t.tools.gen} Type</label>
-             <div className="grid gap-2">
-               {Object.keys(templates).map(t => (
-                 <button 
-                   key={t}
-                   onClick={() => setDocType(t)}
-                   className={`p-3 rounded-xl text-left text-sm font-bold transition-all border flex items-center justify-between ${docType === t ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-500 text-brand-700 dark:text-brand-300' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
-                 >
-                   {t}
-                   {docType === t && <CheckCircle size={16} className="text-brand-500" />}
-                 </button>
-               ))}
-             </div>
-           </div>
+          <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><Sparkles className="text-brand-500" /> {t.dash.docs}</h3>
 
-           <div className="space-y-4 mb-6 flex-1">
-             <div>
-               <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Target Role / Job Title</label>
-               <input 
-                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white" 
-                 placeholder="e.g. Software Engineer"
-                 value={formData.role}
-                 onChange={e => setFormData({...formData, role: e.target.value})}
-               />
-             </div>
-             <div>
-               <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Company Name</label>
-               <input 
-                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white" 
-                 placeholder="e.g. Google UK" 
-                 value={formData.company}
-                 onChange={e => setFormData({...formData, company: e.target.value})}
-               />
-             </div>
-             <div>
-               <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Years of Experience</label>
-               <input 
-                 type="number"
-                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white" 
-                 placeholder="e.g. 5"
-                 value={formData.experience}
-                 onChange={e => setFormData({...formData, experience: e.target.value})}
-               />
-             </div>
-             <div>
-               <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Education</label>
-               <input 
-                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white" 
-                 placeholder="e.g. Bachelor's in Computer Science"
-                 value={formData.education}
-                 onChange={e => setFormData({...formData, education: e.target.value})}
-               />
-             </div>
-             <div>
-               <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Key Skills (Comma separated)</label>
-               <textarea 
-                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm h-24 resize-none outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white" 
-                 placeholder="e.g. React, Leadership, English C1" 
-                 value={formData.skills}
-                 onChange={e => setFormData({...formData, skills: e.target.value})}
-               />
-             </div>
-           </div>
+          <div className="space-y-2 mb-6">
+            <label className="text-xs font-bold uppercase text-slate-500">{t.tools.gen} Type</label>
+            <div className="grid gap-2">
+              {Object.keys(templates).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setDocType(t)}
+                  className={`p-3 rounded-xl text-left text-sm font-bold transition-all border flex items-center justify-between ${docType === t ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-500 text-brand-700 dark:text-brand-300' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                >
+                  {t}
+                  {docType === t && <CheckCircle size={16} className="text-brand-500" />}
+                </button>
+              ))}
+            </div>
+          </div>
 
-           <LiveButton onClick={handleGenerate} disabled={isGenerating} loading={isGenerating} icon={Sparkles} className="w-full">
-             {isGenerating ? t.tools.typing : `${t.tools.gen} Document`}
-           </LiveButton>
+          <div className="space-y-4 mb-6 flex-1">
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Target Role / Job Title</label>
+              <input
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                placeholder="e.g. Software Engineer"
+                value={formData.role}
+                onChange={e => setFormData({ ...formData, role: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Company Name</label>
+              <input
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                placeholder="e.g. Google UK"
+                value={formData.company}
+                onChange={e => setFormData({ ...formData, company: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Years of Experience</label>
+              <input
+                type="number"
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                placeholder="e.g. 5"
+                value={formData.experience}
+                onChange={e => setFormData({ ...formData, experience: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Education</label>
+              <input
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                placeholder="e.g. Bachelor's in Computer Science"
+                value={formData.education}
+                onChange={e => setFormData({ ...formData, education: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Key Skills (Comma separated)</label>
+              <textarea
+                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm h-24 resize-none outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                placeholder="e.g. React, Leadership, English C1"
+                value={formData.skills}
+                onChange={e => setFormData({ ...formData, skills: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <LiveButton onClick={handleGenerate} disabled={isGenerating} loading={isGenerating} icon={Sparkles} className="w-full">
+            {isGenerating ? t.tools.typing : `${t.tools.gen} Document`}
+          </LiveButton>
         </AnimatedCard>
       </div>
 
       <div className="md:col-span-8">
         <AnimatedCard className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 font-mono relative overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-800">
-           <div className="absolute top-0 left-0 w-full bg-slate-100 dark:bg-slate-800 p-2 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4">
-             <div className="flex gap-1.5">
-               <div className="w-3 h-3 rounded-full bg-red-400"></div>
-               <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-               <div className="w-3 h-3 rounded-full bg-green-400"></div>
-             </div>
-             <span className="text-xs text-slate-400 font-sans font-bold uppercase flex items-center gap-2">
-                {docType.replace(' ', '_')}.pdf <FileCheck size={14}/>
-             </span>
-           </div>
-           
-           <div className="mt-8 flex-1 p-6 whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300 overflow-y-auto">
-             {generatedContent ? (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  {generatedContent}
-                </motion.div>
-             ) : (
-               <div className="flex flex-col items-center justify-center h-full text-slate-400 italic opacity-70">
-                 <Edit3 size={48} className="mb-4 opacity-20" />
-                 <p>Fill the form and click Generate...</p>
-               </div>
-             )}
-             {isGenerating && <span className="inline-block w-2 h-4 bg-brand-500 ml-1 animate-pulse"></span>}
-           </div>
+          <div className="absolute top-0 left-0 w-full bg-slate-100 dark:bg-slate-800 p-2 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4">
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-red-400"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <div className="w-3 h-3 rounded-full bg-green-400"></div>
+            </div>
+            <span className="text-xs text-slate-400 font-sans font-bold uppercase flex items-center gap-2">
+              {docType.replace(' ', '_')}.pdf <FileCheck size={14} />
+            </span>
+          </div>
 
-           {generatedContent && !isGenerating && (
-             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute bottom-6 right-6 flex gap-2">
-               <LiveButton variant="secondary" icon={RefreshCw} onClick={() => { setGeneratedContent(""); setIsGenerating(false); }}>{t.tools.clear}</LiveButton>
-               <LiveButton variant="primary" icon={Download} onClick={() => {
-                 const blob = new Blob([generatedContent], { type: 'text/plain;charset=utf-8' });
-                 const url = URL.createObjectURL(blob);
-                 const a = document.createElement('a');
-                 a.href = url;
-                 a.download = `${docType.replace(' ', '_')}_${new Date().toISOString().slice(0,10)}.txt`;
-                 a.click();
-                 URL.revokeObjectURL(url);
-                 toast({ title: t.tools.dl, description: "Document downloaded successfully", className: "bg-green-50 text-green-900 border-green-200" });
-               }}>{t.tools.dl}</LiveButton>
-             </motion.div>
-           )}
+          <div className="mt-8 flex-1 p-6 whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300 overflow-y-auto">
+            {generatedContent ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                {generatedContent}
+              </motion.div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 italic opacity-70">
+                <Edit3 size={48} className="mb-4 opacity-20" />
+                <p>Fill the form and click Generate...</p>
+              </div>
+            )}
+            {isGenerating && <span className="inline-block w-2 h-4 bg-brand-500 ml-1 animate-pulse"></span>}
+          </div>
+
+          {generatedContent && !isGenerating && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute bottom-6 right-6 flex gap-2">
+              <LiveButton variant="secondary" icon={RefreshCw} onClick={() => { setGeneratedContent(""); setIsGenerating(false); }}>{t.tools.clear}</LiveButton>
+              <LiveButton variant="primary" icon={Download} onClick={() => {
+                const blob = new Blob([generatedContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${docType.replace(' ', '_')}_${new Date().toISOString().slice(0, 10)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast({ title: t.tools.dl, description: "Document downloaded successfully", className: "bg-green-50 text-green-900 border-green-200" });
+              }}>{t.tools.dl}</LiveButton>
+            </motion.div>
+          )}
         </AnimatedCard>
       </div>
     </motion.div>
@@ -698,7 +711,7 @@ const ChatView = () => {
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
-    
+
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', text: userMsg, ts: new Date().toISOString() }]);
     setInput("");
@@ -710,11 +723,11 @@ const ChatView = () => {
           role: m.role,
           content: m.text
         }));
-        
+
         const resp = await apiRequest<{ reply: string }>("/ai/chat", {
           method: "POST",
-          body: JSON.stringify({ 
-            message: userMsg, 
+          body: JSON.stringify({
+            message: userMsg,
             language: lang,
             history: conversationHistory  // Include conversation history
           }),
@@ -733,21 +746,20 @@ const ChatView = () => {
       <AnimatedCard className="flex-1 flex flex-col p-0 overflow-hidden bg-white dark:bg-slate-900">
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/50">
           {messages.map((m, i) => (
-            <motion.div 
-              key={i} 
+            <motion.div
+              key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div className={`flex items-end gap-2 max-w-[80%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === 'ai' ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
-                  {m.role === 'ai' ? <Sparkles size={14}/> : <User size={14}/>}
+                  {m.role === 'ai' ? <Sparkles size={14} /> : <User size={14} />}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm shadow-sm leading-relaxed ${
-                  m.role === 'user' 
-                    ? 'bg-brand-600 text-white rounded-br-none' 
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700'
-                }`}>
+                <div className={`p-4 rounded-2xl text-sm shadow-sm leading-relaxed ${m.role === 'user'
+                  ? 'bg-brand-600 text-white rounded-br-none'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-bl-none border border-slate-100 dark:border-slate-700'
+                  }`}>
                   {m.text}
                   {m.ts && (
                     <div className={`text-xs mt-2 opacity-70 ${m.role === 'user' ? 'text-white/70' : 'text-slate-400'}`}>
@@ -762,7 +774,7 @@ const ChatView = () => {
             <div className="flex justify-start">
               <div className="flex items-end gap-2 max-w-[80%]">
                 <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
-                  <Sparkles size={14}/>
+                  <Sparkles size={14} />
                 </div>
                 <div className="p-4 rounded-2xl rounded-bl-none bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                   <div className="flex gap-1">
@@ -779,26 +791,26 @@ const ChatView = () => {
 
         <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-             {["Visa Costs", "Processing Time", "Job Offer Requirements", "Family Visa", "Required Documents", "Eligibility", "Germany Opportunity Card", "UK Skilled Worker"].map(tag => (
-               <motion.button 
-                 key={tag} 
-                 whileHover={{ scale: 1.05 }}
-                 whileTap={{ scale: 0.95 }}
-                 onClick={() => {
-                   setInput(tag);
-                   const inputEl = document.querySelector('input[placeholder*="Ask"]') as HTMLInputElement;
-                   if (inputEl) {
-                     setTimeout(() => inputEl.focus(), 100);
-                   }
-                 }} 
-                 className="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 text-xs font-bold text-slate-600 dark:text-slate-400 transition-colors border border-transparent hover:border-brand-200 dark:hover:border-brand-800"
-               >
-                 {tag}
-               </motion.button>
-             ))}
+            {["Visa Costs", "Processing Time", "Job Offer Requirements", "Family Visa", "Required Documents", "Eligibility", "Germany Opportunity Card", "UK Skilled Worker"].map(tag => (
+              <motion.button
+                key={tag}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setInput(tag);
+                  const inputEl = document.querySelector('input[placeholder*="Ask"]') as HTMLInputElement;
+                  if (inputEl) {
+                    setTimeout(() => inputEl.focus(), 100);
+                  }
+                }}
+                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-600 dark:hover:text-brand-400 text-xs font-bold text-slate-600 dark:text-slate-400 transition-colors border border-transparent hover:border-brand-200 dark:hover:border-brand-800"
+              >
+                {tag}
+              </motion.button>
+            ))}
           </div>
           <form onSubmit={handleSend} className="flex gap-2">
-            <input 
+            <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -809,7 +821,9 @@ const ChatView = () => {
               className="flex-1 bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-5 py-3 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400"
               placeholder={t.tools.chatP}
             />
-            <LiveButton type="submit" size="icon" className="w-12 h-12 rounded-xl p-0" icon={Send} />
+            <LiveButton type="submit" size="icon" className="w-12 h-12 rounded-xl p-0" icon={Send} >
+              <span className="sr-only">Send</span>
+            </LiveButton>
           </form>
           <p className="text-xs text-slate-400 mt-2 text-center">Press Cmd/Ctrl + Enter to send</p>
         </div>
@@ -851,7 +865,7 @@ const UploadView = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFiles(Array.from(e.dataTransfer.files));
     }
@@ -866,14 +880,14 @@ const UploadView = () => {
   const handleFiles = async (fileList: File[]) => {
     setUploading(true);
     let uploadedCount = 0;
-    
+
     try {
       for (const file of fileList) {
         // Validate file size (10MB max)
         const MAX_FILE_SIZE = 10 * 1024 * 1024;
         if (file.size > MAX_FILE_SIZE) {
-          toast({ 
-            title: 'File Too Large', 
+          toast({
+            title: 'File Too Large',
             description: `${file.name} exceeds 10MB limit`,
             className: "bg-orange-50 text-orange-900 border-orange-200",
             variant: 'destructive'
@@ -893,8 +907,8 @@ const UploadView = () => {
             // apiRequest now omits Content-Type when body is FormData
           });
 
-          try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch {};
-          
+          try { trackEvent('document_uploaded', { mimeType: uploadedDoc.mimeType, fileSize: uploadedDoc.fileSize }); } catch { };
+
           const newFile = {
             id: uploadedDoc.id,
             name: uploadedDoc.fileName,
@@ -904,24 +918,24 @@ const UploadView = () => {
             status: 'analyzed' as const,
             url: uploadedDoc.url
           };
-          
+
           setFiles(prev => [newFile, ...prev]);
           uploadedCount++;
         } catch (fileError) {
           const errorMsg = fileError instanceof Error ? fileError.message : 'Upload failed';
-          toast({ 
-            title: 'Upload Error', 
+          toast({
+            title: 'Upload Error',
             description: `${file.name}: ${errorMsg}`,
             className: "bg-red-50 text-red-900 border-red-200",
             variant: 'destructive'
           });
         }
       }
-      
+
       setUploading(false);
       if (uploadedCount > 0) {
-        toast({ 
-          title: t.upload.uploadedSuccess, 
+        toast({
+          title: t.upload.uploadedSuccess,
           description: `${uploadedCount} of ${fileList.length} file(s) ${t.upload.uploadedDesc}`,
           className: "bg-green-50 text-green-900 border-green-200"
         });
@@ -929,8 +943,8 @@ const UploadView = () => {
     } catch (error) {
       setUploading(false);
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      toast({ 
-        title: 'Upload Error', 
+      toast({
+        title: 'Upload Error',
         description: errorMessage,
         className: "bg-red-50 text-red-900 border-red-200",
         variant: 'destructive'
@@ -957,17 +971,16 @@ const UploadView = () => {
         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
           <FileUp className="text-brand-500" /> {t.upload.title}
         </h3>
-        
+
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
-            dragActive 
-              ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' 
-              : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50'
-          }`}
+          className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${dragActive
+            ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50'
+            }`}
         >
           <Upload className="w-16 h-16 mx-auto mb-4 text-slate-400" />
           <h4 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">{t.upload.dropFiles}</h4>
@@ -981,9 +994,9 @@ const UploadView = () => {
             id="file-upload"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           />
-          <LiveButton 
-            variant="primary" 
-            className="cursor-pointer" 
+          <LiveButton
+            variant="primary"
+            className="cursor-pointer"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -1074,7 +1087,7 @@ const TranslateView = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `translation_${new Date().toISOString().slice(0,10)}.txt`;
+    a.download = `translation_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: t.translate.downloaded, description: t.translate.saved });
@@ -1086,13 +1099,13 @@ const TranslateView = () => {
         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
           <Languages className="text-brand-500" /> {t.translate.title}
         </h3>
-        
+
         <div className="space-y-4">
           <div className="flex gap-4">
             <div className="flex-1">
               <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">{t.translate.from}</label>
-              <select 
-                value={fromLang} 
+              <select
+                value={fromLang}
                 onChange={(e) => setFromLang(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
               >
@@ -1103,8 +1116,8 @@ const TranslateView = () => {
             </div>
             <div className="flex-1">
               <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">{t.translate.to}</label>
-              <select 
-                value={toLang} 
+              <select
+                value={toLang}
                 onChange={(e) => setToLang(e.target.value)}
                 className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
               >
@@ -1138,8 +1151,8 @@ const TranslateView = () => {
             </label>
           </div>
 
-          <LiveButton 
-            onClick={handleTranslate} 
+          <LiveButton
+            onClick={handleTranslate}
             disabled={translating || !text.trim()}
             loading={translating}
             className="w-full"
@@ -1154,7 +1167,7 @@ const TranslateView = () => {
         <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
           <FileCheck className="text-green-500" /> {t.translate.result}
         </h3>
-        
+
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 min-h-[200px]">
             {translated ? (
