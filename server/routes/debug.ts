@@ -129,4 +129,93 @@ router.post(
   }
 );
 
+// Debug: check login credentials (for diagnosing 400/401 errors)
+router.post(
+  "/check-login",
+  async (req, res) => {
+    try {
+      const { email, password } = req.body || {};
+
+      if (!email || !password) {
+        return res.json({
+          success: false,
+          step: "validation",
+          message: "Email and password are required",
+        });
+      }
+
+      // Import the necessary functions
+      const { normalizeEmail } = await import("../middleware/security");
+      const { verifyPassword } = await import("../lib/auth");
+      const { eq } = await import("drizzle-orm");
+      const { users } = await import("@shared/schema");
+
+      const normalizedEmail = normalizeEmail(email);
+
+      // Check if user exists
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, normalizedEmail),
+      });
+
+      if (!user) {
+        return res.json({
+          success: false,
+          step: "user_lookup",
+          message: "No user found with this email",
+          emailSearched: normalizedEmail,
+        });
+      }
+
+      // Check password
+      const hasPassword = Boolean(user.hashedPassword);
+      if (!hasPassword) {
+        return res.json({
+          success: false,
+          step: "password_check",
+          message: "User has no password set",
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+        });
+      }
+
+      const isPasswordValid = await verifyPassword(user.hashedPassword, password);
+
+      if (!isPasswordValid) {
+        return res.json({
+          success: false,
+          step: "password_verify",
+          message: "Password does not match",
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          hashedPasswordLength: user.hashedPassword?.length || 0,
+        });
+      }
+
+      // All checks passed
+      return res.json({
+        success: true,
+        step: "complete",
+        message: "Login credentials are valid",
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+        },
+      });
+    } catch (err: any) {
+      logger.error({ err }, "Debug check-login failed");
+      return res.status(500).json({
+        success: false,
+        step: "error",
+        message: err?.message || String(err),
+      });
+    }
+  }
+);
+
 export default router;
