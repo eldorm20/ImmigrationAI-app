@@ -51,6 +51,7 @@ interface ActionButtonProps {
   variant?: ActionVariant;
   className?: string;
   icon?: React.ElementType;
+  disabled?: boolean;
 }
 
 const ACTION_STYLES: Record<ActionVariant, string> = {
@@ -60,12 +61,13 @@ const ACTION_STYLES: Record<ActionVariant, string> = {
   ghost: "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700",
 };
 
-const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon: Icon }) => (
+const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon: Icon, disabled }) => (
   <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors ${ACTION_STYLES[variant]} ${className}`}
+    whileHover={disabled ? {} : { scale: 1.05 }}
+    whileTap={disabled ? {} : { scale: 0.95 }}
+    onClick={disabled ? undefined : onClick}
+    disabled={disabled}
+    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors ${ACTION_STYLES[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
   >
     {Icon && <Icon size={14} />}
     {children}
@@ -331,24 +333,46 @@ export default function LawyerDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 transition-colors duration-300">
       {/* Navbar */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-8 py-4 sticky top-0 z-40 flex justify-between items-center">
-        <div className="flex items-center gap-3 font-extrabold text-xl text-brand-600 dark:text-brand-400">
-          <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-blue-400 rounded-xl text-white flex items-center justify-center shadow-lg shadow-brand-500/30">
-            L
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3 sticky top-0 z-40">
+        <div className="flex justify-between items-center">
+          {/* Left: Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-600 to-blue-400 rounded-xl text-white flex items-center justify-center shadow-lg shadow-brand-500/30 font-bold">
+              L
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-lg text-brand-600 dark:text-brand-400">
+                {t.lawyerDashboard?.title || 'Yurist Paneli'}
+              </span>
+              <span className="text-xs text-slate-400">ImmigrationAI</span>
+            </div>
           </div>
-          {t.lawyerDashboard?.title || t.lawyer?.title || "Lawyer Dashboard"}
-        </div>
-        <div className="flex items-center gap-4">
-          <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>{t.research?.download || 'Download'} CSV</ActionButton>
-          <ActionButton variant="ghost" icon={Code} onClick={handleExportJSON}>{t.research?.download || 'Download'} JSON</ActionButton>
-          <div className="hidden md:flex flex-col items-end">
-            <span className="font-bold text-sm text-slate-900 dark:text-white">{user.name}</span>
-            <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Senior Partner</span>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* Export buttons - hidden on mobile */}
+            <div className="hidden lg:flex items-center gap-2">
+              <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>CSV</ActionButton>
+              <ActionButton variant="ghost" icon={Code} onClick={handleExportJSON}>JSON</ActionButton>
+            </div>
+
+            {/* User info */}
+            <div className="hidden md:flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-4">
+              <span className="font-bold text-sm text-slate-900 dark:text-white">{user.firstName || user.name?.split(' ')[0] || 'User'}</span>
+              <span className="text-xs text-brand-500 uppercase font-bold tracking-wider">{t.roles?.lawyer || 'Yurist'}</span>
+            </div>
+
+            <ThemeToggle />
+
+            <motion.button
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              onClick={logout}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors"
+              title={t.dash?.logout || 'Chiqish'}
+            >
+              <LogOut size={20} />
+            </motion.button>
           </div>
-          <ThemeToggle />
-          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} onClick={logout} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors">
-            <LogOut size={20} />
-          </motion.button>
         </div>
       </header>
 
