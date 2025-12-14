@@ -218,4 +218,51 @@ router.post(
   }
 );
 
+// Public repair endpoint (temporary) to fix production database
+router.get(
+  "/fix-db-schema",
+  async (req, res) => {
+    try {
+      logger.info("Attempting to fix database schema...");
+
+      // Force add lawyer_id column
+      await db.execute(sql`
+        ALTER TABLE "applications" ADD COLUMN IF NOT EXISTS "lawyer_id" text;
+        
+        DO $$ 
+        BEGIN 
+          BEGIN
+            ALTER TABLE "applications" ADD CONSTRAINT "applications_lawyer_id_users_id_fk" 
+            FOREIGN KEY ("lawyer_id") REFERENCES "users" ("id") ON DELETE SET NULL;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+          END;
+        END $$;
+        
+        CREATE INDEX IF NOT EXISTS "applications_lawyer_id_idx" ON "applications" ("lawyer_id");
+      `);
+
+      // Verify it exists now
+      const result = await db.execute(sql`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'applications' AND column_name = 'lawyer_id'
+      `);
+
+      const rows = (result as any).rows || result;
+      const exists = rows.length > 0;
+
+      res.json({
+        success: true,
+        message: "Schema repair executed",
+        columnExists: exists,
+        details: rows
+      });
+    } catch (err: any) {
+      logger.error({ err }, "Schema repair failed");
+      res.status(500).json({ error: String(err) });
+    }
+  }
+);
+
 export default router;
