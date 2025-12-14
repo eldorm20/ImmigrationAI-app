@@ -75,9 +75,9 @@ export default function UserDash() {
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
             { id: 'docs', icon: FileText, label: t.dash.docs },
-            { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
+            { id: 'employer', icon: BadgeCheck, label: t.dash.employerVerification || 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
-            { id: 'applications', icon: FileText, label: 'Applications' },
+            { id: 'applications', icon: FileText, label: t.dash.applications || 'Applications' },
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
             { id: 'messages', icon: Send, label: t.dash.messages },

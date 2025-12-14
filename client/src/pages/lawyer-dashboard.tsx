@@ -395,40 +395,40 @@ export default function LawyerDashboard() {
             {/* Quick Actions for lawyers */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">Quick Actions</h4>
+                <h4 className="font-bold mb-2">{t.lawyerDashboard?.quickActions || 'Quick Actions'}</h4>
                 <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
                     // Open messaging panel
                     setLocation('/messages');
-                  }}>Message Client</ActionButton>
+                  }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
                   <ActionButton variant="success" onClick={() => {
                     // Switch to consultations tab
                     setActiveTab('consultations');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>New Consultation</ActionButton>
+                  }}>{t.lawyerDashboard?.newConsultation || 'New Consultation'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
                     // Navigate to applicant dashboard for document upload (lawyers can also upload)
                     window.location.href = '/dashboard?tab=upload';
-                  }}>Upload Doc</ActionButton>
+                  }}>{t.lawyerDashboard?.uploadDoc || 'Upload Doc'}</ActionButton>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">AI Tools</h4>
+                <h4 className="font-bold mb-2">{t.lawyerDashboard?.aiTools || 'AI Tools'}</h4>
                 <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
                     window.location.href = '/dashboard?tab=ai-docs';
-                  }}>Generate Doc</ActionButton>
+                  }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
                     window.location.href = '/dashboard?tab=ai-chat';
-                  }}>Open Chat</ActionButton>
+                  }}>{t.lawyerDashboard?.openChat || 'Open Chat'}</ActionButton>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">Case Tools</h4>
+                <h4 className="font-bold mb-2">{t.lawyerDashboard?.caseTools || 'Case Tools'}</h4>
                 <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="ghost" onClick={() => {
@@ -436,23 +436,23 @@ export default function LawyerDashboard() {
                     setActiveTab('applications');
                     setFilterStatus('All');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>All Applications</ActionButton>
+                  }}>{t.lawyerDashboard?.allApplications || 'All Applications'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
                     window.location.href = '/analytics';
-                  }}>Analytics</ActionButton>
+                  }}>{t.lawyerDashboard?.analytics || 'Analytics'}</ActionButton>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StatCard title={'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
-              <StatCard title={'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
+              <StatCard title={t.lawyerDashboard?.newThisWeek || 'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
+              <StatCard title={t.lawyerDashboard?.totalFees || 'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
             </div>
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> Revenue Analytics</h3>
+                <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> {t.lawyerDashboard?.revenueAnalytics || 'Revenue Analytics'}</h3>
                 <ResponsiveContainer width="100%" height="85%">
                   <AreaChart data={revenueData}>
                     <defs>
@@ -476,13 +476,13 @@ export default function LawyerDashboard() {
                   <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
                     <Briefcase size={32} className="text-white" />
                   </div>
-                  <h3 className="text-2xl font-extrabold mb-2">Top Performer</h3>
+                  <h3 className="text-2xl font-extrabold mb-2">{t.lawyerDashboard?.topPerformer || 'Top Performer'}</h3>
                   <p className="text-brand-100 mb-6">You are in the top 5% of partners this month.</p>
                   <button
                     onClick={() => setShowReport(true)}
                     className="bg-white text-brand-600 px-6 py-3 rounded-xl font-bold hover:bg-brand-50 transition-colors shadow-lg"
                   >
-                    View Report
+                    {t.lawyerDashboard?.viewReport || 'View Report'}
                   </button>
                 </div>
               </motion.div>
