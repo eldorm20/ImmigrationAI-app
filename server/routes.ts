@@ -24,9 +24,10 @@ import debugRoutes from "./routes/debug";
 export function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
   app.use("/webhooks", webhooksRoutes);
-  
+
   app.use("/api/auth", authRoutes);
   app.use("/api/applications", applicationRoutes);
+  console.log("Registering consultation routes...");
   app.use("/api/consultations", consultationRoutes);
   app.use("/api/documents", documentRoutes);
   app.use("/api/ai", aiRoutes);

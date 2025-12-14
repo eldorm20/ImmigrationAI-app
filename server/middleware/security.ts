@@ -25,35 +25,7 @@ function getAllowedOrigins(): string[] {
 const allowedOrigins = getAllowedOrigins();
 
 export const corsMiddleware = cors({
-  origin: (origin: any, cb: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) return cb(null, true);
-
-    const o = String(origin).toLowerCase();
-
-    // Check each allowed origin pattern
-    for (const pattern of allowedOrigins) {
-      const p = pattern.toLowerCase();
-
-      // Exact match
-      if (p === o) return cb(null, true);
-
-      // Wildcard pattern matching (e.g., https://*.up.railway.app)
-      if (p.includes("*")) {
-        // Simple wildcard matching: convert "https://*.up.railway.app" to regex
-        // Escape all dots, then replace * with pattern for any subdomain
-        const regexStr = p
-          .replace(/\./g, "\\.")          // escape dots: . -> \.
-          .replace(/\*/g, "[^.]+");       // replace *  with [^.]+ (one or more non-dot chars)
-
-        // Match the full origin: https://[^.]+\.up\.railway\.app or with port
-        const regex = new RegExp(`^${regexStr}(:[0-9]+)?$`);
-        if (regex.test(o)) return cb(null, true);
-      }
-    }
-
-    // All requests allowed for now (fallback for safety during deployment)
-    return cb(null, true);
-  },
+  origin: true, // Reflect request origin
   credentials: true,
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
