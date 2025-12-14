@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import { error as logError } from "@/lib/logger";
+import { LiveButton } from "@/components/ui/live-elements";
 
 interface Consultation {
   id: string;
@@ -232,22 +233,18 @@ export default function LawyerConsultations() {
       {/* Status Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {['scheduled', 'completed', 'cancelled', 'all'].map((status) => (
-          <motion.button
+          <LiveButton
             key={status}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            variant={filterStatus === status ? "primary" : "secondary"}
             onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${filterStatus === status
-                ? "bg-brand-600 text-white shadow-lg shadow-brand-500/30"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
+            className="whitespace-nowrap"
           >
             {t.lawyerDashboard?.[status] || t.lawyer?.[status] || (() => {
               const st = String(status || "");
               if (!st) return status;
               return st.charAt(0).toUpperCase() + st.slice(1).replace("_", " ");
             })()}
-          </motion.button>
+          </LiveButton>
         ))}
       </div>
 
@@ -419,54 +416,48 @@ export default function LawyerConsultations() {
                 {/* Actions */}
                 <div className="flex gap-2 flex-wrap">
                   {consultation.status === "scheduled" && (
-                    <>
-                      {!isEditing ? (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setEditingId(consultation.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                          >
-                            <CheckCircle size={16} />
-                            {t.consultation.acceptAndConfirm || "Accept & Confirm"}
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleReject(consultation.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                          >
-                            <XCircle size={16} />
-                            {t.consultation.reject || "Reject"}
-                          </motion.button>
-                        </>
-                      ) : (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleAccept(consultation.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                          >
-                            <CheckCircle size={16} />
-                            {t.consultation.confirm || "Confirm"}
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setEditingId(null);
-                              setMeetingLink("");
-                              setNotes("");
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-300 dark:bg-slate-600 text-slate-900 dark:text-white rounded-lg hover:bg-slate-400 transition-colors text-sm font-medium"
-                          >
-                            {t.consultation.cancel || "Cancel"}
-                          </motion.button>
-                        </>
-                      )}
-                    </>
+                    !isEditing ? (
+                      <>
+                        <LiveButton
+                          variant="success"
+                          onClick={() => setEditingId(consultation.id)}
+                          icon={CheckCircle}
+                          size="sm"
+                        >
+                          {t.consultation.acceptAndConfirm || "Accept & Confirm"}
+                        </LiveButton>
+                        <LiveButton
+                          variant="danger"
+                          onClick={() => handleReject(consultation.id)}
+                          icon={XCircle}
+                          size="sm"
+                        >
+                          {t.consultation.reject || "Reject"}
+                        </LiveButton>
+                      </>
+                    ) : (
+                      <>
+                        <LiveButton
+                          variant="primary"
+                          onClick={() => handleAccept(consultation.id)}
+                          icon={CheckCircle}
+                          size="sm"
+                        >
+                          {t.consultation.confirm || "Confirm"}
+                        </LiveButton>
+                        <LiveButton
+                          variant="secondary"
+                          onClick={() => {
+                            setEditingId(null);
+                            setMeetingLink("");
+                            setNotes("");
+                          }}
+                          size="sm"
+                        >
+                          {t.consultation.cancel || "Cancel"}
+                        </LiveButton>
+                      </>
+                    )
                   )}
 
                   {consultation.status === "completed" && (

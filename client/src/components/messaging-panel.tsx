@@ -33,6 +33,17 @@ interface ConsultationSummary {
   lawyerId: string;
 }
 
+interface Conversation {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: "lawyer" | "applicant";
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount: number;
+}
+
 type SocketAck = { success?: boolean; messageId?: string; error?: string };
 
 export default function MessagingPanel() {
@@ -131,29 +142,57 @@ export default function MessagingPanel() {
 
   const selectedParticipantObj = selectedParticipant ? participants.find((p) => p.id === selectedParticipant) || null : null;
 
-  // Load consultations to build participant list
+  // Load conversations and consultations to build participant list
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        let consultations;
-        try {
-          consultations = await apiRequest<ConsultationSummary[]>("/consultations");
-        } catch (err) {
-          logError("Failed to load consultations:", err instanceof Error ? err.message : String(err));
-          consultations = [];
-        }
+        const [conversationsRes, consultationsRes] = await Promise.all([
+          apiRequest<{ conversations: Conversation[] }>("/messages").catch(err => {
+            logError("Failed to load messages:", err);
+            return { conversations: [] };
+          }),
+          apiRequest<ConsultationSummary[]>("/consultations").catch(err => {
+            logError("Failed to load consultations:", err);
+            return [];
+          })
+        ]);
+
+        const conversations = conversationsRes.conversations || [];
+        const consultations = Array.isArray(consultationsRes) ? consultationsRes : [];
 
         const uniqueParticipants = new Map<string, ChatParticipant>();
 
+        // 1. Add existing conversations
+        conversations.forEach(c => {
+          uniqueParticipants.set(c.userId, {
+            id: c.userId,
+            name: `${c.firstName} ${c.lastName}`.trim() || c.email,
+            email: c.email,
+            role: c.role,
+            unreadCount: c.unreadCount
+          });
+        });
+
+        // 2. Add consultations if not already present
         consultations.forEach((c) => {
           if (user?.id === c.userId) {
             // I'm the applicant; add the lawyer
             const lawyerId = c.lawyerId;
             if (!uniqueParticipants.has(lawyerId)) {
+              // We don't have lawyer details here, so we might show generic or fetch them?
+              // Ideally /consultations should return expanded lawyer info.
+              // For now, we add a placeholder which might be updated if we message them.
+              // Actually, better to skip if we can't get name, OR fetch user details.
+              // Let's rely on basic info or maybe we can't do much without name.
+              // IF we really need it, we should fetch user info.
+              // But strict 404/Empty is better than broken UI.
+              // Let's assuming if they have a consultation, they SHOULD have a conversation entry created upon booking?
+              // If not, maybe we just leave it. 
+              // BUT the previous code was creating "Lawyer" / "Applicant" placeholders.
               uniqueParticipants.set(lawyerId, {
                 id: lawyerId,
-                name: `Lawyer`,
+                name: `Lawyer`, // Generic fallback 
                 email: ``,
                 role: "lawyer",
                 unreadCount: 0,
@@ -200,7 +239,7 @@ export default function MessagingPanel() {
         setMessages((prev) => [
           ...prev,
           {
-            id: ack.messageId,
+            id: ack.messageId || `temp-${Date.now()}`,
             senderId: user!.id,
             receiverId: selectedParticipant,
             content: inputMessage,
@@ -222,10 +261,10 @@ export default function MessagingPanel() {
 
   const filteredMessages = selectedParticipant
     ? messages.filter(
-        (m) =>
-          (m.senderId === user?.id && m.receiverId === selectedParticipant) ||
-          (m.senderId === selectedParticipant && m.receiverId === user?.id)
-      )
+      (m) =>
+        (m.senderId === user?.id && m.receiverId === selectedParticipant) ||
+        (m.senderId === selectedParticipant && m.receiverId === user?.id)
+    )
     : [];
 
   return (
@@ -257,11 +296,10 @@ export default function MessagingPanel() {
                 key={p.id}
                 onClick={() => setSelectedParticipant(p.id)}
                 whileHover={{ x: 4 }}
-                className={`w-full p-3 rounded-lg text-left transition-all ${
-                  selectedParticipant === p.id
-                    ? "bg-brand-100 dark:bg-brand-900/30 border border-brand-500"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
-                }`}
+                className={`w-full p-3 rounded-lg text-left transition-all ${selectedParticipant === p.id
+                  ? "bg-brand-100 dark:bg-brand-900/30 border border-brand-500"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
+                  }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -327,16 +365,14 @@ export default function MessagingPanel() {
                     className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"} px-4`}
                   >
                     <div
-                      className={`flex items-end gap-2 max-w-xs ${
-                        msg.senderId === user?.id ? "flex-row-reverse" : ""
-                      }`}
+                      className={`flex items-end gap-2 max-w-xs ${msg.senderId === user?.id ? "flex-row-reverse" : ""
+                        }`}
                     >
                       <div
-                        className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
-                          msg.senderId === user?.id
-                            ? "bg-brand-600 text-white rounded-br-none"
-                            : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200 dark:border-slate-700"
-                        }`}
+                        className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${msg.senderId === user?.id
+                          ? "bg-brand-600 text-white rounded-br-none"
+                          : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200 dark:border-slate-700"
+                          }`}
                       >
                         {msg.content}
                       </div>
@@ -370,7 +406,9 @@ export default function MessagingPanel() {
                   size="icon"
                   className="w-12 h-12 rounded-xl p-0"
                   icon={Send}
-                />
+                >
+                  <span className="sr-only">Send</span>
+                </LiveButton>
               </form>
               <p className="text-xs text-slate-400 mt-2 text-center">
                 {t.messaging.sendHint}

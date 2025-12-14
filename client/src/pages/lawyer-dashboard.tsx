@@ -54,24 +54,21 @@ interface ActionButtonProps {
   disabled?: boolean;
 }
 
-const ACTION_STYLES: Record<ActionVariant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-500/20",
-  success: "bg-green-500 text-white hover:bg-green-600 shadow-lg shadow-green-500/20",
-  danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20",
-  ghost: "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700",
-};
 
-const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon: Icon, disabled }) => (
-  <motion.button
-    whileHover={disabled ? {} : { scale: 1.05 }}
-    whileTap={disabled ? {} : { scale: 0.95 }}
-    onClick={disabled ? undefined : onClick}
+
+import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+
+const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon, disabled }) => (
+  <LiveButton
+    variant={variant as any}
+    onClick={onClick}
     disabled={disabled}
-    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors ${ACTION_STYLES[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 ${className}`}
+    icon={icon}
+    size="sm"
   >
-    {Icon && <Icon size={14} />}
     {children}
-  </motion.button>
+  </LiveButton>
 );
 
 interface StatCardProps {
@@ -83,10 +80,8 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, trend }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group"
+  <AnimatedCard
+    className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group"
   >
     <div className={`absolute top-0 right-0 p-20 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity bg-${color}-500`}></div>
     <div className="relative z-10 flex items-center justify-between">
@@ -103,7 +98,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, tr
         <Icon size={28} />
       </div>
     </div>
-  </motion.div>
+  </AnimatedCard>
 );
 
 export default function LawyerDashboard() {
@@ -204,7 +199,7 @@ export default function LawyerDashboard() {
     fetchStats();
   }, []);
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
+  const handleStatusChange = async (id: string | number, newStatus: string) => {
     try {
       await apiRequest(`/applications/${id}`, {
         method: "PATCH",
@@ -233,7 +228,7 @@ export default function LawyerDashboard() {
     }
   };
 
-  const handleAssignToMe = async (id: string) => {
+  const handleAssignToMe = async (id: string | number) => {
     try {
       await apiRequest(`/applications/${id}`, {
         method: 'PATCH',
@@ -599,7 +594,7 @@ export default function LawyerDashboard() {
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
-                                    {lead.name[0]}
+                                    {(lead.name || "?")[0]}
                                   </div>
                                   <div>
                                     <p className="font-bold text-slate-900 dark:text-white">{lead.name}</p>
@@ -629,7 +624,7 @@ export default function LawyerDashboard() {
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
-                                {new Date(lead.date || lead.createdAt).toLocaleDateString()}
+                                {new Date(lead.date || lead.createdAt || 0).toLocaleDateString()}
                               </td>
                               <td className="px-6 py-4">
                                 <div className="text-sm text-slate-600">
@@ -746,7 +741,7 @@ export default function LawyerDashboard() {
               <div className="space-y-6">
                 <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
                   <div className="w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl font-bold">
-                    {selectedLead.name[0]}
+                    {(selectedLead.name || "?")[0]}
                   </div>
                   <div>
                     <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedLead.name}</h4>

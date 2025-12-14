@@ -7,6 +7,7 @@ import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, Ar
 import { error as logError } from "@/lib/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
+import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 
 interface Consultation {
   id: string;
@@ -51,7 +52,7 @@ export default function ConsultationPanel() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch consultations
         try {
           const consultsData = await apiRequest<Consultation[]>("/consultations");
@@ -197,7 +198,7 @@ export default function ConsultationPanel() {
           <RealtimeChat recipientId={selectedConsultation.lawyerId} />
         </div>
 
-          {selectedConsultation.meetingLink && (
+        {selectedConsultation.meetingLink && (
           <a
             href={selectedConsultation.meetingLink}
             target="_blank"
@@ -219,15 +220,13 @@ export default function ConsultationPanel() {
         {fetchError && (
           <div className="text-sm text-rose-600">{t.error?.message || 'Failed to load consultations'}</div>
         )}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <LiveButton
+          variant="primary"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
+          icon={Plus}
         >
-          <Plus size={18} />
           {t.consultation?.requestConsultation || 'Request Consultation'}
-        </motion.button>
+        </LiveButton>
       </div>
 
       {/* Request Modal */}
@@ -308,19 +307,21 @@ export default function ConsultationPanel() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button
+                  <LiveButton
                     type="button"
+                    variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="flex-1"
                   >
                     {t.consultation.cancel}
-                  </button>
-                  <button
+                  </LiveButton>
+                  <LiveButton
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
+                    variant="primary"
+                    className="flex-1"
                   >
                     {t.consultation.submitRequest}
-                  </button>
+                  </LiveButton>
                 </div>
               </form>
             </motion.div>

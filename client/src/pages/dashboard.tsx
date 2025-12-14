@@ -84,23 +84,24 @@ export default function UserDash() {
             { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
             { id: 'research', icon: Book, label: t.dash.research }
           ].map(item => (
-            <motion.button
-              key={item.id}
-              onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
-              whileHover={{ x: 5 }}
-              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
-            >
+            <div key={item.id} className="relative">
               {activeTab === item.id && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute left-0 w-1 h-8 bg-brand-600 rounded-r-full"
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-brand-600 rounded-r-full z-10 my-1"
                 />
               )}
-              <span className="relative z-10 flex items-center gap-3">
-                <item.icon size={20} className={activeTab === item.id ? "text-brand-600 dark:text-brand-400" : ""} />
+              <LiveButton
+                variant={activeTab === item.id ? "primary" : "ghost"}
+                onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
+                className={`w-full justify-start py-4 px-5 rounded-2xl mb-1 ${activeTab === item.id
+                  ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-none border-0'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                icon={item.icon}
+              >
                 {item.label}
-              </span>
-            </motion.button>
+              </LiveButton>
+            </div>
           ))}
         </nav>
 
@@ -204,7 +205,7 @@ export default function UserDash() {
 
 // --- Sub-Views ---
 
-type ToastHandler = ReturnType<typeof import('@/hooks/use-toast').toast>;
+type ToastHandler = typeof import('@/hooks/use-toast').toast;
 
 interface ApplicationSummary {
   id: string;
@@ -470,7 +471,7 @@ ${skillsList.length > 0 ? skillsList.map((skill: string) => `• ${skill}`).join
 PROFESSIONAL EXPERIENCE
 
 ${data.role || '[Job Title]'} | ${data.company || '[Company Name]'} | ${data.experience ? `[Dates] (${data.experience} years)` : '[Dates]'}
-${data.achievements ? `• ${data.achievements.split(',').map((a: string) => a.trim()).join('\n• ')}` : '• [Key Achievement 1]\n• [Key Achievement 2]\n• [Key Achievement 3]'}
+${data.achievements ? `• ${(data.achievements as string).split(',').map((a: string) => a.trim()).join('\n• ')}` : '• [Key Achievement 1]\n• [Key Achievement 2]\n• [Key Achievement 3]'}
 
 EDUCATION
 ${data.education || '[Degree] in [Field] from [University] | [Year]'}
@@ -952,7 +953,7 @@ const UploadView = () => {
     }
   };
 
-  const deleteFile = (id: number) => {
+  const deleteFile = (id: string | number) => {
     setFiles(prev => prev.filter(f => f.id !== id));
     toast({ title: t.upload.deleted, description: t.upload.deletedDesc });
   };
