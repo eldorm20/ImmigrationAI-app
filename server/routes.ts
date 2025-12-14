@@ -21,9 +21,14 @@ import analyticsRoutes from "./routes/analytics";
 import employersRoutes from "./routes/employers";
 import debugRoutes from "./routes/debug";
 
-export function registerRoutes(app: Express) {
+import publicStatsRouter from "./routes/public-stats";
+
+export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
   app.use("/webhooks", webhooksRoutes);
+
+  // Public routes
+  app.use("/api", publicStatsRouter);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/applications", applicationRoutes);

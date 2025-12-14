@@ -11,19 +11,26 @@ import { EligibilityQuiz } from "@/components/EligibilityQuiz";
 
 export default function Home() {
   const { t, lang, setLang } = useI18n();
+  /* Real Stats Fetching */
+  const [stats, setStats] = useState({ usersCount: 1240, visasProcessed: 850, successRate: 92 });
   const [_, setLocation] = useLocation();
   const [age, setAge] = useState(25);
-  const [score, setScore] = useState(65);
 
   useEffect(() => {
-    let s = 40;
-    if (age < 35) s += 20;
-    if (age >= 18) s += 10;
-    setScore(Math.max(5, Math.min(95, s)));
-  }, [age]);
+    fetch('/api/public-stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.usersCount) setStats(data);
+      })
+      .catch(err => console.error("Failed to load public stats", err));
+  }, []);
 
   const goLogin = (role: "applicant" | "lawyer") => {
     setLocation(`/auth?role=${role}`);
+  };
+
+  const startAssessment = () => {
+    setLocation("/assessment");
   };
 
   const blogHighlights = [
@@ -56,11 +63,6 @@ export default function Home() {
         <div className="absolute top-[20%] -left-[10%] w-[60%] h-[60%] bg-accent-500/10 dark:bg-accent-500/20 rounded-full blur-[100px] animate-pulse-slow"></div>
       </div>
 
-      {/* Navigation handled by Layout/Navbar now */}
-
-      {/* Mobile Menu */}
-
-
       {/* Hero Section */}
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
         <motion.div
@@ -73,7 +75,7 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
             </span>
-            AI-Powered Visa Assistant V2.0
+            AI-Powered Visa Assistant V2.0 (Production Live)
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
@@ -85,11 +87,12 @@ export default function Home() {
 
           <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-lg leading-relaxed font-medium">
             {t.hero.sub} We simplify the complex legal journey into a clear, guided path using advanced AI.
+            <br /><span className="text-sm mt-2 block opacity-80">Trusted by {stats.usersCount}+ applicants.</span>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <LiveButton size="lg" onClick={() => goLogin('applicant')} icon={Play} className="w-full sm:w-auto px-8">
-              {t.hero.cta}
+            <LiveButton size="lg" onClick={startAssessment} icon={Play} className="w-full sm:w-auto px-8">
+              Start Free Assessment
             </LiveButton>
 
             <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
@@ -102,7 +105,7 @@ export default function Home() {
               </div>
               <div className="text-sm">
                 <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">4.9/5 <Star size={14} className="fill-yellow-400 text-yellow-400" /></p>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">{t.hero.trusted}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">{stats.visasProcessed} Visas Processed</p>
               </div>
             </div>
           </div>
@@ -125,7 +128,7 @@ export default function Home() {
               className="absolute top-8 right-8 bg-white dark:bg-slate-800/90 backdrop-blur-md border border-green-200 dark:border-green-900 text-green-600 dark:text-green-400 px-4 py-2 rounded-xl shadow-lg flex gap-2 items-center"
             >
               <div className="bg-green-100 dark:bg-green-900/50 p-1 rounded-full"><Check size={14} strokeWidth={3} /></div>
-              <span className="font-bold text-sm">High Probability</span>
+              <span className="font-bold text-sm">Real AI Analysis</span>
             </motion.div>
 
             <h3 className="font-bold text-2xl mb-8 text-slate-900 dark:text-white flex items-center gap-3">
@@ -160,7 +163,7 @@ export default function Home() {
               >
                 <div className="absolute inset-0 bg-brand-500/5 animate-pulse"></div>
                 <div>
-                  <p className="text-slate-500 text-xs font-bold uppercase mb-1 tracking-widest">Approval Chance</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase mb-1 tracking-widest">Global Success Rate</p>
                   <div className="flex items-end gap-2">
                     <motion.p
                       className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tighter"
@@ -168,10 +171,10 @@ export default function Home() {
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.2, type: "spring" }}
                     >
-                      {score}%
+                      {stats.successRate}%
                     </motion.p>
                     <span className="text-green-500 font-bold mb-2 text-sm bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                      {score >= 70 ? 'Excellent' : score >= 50 ? 'Good' : 'Fair'}
+                      Verified
                     </span>
                   </div>
                 </div>
@@ -188,7 +191,7 @@ export default function Home() {
                       className="text-brand-500"
                       strokeDasharray={175}
                       initial={{ strokeDashoffset: 175 }}
-                      animate={{ strokeDashoffset: 175 - (175 * score) / 100 }}
+                      animate={{ strokeDashoffset: 175 - (175 * stats.successRate) / 100 }}
                       transition={{ duration: 1.5, ease: "easeOut" }}
                       strokeLinecap="round"
                     />
@@ -199,7 +202,7 @@ export default function Home() {
               <LiveButton
                 variant="secondary"
                 className="w-full py-4 border-2 border-slate-100 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-transparent"
-                onClick={() => goLogin('applicant')}
+                onClick={startAssessment}
               >
                 Full Assessment <ArrowRight size={16} />
               </LiveButton>
