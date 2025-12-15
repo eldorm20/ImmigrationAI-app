@@ -13,11 +13,7 @@ export interface TierFeatures {
   features: {
     documentUploadLimit: number; // per month
     aiDocumentGenerations: number; // per month
-<<<<<<< HEAD
     aiMonthlyRequests: number; // AI chat/translate requests per month
-=======
-    aiMonthlyRequests: number; // Added for testing/limiting
->>>>>>> 21777a5db682a904c683ac49d1b69d018063706e
     consultationsPerMonth: number;
     researchLibraryAccess: boolean;
     prioritySupport: boolean;
