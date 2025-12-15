@@ -1,43 +1,41 @@
 import { logger } from './logger';
 
 // Configuration for different European company registries
-// Demo Mode: If API keys are missing, we return high-quality mock data so the app feels "alive"
-const DEMO_MODE = !process.env.UK_COMPANIES_HOUSE_API_KEY;
-
+// Configuration for different European company registries
 const REGISTRIES_CONFIG = {
   uk_companies_house: {
     name: 'UK Companies House',
     baseUrl: 'https://api.company-information.service.gov.uk',
     country: 'GB',
-    apiKey: process.env.UK_COMPANIES_HOUSE_API_KEY || 'demo_key',
+    apiKey: process.env.UK_COMPANIES_HOUSE_API_KEY,
     documentationUrl: 'https://find-and-update.company-information.service.gov.uk/'
   },
   eu_germany_hwr: {
     name: 'Germany HWR Register',
     baseUrl: 'https://www.handelsregisterdb.de/api',
     country: 'DE',
-    apiKey: process.env.EU_GERMANY_HWR_API_KEY || 'demo_key',
+    apiKey: process.env.EU_GERMANY_HWR_API_KEY,
     documentationUrl: 'https://www.handelsregister.de/'
   },
   eu_france_inpi: {
     name: 'France INPI Register',
     baseUrl: 'https://api-inpi.gouv.fr',
     country: 'FR',
-    apiKey: process.env.EU_FRANCE_INPI_API_KEY || 'demo_key',
+    apiKey: process.env.EU_FRANCE_INPI_API_KEY,
     documentationUrl: 'https://www.inpi.fr/'
   },
   eu_netherlands_kvk: {
     name: 'Netherlands KvK Register',
     baseUrl: 'https://api.kvk.nl',
     country: 'NL',
-    apiKey: process.env.EU_NETHERLANDS_KVK_API_KEY || 'demo_key',
+    apiKey: process.env.EU_NETHERLANDS_KVK_API_KEY,
     documentationUrl: 'https://www.kvk.nl/'
   },
   eu_spain_mercantil: {
     name: 'Spain Mercantil Register',
     baseUrl: 'https://www.registradores.org/api',
     country: 'ES',
-    apiKey: process.env.EU_SPAIN_MERCANTIL_API_KEY || 'demo_key',
+    apiKey: process.env.EU_SPAIN_MERCANTIL_API_KEY,
     documentationUrl: 'https://www.registradores.org/'
   },
 };
@@ -79,24 +77,6 @@ async function verifyUKCompany(
   companyName: string
 ): Promise<CompanyVerificationResult | null> {
   const config = REGISTRIES_CONFIG.uk_companies_house;
-
-  if (DEMO_MODE || config.apiKey === 'demo_key') {
-    logger.info('Using DEMO MODE for UK verification');
-    return {
-      found: true,
-      companyName: companyName + " Ltd (Demo)",
-      country: 'GB',
-      registryType: 'uk_companies_house',
-      registryId: '00' + Math.floor(Math.random() * 1000000),
-      registeredAddress: '123 Demo Street, London, EC1N 8SD',
-      businessType: 'Private Limited Company',
-      status: 'active',
-      registrationDate: new Date('2018-03-15'),
-      raw_data: { demo: true },
-      verifiedAt: new Date(),
-      confidence: 100,
-    };
-  }
 
   if (!config.apiKey) {
     logger.warn('UK Companies House API key not configured.');
