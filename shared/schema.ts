@@ -1,15 +1,16 @@
 import { sql } from "drizzle-orm";
-import { 
-  pgTable, 
-  text, 
-  varchar, 
-  timestamp, 
-  integer, 
-  decimal, 
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  integer,
+  decimal,
   boolean,
   jsonb,
   pgEnum,
-  index
+  index,
+  customType
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -392,7 +393,7 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
   userId: z.string().uuid().optional(),
   providerSubscriptionId: z.string().min(1).max(255),
   planId: z.string().max(255).optional(),
-  status: z.enum(["incomplete","incomplete_expired","trialing","active","past_due","canceled","unpaid"]).optional(),
+  status: z.enum(["incomplete", "incomplete_expired", "trialing", "active", "past_due", "canceled", "unpaid"]).optional(),
   currentPeriodEnd: z.date().optional(),
   metadata: z.any().optional(),
 }).pick({
@@ -509,3 +510,18 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertEmployerVerification = z.infer<typeof insertEmployerVerificationSchema>;
 export type EmployerVerification = typeof employerVerifications.$inferSelect;
 export type EmployerDirectory = typeof employerDirectory.$inferSelect;
+
+// File Blobs table (for database storage of files)
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+export const fileBlobs = pgTable("file_blobs", {
+  key: varchar("key", { length: 500 }).primaryKey(),
+  fileData: bytea("file_data").notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

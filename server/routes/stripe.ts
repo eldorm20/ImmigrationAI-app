@@ -14,19 +14,15 @@ let stripe: any;
 (async () => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
-      // No Stripe key — in development use a lightweight mock to allow local testing
-      logger.warn("STRIPE_SECRET_KEY not set - using mock Stripe in development");
-      if (process.env.NODE_ENV !== "production") {
-        const { createMockStripe } = await import("../lib/mockStripe");
-        stripe = createMockStripe();
-      }
+      logger.warn("STRIPE_SECRET_KEY not set - Stripe features will be disabled");
     } else {
       const StripePkg = await import("stripe");
       const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
       stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
+      logger.info("Stripe initialized successfully");
     }
   } catch (err) {
-    logger.warn({ err }, "Stripe not initialized - payment features disabled");
+    logger.warn({ err }, "Stripe initialization failed - payment features disabled");
   }
 })();
 

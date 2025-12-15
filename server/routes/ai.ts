@@ -89,13 +89,13 @@ router.post(
       document.ocrData || undefined
     );
 
-      // Increment generic AI request usage (1 unit per analyze)
-      try {
-        await incrementUsage(userId, 'aiMonthlyRequests', 1);
-      } catch (err) {
-        // If quota exceeded, return 403
-        return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
-      }
+    // Increment generic AI request usage (1 unit per analyze)
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      // If quota exceeded, return 403
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
+    }
 
     // Update document with analysis
     await db
@@ -181,8 +181,8 @@ router.post(
       // Provide a clear service-level message if AI providers are not configured
       const msg = (err?.message || String(err)).toLowerCase();
       if (msg.includes('no ai provider') || msg.includes('provider available')) {
-        return res.status(503).json({ 
-          message: 'AI generation service is not available. Please contact support. (Missing provider configuration: LOCAL_AI_URL / OLLAMA_MODEL)'
+        return res.status(503).json({
+          message: 'AI service unavailable. System administrator must configure LOCAL_AI_URL (for Ollama) or HUGGINGFACE_API_TOKEN.'
         });
       }
       // Provide clearer guidance when template validation fails
@@ -192,13 +192,13 @@ router.post(
         });
       }
       if (msg.includes('quota') || msg.includes('rate limit')) {
-        return res.status(429).json({ 
-          message: 'Too many requests. Please wait a moment and try again.' 
+        return res.status(429).json({
+          message: 'Too many requests. Please wait a moment and try again.'
         });
       }
       if (msg.includes('timeout')) {
-        return res.status(504).json({ 
-          message: 'AI service request timed out. Please try again.' 
+        return res.status(504).json({
+          message: 'AI service request timed out. Please try again.'
         });
       }
       logger.error({ err, template }, 'Document generation failed');
@@ -370,16 +370,16 @@ router.post(
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.error({ err, fromLang, toLang }, "Translation failed");
-      
+
       // Return 503 if AI provider unavailable, 500 for other errors
       if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
-        return res.status(503).json({ 
+        return res.status(503).json({
           error: "Translation service unavailable",
           message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Translation failed",
         message: errorMsg
       });
@@ -406,8 +406,8 @@ router.post(
     // Accept either { message: string } or { messages: [{role,content}] } for compatibility
     const parsed = z
       .union([
-        z.object({ message: z.string().min(1), language: z.string().optional(), history: z.array(z.object({ role: z.enum(['user','ai']), content: z.string() })).optional() }),
-        z.object({ messages: z.array(z.object({ role: z.enum(['user','ai']), content: z.string() })).min(1), language: z.string().optional() })
+        z.object({ message: z.string().min(1), language: z.string().optional(), history: z.array(z.object({ role: z.enum(['user', 'ai']), content: z.string() })).optional() }),
+        z.object({ messages: z.array(z.object({ role: z.enum(['user', 'ai']), content: z.string() })).min(1), language: z.string().optional() })
       ])
       .parse(req.body as any) as any;
 
@@ -476,16 +476,16 @@ router.post(
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.error({ err }, "Chat response failed");
-      
+
       // Return 503 if AI provider unavailable, 500 for other errors
       if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
-        return res.status(503).json({ 
+        return res.status(503).json({
           error: "Chat service unavailable",
           message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Chat response failed",
         message: errorMsg
       });

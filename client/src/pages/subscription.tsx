@@ -47,7 +47,7 @@ const plans = [
     ],
   },
   {
-    id: "professional",
+    id: "pro",
     name: "Professional",
     price: 29,
     period: "month",
@@ -105,15 +105,15 @@ export default function SubscriptionPage() {
         const subs = await apiRequest<Subscription>("/subscription/current");
         setSubscription(subs);
 
-          // fetch usage/quotas
-          try {
-            const u = await apiRequest<any>("/subscription/usage");
-            setUsage(u);
-          } catch (uErr) {
-            // non-fatal
-            console.warn("Failed to load usage:", uErr);
-            setUsage(null);
-          }
+        // fetch usage/quotas
+        try {
+          const u = await apiRequest<any>("/subscription/usage");
+          setUsage(u);
+        } catch (uErr) {
+          // non-fatal
+          console.warn("Failed to load usage:", uErr);
+          setUsage(null);
+        }
 
         const history = await apiRequest<BillingHistory[]>("/subscription/billing-history");
         setBillingHistory(history || []);
@@ -138,7 +138,7 @@ export default function SubscriptionPage() {
 
   const handleUpgrade = async (planId: string) => {
     try {
-      try { trackEvent('subscription_upgrade_initiated', { planId }); } catch {}
+      try { trackEvent('subscription_upgrade_initiated', { planId }); } catch { }
       const response = await apiRequest("/subscription/upgrade", {
         method: "POST",
         body: JSON.stringify({ planId }),
@@ -166,7 +166,7 @@ export default function SubscriptionPage() {
   const handleCancel = async () => {
     if (confirm("Are you sure you want to cancel your subscription?")) {
       try {
-        try { trackEvent('subscription_cancelled', { userId: user?.id }); } catch {}
+        try { trackEvent('subscription_cancelled', { userId: user?.id }); } catch { }
         await apiRequest("/subscription/cancel", { method: "POST" });
         toast({
           title: "Subscription Cancelled",
@@ -319,7 +319,7 @@ export default function SubscriptionPage() {
         {/* Plans Comparison */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">{t.subscription.upgradeYourPlan}</h2>
-          
+
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, i) => (
               <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
@@ -372,7 +372,7 @@ export default function SubscriptionPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <AnimatedCard>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">{t.subscription.billingHistory}</h3>
-            
+
             {billingHistory.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <AlertCircle size={32} className="mx-auto mb-2 opacity-50" />

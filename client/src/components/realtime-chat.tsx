@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useWebSocket } from '@/hooks/use-websocket';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -58,28 +59,59 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     setRecipientUser(recipient || null);
   }, [onlineUsers, recipientId]);
 
+  // Fetch conversation history
+  const { data: historyData } = useQuery<{ messages: ChatMessage[] }>({
+    queryKey: [`/api/messages/conversation/${recipientId}`],
+    enabled: !!recipientId,
+  });
+
   // Track remote typing
   useEffect(() => {
     const isRemoteTyping = typingUsers && typingUsers.has && typingUsers.has(recipientId);
     setRemoteTyping(isRemoteTyping || false);
   }, [typingUsers, recipientId]);
 
-  // Filter messages for current conversation
+  // Combine history and live messages with deduplication
   useEffect(() => {
-    const conversationMessages = messages.filter(
+    const history = historyData?.messages || [];
+
+    // Live messages for this conversation
+    const liveMessages = messages.filter(
       (msg) =>
         (msg.senderId === user?.id && msg.recipientId === recipientId) ||
         (msg.senderId === recipientId && msg.recipientId === user?.id)
     );
-    setFilteredMessages(conversationMessages);
+
+    // Merge and deduplicate by ID
+    const messageMap = new Map<string, ChatMessage>();
+
+    // Add history first
+    history.forEach(msg => {
+      messageMap.set(msg.id, {
+        ...msg,
+        timestamp: new Date(msg.timestamp) // Ensure date object
+      });
+    });
+
+    // Add/Overwrite with live messages
+    liveMessages.forEach(msg => {
+      messageMap.set(msg.id, msg);
+    });
+
+    // Convert to array and sort
+    const combined = Array.from(messageMap.values()).sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    setFilteredMessages(combined);
 
     // Mark received messages as read
-    conversationMessages.forEach((msg) => {
+    combined.forEach((msg) => {
       if (msg.senderId === recipientId && !msg.isRead) {
         markMessageRead(msg.id);
       }
     });
-  }, [messages, user?.id, recipientId, markMessageRead]);
+  }, [messages, historyData, user?.id, recipientId, markMessageRead]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -133,9 +165,8 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-3">
             <div
-              className={`w-3 h-3 rounded-full ${
-                recipientUser?.lastSeen === null ? 'bg-green-500' : 'bg-gray-400'
-              }`}
+              className={`w-3 h-3 rounded-full ${recipientUser?.lastSeen === null ? 'bg-green-500' : 'bg-gray-400'
+                }`}
               title={recipientUser?.lastSeen === null ? 'Online' : 'Offline'}
             />
             {recipientUser ? (
@@ -185,16 +216,14 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
             filteredMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${
-                  msg.senderId === user?.id ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'
+                  }`}
               >
                 <div
-                  className={`max-w-xs rounded-lg px-4 py-2 ${
-                    msg.senderId === user?.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200 text-gray-900'
-                  }`}
+                  className={`max-w-xs rounded-lg px-4 py-2 ${msg.senderId === user?.id
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-200 text-gray-900'
+                    }`}
                 >
                   <p className="text-sm">{msg.content}</p>
                   <div className="flex items-center justify-between mt-1 gap-2">

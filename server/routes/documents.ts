@@ -76,7 +76,7 @@ router.post(
       const application = await db.query.applications.findFirst({
         where: eq(applications.id, body.applicationId),
       });
-      
+
       if (!application) {
         throw new AppError(404, "Application not found");
       }
@@ -97,7 +97,7 @@ router.post(
     } catch (err: any) {
       logger.error({ err, userId, fileName: req.file?.originalname }, "File upload failed");
       const msg = (err?.message || "File upload failed").toLowerCase();
-      
+
       // Provide specific error messages for common issues
       if (msg.includes("s3") || msg.includes("bucket") || msg.includes("credentials") || msg.includes("enoent")) {
         throw new AppError(
@@ -325,7 +325,7 @@ router.get(
   "/blob/:key",
   asyncHandler(async (req, res) => {
     const { Pool } = await import('pg');
-    if (process.env.USE_PG_STORAGE !== '1') return res.status(404).json({ message: 'Not found' });
+    // Guard removed: Always attempt to serve blobs if requested, assuming they exist in DB
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const client = await pool.connect();
     try {

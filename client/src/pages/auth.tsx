@@ -4,28 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-type ButtonProps = {
-  children: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  variant?: 'primary' | 'secondary';
-  className?: string;
-  disabled?: boolean;
-  type?: 'button' | 'submit' | 'reset';
-};
-
-const Button: React.FC<ButtonProps> = ({ children, onClick, variant = 'primary', className = '', disabled = false, type = 'button' }) => {
-  const base = 'px-6 py-3 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer';
-  const styles: Record<string, string> = {
-    primary: 'bg-brand-600 text-white shadow-lg shadow-brand-500/30 hover:bg-brand-700',
-    secondary: 'bg-white text-slate-700 border hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-700',
-  };
-  return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-      {children}
-    </button>
-  );
-};
+import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -116,30 +95,32 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl animate-slide-up border border-slate-100 dark:border-slate-700">
+      <AnimatedCard className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
         <button onClick={() => setLocation("/")} className="mb-6 flex gap-2 text-slate-500 font-bold hover:text-brand-600 items-center transition-colors">
           <ArrowLeft size={18} /> {t.auth.back}
         </button>
 
         <div className="flex gap-2 mb-6">
-          <button
+          <LiveButton
             onClick={() => {
               setMode("login");
               setErrors({});
             }}
-            className={`flex-1 py-2 px-4 rounded-xl font-bold transition ${mode === "login" ? "bg-brand-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
+            variant={mode === "login" ? "primary" : "secondary"}
+            className="flex-1"
           >
             {t.auth.signIn}
-          </button>
-          <button
+          </LiveButton>
+          <LiveButton
             onClick={() => {
               setMode("register");
               setErrors({});
             }}
-            className={`flex-1 py-2 px-4 rounded-xl font-bold transition ${mode === "register" ? "bg-brand-600 text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
+            variant={mode === "register" ? "primary" : "secondary"}
+            className="flex-1"
           >
             {t.auth.register}
-          </button>
+          </LiveButton>
         </div>
 
         <h2 className="text-3xl font-extrabold mb-2 text-slate-900 dark:text-white">
@@ -209,9 +190,9 @@ export default function AuthPage() {
               {errors.submit}
             </div>
           )}
-          <Button type="submit" className="w-full py-4 mt-4 h-14 text-lg shadow-brand-500/40" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin" /> : mode === "login" ? t.auth.signIn : t.auth.register}
-          </Button>
+          <LiveButton type="submit" className="w-full py-4 mt-4 h-14 text-lg shadow-brand-500/40" disabled={loading} loading={loading}>
+            {mode === "login" ? t.auth.signIn : t.auth.register}
+          </LiveButton>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-400">
@@ -237,7 +218,7 @@ export default function AuthPage() {
             </p>
           )}
         </div>
-      </div>
+      </AnimatedCard>
     </div>
   );
 }

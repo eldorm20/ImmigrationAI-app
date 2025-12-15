@@ -460,7 +460,7 @@ async function generateTextWithProvider(
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
 
-      const res = await fetch(localAIUrl, {
+      const res = await fetch(localAIUrl as string, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -501,8 +501,35 @@ async function generateTextWithProvider(
     }
   }
 
-  // OpenAI integration disabled by configuration — skipping OpenAI provider.
-  // If you later want to re-enable OpenAI, set OPENAI_API_KEY and remove the explicit disable above.
+  // OpenAI fallback (if key is configured)
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      // Basic OpenAI implementation without heavy SDK
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7
+        })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        return json.choices[0]?.message?.content || "";
+      }
+      logger.warn({ status: res.status }, "OpenAI fallback failed");
+    } catch (err) {
+      logger.warn({ err }, "OpenAI request failed");
+    }
+  }
 
   if (hasHuggingFace) {
     try {

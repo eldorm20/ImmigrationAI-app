@@ -11,9 +11,9 @@ const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT, // Railway storage endpoint
   credentials: process.env.AWS_ACCESS_KEY_ID
     ? {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-      }
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    }
     : undefined,
   forcePathStyle: true, // Required for Railway storage
 });
@@ -60,31 +60,31 @@ async function retryWithBackoff<T>(
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt < MAX_RETRIES - 1) {
         const delay = RETRY_DELAYS[attempt];
         logger.warn(
-          { 
-            ...context, 
-            attempt: attempt + 1, 
-            maxRetries: MAX_RETRIES, 
+          {
+            ...context,
+            attempt: attempt + 1,
+            maxRetries: MAX_RETRIES,
             operationName,
             error: lastError.message,
             nextRetryDelayMs: delay
           },
           `${operationName} failed (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms`
         );
-        
+
         // Sleep before retry
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         logger.error(
-          { 
-            ...context, 
-            attempt: attempt + 1, 
-            maxRetries: MAX_RETRIES, 
+          {
+            ...context,
+            attempt: attempt + 1,
+            maxRetries: MAX_RETRIES,
             operationName,
-            error: lastError.message 
+            error: lastError.message
           },
           `${operationName} failed after all retries`
         );
@@ -153,35 +153,42 @@ export async function uploadFile(
   }
   const key = generateFileKey(userId, applicationId, file.originalname);
 
-  // If configured, allow using PostgreSQL as storage when USE_PG_STORAGE=1
-  if (process.env.USE_PG_STORAGE === "1") {
-    // Store file blob in Postgres table `file_blobs` (created on-demand)
-    const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const key = generateFileKey(userId, applicationId, file.originalname);
-    const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
-      key text PRIMARY KEY,
-      file_data bytea NOT NULL,
-      file_name text NOT NULL,
-      mime_type text NOT NULL,
-      file_size integer NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    )`;
-    const client = await pool.connect();
+  // As per user request, prioritize Database Storage for file uploads
+  // This allows "local database for file upload" instead of S3
+  if (process.env.DATABASE_URL) {
     try {
-      await client.query(createSql);
-      await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
-      const url = `${process.env.APP_URL || ''}/api/documents/blob/${encodeURIComponent(key)}`;
-      return {
-        key,
-        url,
-        fileName: file.originalname,
-        mimeType: file.mimetype,
-        fileSize: file.size,
-      };
-    } finally {
-      client.release();
-      await pool.end();
+      // Store file blob in Postgres table `file_blobs` (created on-demand)
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const key = generateFileKey(userId, applicationId, file.originalname);
+      const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
+        key text PRIMARY KEY,
+        file_data bytea NOT NULL,
+        file_name text NOT NULL,
+        mime_type text NOT NULL,
+        file_size integer NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )`;
+      const client = await pool.connect();
+      try {
+        await client.query(createSql);
+        await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
+        // Use a relative URL for the blob endpoint
+        const url = `/api/documents/blob/${encodeURIComponent(key)}`;
+        return {
+          key,
+          url,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+        };
+      } finally {
+        client.release();
+        await pool.end();
+      }
+    } catch (err) {
+      logger.error({ err }, "Database storage failed, falling back to other methods");
+      // Fallthrough to S3/Local if DB fails
     }
   }
 
@@ -218,56 +225,56 @@ export async function uploadFile(
     }
   }
 
-    try {
-      logger.info({ key, userId, applicationId, size: file.size, bucket: BUCKET_NAME }, "Uploading file to S3");
+  try {
+    logger.info({ key, userId, applicationId, size: file.size, bucket: BUCKET_NAME }, "Uploading file to S3");
 
-      // Retry the upload operation with exponential backoff
-      await retryWithBackoff(
-        async () => {
-          const command = new PutObjectCommand({
-            Bucket: BUCKET_NAME,
-            Key: key,
-            Body: file.buffer,
-            ContentType: file.mimetype,
-            ContentLength: file.size,
-            // Make files private by default
-            ACL: "private",
-          });
+    // Retry the upload operation with exponential backoff
+    await retryWithBackoff(
+      async () => {
+        const command = new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          ContentLength: file.size,
+          // Make files private by default
+          ACL: "private",
+        });
 
-          await s3Client.send(command);
-        },
-        "S3 file upload",
-        { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype, bucket: BUCKET_NAME }
-      );
+        await s3Client.send(command);
+      },
+      "S3 file upload",
+      { key, userId, applicationId, fileSize: file.size, mimeType: file.mimetype, bucket: BUCKET_NAME }
+    );
 
-      // Generate presigned URL for access (valid for 1 hour)
-      // Also retry presigned URL generation
-      const url = await retryWithBackoff(
-        async () => getPresignedUrl(key),
-        "presigned URL generation",
-        { key, userId }
-      );
+    // Generate presigned URL for access (valid for 1 hour)
+    // Also retry presigned URL generation
+    const url = await retryWithBackoff(
+      async () => getPresignedUrl(key),
+      "presigned URL generation",
+      { key, userId }
+    );
 
-      logger.info({ key, userId, applicationId, size: file.size }, "File uploaded successfully");
+    logger.info({ key, userId, applicationId, size: file.size }, "File uploaded successfully");
 
-      return {
-        key,
-        url,
-        fileName: file.originalname,
-        mimeType: file.mimetype,
-        fileSize: file.size,
-      };
-    } catch (error) {
-      logger.error({ error, key, userId }, "Failed to upload file after retries");
+    return {
+      key,
+      url,
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+    };
+  } catch (error) {
+    logger.error({ error, key, userId }, "Failed to upload file after retries");
 
-      // Attempt graceful fallback: try Postgres blob storage if available
-      if (process.env.DATABASE_URL) {
+    // Attempt graceful fallback: try Postgres blob storage if available
+    if (process.env.DATABASE_URL) {
+      try {
+        const { Pool } = await import('pg');
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+        const client = await pool.connect();
         try {
-          const { Pool } = await import('pg');
-          const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-          const client = await pool.connect();
-          try {
-            const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
+          const createSql = `CREATE TABLE IF NOT EXISTS file_blobs (
               key text PRIMARY KEY,
               file_data bytea NOT NULL,
               file_name text NOT NULL,
@@ -275,48 +282,48 @@ export async function uploadFile(
               file_size integer NOT NULL,
               created_at timestamptz NOT NULL DEFAULT now()
             )`;
-            await client.query(createSql);
-            await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
-            const url = `${process.env.APP_URL || ''}/api/documents/blob/${encodeURIComponent(key)}`;
-            logger.info({ key, userId }, 'Stored file in Postgres as fallback after S3 failure');
-            return {
-              key,
-              url,
-              fileName: file.originalname,
-              mimeType: file.mimetype,
-              fileSize: file.size,
-            } as UploadResult;
-          } finally {
-            client.release();
-            await pool.end();
-          }
-        } catch (pgErr) {
-          logger.warn({ pgErr, key, userId }, 'Postgres fallback failed after S3 upload error');
+          await client.query(createSql);
+          await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
+          const url = `${process.env.APP_URL || ''}/api/documents/blob/${encodeURIComponent(key)}`;
+          logger.info({ key, userId }, 'Stored file in Postgres as fallback after S3 failure');
+          return {
+            key,
+            url,
+            fileName: file.originalname,
+            mimeType: file.mimetype,
+            fileSize: file.size,
+          } as UploadResult;
+        } finally {
+          client.release();
+          await pool.end();
         }
+      } catch (pgErr) {
+        logger.warn({ pgErr, key, userId }, 'Postgres fallback failed after S3 upload error');
       }
-
-      // Try local filesystem fallback as a last resort
-      try {
-        const uploadsDir = path.resolve(process.cwd(), "uploads");
-        const destPath = path.resolve(uploadsDir, key);
-        const dir = path.dirname(destPath);
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(destPath, file.buffer);
-        const url = `${process.env.APP_URL || "/"}/uploads/${key}`;
-        logger.info({ key, userId }, 'Stored file on local filesystem as fallback after S3 failure');
-        return {
-          key,
-          url,
-          fileName: file.originalname,
-          mimeType: file.mimetype,
-          fileSize: file.size,
-        } as UploadResult;
-      } catch (fsErr) {
-        logger.error({ fsErr, key, userId }, 'Local filesystem fallback also failed');
-      }
-
-      throw new Error((error as any)?.message || "Failed to upload file");
     }
+
+    // Try local filesystem fallback as a last resort
+    try {
+      const uploadsDir = path.resolve(process.cwd(), "uploads");
+      const destPath = path.resolve(uploadsDir, key);
+      const dir = path.dirname(destPath);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(destPath, file.buffer);
+      const url = `${process.env.APP_URL || "/"}/uploads/${key}`;
+      logger.info({ key, userId }, 'Stored file on local filesystem as fallback after S3 failure');
+      return {
+        key,
+        url,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+      } as UploadResult;
+    } catch (fsErr) {
+      logger.error({ fsErr, key, userId }, 'Local filesystem fallback also failed');
+    }
+
+    throw new Error((error as any)?.message || "Failed to upload file");
+  }
 }
 
 // Get presigned URL for file access

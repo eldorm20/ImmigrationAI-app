@@ -15,6 +15,7 @@ import Applications from "@/pages/applications";
 import ApplicationView from "@/pages/application-view";
 import Dashboard from "@/pages/dashboard";
 import LawyerDashboard from "@/pages/lawyer-dashboard";
+import Messages from "@/pages/messages";
 import Pricing from "@/pages/pricing";
 import Checkout from "@/pages/checkout";
 import Features from "@/pages/features";
@@ -76,7 +77,7 @@ function Router() {
         <Route path="/partner" component={PartnerPage} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/features" component={Features} />
-        
+
         <Route path="/research">
           <Research />
         </Route>
@@ -100,7 +101,7 @@ function Router() {
         <Route path="/contact">
           <Contact />
         </Route>
-        
+
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} role="applicant" />
         </Route>
@@ -128,6 +129,10 @@ function Router() {
           <ProtectedRoute component={PaymentHistory} role="applicant" />
         </Route>
 
+        <Route path="/messages">
+          <ProtectedRoute component={Messages} />
+        </Route>
+
         <Route path="/analytics">
           <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
         </Route>
@@ -153,7 +158,7 @@ function Router() {
         <Route path="/admin/users">
           <ProtectedRoute component={AdminUsersPage} role="admin" />
         </Route>
-        
+
         <Route path="/lawyer">
           <ProtectedRoute component={LawyerDashboard} role="lawyer" />
         </Route>

@@ -129,4 +129,140 @@ router.post(
   }
 );
 
+// Debug: check login credentials (for diagnosing 400/401 errors)
+router.post(
+  "/check-login",
+  async (req, res) => {
+    try {
+      const { email, password } = req.body || {};
+
+      if (!email || !password) {
+        return res.json({
+          success: false,
+          step: "validation",
+          message: "Email and password are required",
+        });
+      }
+
+      // Import the necessary functions
+      const { normalizeEmail } = await import("../middleware/security");
+      const { verifyPassword } = await import("../lib/auth");
+      const { eq } = await import("drizzle-orm");
+      const { users } = await import("@shared/schema");
+
+      const normalizedEmail = normalizeEmail(email);
+
+      // Check if user exists
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, normalizedEmail),
+      });
+
+      if (!user) {
+        return res.json({
+          success: false,
+          step: "user_lookup",
+          message: "No user found with this email",
+          emailSearched: normalizedEmail,
+        });
+      }
+
+      // Check password
+      const hasPassword = Boolean(user.hashedPassword);
+      if (!hasPassword) {
+        return res.json({
+          success: false,
+          step: "password_check",
+          message: "User has no password set",
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+        });
+      }
+
+      const isPasswordValid = await verifyPassword(user.hashedPassword, password);
+
+      if (!isPasswordValid) {
+        return res.json({
+          success: false,
+          step: "password_verify",
+          message: "Password does not match",
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          hashedPasswordLength: user.hashedPassword?.length || 0,
+        });
+      }
+
+      // All checks passed
+      return res.json({
+        success: true,
+        step: "complete",
+        message: "Login credentials are valid",
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+        },
+      });
+    } catch (err: any) {
+      logger.error({ err }, "Debug check-login failed");
+      return res.status(500).json({
+        success: false,
+        step: "error",
+        message: err?.message || String(err),
+      });
+    }
+  }
+);
+
+// Public repair endpoint (temporary) to fix production database
+router.get(
+  "/fix-db-schema",
+  async (req, res) => {
+    try {
+      logger.info("Attempting to fix database schema...");
+
+      // Force add lawyer_id column
+      await db.execute(sql`
+        ALTER TABLE "applications" ADD COLUMN IF NOT EXISTS "lawyer_id" text;
+        
+        DO $$ 
+        BEGIN 
+          BEGIN
+            ALTER TABLE "applications" ADD CONSTRAINT "applications_lawyer_id_users_id_fk" 
+            FOREIGN KEY ("lawyer_id") REFERENCES "users" ("id") ON DELETE SET NULL;
+          EXCEPTION
+            WHEN duplicate_object THEN NULL;
+          END;
+        END $$;
+        
+        CREATE INDEX IF NOT EXISTS "applications_lawyer_id_idx" ON "applications" ("lawyer_id");
+      `);
+
+      // Verify it exists now
+      const result = await db.execute(sql`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'applications' AND column_name = 'lawyer_id'
+      `);
+
+      const rows = (result as any).rows || result;
+      const exists = rows.length > 0;
+
+      res.json({
+        success: true,
+        message: "Schema repair executed",
+        columnExists: exists,
+        details: rows
+      });
+    } catch (err: any) {
+      logger.error({ err }, "Schema repair failed");
+      res.status(500).json({ error: String(err) });
+    }
+  }
+);
+
 export default router;

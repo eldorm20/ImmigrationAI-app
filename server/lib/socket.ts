@@ -22,22 +22,18 @@ export function setupSocketIO(httpServer: HTTPServer) {
   // In production (Railway), allow all origins since the proxy strips headers
   // In dev, use configured origins or default
   const isProd = process.env.NODE_ENV === "production";
-  
+
   logger.info({ env: process.env.NODE_ENV, isProd }, "Socket.IO initializing");
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: isProd ? true : (process.env.ALLOWED_ORIGINS?.split(",")[0] || "http://localhost:3000"),
+      origin: "*", // Allow all origins in production to avoid CORS headaches with proxies
+      methods: ["GET", "POST"],
       credentials: true,
-      methods: ["GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
     },
-    transports: ["websocket", "polling"],
-    // Improve polling reliability on production
+    transports: ["polling", "websocket"], // Standard fallback order: polling first, then upgrade
     pingInterval: 25000,
     pingTimeout: 20000,
-    // Allow longer upgrade path
-    upgradeTimeout: 10000,
   });
 
   // Middleware: authenticate socket connection via JWT token
@@ -56,8 +52,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
         return next(new Error("Invalid or expired token"));
       }
 
-      socket.data.user = payload;
-      logger.info({ userId: payload.id, socketId: socket.id }, "Socket.IO client authenticated");
+      socket.data.user = payload as any;
+      logger.info({ userId: (payload as any).id, socketId: socket.id }, "Socket.IO client authenticated");
       return next();
     } catch (err) {
       logger.error({ err, socketId: socket.id }, "Socket.IO authentication error");
@@ -88,7 +84,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
       userMeta.set(userId, { userName: (user as any).email.split('@')[0], email: (user as any).email, role: (user as any).role });
     } else {
       // Guest connections are tracked but limited
-      userMeta.set(userId, { userName: `guest_${socket.id.slice(0,6)}`, email: "", role: "guest" });
+      userMeta.set(userId, { userName: `guest_${socket.id.slice(0, 6)}`, email: "", role: "guest" });
     }
 
     // Send greeting
@@ -192,8 +188,13 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
+      if (!user) return;
       try {
-        const m = { userName: meta.name || meta.userName || user.email.split('@')[0], email: meta.email || user.email, role: meta.role || user.role };
+        const m = {
+          userName: meta.name || meta.userName || (user as any).email?.split('@')[0] || "User",
+          email: meta.email || (user as any).email,
+          role: meta.role || (user as any).role
+        };
         (m as any).lastSeen = Date.now();
         userMeta.set(userId, m);
         // Broadcast status change
