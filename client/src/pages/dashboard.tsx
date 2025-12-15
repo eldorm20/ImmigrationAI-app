@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { error as logError } from "@/lib/logger";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload
+  Globe, Send, Briefcase, Upload, Loader2, Zap, CheckCircle, Circle, ArrowRight, Sparkles, FileCheck,
+  Edit3, RefreshCw, Download, User, FileUp, Eye, Trash2, Languages
 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -14,13 +18,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
 
-// Imported Views
-import { RoadmapView } from "@/components/dashboard/RoadmapView";
-import { AIDocsView } from "@/components/dashboard/AIDocsView";
-import { UploadView } from "@/components/dashboard/UploadView";
-import { TranslateView } from "@/components/dashboard/TranslateView";
-import { ChatView } from "@/components/dashboard/ChatView";
-import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
+
 
 // --- Main Dashboard Component ---
 
@@ -176,7 +174,7 @@ export default function UserDash() {
         </header>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} />}
+          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} toast={toast} />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
@@ -205,7 +203,7 @@ export default function UserDash() {
     </div>
   );
 }
-<<<<<<< HEAD
+
 
 // --- Sub-Views ---
 
@@ -390,7 +388,7 @@ const EmployerVerificationView = () => {
   );
 };
 
-const DocsView = () => {
+const AIDocsView = () => {
   const [docType, setDocType] = useState('Motivation Letter');
   const [generatedContent, setGeneratedContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1171,5 +1169,4 @@ const TranslateView = () => {
     </motion.div>
   );
 };
-=======
->>>>>>> 21777a5db682a904c683ac49d1b69d018063706e
+
