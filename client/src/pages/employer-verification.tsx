@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { EmployerVerification } from '../components/employer-verification';
+import { apiRequest } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
+import { useLocation } from 'wouter';
 import {
   Card,
   CardContent,
@@ -21,6 +22,14 @@ import {
 } from '../components/ui/dialog';
 import { Loader2, Globe, CheckCircle2, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
 
+interface Registry {
+  id: string;
+  name: string;
+  country: string;
+  available: boolean;
+  documentationUrl?: string;
+}
+
 interface VerificationRecord {
   id: string;
   companyName: string;
@@ -35,61 +44,130 @@ interface VerificationRecord {
 }
 
 export default function EmployerVerificationPage() {
-  const [history, setHistory] = useState<VerificationRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [_, setLocation] = useLocation();
 
-  // Fetch verification history
-  const { data: historyData, isLoading: historyLoading, refetch } = useQuery({
-    queryKey: ['employer-history'],
-    queryFn: async () => {
-      const res = await fetch('/api/employers/history');
-      if (!res.ok) throw new Error('Failed to fetch history');
-      return res.json();
-    },
-  });
-
-  // Fetch available registries
-  const { data: registriesData } = useQuery({
-    queryKey: ['employer-registries'],
-    queryFn: async () => {
-      const res = await fetch('/api/employers/registries');
-      if (!res.ok) throw new Error('Failed to fetch registries');
-      return res.json();
-    },
-  });
-
+  // Verify auth
   useEffect(() => {
-    if (historyData?.history) {
-      setHistory(historyData.history);
-    }
-  }, [historyData]);
+    if (!user) setLocation('/auth');
+  }, [user, setLocation]);
 
-  const handleDeleteRecord = async (id: string) => {
-    setLoading(true);
+  // State for registries
+  const [registries, setRegistries] = useState<Registry[]>([]);
+  const [registriesLoading, setRegistriesLoading] = useState(true);
+  const [registriesError, setRegistriesError] = useState<string | null>(null);
+
+  // State for history
+  const [history, setHistory] = useState<VerificationRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // State for verification form
+  const [companyName, setCompanyName] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('GB');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifySuccess, setVerifySuccess] = useState<string | null>(null);
+
+  // State for delete dialog
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Fetch registries
+  const fetchRegistries = async () => {
     try {
-      const res = await fetch(`/api/employers/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        setHistory(history.filter((h) => h.id !== id));
-        setDeleteId(null);
-      }
-    } catch (error) {
-      console.error('Error deleting record:', error);
+      setRegistriesError(null);
+      setRegistriesLoading(true);
+      const data = await apiRequest<{ registries: Registry[] }>('/employers/registries');
+      setRegistries(data.registries || []);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load registries';
+      setRegistriesError(msg);
+      setRegistries([]);
     } finally {
-      setLoading(false);
+      setRegistriesLoading(false);
     }
   };
 
-  const handleVerificationComplete = () => {
-    refetch();
+  // Fetch history
+  const fetchHistory = async () => {
+    try {
+      setHistoryError(null);
+      setHistoryLoading(true);
+      const data = await apiRequest<{ history: VerificationRecord[] }>('/employers/history');
+      setHistory(data.history || []);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load verification history';
+      setHistoryError(msg);
+      setHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    if (user) {
+      fetchRegistries();
+      fetchHistory();
+    }
+  }, [user]);
+
+  // Handle employer verification
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyName.trim()) {
+      setVerifyError('Company name is required');
+      return;
+    }
+
+    try {
+      setVerifyError(null);
+      setVerifySuccess(null);
+      setVerifyLoading(true);
+
+      const data = await apiRequest<any>('/employers/verify', {
+        method: 'POST',
+        body: JSON.stringify({
+          companyName: companyName.trim(),
+          country: selectedCountry,
+        }),
+      });
+
+      if (data.success) {
+        setVerifySuccess(`Verification completed: ${data.results?.length || 0} result(s) found`);
+        setCompanyName('');
+        await fetchHistory(); // Refresh history
+      } else {
+        setVerifyError(data.message || 'Verification failed');
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Verification error';
+      setVerifyError(msg);
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Handle delete
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      setDeleteLoading(true);
+      await apiRequest(`/employers/${id}`, {
+        method: 'DELETE',
+      });
+      setHistory(history.filter((h) => h.id !== id));
+      setDeleteId(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete record';
+      alert(`Delete failed: ${msg}`);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const getRegistryInfo = (registryType: string) => {
-    const registries = registriesData?.registries || [];
-    return registries.find((r: any) => r.id === registryType);
+    return registries.find((r) => r.id === registryType);
   };
 
   return (
@@ -108,6 +186,31 @@ export default function EmployerVerificationPage() {
           </p>
         </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-red-900 dark:text-red-400">Error Loading Data</h3>
+              <p className="text-sm text-red-800 dark:text-red-300 mt-1">{error}</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setError(null);
+              fetchRegistries();
+              fetchHistory();
+            }}
+            className="flex-shrink-0"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
       <Tabs defaultValue="verify" className="space-y-6">
         <TabsList>
           <TabsTrigger value="verify">Verify Employer</TabsTrigger>
@@ -115,65 +218,130 @@ export default function EmployerVerificationPage() {
           <TabsTrigger value="registries">Available Registries</TabsTrigger>
         </TabsList>
 
+        {/* Verify Tab */}
         <TabsContent value="verify" className="space-y-6">
           <Card className="border-2 border-brand-200 dark:border-brand-900/50 bg-gradient-to-br from-brand-50 to-blue-50 dark:from-slate-800 dark:to-slate-800/50">
             <CardHeader>
               <CardTitle className="text-slate-900 dark:text-white">Search Employer Information</CardTitle>
               <CardDescription className="text-slate-600 dark:text-slate-400">
-                Enter a company name to verify it exists in European business registries
+                Enter a company name and select a country to verify it exists in European business registries
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <EmployerVerification onVerificationComplete={handleVerificationComplete} />
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                      Company Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={verifyFormData.companyName}
+                      onChange={(e) =>
+                        setVerifyFormData({
+                          ...verifyFormData,
+                          companyName: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., Acme Corporation"
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                      Country *
+                    </label>
+                    <select
+                      value={verifyFormData.registryType}
+                      onChange={(e) =>
+                        setVerifyFormData({
+                          ...verifyFormData,
+                          registryType: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      required
+                    >
+                      <option value="">Select a country...</option>
+                      {registries.map((registry) => (
+                        <option key={registry.id} value={registry.id}>
+                          {registry.country} - {registry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={verifyLoading || !verifyFormData.companyName || !verifyFormData.registryType}
+                  className="w-full px-6 py-2 bg-brand-600 dark:bg-brand-500 text-white rounded-lg font-medium hover:bg-brand-700 dark:hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {verifyLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify Employer'
+                  )}
+                </button>
+
+                {verifyError && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-300 text-sm">
+                    {verifyError}
+                  </div>
+                )}
+
+                {verifySuccess && (
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-300 text-sm flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Verification successful!</p>
+                      <p>The employer has been saved to your verification history.</p>
+                    </div>
+                  </div>
+                )}
+              </form>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
             <CardHeader>
-              <CardTitle className="text-lg text-slate-900 dark:text-white">Supported Countries</CardTitle>
+              <CardTitle className="text-lg text-slate-900 dark:text-white">Supported Registries</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">United Kingdom</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Companies House</p>
+              <div className="space-y-3">
+                {registriesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
                   </div>
-                </div>
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Germany</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">HWR Register</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">France</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">INPI Register</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Netherlands</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">KvK Register</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Spain</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Mercantil Register</p>
-                  </div>
-                </div>
+                ) : registries.length > 0 ? (
+                  registries.map((registry) => (
+                    <div
+                      key={registry.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {registry.country}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {registry.name}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-600 dark:text-slate-400">No registries available</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* History Tab */}
         <TabsContent value="history" className="space-y-6">
           {historyLoading ? (
             <Card className="border-slate-200 dark:border-slate-700">
@@ -181,11 +349,25 @@ export default function EmployerVerificationPage() {
                 <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
               </CardContent>
             </Card>
+          ) : historyError ? (
+            <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
+              <CardContent className="py-8">
+                <div className="flex flex-col items-center gap-4">
+                  <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
+                  <p className="text-red-800 dark:text-red-300 text-center">{historyError}</p>
+                  <Button onClick={fetchHistory} variant="outline" size="sm">
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ) : history.length > 0 ? (
             <div className="space-y-4">
               <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 dark:text-white">Verification History</CardTitle>
+                  <CardTitle className="text-slate-900 dark:text-white">
+                    Verification History ({history.length})
+                  </CardTitle>
                   <CardDescription className="text-slate-600 dark:text-slate-400">
                     Your previous employer verification checks
                   </CardDescription>
@@ -242,13 +424,19 @@ export default function EmployerVerificationPage() {
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="flex gap-2 justify-end">
-                                <Button variant="outline">Cancel</Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setDeleteId(null)}
+                                  disabled={deleteLoading}
+                                >
+                                  Cancel
+                                </Button>
                                 <Button
                                   variant="destructive"
                                   onClick={() => handleDeleteRecord(record.id)}
-                                  disabled={loading}
+                                  disabled={deleteLoading}
                                 >
-                                  {loading ? (
+                                  {deleteLoading ? (
                                     <>
                                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                       Deleting...
@@ -279,6 +467,7 @@ export default function EmployerVerificationPage() {
           )}
         </TabsContent>
 
+        {/* Registries Tab */}
         <TabsContent value="registries" className="space-y-6">
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50">
             <CardHeader>
@@ -289,46 +478,43 @@ export default function EmployerVerificationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {registriesData?.registries ? (
-                registriesData.registries.map((registry: any) => (
+              {registriesLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-brand-600" />
+                </div>
+              ) : registriesError ? (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
+                  <p className="text-red-800 dark:text-red-300 text-center">{registriesError}</p>
+                  <Button onClick={fetchRegistries} variant="outline" size="sm">
+                    Retry
+                  </Button>
+                </div>
+              ) : registries.length > 0 ? (
+                registries.map((registry) => (
                   <div
                     key={registry.id}
                     className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
-                          {registry.name}
-                          {registry.available ? (
-                            <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 px-2 py-1 rounded">
-                              Connected
-                            </span>
-                          ) : (
-                            <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-400 px-2 py-1 rounded">
-                              Not Connected
-                            </span>
-                          )}
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          {registry.country}
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Country: <span className="font-mono">{registry.country}</span>
+                          {registry.name}
                         </p>
                       </div>
-                      <a
-                        href={registry.documentationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                      >
-                        Visit
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+                      <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 px-2 py-1 rounded">
+                        Connected
+                      </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-500">ID: {registry.id}</p>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-600 dark:text-slate-400" />
+                  <p className="text-slate-600 dark:text-slate-400">No registries available</p>
                 </div>
               )}
             </CardContent>

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { researchArticles, type ResearchArticle, insertResearchArticleSchema } from "@shared/schema";
-import { and, desc, ilike, sql } from "drizzle-orm";
+import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
@@ -10,6 +10,17 @@ import { sanitizeInput } from "../middleware/security";
 const router = Router();
 
 // Public list endpoint (no auth required)
+interface ResearchItem {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  type: string;
+  tags: string[];
+  source: string;
+  sourceUrl?: string;
+}
+
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -34,10 +45,11 @@ router.get(
     if (search) {
       const term = `%${search.toLowerCase()}%`;
       whereClauses.push(
-        and(
+        or(
           ilike(researchArticles.title, term),
-          sql`1 = 1`
-        ),
+          ilike(researchArticles.summary, term),
+          ilike(researchArticles.body, term)
+        )
       );
     }
 
@@ -57,7 +69,7 @@ router.get(
           summary: 'A concise guide for applicants seeking to apply for the UK Skilled Worker visa, including salary thresholds and required documents.',
           category: 'visa',
           type: 'guide',
-          tags: ['UK','Skilled Worker','Visa'],
+          tags: ['UK', 'Skilled Worker', 'Visa'],
           source: 'UK Home Office',
           sourceUrl: 'https://www.gov.uk/skilled-worker-visa'
         },
@@ -67,7 +79,7 @@ router.get(
           summary: 'Overview of eligibility and application steps for Germany’s Opportunity Card and relevant employment requirements.',
           category: 'visa',
           type: 'guide',
-          tags: ['Germany','Opportunity Card'],
+          tags: ['Germany', 'Opportunity Card'],
           source: 'Bundesregierung',
           sourceUrl: 'https://www.bundesregierung.de'
         },
@@ -77,7 +89,7 @@ router.get(
           summary: 'A real-world case study summarizing best practices for family reunification and common pitfalls to avoid.',
           category: 'cases',
           type: 'case_study',
-          tags: ['Poland','Family'],
+          tags: ['Poland', 'Family'],
           source: 'ImmigrationAI Research'
         }
       ];

@@ -8,7 +8,7 @@ import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { emailQueue } from "../lib/queue";
 import { generateConsultationEmail } from "../lib/email";
 import { logger } from "../lib/logger";
-import { generateGoogleMeetLink, createCalendarEventWithMeet } from "../lib/googleMeet";
+import { generateGoogleMeetLink, createCalendarEventWithMeet, generateJitsiMeetLink } from "../lib/googleMeet";
 
 const router = Router();
 
@@ -52,22 +52,22 @@ router.post(
 
     // Fetch full user data for email
     const applicant = await db.query.users.findFirst({
-      where: eq(users.id, user.id),
+      where: eq(users.id, user.userId),
     });
 
     if (!applicant) {
       throw new AppError(404, "User not found");
     }
 
-    // Generate Google Meet link for video consultation
-    const meetingLink = generateGoogleMeetLink(`consult-${body.lawyerId}-${user.id}`);
+    // Generate Jitsi Meet link for video consultation
+    const meetingLink = generateJitsiMeetLink(`consult-${body.lawyerId}-${user.userId}`);
 
     // Create consultation request
     const [consultation] = await db
       .insert(consultations)
       .values({
         lawyerId: body.lawyerId,
-        userId: user.id,
+        userId: user.userId,
         applicationId: body.applicationId,
         scheduledTime: new Date(body.scheduledTime),
         duration: body.duration,
@@ -141,8 +141,8 @@ router.get(
       if (from || to) {
         const filters = [
           user.role === "lawyer"
-            ? eq(consultations.lawyerId, user.id)
-            : eq(consultations.userId, user.id),
+            ? eq(consultations.lawyerId, user.userId)
+            : eq(consultations.userId, user.userId),
         ];
 
         if (from && typeof from === "string") {
@@ -161,23 +161,23 @@ router.get(
         results = await db.query.consultations.findMany({
           where:
             user.role === "lawyer"
-              ? and(eq(consultations.lawyerId, user.id), eq(consultations.status, status as any))
-              : and(eq(consultations.userId, user.id), eq(consultations.status, status as any)),
+              ? and(eq(consultations.lawyerId, user.userId), eq(consultations.status, status as any))
+              : and(eq(consultations.userId, user.userId), eq(consultations.status, status as any)),
           orderBy: desc(consultations.scheduledTime),
         });
       } else {
         // Get all consultations for user
         results = await db.query.consultations.findMany({
           where: user.role === "lawyer"
-            ? eq(consultations.lawyerId, user.id)
-            : eq(consultations.userId, user.id),
+            ? eq(consultations.lawyerId, user.userId)
+            : eq(consultations.userId, user.userId),
           orderBy: desc(consultations.scheduledTime),
         });
       }
 
       res.json(results || []);
     } catch (err: any) {
-      logger.error({ err, userId: user.id }, "Failed to fetch consultations");
+      logger.error({ err, userId: user.userId }, "Failed to fetch consultations");
       throw new AppError(500, "Failed to fetch consultations");
     }
   })
@@ -217,7 +217,7 @@ router.get(
     }
 
     // Verify user is lawyer or applicant in this consultation
-    if (consultation.lawyerId !== user.id && consultation.userId !== user.id) {
+    if (consultation.lawyerId !== user.userId && consultation.userId !== user.userId) {
       throw new AppError(403, "Access denied");
     }
 
@@ -243,7 +243,7 @@ router.patch(
     }
 
     // Only lawyer or applicant can update
-    if (consultation.lawyerId !== user.id && consultation.userId !== user.id) {
+    if (consultation.lawyerId !== user.userId && consultation.userId !== user.userId) {
       throw new AppError(403, "Access denied");
     }
 
@@ -260,7 +260,7 @@ router.patch(
 
     // Notify parties of status change
     if (body.status && body.status !== consultation.status) {
-      const otherUserId = user.id === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
+      const otherUserId = user.userId === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
       const otherUser = await db.query.users.findFirst({
         where: eq(users.id, otherUserId),
       });
@@ -307,7 +307,7 @@ router.delete(
     }
 
     // Only lawyer or applicant can cancel
-    if (consultation.lawyerId !== user.id && consultation.userId !== user.id) {
+    if (consultation.lawyerId !== user.userId && consultation.userId !== user.userId) {
       throw new AppError(403, "Access denied");
     }
 
@@ -319,7 +319,7 @@ router.delete(
       .returning();
 
     // Notify other party
-    const otherUserId = user.id === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
+    const otherUserId = user.userId === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
     const otherUser = await db.query.users.findFirst({
       where: eq(users.id, otherUserId),
     });

@@ -7,6 +7,8 @@ import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, Ar
 import { error as logError } from "@/lib/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import VideoCall from "./video-call";
 
 interface Consultation {
   id: string;
@@ -44,13 +46,29 @@ export default function ConsultationPanel() {
     duration: 60,
     notes: "",
   });
+  const [activeCall, setActiveCall] = useState<{ roomName: string; displayName: string } | null>(null);
+
+  const handleJoinCall = (consultation: Consultation) => {
+    if (!consultation.meetingLink) return;
+
+    // Extract room name from Jitsi link
+    const match = consultation.meetingLink.match(/meet\.jit\.si\/([^?&]+)/);
+    if (match) {
+      setActiveCall({
+        roomName: decodeURIComponent(match[1]),
+        displayName: `${user?.firstName} ${user?.lastName || ''}`,
+      });
+    } else {
+      window.open(consultation.meetingLink, '_blank');
+    }
+  };
 
   // Fetch consultations and available lawyers
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch consultations
         try {
           const consultsData = await apiRequest<Consultation[]>("/consultations");
@@ -195,16 +213,14 @@ export default function ConsultationPanel() {
           <RealtimeChat recipientId={selectedConsultation.lawyerId} />
         </div>
 
-          {selectedConsultation.meetingLink && (
-          <a
-            href={selectedConsultation.meetingLink}
-            target="_blank"
-            rel="noopener noreferrer"
+        {selectedConsultation.meetingLink && (
+          <button
+            onClick={() => handleJoinCall(selectedConsultation)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
           >
             <CheckCircle size={16} />
             {t.consultation?.joinVideoCall}
-          </a>
+          </button>
         )}
       </div>
     );
@@ -381,17 +397,17 @@ export default function ConsultationPanel() {
               </div>
 
               {consultation.meetingLink && (
-                <motion.a
-                  href={consultation.meetingLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJoinCall(consultation);
+                  }}
                   whileHover={{ scale: 1.02 }}
                   className="inline-flex items-center gap-2 px-4 py-2 mb-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full justify-center"
                 >
                   <CheckCircle size={16} />
                   {t.consultation?.joinVideoCall}
-                </motion.a>
+                </motion.button>
               )}
 
               {consultation.notes && (
@@ -421,22 +437,37 @@ export default function ConsultationPanel() {
                   <span>{t.consultation?.consultationChat}</span>
                 </div>
                 {consultation.meetingLink && (
-                  <a
-                    href={consultation.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleJoinCall(consultation);
+                    }}
                     className="inline-flex items-center gap-1 text-xs text-green-600 hover:underline"
                   >
                     <CheckCircle size={14} />
                     {t.consultation?.joinVideoCall}
-                  </a>
+                  </button>
                 )}
               </div>
             </motion.div>
           ))
         )}
       </div>
-    </div>
+
+
+      {/* Video Call Modal */}
+      <Dialog open={!!activeCall} onOpenChange={(open) => !open && setActiveCall(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-900 border-slate-800">
+          {activeCall && (
+            <VideoCall
+              roomName={activeCall.roomName}
+              displayName={activeCall.displayName}
+              email={user?.email}
+              onLeave={() => setActiveCall(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div >
   );
 }
