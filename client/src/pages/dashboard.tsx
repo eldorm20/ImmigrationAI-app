@@ -51,7 +51,7 @@ export default function UserDash() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 flex flex-col md:flex-row overflow-hidden transition-colors duration-300">
+    <div className="flex flex-col md:flex-row overflow-hidden transition-colors duration-300 h-[calc(100vh)]">
 
       {/* Sidebar */}
       <motion.aside
@@ -121,12 +121,12 @@ export default function UserDash() {
             </div>
           </div>
           <LiveButton
-            variant="ghost"
-            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
+            variant="shine"
+            className="w-full justify-start text-white hover:text-white"
             onClick={() => setLocation("/subscription")}
             icon={CreditCard}
           >
-            {t.subscription?.manage || "Subscription"}
+            {t.subscription?.manage || "Upgrade Subscription"}
           </LiveButton>
           <LiveButton
             variant="ghost"

@@ -2,7 +2,7 @@ import React, { ElementType } from "react";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline" | "glass" | "neon" | "success" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "outline" | "glass" | "neon" | "success" | "danger" | "shine";
 
 interface LiveButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
@@ -23,7 +23,8 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   glass: "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 text-white hover:bg-white/60 transition-all shadow-xl",
   neon: "bg-slate-900 border border-brand-500 text-brand-400 shadow-[0_0_10px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.6)] hover:bg-slate-800",
   success: "bg-green-600 text-white shadow-lg shadow-green-500/20 hover:bg-green-700 border-transparent",
-  danger: "bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-700 border-transparent"
+  danger: "bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-700 border-transparent",
+  shine: "bg-gradient-to-r from-violet-600 via-pink-500 to-indigo-600 bg-300% animate-shine text-white shadow-xl shadow-indigo-500/30 border border-white/20"
 };
 
 const SIZE_CLASSES: Record<"sm" | "md" | "lg" | "icon", string> = {
