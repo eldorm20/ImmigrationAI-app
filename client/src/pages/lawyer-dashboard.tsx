@@ -15,6 +15,10 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { AIDocsView } from "@/components/dashboard/ai-docs-view";
+import { ChatView } from "@/components/dashboard/chat-view";
+import { TranslateView } from "@/components/dashboard/translate-view";
+import { UploadView } from "@/components/dashboard/upload-view";
 
 // --- Types & Components ---
 
@@ -108,7 +112,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'ai-chat' | 'translate' | 'upload'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -423,8 +427,8 @@ export default function LawyerDashboard() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}>{t.lawyerDashboard?.newConsultation || 'New Consultation'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
-                    // Navigate to applicant dashboard for document upload (lawyers can also upload)
-                    window.location.href = '/dashboard?tab=upload';
+                    setActiveTab('upload');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}>{t.lawyerDashboard?.uploadDoc || 'Upload Doc'}</ActionButton>
                 </div>
               </div>
@@ -434,39 +438,17 @@ export default function LawyerDashboard() {
                 <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
-                    // Open generate doc modal or navigate to dedicated page
-                    toast({
-                      title: "AI Document Generator",
-                      description: "Opening document generator...",
-                      className: "bg-blue-50 text-blue-900 border-blue-200"
-                    });
-                    setActiveTab('applications');
-                    // Show inline document generator (can be enhanced to show modal)
-                    setTimeout(() => {
-                      window.open('/dashboard?tab=ai-docs', '_blank');
-                    }, 500);
+                    setActiveTab('ai-docs');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
-                    toast({
-                      title: "AI Chat Assistant",
-                      description: "Opening AI chat...",
-                      className: "bg-blue-50 text-blue-900 border-blue-200"
-                    });
-                    // Open AI chat in new tab so lawyer doesn't lose context
-                    setTimeout(() => {
-                      window.open('/dashboard?tab=ai-chat', '_blank');
-                    }, 500);
+                    setActiveTab('ai-chat');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}>{t.lawyerDashboard?.openChat || 'Open Chat'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
-                    toast({
-                      title: "Translation Tool",
-                      description: "Opening translator...",
-                      className: "bg-blue-50 text-blue-900 border-blue-200"
-                    });
-                    setTimeout(() => {
-                      window.open('/dashboard?tab=translate', '_blank');
-                    }, 500);
-                  }}>{'Translation'}</ActionButton>
+                    setActiveTab('translate');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}>{t.lawyerDashboard?.translation || 'Translation'}</ActionButton>
                 </div>
               </div>
 
@@ -756,6 +738,52 @@ export default function LawyerDashboard() {
         {/* Consultations Tab Content */}
         {activeTab === 'consultations' && (
           <LawyerConsultations />
+        )}
+
+        {/* AI Tools & Upload Views */}
+        {activeTab === 'ai-docs' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveTab('applications')}
+              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
+            <AIDocsView />
+          </div>
+        )}
+        {activeTab === 'ai-chat' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveTab('applications')}
+              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
+            <ChatView />
+          </div>
+        )}
+        {activeTab === 'translate' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveTab('applications')}
+              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
+            <TranslateView />
+          </div>
+        )}
+        {activeTab === 'upload' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setActiveTab('applications')}
+              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+            >
+              ← Back to Dashboard
+            </button>
+            <UploadView />
+          </div>
         )}
       </main>
 
