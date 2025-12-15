@@ -10,24 +10,35 @@ export default function ApplicationView() {
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
   const [app, setApp] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user && !isLoading) setLocation('/auth');
   }, [user, isLoading]);
 
+  const fetchApp = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const data = await apiRequest(`/applications/${id}`);
+      setApp(data);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load application';
+      setError(message);
+      setApp(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchApp = async () => {
-      try {
-        const data = await apiRequest(`/applications/${id}`);
-        setApp(data);
-      } catch (err) {
-        setApp(null);
-      }
-    };
     if (id) fetchApp();
   }, [id]);
 
-  if (!app) return <div className="p-6">Loading...</div>;
+  if (loading) return <div className="p-6 text-center"><div className="animate-spin text-slate-500">Loading...</div></div>;
+  if (error) return <div className="p-6"><div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded border border-red-200 dark:border-red-800">Error: {error}<br/><button onClick={fetchApp} className="mt-2 text-blue-600 hover:underline">Retry</button></div></div>;
+  if (!app) return <div className="p-6 text-center text-slate-500">Application not found</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">

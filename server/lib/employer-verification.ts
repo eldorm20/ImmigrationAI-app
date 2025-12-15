@@ -1,6 +1,7 @@
 import { logger } from './logger';
 
 // Configuration for different European company registries
+// Configuration for different European company registries
 const REGISTRIES_CONFIG = {
   uk_companies_house: {
     name: 'UK Companies House',

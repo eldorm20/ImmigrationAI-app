@@ -10,9 +10,12 @@ export default function AdminDashboard() {
   const { t } = useI18n();
   const [, setLocation] = useLocation();
   const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [aiStatus, setAiStatus] = useState<any>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [stripeStatus, setStripeStatus] = useState<any>(null);
+  const [stripeError, setStripeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -23,67 +26,93 @@ export default function AdminDashboard() {
   }, [user]);
 
   const fetchAdminStats = async () => {
+    setStatsLoading(true);
+    
+    // Fetch admin overview
     try {
+      setStatsError(null);
       const data = await apiRequest<any>("/admin/overview", { skipErrorToast: true });
       setStats(data);
-      // also fetch AI and Stripe status
-      try {
-        const a = await apiRequest<any>("/ai/status", { skipErrorToast: true });
-        setAiStatus(a.providers);
-      } catch (e) {
-        setAiStatus({ error: String(e) });
-      }
-      try {
-        const s = await apiRequest<any>("/stripe/validate", { skipErrorToast: true });
-        setStripeStatus(s);
-      } catch (e) {
-        setStripeStatus({ ok: false, reason: String(e) });
-      }
-    } catch (error) {
-      console.error("Failed to fetch admin stats", error);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      setStatsError(e instanceof Error ? e.message : 'Failed to load admin overview');
+      setStats(null);
     }
+    
+    // Fetch AI status
+    try {
+      setAiError(null);
+      const a = await apiRequest<any>("/ai/status", { skipErrorToast: true });
+      setAiStatus(a.providers || a);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'Failed to load AI status');
+      setAiStatus(null);
+    }
+    
+    // Fetch Stripe status
+    try {
+      setStripeError(null);
+      const s = await apiRequest<any>("/stripe/validate", { skipErrorToast: true });
+      setStripeStatus(s);
+    } catch (e) {
+      setStripeError(e instanceof Error ? e.message : 'Failed to load Stripe status');
+      setStripeStatus(null);
+    }
+    
+    setStatsLoading(false);
   };
 
   if (user?.role !== "admin") {
     return <div className="text-center py-12">Access Denied</div>;
   }
 
-  if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+  if (statsLoading) {
+    return <div className="text-center py-12">Loading admin data...</div>;
   }
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
 
+      {/* Error alerts */}
+      {statsError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-4 rounded-lg flex items-center justify-between">
+          <div><AlertCircle className="inline mr-2" /> {statsError}</div>
+          <button onClick={fetchAdminStats} className="text-blue-600 hover:underline">Retry</button>
+        </div>
+      )}
+
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Users className="text-blue-600" />}
-          title="Total Users"
-          value={stats?.overview?.totalUsers || 0}
-          subtitle="Active users"
-        />
-        <StatCard
-          icon={<Zap className="text-yellow-600" />}
-          title="Active This Month"
-          value={stats?.metrics?.activeUsers || 0}
-          subtitle="Engaged users"
-        />
-        <StatCard
-          icon={<DollarSign className="text-green-600" />}
-          title="Total Revenue"
-          value={`$${stats?.metrics?.totalEarnings || 0}`}
-          subtitle="All time"
-        />
-        <StatCard
-          icon={<TrendingUp className="text-purple-600" />}
-          title="Growth"
-          value={`${stats?.metrics?.newUsersThisMonth || 0}%`}
-          subtitle="This month"
-        />
+        {statsError ? (
+          <div className="col-span-4 text-center text-slate-500 py-8">Failed to load overview statistics</div>
+        ) : (
+          <>
+            <StatCard
+              icon={<Users className="text-blue-600" />}
+              title="Total Users"
+              value={stats?.overview?.totalUsers || 0}
+              subtitle="Active users"
+            />
+            <StatCard
+              icon={<Zap className="text-yellow-600" />}
+              title="Active This Month"
+              value={stats?.metrics?.activeUsers || 0}
+              subtitle="Engaged users"
+            />
+            <StatCard
+              icon={<DollarSign className="text-green-600" />}
+              title="Total Revenue"
+              value={`$${stats?.metrics?.totalEarnings || 0}`}
+              subtitle="All time"
+            />
+            <StatCard
+              icon={<TrendingUp className="text-purple-600" />}
+              title="Growth"
+              value={`${stats?.metrics?.newUsersThisMonth || 0}%`}
+              subtitle="This month"
+            />
+          </>
+        )}
       </div>
 
       {/* User Analytics */}

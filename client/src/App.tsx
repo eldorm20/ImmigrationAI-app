@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { Layout } from "@/components/layout/Layout";
+import { ModernLayout as Layout } from "@/components/layout/ModernLayout";
 
 // Pages
 import Home from "@/pages/home";
@@ -105,13 +105,7 @@ function Router() {
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} role="applicant" />
         </Route>
-        <Route path="/applications">
-          <ProtectedRoute component={Applications} role="applicant" />
-        </Route>
-
-        <Route path="/applications/:id">
-          <ProtectedRoute component={ApplicationView} role="applicant" />
-        </Route>
+        {/* Applications Removed */}
 
         <Route path="/subscription">
           <ProtectedRoute component={Subscription} role="applicant" />

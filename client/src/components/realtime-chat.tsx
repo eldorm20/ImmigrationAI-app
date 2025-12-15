@@ -43,6 +43,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     userName: user?.firstName || user?.email,
     userEmail: user?.email,
     userRole: user?.role || 'applicant',
+    token: localStorage.getItem('accessToken'),
   });
 
   const [messageInput, setMessageInput] = useState('');

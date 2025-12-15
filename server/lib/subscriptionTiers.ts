@@ -13,7 +13,11 @@ export interface TierFeatures {
   features: {
     documentUploadLimit: number; // per month
     aiDocumentGenerations: number; // per month
+<<<<<<< HEAD
     aiMonthlyRequests: number; // AI chat/translate requests per month
+=======
+    aiMonthlyRequests: number; // Added for testing/limiting
+>>>>>>> 21777a5db682a904c683ac49d1b69d018063706e
     consultationsPerMonth: number;
     researchLibraryAccess: boolean;
     prioritySupport: boolean;
@@ -30,10 +34,10 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     monthlyPrice: 0,
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || "price_starter",
     features: {
-      documentUploadLimit: 5,
-      aiDocumentGenerations: 2,
-      aiMonthlyRequests: 100,
-      consultationsPerMonth: 1,
+      documentUploadLimit: 50, // Increased for testing
+      aiDocumentGenerations: 20,
+      aiMonthlyRequests: 500, // Increased for testing
+      consultationsPerMonth: 5,
       researchLibraryAccess: true,
       prioritySupport: false,
       advancedAnalytics: false,

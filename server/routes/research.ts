@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { researchArticles, type ResearchArticle, insertResearchArticleSchema } from "@shared/schema";
-import { and, desc, ilike, sql } from "drizzle-orm";
+import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
@@ -23,6 +23,8 @@ interface ResearchItem {
 }
 
 // Public list endpoint (no auth required)
+
+
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -48,10 +50,11 @@ router.get(
     if (search) {
       const term = `%${search.toLowerCase()}%`;
       whereClauses.push(
-        and(
+        or(
           ilike(researchArticles.title, term),
-          sql`1 = 1`
-        ),
+          ilike(researchArticles.summary, term),
+          ilike(researchArticles.body, term)
+        )
       );
     }
 

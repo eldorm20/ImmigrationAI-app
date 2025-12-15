@@ -1,22 +1,26 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LayoutDashboard, FileText, MessageSquare, LogOut, CheckCircle, Circle,
-  ArrowRight, Download, Send, User, X, Sparkles, Briefcase,
-  Loader2, ChevronRight, Globe, Zap, FileCheck, RefreshCw, Edit3, Check,
-  Upload, Languages, FileUp, Trash2, Eye, Book, Settings, CreditCard, Bell, BadgeCheck
+  LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
+  Globe, Send, Briefcase, Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { apiRequest } from "@/lib/api";
-import { error as logError } from "@/lib/logger";
-import { trackEvent } from "../lib/analytics";
+
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
+
+// Imported Views
+import { RoadmapView } from "@/components/dashboard/RoadmapView";
+import { AIDocsView } from "@/components/dashboard/AIDocsView";
+import { UploadView } from "@/components/dashboard/UploadView";
+import { TranslateView } from "@/components/dashboard/TranslateView";
+import { ChatView } from "@/components/dashboard/ChatView";
+import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
 
 // --- Main Dashboard Component ---
 
@@ -47,7 +51,7 @@ export default function UserDash() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 flex flex-col md:flex-row overflow-hidden transition-colors duration-300">
+    <div className="flex flex-col md:flex-row overflow-hidden transition-colors duration-300 h-[calc(100vh)]">
 
       {/* Sidebar */}
       <motion.aside
@@ -74,34 +78,33 @@ export default function UserDash() {
         <nav className="flex-1 px-4 space-y-2">
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
-            { id: 'docs', icon: FileText, label: t.dash.docs },
-            { id: 'employer', icon: BadgeCheck, label: t.dash.employerVerification || 'Employer Verification' },
+            { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
+            { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
-            { id: 'applications', icon: FileText, label: t.dash.applications || 'Applications' },
+            // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
             { id: 'messages', icon: Send, label: t.dash.messages },
             { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
             { id: 'research', icon: Book, label: t.dash.research }
           ].map(item => (
-            <div key={item.id} className="relative">
+            <motion.button
+              key={item.id}
+              onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
+              whileHover={{ x: 5 }}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+            >
               {activeTab === item.id && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-brand-600 rounded-r-full z-10 my-1"
+                  className="absolute left-0 w-1 h-8 bg-brand-600 rounded-r-full"
                 />
               )}
-              <LiveButton
-                variant={activeTab === item.id ? "primary" : "ghost"}
-                onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
-                className={`w-full justify-start py-4 px-5 rounded-2xl mb-1 ${activeTab === item.id
-                  ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-none border-0'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
-                icon={item.icon}
-              >
+              <span className="relative z-10 flex items-center gap-3">
+                <item.icon size={20} className={activeTab === item.id ? "text-brand-600 dark:text-brand-400" : ""} />
                 {item.label}
-              </LiveButton>
-            </div>
+              </span>
+            </motion.button>
           ))}
         </nav>
 
@@ -118,12 +121,12 @@ export default function UserDash() {
             </div>
           </div>
           <LiveButton
-            variant="ghost"
-            className="w-full justify-start text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/20"
+            variant="shine"
+            className="w-full justify-start text-white hover:text-white"
             onClick={() => setLocation("/subscription")}
             icon={CreditCard}
           >
-            {t.subscription?.manage || "Subscription"}
+            {t.subscription?.manage || "Upgrade Subscription"}
           </LiveButton>
           <LiveButton
             variant="ghost"
@@ -173,8 +176,8 @@ export default function UserDash() {
         </header>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} toast={toast} />}
-          {activeTab === 'docs' && <DocsView key="docs" />}
+          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} />}
+          {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
@@ -202,6 +205,7 @@ export default function UserDash() {
     </div>
   );
 }
+<<<<<<< HEAD
 
 // --- Sub-Views ---
 
@@ -1167,3 +1171,5 @@ const TranslateView = () => {
     </motion.div>
   );
 };
+=======
+>>>>>>> 21777a5db682a904c683ac49d1b69d018063706e

@@ -7,7 +7,9 @@ import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, Ar
 import { error as logError } from "@/lib/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
-import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import VideoCall from "./video-call";
+import { LiveButton } from "@/components/ui/live-elements";
 
 interface Consultation {
   id: string;
@@ -46,6 +48,22 @@ export default function ConsultationPanel() {
     duration: 60,
     notes: "",
   });
+  const [activeCall, setActiveCall] = useState<{ roomName: string; displayName: string } | null>(null);
+
+  const handleJoinCall = (consultation: Consultation) => {
+    if (!consultation.meetingLink) return;
+
+    // Extract room name from Jitsi link
+    const match = consultation.meetingLink.match(/meet\.jit\.si\/([^?&]+)/);
+    if (match) {
+      setActiveCall({
+        roomName: decodeURIComponent(match[1]),
+        displayName: `${user?.firstName} ${user?.lastName || ''}`,
+      });
+    } else {
+      window.open(consultation.meetingLink, '_blank');
+    }
+  };
 
   // Fetch consultations and available lawyers
   useEffect(() => {
@@ -61,6 +79,7 @@ export default function ConsultationPanel() {
           const msg = err instanceof Error ? err.message : String(err);
           logError("Failed to load consultations:", msg);
           setConsultations([]);
+          setFetchError(msg);
         }
 
         // Fetch available lawyers
@@ -75,7 +94,6 @@ export default function ConsultationPanel() {
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logError("Failed to load consultation data:", msg);
-        setFetchError(msg || t.error?.message || "Failed to load consultations");
         toast({
           title: t.error?.title || "Error",
           description: msg || t.error?.message || "Failed to load consultations",
@@ -199,15 +217,13 @@ export default function ConsultationPanel() {
         </div>
 
         {selectedConsultation.meetingLink && (
-          <a
-            href={selectedConsultation.meetingLink}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => handleJoinCall(selectedConsultation)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
           >
             <CheckCircle size={16} />
             {t.consultation?.joinVideoCall}
-          </a>
+          </button>
         )}
       </div>
     );
@@ -230,7 +246,7 @@ export default function ConsultationPanel() {
         <LiveButton
           variant="primary"
           onClick={() => setShowModal(true)}
-          icon={Plus}
+          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
         >
           {t.consultation?.requestConsultation || 'New Request'}
         </LiveButton>
@@ -470,6 +486,20 @@ export default function ConsultationPanel() {
                 </div>
               </div>
 
+              {consultation.meetingLink && (
+                <motion.button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJoinCall(consultation);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 mb-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full justify-center"
+                >
+                  <CheckCircle size={16} />
+                  {t.consultation?.joinVideoCall}
+                </motion.button>
+              )}
+
               {consultation.notes && (
                 <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 pl-3 border-l-2 border-slate-200 dark:border-slate-700 line-clamp-2">
                   {consultation.notes}
@@ -498,6 +528,21 @@ export default function ConsultationPanel() {
           ))
         )}
       </div>
-    </div>
+
+
+      {/* Video Call Modal */}
+      <Dialog open={!!activeCall} onOpenChange={(open) => !open && setActiveCall(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-900 border-slate-800">
+          {activeCall && (
+            <VideoCall
+              roomName={activeCall.roomName}
+              displayName={activeCall.displayName}
+              email={user?.email}
+              onLeave={() => setActiveCall(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div >
   );
 }

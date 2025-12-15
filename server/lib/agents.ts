@@ -541,6 +541,7 @@ async function generateTextWithProvider(
     }
   }
 
+<<<<<<< HEAD
   // Try free HuggingFace models that don't require authentication
   const freeModels = [
     'microsoft/DialoGPT-medium',
@@ -671,6 +672,20 @@ Please ask a specific question about:
 
 Example: "What documents do I need for a UK Skilled Worker visa?"`;
 
+=======
+  // No external AI provider configured?
+  // User wants "Real Working Things". If no provider is reachable, we must error out so they know to configure one.
+  // We recommend Ollama for "Free + Real" local AI.
+
+  if (!hasLocalAI && !hasOpenAI && !hasHuggingFace) {
+    const errorMsg = "No AI Provider available. To use 'Free & Real' AI, please install Ollama (ollama.com) and set LOCAL_AI_URL=http://127.0.0.1:11434/api/chat.";
+    logger.error(errorMsg);
+    // Return a helpful error string to the UI instead of crashing, so the user sees instructions
+    return "AI Configuration Error: No active AI provider found. Please launch Ollama locally (real free AI) or configure an API key.";
+  }
+
+  throw new Error("AI Provider configured but failed to respond. Check server logs.");
+>>>>>>> 21777a5db682a904c683ac49d1b69d018063706e
 }
 
 /**
