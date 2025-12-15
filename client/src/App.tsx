@@ -105,13 +105,7 @@ function Router() {
         <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} role="applicant" />
         </Route>
-        <Route path="/applications">
-          <ProtectedRoute component={Applications} role="applicant" />
-        </Route>
-
-        <Route path="/applications/:id">
-          <ProtectedRoute component={ApplicationView} role="applicant" />
-        </Route>
+        {/* Applications Removed */}
 
         <Route path="/subscription">
           <ProtectedRoute component={Subscription} role="applicant" />

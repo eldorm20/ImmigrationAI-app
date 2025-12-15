@@ -8,6 +8,7 @@ interface UseWebSocketOptions {
   userEmail?: string;
   userRole?: string;
   autoConnect?: boolean;
+  token?: string | null; // Pass token explicitly
 }
 
 interface MessageEvent {
@@ -46,16 +47,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     userEmail,
     userRole,
     autoConnect = true,
+    token, // Destructure token
   } = options;
 
   // Initialize WebSocket connection
   useEffect(() => {
-    if (!autoConnect || !userId) return;
+    // Wait for token before connecting to ensure authentication
+    if (!autoConnect || !userId || !token) return;
 
     const serverUrl = window.location.origin;
     const socket = io(serverUrl, {
       auth: {
-        token: localStorage.getItem('accessToken'),
+        token: token, // Use passed token
         userId,
       },
       reconnection: true,
@@ -188,7 +191,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       typingTimeoutRef.current.clear();
       socket.disconnect();
     };
-  }, [userId, userName, userEmail, userRole, autoConnect]);
+  }, [userId, userName, userEmail, userRole, autoConnect, token]);
 
   // Send message
   const sendMessage = useCallback(

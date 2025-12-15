@@ -13,6 +13,7 @@ export interface TierFeatures {
   features: {
     documentUploadLimit: number; // per month
     aiDocumentGenerations: number; // per month
+    aiMonthlyRequests: number; // Added for testing/limiting
     consultationsPerMonth: number;
     researchLibraryAccess: boolean;
     prioritySupport: boolean;
@@ -29,10 +30,10 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     monthlyPrice: 0,
     stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || "price_starter",
     features: {
-      documentUploadLimit: 5,
-      aiDocumentGenerations: 2,
-      aiMonthlyRequests: 100,
-      consultationsPerMonth: 1,
+      documentUploadLimit: 50, // Increased for testing
+      aiDocumentGenerations: 20,
+      aiMonthlyRequests: 500, // Increased for testing
+      consultationsPerMonth: 5,
       researchLibraryAccess: true,
       prioritySupport: false,
       advancedAnalytics: false,
@@ -172,7 +173,7 @@ export async function checkFeatureAccess(
   try {
     const tier = await getUserSubscriptionTier(userId);
     const features = getTierFeatures(tier).features;
-    
+
     // For boolean features
     if (typeof features[feature] === "boolean") {
       return (features[feature] as boolean) === true;

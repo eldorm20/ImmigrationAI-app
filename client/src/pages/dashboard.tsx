@@ -81,7 +81,7 @@ export default function UserDash() {
             { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
-            { id: 'applications', icon: FileText, label: 'Applications' },
+            // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
             { id: 'messages', icon: Send, label: t.dash.messages },

@@ -43,6 +43,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     userName: user?.firstName || user?.email,
     userEmail: user?.email,
     userRole: user?.role || 'applicant',
+    token: localStorage.getItem('accessToken'),
   });
 
   const [messageInput, setMessageInput] = useState('');
@@ -50,7 +51,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const [filteredMessages, setFilteredMessages] = useState<ChatMessage[]>([]);
   const [recipientUser, setRecipientUser] = useState<ChatUser | null>(null);
   const [remoteTyping, setRemoteTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Find recipient user from online users
