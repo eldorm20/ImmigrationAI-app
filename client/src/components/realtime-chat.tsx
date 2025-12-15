@@ -50,7 +50,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const [filteredMessages, setFilteredMessages] = useState<ChatMessage[]>([]);
   const [recipientUser, setRecipientUser] = useState<ChatUser | null>(null);
   const [remoteTyping, setRemoteTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Find recipient user from online users
@@ -61,7 +61,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
 
   // Fetch conversation history
   const { data: historyData } = useQuery<{ messages: ChatMessage[] }>({
-    queryKey: [`/api/messages/conversation/${recipientId}`],
+    queryKey: [`/messages/conversation/${recipientId}`],
     enabled: !!recipientId,
   });
 

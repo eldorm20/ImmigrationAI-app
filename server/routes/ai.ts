@@ -317,19 +317,19 @@ router.get(
   })
 );
 
-// Translate text
+// Translate text using LibreTranslate (free, open-source, unlimited)
 router.post(
   "/translate",
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    
+
     // Increment AI usage
     try {
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
-        message: (err as any).message || 'AI quota exceeded' 
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
+        message: (err as any).message || 'AI quota exceeded'
       });
     }
 
@@ -337,15 +337,71 @@ router.post(
       .object({ fromLang: z.string().min(2), toLang: z.string().min(2), text: z.string().min(1) })
       .parse(req.body);
 
+    // Map language codes to LibreTranslate format (2-letter codes)
+    const langMap: Record<string, string> = {
+      'en': 'en', 'english': 'en',
+      'uz': 'uz', 'uzbek': 'uz',
+      'ru': 'ru', 'russian': 'ru',
+      'de': 'de', 'german': 'de',
+      'fr': 'fr', 'french': 'fr',
+      'es': 'es', 'spanish': 'es',
+      'tr': 'tr', 'turkish': 'tr',
+      'ar': 'ar', 'arabic': 'ar',
+      'zh': 'zh', 'chinese': 'zh',
+      'pl': 'pl', 'polish': 'pl',
+    };
+
+    const sourceLang = langMap[fromLang.toLowerCase()] || fromLang.slice(0, 2).toLowerCase();
+    const targetLang = langMap[toLang.toLowerCase()] || toLang.slice(0, 2).toLowerCase();
+
     try {
-      // Try to use Ollama directly for translation if available
+      // Try LibreTranslate first (free, open-source, unlimited)
+      const libreTranslateUrls = [
+        process.env.LIBRETRANSLATE_URL,
+        'https://libretranslate.com/translate',
+        'https://translate.argosopentech.com/translate',
+        'https://translate.terraprint.co/translate',
+      ].filter(Boolean) as string[];
+
+      for (const libreUrl of libreTranslateUrls) {
+        try {
+          logger.info({ url: libreUrl, from: sourceLang, to: targetLang }, "Trying LibreTranslate");
+
+          const response = await fetch(libreUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              q: text,
+              source: sourceLang,
+              target: targetLang,
+              format: 'text',
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.translatedText) {
+              logger.info({ url: libreUrl }, "LibreTranslate successful");
+              return res.json({ translation: data.translatedText });
+            }
+          } else {
+            const errorText = await response.text().catch(() => '');
+            logger.warn({ url: libreUrl, status: response.status, error: errorText }, "LibreTranslate instance failed");
+          }
+        } catch (instanceErr) {
+          logger.warn({ url: libreUrl, err: instanceErr }, "LibreTranslate instance error, trying next");
+          continue;
+        }
+      }
+
+      // Fallback: Try local Ollama if configured
       const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL;
       if (localAIUrl) {
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
           const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
           const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat');
-          
+
           const response = await fetch(localAIUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -360,32 +416,25 @@ router.post(
             }
           }
         } catch (ollamaErr) {
-          logger.warn({ err: ollamaErr }, "Ollama translation failed, falling back to agent");
+          logger.warn({ err: ollamaErr }, "Ollama translation failed");
         }
       }
 
-      // Fallback to agent-based translation
+      // Last resort: agent-based translation
       const translation = await translateText(fromLang, toLang, text);
       res.json({ translation });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.error({ err, fromLang, toLang }, "Translation failed");
 
-      // Return 503 if AI provider unavailable, 500 for other errors
-      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
-        return res.status(503).json({
-          error: "Translation service unavailable",
-          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
-        });
-      }
-
-      res.status(500).json({
-        error: "Translation failed",
-        message: errorMsg
+      res.status(503).json({
+        error: "Translation service unavailable",
+        message: "All translation services are currently unavailable. Please try again later."
       });
     }
   })
 );
+
 
 // Chat endpoint
 router.post(
@@ -393,13 +442,13 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    
+
     // Increment AI usage
     try {
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
-        message: (err as any).message || 'AI quota exceeded' 
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
+        message: (err as any).message || 'AI quota exceeded'
       });
     }
 
@@ -413,14 +462,14 @@ router.post(
 
     try {
       let messageText = '';
-      let history: Array<{role: string, content: string}> = parsed.history || [];
+      let history: Array<{ role: string, content: string }> = parsed.history || [];
 
       if (parsed.messages) {
         // Build message from last user message and use previous items as history
         const msgs = parsed.messages as Array<any>;
-        history = msgs.slice(0, -1).map((m: any) => ({ 
-          role: m.role === 'ai' ? 'assistant' : 'user', 
-          content: m.content 
+        history = msgs.slice(0, -1).map((m: any) => ({
+          role: m.role === 'ai' ? 'assistant' : 'user',
+          content: m.content
         }));
         const last = msgs[msgs.length - 1];
         messageText = last.role === 'user' ? last.content : '';
@@ -443,11 +492,11 @@ router.post(
       if (localAIUrl) {
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
-          
+
           // Use /api/chat endpoint if available (better for conversation)
           const chatUrl = localAIUrl.replace('/api/generate', '/api/chat');
           const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
-          
+
           const response = await fetch(chatUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

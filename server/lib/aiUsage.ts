@@ -46,17 +46,21 @@ export async function incrementUsage(userId: string, category: string, amount = 
   monthUsage[category] = current + amount;
   usage[month] = monthUsage;
 
-  const newMetadata = JSON.parse(JSON.stringify({ ...metadata, aiUsage: usage }));
-
   try {
-    await db.update(users).set({ metadata: newMetadata } as any).where(eq(users.id, userId));
+    // Force a deep clone to ensure no undefined values
+    const newMetadata = JSON.parse(JSON.stringify({ ...metadata, aiUsage: usage }));
 
-    // After successfully persisting, check for near-quota and notify once per month/category
+    await db.update(users)
+      .set({ metadata: newMetadata })
+      .where(eq(users.id, userId));
+
+    // After successfully persisting, check for near-quota and notify
     try {
       const limitNum = typeof limit === 'number' ? limit : NaN;
       if (!isNaN(limitNum) && limitNum > 0) {
         const used = monthUsage[category] as number;
         const remaining = Math.max(0, limitNum - used);
+
         const threshold = Math.max(10, Math.ceil(limitNum * 0.1)); // notify when <=10 or 10% left
 
         // Check whether we've already alerted this user for this month/category

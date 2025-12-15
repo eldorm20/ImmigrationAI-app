@@ -216,16 +216,23 @@ export default function ConsultationPanel() {
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <User className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+            {t.consultation.title}
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Connect with immigration experts</p>
+        </div>
+
         {fetchError && (
-          <div className="text-sm text-rose-600">{t.error?.message || 'Failed to load consultations'}</div>
+          <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800">{t.error?.message || 'Failed to load consultations'}</div>
         )}
         <LiveButton
           variant="primary"
           onClick={() => setShowModal(true)}
           icon={Plus}
         >
-          {t.consultation?.requestConsultation || 'Request Consultation'}
+          {t.consultation?.requestConsultation || 'New Request'}
         </LiveButton>
       </div>
 
@@ -236,124 +243,200 @@ export default function ConsultationPanel() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
             >
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">{t.consultation.requestConsultation}</h3>
+              <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t.consultation.requestConsultation}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Schedule a video call with an immigration lawyer</p>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t.consultation.selectLawyer}</label>
-                  <select
-                    value={selectedLawyer}
-                    onChange={(e) => setSelectedLawyer(e.target.value)}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800"
-                  >
-                    <option value="">{`-- ${t.consultation.selectLawyer} --`}</option>
-                    {lawyers.map((lawyer) => (
-                      <option key={lawyer.id} value={lawyer.id}>
-                        {lawyer.firstName} {lawyer.lastName || ""} ({lawyer.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="p-6 overflow-y-auto">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Lawyer Selection Grid */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <User size={16} className="text-brand-500" />
+                      {t.consultation.selectLawyer}
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {lawyers.length > 0 ? (
+                        lawyers.map((lawyer) => (
+                          <div
+                            key={lawyer.id}
+                            onClick={() => setSelectedLawyer(lawyer.id)}
+                            className={`
+                              cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group
+                              ${selectedLawyer === lawyer.id
+                                ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
+                                : "border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-700 bg-white dark:bg-slate-800"
+                              }
+                            `}
+                          >
+                            {selectedLawyer === lawyer.id && (
+                              <div className="absolute top-2 right-2 text-brand-600 dark:text-brand-400">
+                                <CheckCircle size={20} fill="currentColor" className="text-brand-100 dark:text-brand-900" />
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
+                                {lawyer.firstName?.[0]}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white">
+                                  {lawyer.firstName} {lawyer.lastName}
+                                </h4>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{lawyer.email}</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-xs">
+                              <span className="text-slate-500">Immigration Expert</span>
+                              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full font-medium">Available</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-2 p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                          <User className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                          <p className="text-slate-500 dark:text-slate-400 font-medium">No lawyers currently available</p>
+                          <p className="text-xs text-slate-400">Please check back later</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t.consultation.preferredDateTime}</label>
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduledTime}
-                    onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800"
-                    required
-                  />
-                </div>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Calendar size={16} className="text-brand-500" />
+                        {t.consultation.preferredDateTime}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="datetime-local"
+                          value={formData.scheduledTime}
+                          onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                          className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                          required
+                        />
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t.consultation.duration}</label>
-                  <input
-                    type="number"
-                    min="15"
-                    max="480"
-                    step="15"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800"
-                  />
-                </div>
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Clock size={16} className="text-brand-500" />
+                        {t.consultation.duration} <span className="text-slate-400 font-normal">(minutes)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="15"
+                          max="480"
+                          step="15"
+                          value={formData.duration}
+                          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                          className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                        />
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                      </div>
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">{t.consultation.notes}</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800 resize-none"
-                    rows={3}
-                    placeholder={t.consultation?.notesPlaceholder || "Describe your consultation needs..."}
-                  />
-                </div>
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                      <MessageSquare size={16} className="text-brand-500" />
+                      {t.consultation.notes}
+                    </label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none"
+                      rows={3}
+                      placeholder={t.consultation?.notesPlaceholder || "Briefly describe your case or questions..."}
+                    />
+                  </div>
 
-                <div className="flex gap-3 pt-4">
-                  <LiveButton
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1"
-                  >
-                    {t.consultation.cancel}
-                  </LiveButton>
-                  <LiveButton
-                    type="submit"
-                    variant="primary"
-                    className="flex-1"
-                  >
-                    {t.consultation.submitRequest}
-                  </LiveButton>
-                </div>
-              </form>
+                  <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+                    <LiveButton
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setShowModal(false)}
+                      className="flex-1"
+                    >
+                      {t.consultation.cancel}
+                    </LiveButton>
+                    <LiveButton
+                      type="submit"
+                      variant="primary"
+                      className="flex-1 shadow-lg shadow-brand-500/20"
+                      disabled={!selectedLawyer || !formData.scheduledTime}
+                    >
+                      {t.consultation.submitRequest}
+                    </LiveButton>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Consultations List */}
-      <div className="grid gap-4 flex-1 overflow-y-auto">
+      <div className="grid gap-4 flex-1 overflow-y-auto p-1">
         {consultations.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            <MessageSquare size={48} className="mx-auto mb-2 opacity-50" />
-            <p>{t.consultation.noConsultations}</p>
+          <div className="text-center py-12 px-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center h-full">
+            <div className="w-16 h-16 bg-brand-100 dark:bg-brand-900/30 rounded-full flex items-center justify-center mb-4 text-brand-600 dark:text-brand-400">
+              <MessageSquare size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t.consultation.noConsultations}</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">
+              Connect with experienced immigration lawyers to discuss your case and get professional advice.
+            </p>
+            <LiveButton
+              variant="outline"
+              onClick={() => setShowModal(true)}
+              icon={Plus}
+            >
+              Request Consultation
+            </LiveButton>
           </div>
         ) : (
           consultations.map((consultation) => (
             <motion.div
               key={consultation.id}
               layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedConsultation(consultation)}
-              className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-lg transition-shadow cursor-pointer hover:border-brand-300 dark:hover:border-brand-600"
+              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative overflow-hidden"
             >
-              <div className="flex justify-between items-start mb-3">
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-brand-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User size={16} className="text-brand-600" />
-                    <span className="font-semibold">{t.consultation?.title || 'Lawyer Consultation'}</span>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                      <User size={16} />
+                    </div>
+                    <span className="font-bold text-lg text-slate-900 dark:text-white">{t.consultation?.title || 'Lawyer Consultation'}</span>
                   </div>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(consultation.status)}`}>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(consultation.status)}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
                     {(() => {
                       const st = String(consultation?.status || "");
                       if (!st) return "";
@@ -368,61 +451,33 @@ export default function ConsultationPanel() {
                       e.stopPropagation();
                       handleCancel(consultation.id);
                     }}
-                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg text-red-600"
+                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-400 hover:text-red-600 transition-colors z-10"
+                    title="Cancel Consultation"
                   >
                     <X size={18} />
                   </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-3">
+              <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 text-sm">
-                  <Calendar size={14} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
+                  <Calendar size={16} className="text-brand-500" />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Clock size={14} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleTimeString()}</span>
-                </div>
-              </div>
-
-              {consultation.meetingLink && (
-                <motion.a
-                  href={consultation.meetingLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  whileHover={{ scale: 1.02 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 mb-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full justify-center"
-                >
-                  <CheckCircle size={16} />
-                  {t.consultation?.joinVideoCall}
-                </motion.a>
-              )}
-
-              {consultation.notes && (
-                <div className="text-xs text-slate-600 dark:text-slate-400 mb-2 p-2 bg-slate-50 dark:bg-slate-900 rounded italic">
-                  "{consultation.notes}"
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 mb-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar size={16} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock size={16} className="text-slate-400" />
-                  <span>{new Date(consultation.scheduledTime).toLocaleTimeString()} ({consultation.duration} min)</span>
+                  <Clock size={16} className="text-brand-500" />
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(consultation.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
 
               {consultation.notes && (
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{consultation.notes}</p>
+                <div className="text-sm text-slate-600 dark:text-slate-400 mb-4 pl-3 border-l-2 border-slate-200 dark:border-slate-700 line-clamp-2">
+                  {consultation.notes}
+                </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-brand-600 text-sm hover:underline">
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 text-sm font-medium group-hover:underline">
                   <MessageSquare size={16} />
                   <span>{t.consultation?.consultationChat}</span>
                 </div>
@@ -432,7 +487,7 @@ export default function ConsultationPanel() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 text-xs text-green-600 hover:underline"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 rounded-lg text-xs font-bold transition-colors"
                   >
                     <CheckCircle size={14} />
                     {t.consultation?.joinVideoCall}

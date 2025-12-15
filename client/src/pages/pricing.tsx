@@ -133,7 +133,7 @@ export default function Pricing() {
 
   const handleCheckout = async (plan: typeof plans[0]) => {
     try {
-      try { trackEvent('plan_selected', { planId: plan.id, priceValue: plan.priceValue }); } catch {}
+      try { trackEvent('plan_selected', { planId: plan.id, priceValue: plan.priceValue }); } catch { }
       // If user not logged in, redirect to auth first
       if (!user) {
         setLocation('/auth');
@@ -143,7 +143,7 @@ export default function Pricing() {
       setLoadingPlan(plan.id);
 
       // If free plan, just redirect to dashboard
-      if (plan.priceValue === 0) {
+      if (plan.priceValue === 0 && plan.id !== 'enterprise') {
         setLocation('/dashboard');
         return;
       }
@@ -155,24 +155,23 @@ export default function Pricing() {
         return;
       }
 
-      // Create payment intent
-      const response = await apiRequest<any>('/stripe/create-intent', {
+      // Create Stripe Checkout Session (Redirect Flow)
+      const response = await apiRequest<any>('/stripe/create-checkout-session', {
         method: 'POST',
         body: JSON.stringify({
-          amount: plan.priceValue / 100,
-          description: `${plan.name} Subscription`
+          tier: plan.id
         })
       });
 
-      if (response.clientSecret) {
-        try { trackEvent('checkout_started', { planId: plan.id }); } catch {}
-        // Redirect to checkout page with payment intent
-        setLocation(`/checkout?clientSecret=${response.clientSecret}&planId=${plan.id}`);
+      if (response.checkoutUrl) {
+        try { trackEvent('checkout_started', { planId: plan.id }); } catch { }
+        // Redirect to Stripe Hosted Checkout
+        window.location.href = response.checkoutUrl;
       }
     } catch (error) {
       logError('Checkout error:', error);
     } finally {
-      setLoadingPlan(null);
+      // setLoadingPlan(null); // Don't reset if redirecting, to show persistence
     }
   };
 
@@ -181,7 +180,7 @@ export default function Pricing() {
       {/* Navigation */}
       <nav className="fixed w-full z-50 px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <motion.div 
+          <motion.div
             className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
             onClick={() => setLocation('/')}
           >
@@ -192,9 +191,9 @@ export default function Pricing() {
           </motion.div>
           <div className="flex items-center gap-4">
             <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
-                {(['en','uz','ru'] as Language[]).map((l) => (
-                  <button key={l} onClick={() => setLang(l)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang===l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+              {(['en', 'uz', 'ru'] as Language[]).map((l) => (
+                <button key={l} onClick={() => setLang(l)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang === l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {l}
                 </button>
               ))}
@@ -217,7 +216,7 @@ export default function Pricing() {
             <Sparkles size={16} />
             Simple, Transparent Pricing
           </motion.div>
-          
+
           <h1 className="text-5xl md:text-6xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
             {t.pricing.title}
           </h1>
@@ -230,11 +229,11 @@ export default function Pricing() {
         <div className="max-w-2xl mx-auto mb-16">
           <div className="flex justify-center items-center gap-4">
             <span className={`text-sm font-semibold ${billingPeriod === 'monthly' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Monthly</span>
-            <motion.div 
+            <motion.div
               className="relative w-14 h-8 bg-slate-200 dark:bg-slate-700 rounded-full cursor-pointer"
               onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'annual' : 'monthly')}
             >
-              <motion.div 
+              <motion.div
                 className="absolute top-1 left-1 w-6 h-6 bg-white dark:bg-slate-900 rounded-full shadow-md"
                 animate={{ x: billingPeriod === 'annual' ? 28 : 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -252,18 +251,17 @@ export default function Pricing() {
           {plans.map((plan, index) => {
             const displayPrice = billingPeriod === 'annual' && plan.annualPrice ? plan.annualPrice : plan.price;
             const displayPeriod = billingPeriod === 'annual' && plan.annualPrice ? '/year' : (plan.price !== 'Custom' && plan.price !== 'Free' ? '/mo' : '');
-            
+
             return (
               <motion.div
                 key={plan.id}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`relative rounded-3xl p-8 border-2 transition-all flex flex-col h-full ${
-                  plan.popular
+                className={`relative rounded-3xl p-8 border-2 transition-all flex flex-col h-full ${plan.popular
                     ? 'bg-white dark:bg-slate-900 border-brand-500 shadow-2xl shadow-brand-500/20 md:scale-105'
                     : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-brand-500 to-purple-500 text-white text-xs font-bold rounded-full">

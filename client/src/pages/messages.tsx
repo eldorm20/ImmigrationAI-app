@@ -30,7 +30,7 @@ export default function Messages() {
 
     // Fetch recent conversations (users who we have chatted with)
     const { data: response, isLoading } = useQuery<{ conversations: ConversationUser[] }>({
-        queryKey: ["/api/messages/conversations"],
+        queryKey: ["/messages"],
         enabled: !!user,
     });
 

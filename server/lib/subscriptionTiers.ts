@@ -13,6 +13,7 @@ export interface TierFeatures {
   features: {
     documentUploadLimit: number; // per month
     aiDocumentGenerations: number; // per month
+    aiMonthlyRequests: number; // AI chat/translate requests per month
     consultationsPerMonth: number;
     researchLibraryAccess: boolean;
     prioritySupport: boolean;
@@ -43,13 +44,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   pro: {
     tier: "pro",
     name: "Pro",
-    monthlyPrice: 29,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_1234567890",
+    monthlyPrice: 99,  // Updated to match Stripe product
+    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_99",
     features: {
-      documentUploadLimit: 50,
-      aiDocumentGenerations: 20,
-      aiMonthlyRequests: 2000,
-      consultationsPerMonth: 10,
+      documentUploadLimit: 100,
+      aiDocumentGenerations: 50,
+      aiMonthlyRequests: 5000,
+      consultationsPerMonth: 20,
       researchLibraryAccess: true,
       prioritySupport: true,
       advancedAnalytics: true,
@@ -60,13 +61,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   premium: {
     tier: "premium",
     name: "Premium",
-    monthlyPrice: 79,
-    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_0987654321",
+    monthlyPrice: 299,  // Updated to match Stripe product
+    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_premium_299",
     features: {
-      documentUploadLimit: 200,
-      aiDocumentGenerations: 100,
-      aiMonthlyRequests: 10000,
-      consultationsPerMonth: 50,
+      documentUploadLimit: 500,
+      aiDocumentGenerations: 200,
+      aiMonthlyRequests: 20000,
+      consultationsPerMonth: 100,
       researchLibraryAccess: true,
       prioritySupport: true,
       advancedAnalytics: true,
@@ -77,13 +78,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   enterprise: {
     tier: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 249,
+    monthlyPrice: 0, // Contact for pricing
     stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise",
     features: {
-      documentUploadLimit: 1000,
-      aiDocumentGenerations: 1000,
-      aiMonthlyRequests: 100000,
-      consultationsPerMonth: 1000,
+      documentUploadLimit: 10000,
+      aiDocumentGenerations: 10000,
+      aiMonthlyRequests: 1000000,
+      consultationsPerMonth: 10000,
       researchLibraryAccess: true,
       prioritySupport: true,
       advancedAnalytics: true,
@@ -172,7 +173,7 @@ export async function checkFeatureAccess(
   try {
     const tier = await getUserSubscriptionTier(userId);
     const features = getTierFeatures(tier).features;
-    
+
     // For boolean features
     if (typeof features[feature] === "boolean") {
       return (features[feature] as boolean) === true;

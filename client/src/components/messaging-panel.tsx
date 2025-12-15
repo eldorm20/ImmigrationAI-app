@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Send, Loader2, MessageCircle, User, X, ChevronRight } from "lucide-react";
+import { Send, Loader2, MessageCircle, User, X, ChevronRight, Circle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -44,6 +44,13 @@ interface Conversation {
   unreadCount: number;
 }
 
+interface OnlineUser {
+  userId: string;
+  userName: string;
+  role: string;
+  lastSeen: number | null;
+}
+
 type SocketAck = { success?: boolean; messageId?: string; error?: string };
 
 export default function MessagingPanel() {
@@ -57,6 +64,13 @@ export default function MessagingPanel() {
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+
+  // Real-time states
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Initialize Socket.IO connection
@@ -80,6 +94,13 @@ export default function MessagingPanel() {
     newSocket.on("connect", () => {
       logInfo("Connected to messaging server");
       setLoading(false);
+      // Announce we are online
+      newSocket.emit("user_online", {
+        name: user?.firstName || user?.email?.split('@')[0],
+        role: user?.role,
+        email: user?.email
+      });
+
       toast({
         title: t.common.connected,
         description: t.messaging.connected,
@@ -104,6 +125,41 @@ export default function MessagingPanel() {
           applicationId: msg.applicationId,
         },
       ]);
+    });
+
+    // Online presence events
+    newSocket.on("online_users", (users: OnlineUser[]) => {
+      const ids = new Set(users.map(u => u.userId));
+      setOnlineUsers(ids);
+    });
+
+    newSocket.on("user_status_changed", (data: { userId: string, status: 'online' | 'offline' }) => {
+      setOnlineUsers(prev => {
+        const next = new Set(prev);
+        if (data.status === 'online') {
+          next.add(data.userId);
+        } else {
+          next.delete(data.userId);
+        }
+        return next;
+      });
+    });
+
+    // Typing indicators
+    newSocket.on("user_typing", (data: { senderId: string }) => {
+      setTypingUsers(prev => {
+        const next = new Set(prev);
+        next.add(data.senderId);
+        return next;
+      });
+    });
+
+    newSocket.on("user_stop_typing", (data: { senderId: string }) => {
+      setTypingUsers(prev => {
+        const next = new Set(prev);
+        next.delete(data.senderId);
+        return next;
+      });
     });
 
     newSocket.on("disconnect", () => {
@@ -133,12 +189,12 @@ export default function MessagingPanel() {
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [user]);
 
   // Auto-scroll to latest message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, typingUsers]);
 
   const selectedParticipantObj = selectedParticipant ? participants.find((p) => p.id === selectedParticipant) || null : null;
 
@@ -180,16 +236,6 @@ export default function MessagingPanel() {
             // I'm the applicant; add the lawyer
             const lawyerId = c.lawyerId;
             if (!uniqueParticipants.has(lawyerId)) {
-              // We don't have lawyer details here, so we might show generic or fetch them?
-              // Ideally /consultations should return expanded lawyer info.
-              // For now, we add a placeholder which might be updated if we message them.
-              // Actually, better to skip if we can't get name, OR fetch user details.
-              // Let's rely on basic info or maybe we can't do much without name.
-              // IF we really need it, we should fetch user info.
-              // But strict 404/Empty is better than broken UI.
-              // Let's assuming if they have a consultation, they SHOULD have a conversation entry created upon booking?
-              // If not, maybe we just leave it. 
-              // BUT the previous code was creating "Lawyer" / "Applicant" placeholders.
               uniqueParticipants.set(lawyerId, {
                 id: lawyerId,
                 name: `Lawyer`, // Generic fallback 
@@ -224,9 +270,38 @@ export default function MessagingPanel() {
     })();
   }, [user]);
 
+  // Handle typing input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputMessage(e.target.value);
+
+    if (!socket || !selectedParticipant) return;
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Emit start typing if not already typing
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket.emit("user_typing", { recipientId: selectedParticipant });
+    }
+
+    // Set timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      socket.emit("user_stop_typing", { recipientId: selectedParticipant });
+    }, 2000);
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim() || !selectedParticipant || !socket) return;
+
+    // Clear typing status immediately on send
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isTypingRef.current = false;
+    socket.emit("user_stop_typing", { recipientId: selectedParticipant });
 
     setIsSending(true);
 
@@ -267,6 +342,9 @@ export default function MessagingPanel() {
     )
     : [];
 
+  const isSelectedParticipantOnline = selectedParticipant ? onlineUsers.has(selectedParticipant) : false;
+  const isSelectedParticipantTyping = selectedParticipant ? typingUsers.has(selectedParticipant) : false;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -291,31 +369,45 @@ export default function MessagingPanel() {
           </div>
         ) : (
           <div className="flex-1 space-y-2 overflow-y-auto">
-            {participants.map((p) => (
-              <motion.button
-                key={p.id}
-                onClick={() => setSelectedParticipant(p.id)}
-                whileHover={{ x: 4 }}
-                className={`w-full p-3 rounded-lg text-left transition-all ${selectedParticipant === p.id
-                  ? "bg-brand-100 dark:bg-brand-900/30 border border-brand-500"
-                  : "hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                      {p.name}
-                    </p>
-                    <p className="text-xs text-slate-400 truncate">{p.email}</p>
+            {participants.map((p) => {
+              const isOnline = onlineUsers.has(p.id);
+              return (
+                <motion.button
+                  key={p.id}
+                  onClick={() => setSelectedParticipant(p.id)}
+                  whileHover={{ x: 4 }}
+                  className={`w-full p-3 rounded-lg text-left transition-all relative ${selectedParticipant === p.id
+                    ? "bg-brand-100 dark:bg-brand-900/30 border border-brand-500"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
+                    }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                          {p.name}
+                        </p>
+                        {isOnline && (
+                          <div className="w-2 h-2 rounded-full bg-green-500 ring-2 ring-white dark:ring-slate-900" title="Online" />
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 truncate flex items-center gap-1">
+                        {typingUsers.has(p.id) ? (
+                          <span className="text-brand-600 dark:text-brand-400 animate-pulse">Typing...</span>
+                        ) : (
+                          p.email
+                        )}
+                      </p>
+                    </div>
+                    {p.unreadCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                        {p.unreadCount}
+                      </span>
+                    )}
                   </div>
-                  {p.unreadCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
-                      {p.unreadCount}
-                    </span>
-                  )}
-                </div>
-              </motion.button>
-            ))}
+                </motion.button>
+              );
+            })}
           </div>
         )}
       </AnimatedCard>
@@ -327,18 +419,23 @@ export default function MessagingPanel() {
             {/* Chat Header */}
             <div className="pb-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-                  <User size={18} className="text-brand-600 dark:text-brand-400" />
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                    <User size={18} className="text-brand-600 dark:text-brand-400" />
+                  </div>
+                  {isSelectedParticipantOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-slate-800" />
+                  )}
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 dark:text-white">
+                  <p className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     {selectedParticipantObj?.name || t.messaging.participant}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {(() => {
-                      const roleKey = selectedParticipantObj?.role ?? "user";
-                      return t.roles[roleKey as keyof typeof t.roles] || t.roles.user;
-                    })()}
+                    {isSelectedParticipantTyping
+                      ? <span className="text-brand-600 dark:text-brand-400 animate-pulse font-medium">Typing...</span>
+                      : selectedParticipantObj?.role === "lawyer" ? "Immigration Lawyer" : "Applicant"
+                    }
                   </p>
                 </div>
               </div>
@@ -386,6 +483,19 @@ export default function MessagingPanel() {
                   </motion.div>
                 ))
               )}
+              {isSelectedParticipantTyping && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start px-4"
+                >
+                  <div className="bg-slate-200 dark:bg-slate-800 rounded-2xl rounded-bl-none px-4 py-2 flex items-center gap-1">
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                  </div>
+                </motion.div>
+              )}
               <div ref={scrollRef} />
             </div>
 
@@ -394,7 +504,7 @@ export default function MessagingPanel() {
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <input
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder={t.messaging.inputPlaceholder}
                   className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400"
                   disabled={isSending}
@@ -427,3 +537,4 @@ export default function MessagingPanel() {
     </motion.div>
   );
 }
+

@@ -438,11 +438,39 @@ export default function LawyerDashboard() {
                 <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
-                    window.location.href = '/dashboard?tab=ai-docs';
+                    // Open generate doc modal or navigate to dedicated page
+                    toast({
+                      title: "AI Document Generator",
+                      description: "Opening document generator...",
+                      className: "bg-blue-50 text-blue-900 border-blue-200"
+                    });
+                    setActiveTab('applications');
+                    // Show inline document generator (can be enhanced to show modal)
+                    setTimeout(() => {
+                      window.open('/dashboard?tab=ai-docs', '_blank');
+                    }, 500);
                   }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
-                    window.location.href = '/dashboard?tab=ai-chat';
+                    toast({
+                      title: "AI Chat Assistant",
+                      description: "Opening AI chat...",
+                      className: "bg-blue-50 text-blue-900 border-blue-200"
+                    });
+                    // Open AI chat in new tab so lawyer doesn't lose context
+                    setTimeout(() => {
+                      window.open('/dashboard?tab=ai-chat', '_blank');
+                    }, 500);
                   }}>{t.lawyerDashboard?.openChat || 'Open Chat'}</ActionButton>
+                  <ActionButton variant="ghost" onClick={() => {
+                    toast({
+                      title: "Translation Tool",
+                      description: "Opening translator...",
+                      className: "bg-blue-50 text-blue-900 border-blue-200"
+                    });
+                    setTimeout(() => {
+                      window.open('/dashboard?tab=translate', '_blank');
+                    }, 500);
+                  }}>{'Translation'}</ActionButton>
                 </div>
               </div>
 
@@ -454,13 +482,21 @@ export default function LawyerDashboard() {
                     // Show all applications in current view
                     setActiveTab('applications');
                     setFilterStatus('All');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    toast({
+                      title: "Showing All Applications",
+                      description: `${leads.length} applications loaded`,
+                      className: "bg-green-50 text-green-900 border-green-200"
+                    });
                   }}>{t.lawyerDashboard?.allApplications || 'All Applications'}</ActionButton>
                   <ActionButton variant="ghost" onClick={() => {
-                    window.location.href = '/analytics';
+                    setShowReport(true);
                   }}>{t.lawyerDashboard?.analytics || 'Analytics'}</ActionButton>
+                  <ActionButton variant="ghost" onClick={() => {
+                    window.open('/research', '_blank');
+                  }}>{'Research Library'}</ActionButton>
                 </div>
               </div>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

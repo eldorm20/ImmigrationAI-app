@@ -6,8 +6,21 @@ import { and, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
+import { rssService, type RSSItem } from "../lib/rss-service";
+import { logger } from "../lib/logger";
 
 const router = Router();
+
+interface ResearchItem {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  type: string;
+  tags: string[];
+  source: string;
+  sourceUrl?: string;
+}
 
 // Public list endpoint (no auth required)
 router.get(
@@ -19,6 +32,7 @@ router.get(
       language = "",
       limit = "50",
       offset = "0",
+      includeRss = "true",
     } = req.query as Record<string, string>;
 
     const whereClauses: any[] = [sql`"is_published" = true`];
@@ -41,15 +55,50 @@ router.get(
       );
     }
 
-    const articles = await db.query.researchArticles.findMany({
-      where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
-      orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
-    });
+    let dbArticles: any[] = [];
+    try {
+      dbArticles = await db.query.researchArticles.findMany({
+        where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
+        orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+      });
+    } catch (err) {
+      logger.warn({ err }, "Failed to fetch articles from DB");
+    }
 
-    // If no articles found in DB, return a small curated fallback set so the UI isn't empty on fresh installs
-    if ((!articles || articles.length === 0) && (!search && category === "all")) {
+    // Combine with RSS feeds for live content
+    let rssItems: RSSItem[] = [];
+    if (includeRss === "true" && (!search || search.length < 2)) {
+      try {
+        rssItems = await rssService.fetchFeeds();
+        logger.info({ count: rssItems.length }, "Fetched RSS feed items");
+      } catch (err) {
+        logger.warn({ err }, "Failed to fetch RSS feeds");
+      }
+    }
+
+    // Convert RSS items to research format and filter by category if needed
+    let rssArtricles: ResearchItem[] = rssItems.map(item => ({
+      id: item.id,
+      title: item.title,
+      summary: item.summary,
+      category: item.category,
+      type: item.type,
+      tags: item.tags,
+      source: item.source,
+      sourceUrl: item.sourceUrl,
+    }));
+
+    if (category && category !== "all") {
+      rssArtricles = rssArtricles.filter(a => a.category === category);
+    }
+
+    // Combine DB and RSS articles, DB articles first
+    const allItems = [...dbArticles, ...rssArtricles].slice(0, parseInt(limit, 10));
+
+    // If still empty, return curated fallback
+    if (allItems.length === 0 && !search && category === "all") {
       const fallback: ResearchItem[] = [
         {
           id: 'sample-1',
@@ -57,17 +106,17 @@ router.get(
           summary: 'A concise guide for applicants seeking to apply for the UK Skilled Worker visa, including salary thresholds and required documents.',
           category: 'visa',
           type: 'guide',
-          tags: ['UK','Skilled Worker','Visa'],
+          tags: ['UK', 'Skilled Worker', 'Visa'],
           source: 'UK Home Office',
           sourceUrl: 'https://www.gov.uk/skilled-worker-visa'
         },
         {
           id: 'sample-2',
           title: 'Germany Opportunity Card — What You Need to Know',
-          summary: 'Overview of eligibility and application steps for Germany’s Opportunity Card and relevant employment requirements.',
+          summary: "Overview of eligibility and application steps for Germany's Opportunity Card and employment requirements.",
           category: 'visa',
           type: 'guide',
-          tags: ['Germany','Opportunity Card'],
+          tags: ['Germany', 'Opportunity Card'],
           source: 'Bundesregierung',
           sourceUrl: 'https://www.bundesregierung.de'
         },
@@ -77,7 +126,7 @@ router.get(
           summary: 'A real-world case study summarizing best practices for family reunification and common pitfalls to avoid.',
           category: 'cases',
           type: 'case_study',
-          tags: ['Poland','Family'],
+          tags: ['Poland', 'Family'],
           source: 'ImmigrationAI Research'
         }
       ];
@@ -85,9 +134,10 @@ router.get(
       return res.json({ items: fallback });
     }
 
-    res.json({ items: articles });
+    res.json({ items: allItems, fromRss: rssItems.length });
   }),
 );
+
 
 // Authenticated create/update/delete endpoints
 const upsertSchema = insertResearchArticleSchema.extend({
