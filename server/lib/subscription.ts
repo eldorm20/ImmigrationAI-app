@@ -22,37 +22,11 @@ async function getStripe() {
     }
   }
 
-  // No STRIPE_SECRET_KEY set? Use "Manual Payment Gateway" (Free/Mock)
-  // This allows the app to function fully for users who don't have Stripe keys,
-  // effectively making the "Pro" upgrade free/simulated.
-  logger.warn("STRIPE_SECRET_KEY not configured; using 'Manual Payment' local gateway (Free Mode)");
-
-  stripe = {
-    customers: {
-      create: async (params: any) => ({ id: "cus_local_" + Math.random().toString(36).substring(7), ...params }),
-      retrieve: async (id: string) => ({ id, deleted: false, metadata: {} }),
-    },
-    subscriptions: {
-      create: async (params: any) => ({
-        id: "sub_local_" + Math.random().toString(36).substring(7),
-        status: "active",
-        current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-        items: { data: [{ price: { id: params.items[0].price } }] }
-      }),
-      retrieve: async (id: string) => ({
-        id,
-        status: "active",
-        current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-        items: { data: [{ price: { id: "price_pro_local" } }] }
-      }),
-      update: async () => ({}),
-      cancel: async () => ({})
-    },
-    invoices: {
-      list: async () => ({ data: [] })
-    }
-  };
-  return stripe;
+  // No STRIPE_SECRET_KEY set - do not use a mock in production. Return null
+  // so callers can respond with 503/service unavailable and avoid false
+  // production behavior. Requiring STRIPE_SECRET_KEY keeps behavior explicit.
+  logger.warn("STRIPE_SECRET_KEY not configured; Stripe integration unavailable");
+  return null;
 }
 
 // Exported helper to check Stripe availability from other modules (startup probe)
