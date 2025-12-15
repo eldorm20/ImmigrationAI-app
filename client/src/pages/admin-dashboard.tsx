@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   const fetchAdminStats = async () => {
     setStatsLoading(true);
-    
+
     // Fetch admin overview
     try {
       setStatsError(null);
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       setStatsError(e instanceof Error ? e.message : 'Failed to load admin overview');
       setStats(null);
     }
-    
+
     // Fetch AI status
     try {
       setAiError(null);
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
       setAiError(e instanceof Error ? e.message : 'Failed to load AI status');
       setAiStatus(null);
     }
-    
+
     // Fetch Stripe status
     try {
       setStripeError(null);
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
       setStripeError(e instanceof Error ? e.message : 'Failed to load Stripe status');
       setStripeStatus(null);
     }
-    
+
     setStatsLoading(false);
   };
 
@@ -196,18 +196,16 @@ export default function AdminDashboard() {
           Recent Activity
         </h3>
         <div className="space-y-3 text-sm">
-          <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
-            <span>New user registration</span>
-            <span className="text-slate-500">5 minutes ago</span>
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
-            <span>Document upload</span>
-            <span className="text-slate-500">15 minutes ago</span>
-          </div>
-          <div className="flex justify-between items-center py-2">
-            <span>Consultation scheduled</span>
-            <span className="text-slate-500">1 hour ago</span>
-          </div>
+          {stats?.recentActivity?.length > 0 ? (
+            stats.recentActivity.map((activity: any, i: number) => (
+              <div key={i} className="flex justify-between items-start py-3 border-b border-slate-200 dark:border-slate-800 last:border-0">
+                <span className="text-slate-700 dark:text-slate-300 font-medium">{activity.description}</span>
+                <span className="text-slate-500 text-xs shrink-0 ml-2">{activity.time}</span>
+              </div>
+            ))
+          ) : (
+            <div className="text-slate-500 italic py-4 text-center">No recent activity</div>
+          )}
         </div>
       </div>
     </div>

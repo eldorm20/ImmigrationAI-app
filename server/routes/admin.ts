@@ -3,13 +3,12 @@ import { z } from "zod";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, consultations, applications, payments } from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
 import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
-import { db } from "../db";
-import { sql } from "drizzle-orm";
+
 
 const router = Router();
 
@@ -27,23 +26,75 @@ router.use(authenticate, isAdmin);
 router.get(
   "/overview",
   asyncHandler(async (req, res) => {
-    const totalUsers = await db.query.users.findMany();
-    const lawyers = totalUsers.filter((u) => u.role === "lawyer");
-    const applicants = totalUsers.filter((u) => u.role === "applicant");
+    const allUsers = await db.query.users.findMany();
+    const lawyers = allUsers.filter((u) => u.role === "lawyer");
+    const applicants = allUsers.filter((u) => u.role === "applicant");
+    const admins = allUsers.filter((u) => u.role === "admin");
+
+    const allConsultations = await db.query.consultations.findMany();
+    const allPayments = await db.query.payments.findMany({
+      where: eq(payments.status, "completed")
+    });
+
+    // Calculate total earnings
+    const totalEarnings = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+
+    // Recent activity (Last 5 events)
+    const recentApps = await db.query.applications.findMany({
+      orderBy: [desc(applications.createdAt)],
+      limit: 5,
+      with: { user: true }
+    });
+
+    const recentUsers = await db.query.users.findMany({
+      orderBy: [desc(users.createdAt)],
+      limit: 5
+    });
+
+    // Combine and sort
+    const activity = [
+      ...recentApps.map(app => ({
+        type: 'application',
+        description: `Application submitted by ${(app.user as any)?.firstName || 'User'}`,
+        createdAt: new Date(app.createdAt)
+      })),
+      ...recentUsers.map(u => ({
+        type: 'registration',
+        description: `New user registration: ${u.firstName}`,
+        createdAt: new Date(u.createdAt)
+      }))
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 5);
+
+    // Format time for UI
+    const formattedActivity = activity.map(a => {
+      const diff = Math.floor((Date.now() - a.createdAt.getTime()) / 60000);
+      let timeStr = `${diff} mins ago`;
+      if (diff > 60) timeStr = `${Math.floor(diff / 60)} hours ago`;
+      if (diff > 1440) timeStr = `${Math.floor(diff / 1440)} days ago`;
+      return {
+        description: a.description,
+        time: timeStr
+      };
+    });
 
     res.json({
       overview: {
-        totalUsers: totalUsers.length,
+        totalUsers: allUsers.length,
         totalLawyers: lawyers.length,
         totalApplicants: applicants.length,
-        adminUsers: totalUsers.filter((u) => u.role === "admin").length,
+        adminUsers: admins.length,
       },
       metrics: {
-        activeUsers: Math.round(totalUsers.length * 0.7), // Simulated
-        newUsersThisMonth: Math.round(totalUsers.length * 0.15),
-        totalConsultations: 0, // Would fetch from consultations table
-        totalEarnings: 0, // Would calculate from payments
+        activeUsers: applicants.length,
+        newUsersThisMonth: allUsers.filter(u => {
+          const d = new Date(u.createdAt);
+          const now = new Date();
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).length,
+        totalConsultations: allConsultations.length,
+        totalEarnings,
       },
+      recentActivity: formattedActivity
     });
   })
 );
