@@ -1,6 +1,5 @@
-// Note: Drizzle migrate skipped in production due to bundler crashes
-// import { migrate } from "drizzle-orm/node-postgres/migrator";
-// import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { drizzle } from "drizzle-orm/node-postgres";
 import pkg from "pg";
 const { Pool } = pkg;
 import { logger } from "./logger";
@@ -53,7 +52,8 @@ export async function runMigrationsIfNeeded(): Promise<void> {
   }
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  // Note: We use direct pool.query() instead of Drizzle migrate to avoid bundler crashes
+  const db = drizzle(pool);
+
   try {
     // First, verify database connection
     logger.info("Verifying database connection...");
@@ -62,10 +62,12 @@ export async function runMigrationsIfNeeded(): Promise<void> {
 
     logger.info(`Running database migrations from: ${migrationsPath}`);
 
-    // Skip Drizzle's migrate function (causes crashes in production bundle)
-    // Go straight to manual SQL execution which is more reliable
-    logger.info("Using manual SQL execution for migrations...");
-    {
+    // Try Drizzle's migrate function first
+    try {
+      await migrate(db, { migrationsFolder: migrationsPath });
+      logger.info("✓ Database migrations completed successfully via Drizzle");
+    } catch (drizzleErr: any) {
+      logger.warn({ drizzleErr }, "Drizzle migration failed, attempting direct SQL execution");
 
       // Fallback: execute SQL files directly
       try {

@@ -4,6 +4,7 @@ import { rm, readFile } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
+// NOTE: drizzle-orm and drizzle-zod removed - they crash when bundled
 const allowlist = [
   "@google/generative-ai",
   "@neondatabase/serverless",
@@ -11,8 +12,6 @@ const allowlist = [
   "connect-pg-simple",
   "cors",
   "date-fns",
-  "drizzle-orm",
-  "drizzle-zod",
   "express",
   "express-rate-limit",
   "express-session",
