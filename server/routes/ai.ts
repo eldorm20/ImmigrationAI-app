@@ -466,8 +466,17 @@ router.post(
       ])
       .parse(req.body as any) as any;
 
+    // Declare messageText outside try block so it's accessible in catch for fallbacks
+    let messageText = '';
+    if (parsed.messages) {
+      const msgs = parsed.messages as Array<any>;
+      const last = msgs[msgs.length - 1];
+      messageText = last.role === 'user' ? last.content : '';
+    } else {
+      messageText = parsed.message || '';
+    }
+
     try {
-      let messageText = '';
       let history: Array<{ role: string, content: string }> = parsed.history || [];
 
       if (parsed.messages) {
@@ -530,20 +539,213 @@ router.post(
       res.json({ reply });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      logger.error({ err }, "Chat response failed");
+      logger.warn({ err: errorMsg }, "AI chat failed, using intelligent fallback responses");
 
-      // Return 503 if AI provider unavailable, 500 for other errors
-      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
-        return res.status(503).json({
-          error: "Chat service unavailable",
-          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
-        });
+      // Intelligent fallback responses for common immigration questions
+      const lowerMessage = messageText.toLowerCase();
+      let fallbackReply = "";
+
+      // Document-related questions
+      if (lowerMessage.includes("document") || lowerMessage.includes("required") || lowerMessage.includes("need")) {
+        fallbackReply = `Common documents required for most visa applications include:
+
+📄 **Essential Documents:**
+• Valid passport (6+ months validity)
+• Completed visa application form
+• Recent passport-size photographs
+• Proof of financial means (bank statements)
+• Travel insurance (where required)
+
+📋 **Work Visas typically also need:**
+• Job offer letter from employer
+• Educational certificates
+• Professional qualifications
+• CV/Resume
+
+📋 **Student Visas typically need:**
+• University acceptance letter
+• Proof of tuition payment
+• Language proficiency certificate
+
+For specific requirements, please consult with an immigration lawyer through our platform.`;
+      }
+      // Processing time questions
+      else if (lowerMessage.includes("time") || lowerMessage.includes("long") || lowerMessage.includes("processing") || lowerMessage.includes("wait")) {
+        fallbackReply = `⏱️ **Typical Visa Processing Times:**
+
+🇬🇧 **UK Visas:**
+• Skilled Worker: 3-8 weeks
+• Student: 3-4 weeks
+• Visitor: 3-4 weeks
+
+🇩🇪 **German Visas:**
+• Work Permit: 4-12 weeks
+• Job Seeker: 6-8 weeks
+• Opportunity Card: 4-8 weeks
+• Student: 4-6 weeks
+
+🇺🇸 **US Visas:**
+• H-1B: 6-9 months
+• Student (F-1): 2-4 months
+• Visitor (B1/B2): 3-6 weeks
+
+💡 **Tips to speed up processing:**
+• Submit complete, accurate applications
+• Provide all required documents upfront
+• Consider priority processing where available
+
+Note: Times vary by season and application volume.`;
+      }
+      // Cost-related questions
+      else if (lowerMessage.includes("cost") || lowerMessage.includes("fee") || lowerMessage.includes("price") || lowerMessage.includes("expensive")) {
+        fallbackReply = `💰 **Typical Visa Application Fees:**
+
+🇬🇧 **UK Visa Fees:**
+• Skilled Worker: £719-£1,420
+• Student: £490
+• Health Surcharge: £1,035/year
+
+🇩🇪 **German Visa Fees:**
+• Work Permit: €75-100
+• Job Seeker: €75
+• Student: €75
+
+🇺🇸 **US Visa Fees:**
+• H-1B: $460 + $500 fraud prevention
+• F-1 Student: $185
+• B1/B2 Visitor: $185
+
+⚠️ **Additional costs to consider:**
+• Document translation and notarization
+• Medical examinations
+• Biometric appointments
+• Priority processing (optional)
+• Immigration lawyer consultation
+
+Fees are subject to change. Check official government websites for current rates.`;
+      }
+      // Eligibility questions
+      else if (lowerMessage.includes("eligible") || lowerMessage.includes("qualify") || lowerMessage.includes("can i") || lowerMessage.includes("points")) {
+        fallbackReply = `✅ **General Visa Eligibility Factors:**
+
+**Points-based systems typically consider:**
+• Age (18-35 often scores highest)
+• Education level
+• Work experience
+• Language proficiency
+• Job offer status
+• Salary level
+
+🇬🇧 **UK Skilled Worker requires:**
+• Certificate of Sponsorship from employer
+• English language proficiency
+• Minimum salary threshold (£26,200 or going rate)
+• Job on eligible occupations list
+
+🇩🇪 **Germany Opportunity Card requires:**
+• Recognized degree OR vocational qualification
+• 6+ points from: language, experience, age, EU connection
+• Proof of financial means
+
+Use our **Eligibility Assessment** tool in the dashboard for a personalized evaluation of your chances!`;
+      }
+      // Germany-specific questions
+      else if (lowerMessage.includes("germany") || lowerMessage.includes("german") || lowerMessage.includes("deutschland")) {
+        fallbackReply = `🇩🇪 **Germany Immigration Overview:**
+
+**Popular Work Visa Options:**
+• **EU Blue Card** - For highly qualified workers with university degree
+• **Skilled Worker Visa** - For those with recognized vocational qualifications
+• **Opportunity Card** - Points-based job seeker visa (new in 2024)
+• **Job Seeker Visa** - 6-month visa to find work
+
+**Key Requirements:**
+• Recognized qualification (degree or vocational)
+• German or English proficiency (varies by visa)
+• Valid job offer (for work visas)
+• Proof of financial means
+• Health insurance
+
+**Processing typically takes 4-12 weeks**
+
+For detailed guidance, consult with our immigration lawyers!`;
+      }
+      // UK-specific questions
+      else if (lowerMessage.includes("uk") || lowerMessage.includes("britain") || lowerMessage.includes("england") || lowerMessage.includes("united kingdom")) {
+        fallbackReply = `🇬🇧 **UK Immigration Overview:**
+
+**Main Work Visa Routes:**
+• **Skilled Worker Visa** - Most common for sponsored employment
+• **Health & Care Worker** - Discounted fees for NHS/care workers
+• **Global Talent** - For leaders in academia, arts, tech
+• **Graduate Route** - 2-year stay post-UK degree
+
+**Key Requirements:**
+• Certificate of Sponsorship from licensed employer
+• English language requirement (B1 or equivalent)
+• Minimum salary: £26,200/year or going rate
+• Immigration Health Surcharge payment
+
+**Points-Based System:**
+You need 70 points from salary, job, qualifications, and English.
+
+**Typical processing: 3-8 weeks**
+
+Explore our Research Library for detailed UK visa guides!`;
+      }
+      // Family visa questions
+      else if (lowerMessage.includes("family") || lowerMessage.includes("spouse") || lowerMessage.includes("partner") || lowerMessage.includes("child")) {
+        fallbackReply = `👨‍👩‍👧 **Family Visa Information:**
+
+**Bringing family members typically requires:**
+• Proof of genuine relationship
+• Financial requirements (income threshold)
+• Adequate accommodation
+• Health insurance for dependents
+
+🇬🇧 **UK Family Visa:**
+• Minimum income: £29,000/year (increasing in 2025)
+• English language requirement for spouse
+• Healthcare surcharge applies
+
+🇩🇪 **Germany Family Reunion:**
+• Valid residence permit requirement
+• Basic German (A1) for spouse
+• Sufficient living space
+
+**Common documents needed:**
+• Marriage/birth certificates
+• Relationship evidence (photos, communications)
+• Proof of cohabitation history
+• Financial statements
+
+Consult with a lawyer for complex family situations!`;
+      }
+      // Default helpful response
+      else {
+        fallbackReply = `Thank you for your question about immigration!
+
+I'm currently operating in fallback mode, but I can still help with general guidance. Here are some common topics I can assist with:
+
+📋 **Document Requirements** - Ask about visa documents needed
+⏱️ **Processing Times** - Learn about typical waiting periods
+💰 **Visa Costs** - Get information about fees
+✅ **Eligibility** - Understand qualification criteria
+🇬🇧 **UK Visas** - Skilled Worker, Student, Family routes
+🇩🇪 **Germany** - Opportunity Card, Blue Card, Work Permits
+
+**Quick Resources:**
+• Use our **Eligibility Assessment** in the dashboard
+• Browse the **Research Library** for guides
+• **Book a consultation** with an immigration lawyer
+
+Try asking a more specific question like:
+• "What documents do I need for a UK work visa?"
+• "How long does German Opportunity Card take?"
+• "What are the costs for a student visa?"`;
       }
 
-      res.status(500).json({
-        error: "Chat response failed",
-        message: errorMsg
-      });
+      return res.json({ reply: fallbackReply, fallback: true });
     }
   })
 );
