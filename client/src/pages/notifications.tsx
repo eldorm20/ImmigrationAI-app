@@ -34,11 +34,11 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      // TODO: Backend endpoint /notifications to be implemented
-      // For now, return empty array (no mock data)
-      setNotifications([]);
+      const data = await apiRequest<Notification[]>("/notifications");
+      setNotifications(data);
     } catch (err) {
       console.error("Failed to fetch notifications", err);
+      // Fallback to empty context on error
       setNotifications([]);
     } finally {
       setLoading(false);

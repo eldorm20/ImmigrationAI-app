@@ -756,3 +756,30 @@ export const selectInterviewSchema = createSelectSchema(interviews);
 export type Interview = typeof interviews.$inferSelect;
 export type InsertInterview = typeof interviews.$inferInsert;
 
+// Notifications System
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // consultation, document, application, payment
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  read: boolean("read").notNull().default(false),
+  metadata: jsonb("metadata"), // Store related object ID etc
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("notifications_user_id_idx").on(table.userId),
+  readIdx: index("notifications_read_idx").on(table.read),
+}));
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  type: true,
+  title: true,
+  description: true,
+  read: true,
+  metadata: true,
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+

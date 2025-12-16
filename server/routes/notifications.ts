@@ -1,81 +1,127 @@
 import { Router } from "express";
-import { authenticate, requireRole } from "../middleware/auth";
-import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { db } from "../db";
-import { applications, users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { notifications, insertNotificationSchema } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
+import { z } from "zod";
+import { authenticate } from "../middleware/auth";
 import { logger } from "../lib/logger";
-import { sendApplicationStatusNotification, notifyAdmins } from "../lib/notifications";
 
 const router = Router();
 
-// Send custom notification (admin only)
-router.post(
-  "/send",
-  authenticate,
-  requireRole("admin"),
-  asyncHandler(async (req, res) => {
-    const { userId, subject, message } = req.body;
+// Apply authentication middleware to all routes
+router.use(authenticate);
 
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
+// Get all notifications for the current user
+router.get("/", async (req, res) => {
+  try {
+    const userId = req.user!.userId;
 
-    if (!user) {
-      throw new AppError(404, "User not found");
+    const userNotifications = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+
+    res.json(userNotifications);
+  } catch (error) {
+    logger.error({ error }, "Error fetching notifications");
+    res.status(500).json({ message: "Failed to fetch notifications" });
+  }
+});
+
+// Mark a notification as read
+router.patch("/:id/read", async (req, res) => {
+  const notificationId = req.params.id;
+  const userId = req.user!.userId;
+
+  try {
+    const [updated] = await db
+      .update(notifications)
+      .set({ read: true })
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
+      )
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ message: "Notification not found" });
     }
 
-    logger.info({ userId, subject }, "Notification sent");
-    res.json({ message: "Notification sent" });
-  })
-);
+    res.json(updated);
+  } catch (error) {
+    logger.error({ error }, "Error marking notification as read");
+    res.status(500).json({ message: "Failed to update notification" });
+  }
+});
 
-// Notify application status change
-router.post(
-  "/application-status/:applicationId",
-  authenticate,
-  requireRole("admin", "lawyer"),
-  asyncHandler(async (req, res) => {
-    const { applicationId } = req.params;
-    const { status } = req.body;
+// Mark all notifications as read
+router.post("/read-all", async (req, res) => {
+  const userId = req.user!.userId;
 
-    const application = await db.query.applications.findFirst({
-      where: eq(applications.id, applicationId),
-    });
+  try {
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
 
-    if (!application) {
-      throw new AppError(404, "Application not found");
+    res.json({ message: "All notifications marked as read" });
+  } catch (error) {
+    logger.error({ error }, "Error marking all notifications as read");
+    res.status(500).json({ message: "Failed to update notifications" });
+  }
+});
+
+// Delete a notification
+router.delete("/:id", async (req, res) => {
+  const notificationId = req.params.id;
+  const userId = req.user!.userId;
+
+  try {
+    const [deleted] = await db
+      .delete(notifications)
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
+      )
+      .returning();
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Notification not found" });
     }
 
-    const applicant = await db.query.users.findFirst({
-      where: eq(users.id, application.userId),
+    res.json({ message: "Notification deleted" });
+  } catch (error) {
+    logger.error({ error }, "Error deleting notification");
+    res.status(500).json({ message: "Failed to delete notification" });
+  }
+});
+
+// Create a new notification (Internal/Admin usage mostly, but useful for testing)
+router.post("/", async (req, res) => {
+  try {
+    const data = insertNotificationSchema.parse({
+      ...req.body,
+      userId: req.body.userId || req.user!.userId, // Allow specifying userId for admin, else default to self
     });
 
-    await sendApplicationStatusNotification(
-      application.userId,
-      applicationId,
-      status,
-      applicant?.firstName || ""
-    );
+    const [notification] = await db
+      .insert(notifications)
+      .values(data)
+      .returning();
 
-    logger.info({ applicationId, status }, "Status notification sent");
-    res.json({ message: "Notification sent to applicant" });
-  })
-);
-
-// Notify all admins
-router.post(
-  "/notify-admins",
-  authenticate,
-  requireRole("admin"),
-  asyncHandler(async (req, res) => {
-    const { subject, message } = req.body;
-
-    await notifyAdmins(subject, message);
-
-    logger.info({ subject }, "Admin notification sent");
-    res.json({ message: "Admins notified" });
-  })
-);
+    res.status(201).json(notification);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json(error.errors);
+    }
+    logger.error({ error }, "Error creating notification");
+    res.status(500).json({ message: "Failed to create notification" });
+  }
+});
 
 export default router;
