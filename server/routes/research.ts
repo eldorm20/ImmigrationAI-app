@@ -8,6 +8,7 @@ import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
 import { rssService, type RSSItem } from "../lib/rss-service";
 import { logger } from "../lib/logger";
+import { getCache, setCache, deleteCachePattern } from "../lib/redis";
 
 const router = Router();
 
@@ -56,6 +57,12 @@ router.get(
           ilike(researchArticles.body, term)
         )
       );
+    }
+
+    const cacheKey = `research:list:${search}:${category}:${language}:${limit}:${offset}:${includeRss}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
 
     let dbArticles: any[] = [];
@@ -137,7 +144,9 @@ router.get(
       return res.json({ items: fallback });
     }
 
-    res.json({ items: allItems, fromRss: rssItems.length });
+    const response = { items: allItems, fromRss: rssItems.length };
+    await setCache(cacheKey, response, 300); // Cache for 5 minutes
+    res.json(response);
   }),
 );
 
@@ -171,6 +180,7 @@ router.post(
       })
       .returning();
 
+    await deleteCachePattern("research:list:*");
     res.status(201).json(article);
   }),
 );
@@ -211,6 +221,7 @@ router.patch(
       .where(sql`id = ${id}`)
       .returning();
 
+    await deleteCachePattern("research:list:*");
     res.json(updated);
   }),
 );
@@ -224,6 +235,7 @@ router.delete(
     const { id } = req.params;
 
     await db.delete(researchArticles).where(sql`id = ${id}`);
+    await deleteCachePattern("research:list:*");
 
     res.json({ message: "Article deleted" });
   }),

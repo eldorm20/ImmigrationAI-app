@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
@@ -6,63 +6,53 @@ import { Bell, LogOut, Trash2, Check, X, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { apiRequest } from "@/lib/api";
 
-const mockNotifications = [
-  {
-    id: 1,
-    type: "consultation",
-    title: "Consultation Scheduled",
-    description: "Your consultation with Sarah Johnson has been scheduled for tomorrow at 2:00 PM",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    read: false,
-    icon: "calendar",
-  },
-  {
-    id: 2,
-    type: "document",
-    title: "Document Uploaded",
-    description: "John Smith uploaded a new passport document for review",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    read: false,
-    icon: "document",
-  },
-  {
-    id: 3,
-    type: "application",
-    title: "Application Status Updated",
-    description: "Your visa application status has been updated to 'Under Review'",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    read: true,
-    icon: "check",
-  },
-  {
-    id: 4,
-    type: "payment",
-    title: "Payment Received",
-    description: "Payment of $500 has been received for consultation services",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-    read: true,
-    icon: "payment",
-  },
-  {
-    id: 5,
-    type: "system",
-    title: "System Maintenance",
-    description: "Scheduled maintenance will occur on Sunday from 2-4 AM",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    read: true,
-    icon: "system",
-  },
-];
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: Date;
+  read: boolean;
+  icon: string;
+}
 
 export default function NotificationsPage() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const [, setLocation] = useLocation();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      // TODO: Backend endpoint /notifications to be implemented
+      // For now, return empty array (no mock data)
+      setNotifications([]);
+    } catch (err) {
+      console.error("Failed to fetch notifications", err);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      </div>
+    );
+  }
 
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.read;
@@ -168,11 +158,10 @@ export default function NotificationsPage() {
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id as any)}
-                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                  filter === f.id
-                    ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${filter === f.id
+                  ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
               >
                 {f.label}
               </button>
@@ -199,9 +188,8 @@ export default function NotificationsPage() {
                 exit={{ opacity: 0, y: -20 }}
               >
                 <AnimatedCard
-                  className={`p-6 border-l-4 ${
-                    !notification.read ? 'border-brand-500 bg-brand-50/30 dark:bg-brand-900/10' : 'border-slate-200 dark:border-slate-700'
-                  }`}
+                  className={`p-6 border-l-4 ${!notification.read ? 'border-brand-500 bg-brand-50/30 dark:bg-brand-900/10' : 'border-slate-200 dark:border-slate-700'
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">

@@ -183,6 +183,33 @@ export async function deleteCache(key: string): Promise<void> {
   memDel(key);
 }
 
+export async function deleteCachePattern(pattern: string): Promise<void> {
+  if (redis) {
+    try {
+      const stream = redis.scanStream({ match: pattern });
+      stream.on("data", (keys: string[]) => {
+        if (keys.length) {
+          const pipeline = redis.pipeline();
+          keys.forEach((key) => pipeline.del(key));
+          pipeline.exec();
+        }
+      });
+    } catch (error) {
+      logger.warn({ pattern, error }, "Cache delete pattern failed (redis)");
+    }
+  }
+
+  // In-memory does not support pattern easily without iteration, skipping for now as it is fallback
+  if (inMemoryStore.size > 0 && !redis) {
+    for (const key of inMemoryStore.keys()) {
+      // simple verify
+      if (key.includes(pattern.replace('*', ''))) { // crude approximation
+        inMemoryStore.delete(key);
+      }
+    }
+  }
+}
+
 // Graceful closure
 export async function closeRedis(): Promise<void> {
   if (redis) {

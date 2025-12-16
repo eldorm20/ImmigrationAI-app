@@ -93,8 +93,8 @@ export default function AuthPage() {
     }
   };
 
-  const brandName = tenant?.name || "ImmigrationAI";
-  const brandLogo = tenant?.logo;
+  const brandName = "ImmigrationAI";
+  const brandLogo: string | undefined = undefined; // No custom logo
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100">

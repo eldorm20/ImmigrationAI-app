@@ -55,18 +55,58 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
 
     if (!user) return null;
 
-    // TODO: Calculate from actual data
-    return {
+    // Query real data from database
+    const { documents, applications, consultations } = await import("@shared/schema");
+    const { count, avg, sql } = await import("drizzle-orm");
+
+    // Count documents uploaded by user
+    const docsResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(documents)
+      .where(sql`user_id = ${userId}`);
+    const totalDocumentsUploaded = docsResult[0]?.count || 0;
+
+    // Count applications
+    const appsResult = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        submitted: sql<number>`count(*) filter (where status = 'submitted')::int`
+      })
+      .from(applications)
+      .where(sql`user_id = ${userId}`);
+    const applicationsStarted = appsResult[0]?.total || 0;
+    const applicationsSubmitted = appsResult[0]?.submitted || 0;
+
+    // Count consultations and average duration
+    const consultResult = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        avgDuration: sql<number>`coalesce(avg(duration), 0)::int`
+      })
+      .from(consultations)
+      .where(sql`user_id = ${userId}`);
+    const totalConsultations = consultResult[0]?.total || 0;
+    const avgConsultationDuration = consultResult[0]?.avgDuration || 0;
+
+    // Calculate document completion percentage (simple heuristic: 5 docs = 100%)
+    const documentCompletionPercentage = Math.min(100, Math.round((totalDocumentsUploaded / 5) * 100));
+
+    // Engagement score based on activity
+    const baseAnalytics: UserAnalytics = {
       userId,
-      totalDocumentsUploaded: 0,
-      totalConsultations: 0,
-      avgConsultationDuration: 0,
-      applicationsStarted: 0,
-      applicationsSubmitted: 0,
-      documentCompletionPercentage: 0,
-      lastActivityDate: new Date(),
+      totalDocumentsUploaded,
+      totalConsultations,
+      avgConsultationDuration,
+      applicationsStarted,
+      applicationsSubmitted,
+      documentCompletionPercentage,
+      lastActivityDate: user.updatedAt || new Date(),
       engagementScore: 0,
     };
+
+    baseAnalytics.engagementScore = calculateEngagementScore(baseAnalytics);
+
+    return baseAnalytics;
   } catch (error) {
     logger.error({ error, userId }, "Failed to get user analytics");
     return null;
@@ -87,22 +127,22 @@ export async function getLawyerMetrics(lawyerId: string): Promise<LawyerMetrics 
 // Calculate engagement score based on user activity
 export function calculateEngagementScore(analytics: UserAnalytics): number {
   let score = 0;
-  
+
   // Documents uploaded (max 25 points)
   score += Math.min(analytics.totalDocumentsUploaded * 5, 25);
-  
+
   // Consultations (max 25 points)
   score += Math.min(analytics.totalConsultations * 10, 25);
-  
+
   // Application progress (max 25 points)
   score += analytics.documentCompletionPercentage * 0.25;
-  
+
   // Recent activity (max 25 points)
   const daysSinceActivity = Math.floor(
     (new Date().getTime() - analytics.lastActivityDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   score += Math.max(25 - daysSinceActivity, 0);
-  
+
   return Math.round(score);
 }
 

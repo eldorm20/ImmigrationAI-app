@@ -44,6 +44,7 @@ import AuditLogsPage from "@/pages/admin/audit-logs";
 import SignaturesPage from "@/pages/signatures";
 import VideoCallPage from "@/pages/video-call";
 import AdminAnalyticsPage from "@/pages/admin/analytics";
+import InterviewPage from "@/pages/interview";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' | 'employer' }) {
   const { user, isLoading } = useAuth();
@@ -97,6 +98,10 @@ function Router() {
 
           <Route path="/help">
             <Help />
+          </Route>
+
+          <Route path="/interview">
+            <ProtectedRoute component={InterviewPage} />
           </Route>
 
           <Route path="/privacy">

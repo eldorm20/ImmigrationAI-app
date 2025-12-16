@@ -736,3 +736,23 @@ export const aiDataset = pgTable("ai_dataset", {
 
 export const insertAiDatasetSchema = createInsertSchema(aiDataset);
 export type AiDatasetEntry = typeof aiDataset.$inferSelect;
+
+// AI Mock Interview Sessions
+export const interviews = pgTable("interviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull(), // No foreign key constraint for simplicity or verify imports if need FK
+  title: text("title").notNull(),
+  type: text("type").notNull().default("mock_interview"), // mock_interview, consultation
+  status: text("status").notNull().default("in_progress"), // in_progress, completed
+  durationSeconds: integer("duration_seconds").default(0),
+  transcript: jsonb("transcript"), // Array of { role: 'user'|'ai', content: string }
+  feedback: jsonb("feedback"), // Only for mock interviews: { score: number, strengths: [], weaknesses: [] }
+  recordingUrl: text("recording_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInterviewSchema = createInsertSchema(interviews);
+export const selectInterviewSchema = createSelectSchema(interviews);
+export type Interview = typeof interviews.$inferSelect;
+export type InsertInterview = typeof interviews.$inferInsert;
+

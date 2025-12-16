@@ -29,6 +29,7 @@ import ocrRoutes from "./routes/ocr";
 import referralRoutes from "./routes/referrals";
 import auditRoutes from "./routes/audit";
 import signatureRoutes from "./routes/signatures";
+import interviewRoutes from "./routes/interview";
 import verificationRoutes from "./routes/verification";
 import datasetRoutes from "./routes/dataset";
 
@@ -68,4 +69,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/referrals", referralRoutes);
   app.use("/api/audit", auditRoutes);
   app.use("/api/signatures", signatureRoutes);
+  app.use("/api/interview", interviewRoutes);
 }

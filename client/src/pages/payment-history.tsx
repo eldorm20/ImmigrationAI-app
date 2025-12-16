@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
@@ -6,73 +6,62 @@ import { CreditCard, LogOut, Download, Eye, Filter, Calendar } from "lucide-reac
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { apiRequest } from "@/lib/api";
 
-const mockPaymentHistory = [
-  {
-    id: "PAY-001",
-    date: new Date(2024, 11, 15),
-    amount: 29.00,
-    plan: "Professional Plan",
-    status: "paid",
-    method: "Credit Card",
-    invoice: "INV-2024-001",
-  },
-  {
-    id: "PAY-002",
-    date: new Date(2024, 10, 15),
-    amount: 29.00,
-    plan: "Professional Plan",
-    status: "paid",
-    method: "Credit Card",
-    invoice: "INV-2024-002",
-  },
-  {
-    id: "PAY-003",
-    date: new Date(2024, 9, 15),
-    amount: 29.00,
-    plan: "Professional Plan",
-    status: "paid",
-    method: "Credit Card",
-    invoice: "INV-2024-003",
-  },
-  {
-    id: "PAY-004",
-    date: new Date(2024, 8, 15),
-    amount: 99.00,
-    plan: "Enterprise Plan",
-    status: "paid",
-    method: "Bank Transfer",
-    invoice: "INV-2024-004",
-  },
-  {
-    id: "PAY-005",
-    date: new Date(2024, 7, 15),
-    amount: 99.00,
-    plan: "Enterprise Plan",
-    status: "paid",
-    method: "Bank Transfer",
-    invoice: "INV-2024-005",
-  },
-  {
-    id: "PAY-006",
-    date: new Date(2024, 6, 15),
-    amount: 0.00,
-    plan: "Free Plan",
-    status: "completed",
-    method: "N/A",
-    invoice: "N/A",
-  },
-];
+interface Payment {
+  id: string;
+  date: Date;
+  amount: number;
+  plan: string;
+  status: string;
+  method: string;
+  invoice: string;
+}
 
 export default function PaymentHistoryPage() {
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const [, setLocation] = useLocation();
-  const [payments, setPayments] = useState(mockPaymentHistory);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending'>('all');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
 
+  useEffect(() => {
+    if (user) {
+      fetchPayments();
+    }
+  }, [user]);
+
+  const fetchPayments = async () => {
+    try {
+      const data = await apiRequest<{ payments: any[] }>('/stripe/history', { skipErrorToast: true });
+      const formatted = (data.payments || []).map((p: any) => ({
+        id: p.id,
+        date: new Date(p.createdAt),
+        amount: parseFloat(p.amount) || 0,
+        plan: p.metadata?.planName || 'Subscription',
+        status: p.status,
+        method: p.provider || 'Card',
+        invoice: p.providerTransactionId || 'N/A',
+      }));
+      setPayments(formatted);
+    } catch (err) {
+      console.error("Failed to fetch payments", err);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+      </div>
+    );
+  }
 
   let filteredPayments = payments.filter((p) => {
     if (filter === 'paid') return p.status === 'paid';
@@ -159,11 +148,10 @@ export default function PaymentHistoryPage() {
                 <button
                   key={f.id}
                   onClick={() => setFilter(f.id as any)}
-                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                    filter === f.id
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${filter === f.id
                       ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>
@@ -225,13 +213,12 @@ export default function PaymentHistoryPage() {
                       <td className="py-4 px-6 text-slate-600 dark:text-slate-400">{payment.method}</td>
                       <td className="py-4 px-6">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            payment.status === 'paid'
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${payment.status === 'paid'
                               ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                               : payment.status === 'completed'
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
-                          }`}
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                            }`}
                         >
                           {(() => {
                             const st = String(payment?.status || "");

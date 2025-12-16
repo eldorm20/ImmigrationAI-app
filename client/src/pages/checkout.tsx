@@ -65,9 +65,27 @@ export default function Checkout() {
       return;
     }
 
-    // Initialize Stripe (mock implementation for now)
-    // In production, load Stripe from CDN: https://js.stripe.com/v3/
-    setStripe({ mockStripe: true });
+    // Initialize Stripe
+    const loadStripe = async () => {
+      try {
+        const configRes = await apiRequest<{ publicKey: string | null }>('/stripe/config', { skipErrorToast: true });
+        if (configRes.publicKey) {
+          // Load Stripe.js dynamically
+          const script = document.createElement('script');
+          script.src = 'https://js.stripe.com/v3/';
+          script.async = true;
+          script.onload = () => {
+            if (window.Stripe) {
+              setStripe(window.Stripe(configRes.publicKey!) as any);
+            }
+          };
+          document.body.appendChild(script);
+        }
+      } catch (err) {
+        console.error("Failed to load Stripe config", err);
+      }
+    };
+    loadStripe();
   }, [user, clientSecret]);
 
   const handleSubmit = async (e: React.FormEvent) => {
