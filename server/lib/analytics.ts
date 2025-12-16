@@ -1,6 +1,6 @@
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, documents, applications, consultations } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { logger } from "./logger";
 
 export interface AnalyticsEvent {
@@ -54,10 +54,6 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
     });
 
     if (!user) return null;
-
-    // Query real data from database
-    const { documents, applications, consultations } = await import("@shared/schema");
-    const { count, avg, sql } = await import("drizzle-orm");
 
     // Count documents uploaded by user
     const docsResult = await db
