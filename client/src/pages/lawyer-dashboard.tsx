@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell, CreditCard
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Video
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
@@ -302,6 +302,15 @@ export default function LawyerDashboard() {
     });
   };
 
+  const handleStartCall = async () => {
+    try {
+      const res = await apiRequest<{ roomId: string }>('/video/create-room', { method: 'POST', body: JSON.stringify({}) });
+      setLocation(`/video-call/${res.roomId}`);
+    } catch (err) {
+      toast({ title: "Failed to start call", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     if (!isLoading && !user) {
       window.location.href = '/auth';
@@ -343,31 +352,22 @@ export default function LawyerDashboard() {
             </div>
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Export buttons - hidden on mobile */}
-            <div className="hidden lg:flex items-center gap-2">
-              <ActionButton variant="ghost" icon={Download} onClick={handleExportCSV}>CSV</ActionButton>
-              <ActionButton variant="ghost" icon={Code} onClick={handleExportJSON}>JSON</ActionButton>
-            </div>
-
-            {/* User info */}
-            <div className="hidden md:flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-4">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">{user.firstName || user.name?.split(' ')[0] || 'User'}</span>
-              <span className="text-xs text-brand-500 uppercase font-bold tracking-wider">{t.roles?.lawyer || 'Yurist'}</span>
-            </div>
-
-            <ThemeToggle />
-
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              onClick={logout}
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors"
-              title={t.dash?.logout || 'Chiqish'}
-            >
-              <LogOut size={20} />
-            </motion.button>
+          {/* User info */}
+          <div className="hidden md:flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-4">
+            <span className="font-bold text-sm text-slate-900 dark:text-white">{user.firstName || user.name?.split(' ')[0] || 'User'}</span>
+            <span className="text-xs text-brand-500 uppercase font-bold tracking-wider">{t.roles?.lawyer || 'Yurist'}</span>
           </div>
+
+          <ThemeToggle />
+
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            onClick={logout}
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors"
+            title={t.dash?.logout || 'Chiqish'}
+          >
+            <LogOut size={20} />
+          </motion.button>
         </div>
       </header>
 
@@ -421,6 +421,9 @@ export default function LawyerDashboard() {
                     // Open messaging panel
                     setLocation('/messages');
                   }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
+                  <ActionButton variant="success" icon={Video} onClick={handleStartCall}>
+                    Start Video Call
+                  </ActionButton>
                   <ActionButton variant="success" onClick={() => {
                     // Switch to consultations tab
                     setActiveTab('consultations');
@@ -982,6 +985,6 @@ export default function LawyerDashboard() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   );
 }

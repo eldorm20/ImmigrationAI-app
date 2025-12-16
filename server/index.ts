@@ -14,6 +14,7 @@ import { checkRedisConnection, closeRedis } from "./lib/redis";
 import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
+import { setupVideoSignaling } from "./routes/video";
 import { probeOllamaEndpoint } from "./lib/ollama";
 import { isStripeAvailable } from "./lib/subscription";
 
@@ -179,7 +180,8 @@ app.get("/health", async (_req, res) => {
     // Socket.IO must be initialized on httpServer before routes
     // so it can handle /socket.io/* requests before the API middleware
     try {
-      setupSocketIO(httpServer);
+      const io = setupSocketIO(httpServer);
+      setupVideoSignaling(io);
       logger.info("Socket.IO messaging server initialized");
     } catch (err) {
       logger.error({ err }, "Failed to setup Socket.IO");
@@ -261,7 +263,7 @@ app.get("/health", async (_req, res) => {
     // ============================================
     const gracefulShutdown = async (signal: string) => {
       logger.info(`${signal} signal received: closing HTTP server`);
-      
+
       httpServer.close(async () => {
         try {
           await closeQueues();
@@ -269,7 +271,7 @@ app.get("/health", async (_req, res) => {
         } catch (err) {
           logger.error({ err }, "Error closing queues");
         }
-        
+
         logger.info("HTTP server closed");
         process.exit(0);
       });
