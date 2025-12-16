@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { error as logError } from "@/lib/logger";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, Loader2, Zap, CheckCircle, Circle, ArrowRight, Sparkles, FileCheck,
+  Globe, Send, Briefcase, Upload, Loader2, Zap, CheckCircle, Circle, ArrowRight, Sparkles, FileCheck, Scan,
   Edit3, RefreshCw, Download, User, FileUp, Eye, Trash2, Languages
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
@@ -23,6 +23,7 @@ import { TranslateView } from "@/components/dashboard/translate-view";
 import { UploadView } from "@/components/dashboard/upload-view";
 import { VisaPredictorView } from "@/components/dashboard/visa-predictor-view";
 import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-view";
+import { OCRUploadView } from "@/components/dashboard/ocr-upload-view";
 import { Target, CalendarClock } from "lucide-react";
 
 
@@ -88,6 +89,7 @@ export default function UserDash() {
             { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
+            { id: 'scan', icon: Scan, label: 'Scan Doc' },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
@@ -189,6 +191,11 @@ export default function UserDash() {
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
+          {activeTab === 'scan' && (
+            <AnimatedCard>
+              <OCRUploadView />
+            </AnimatedCard>
+          )}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
