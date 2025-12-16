@@ -673,6 +673,32 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
 
+// Electronic Signatures
+export const signatureRequests = pgTable("signature_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requesterId: varchar("requester_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  signerId: varchar("signer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  documentId: varchar("document_id", { length: 255 }).references(() => documents.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, signed, rejected
+  signatureUrl: text("signature_url"), // Data URI or URL
+  signedAt: timestamp("signed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  requesterIdIdx: index("signature_requests_requester_id_idx").on(table.requesterId),
+  signerIdIdx: index("signature_requests_signer_id_idx").on(table.signerId),
+}));
+
+export const insertSignatureRequestSchema = createInsertSchema(signatureRequests).pick({
+  requesterId: true,
+  signerId: true,
+  documentId: true,
+  status: true,
+});
+
+export type InsertSignatureRequest = z.infer<typeof insertSignatureRequestSchema>;
+export type SignatureRequest = typeof signatureRequests.$inferSelect;
+
 // Blockchain Verification Ledger
 export const verificationChain = pgTable("verification_chain", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
