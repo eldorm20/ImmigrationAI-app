@@ -39,7 +39,7 @@ router.post(
       .insert(messages)
       .values({
         senderId,
-        recipientId: body.recipientId,
+        receiverId: body.recipientId, // Fixed: recipientId -> receiverId
         content: body.content,
         isRead: false,
       })
@@ -47,9 +47,10 @@ router.post(
 
     // Queue email notification
     try {
+      const sender = await db.query.users.findFirst({ where: eq(users.id, senderId) });
       await emailQueue.add("send_message_notification", {
         recipientEmail: recipient.email,
-        senderName: req.user!.firstName || req.user!.email,
+        senderName: sender?.firstName || sender?.email || "User",
         messagePreview: body.content.substring(0, 100),
       });
     } catch (error) {
@@ -71,8 +72,8 @@ router.get(
     // Get all messages between the two users, ordered by creation date
     const conversationMessages = await db.query.messages.findMany({
       where: or(
-        and(eq(messages.senderId, currentUserId), eq(messages.recipientId, userId)),
-        and(eq(messages.senderId, userId), eq(messages.recipientId, currentUserId))
+        and(eq(messages.senderId, currentUserId), eq(messages.receiverId, userId)),
+        and(eq(messages.senderId, userId), eq(messages.receiverId, currentUserId))
       ),
       orderBy: [desc(messages.createdAt)],
       limit: parseInt(limit as string, 10),
@@ -85,7 +86,7 @@ router.get(
       .set({ isRead: true })
       .where(
         and(
-          eq(messages.recipientId, currentUserId),
+          eq(messages.receiverId, currentUserId),
           eq(messages.senderId, userId)
         )
       );
@@ -98,11 +99,11 @@ router.get(
     res.json({
       user: otherUser
         ? {
-            id: otherUser.id,
-            email: otherUser.email,
-            firstName: otherUser.firstName,
-            lastName: otherUser.lastName,
-          }
+          id: otherUser.id,
+          email: otherUser.email,
+          firstName: otherUser.firstName,
+          lastName: otherUser.lastName,
+        }
         : null,
       messages: conversationMessages.reverse(),
     });
@@ -114,30 +115,39 @@ router.get(
   "/",
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    const { limit = "50", offset = "0" } = req.query;
+    const role = (req.user as any).role; // Safe cast
+    const { limit, offset } = req.query;
+    const limitVal = parseInt((limit as string) || "50", 10);
+    const offsetVal = parseInt((offset as string) || "0", 10);
 
     // Get unique users we have conversations with
     const userMessages = await db.query.messages.findMany({
       where: or(
         eq(messages.senderId, userId),
-        eq(messages.recipientId, userId)
+        eq(messages.receiverId, userId)
       ),
       orderBy: [desc(messages.createdAt)],
-      limit: parseInt(limit as string, 10),
+      limit: isNaN(limitVal) ? 50 : limitVal,
     });
 
-    // Get unique user IDs
-    const uniqueUserIds = Array.from(
-      new Set(
-        userMessages.map((m) =>
-          m.senderId === userId ? m.recipientId : m.senderId
-        )
-      )
-    );
+    // Get unique user IDs from history
+    const uniqueUserIds = new Set<string>();
+    userMessages.forEach((m) => {
+      if (m.senderId === userId) uniqueUserIds.add(m.receiverId);
+      else uniqueUserIds.add(m.senderId);
+    });
+
+    // If applicant, also fetch ALL lawyers to populate the list (so they can start chat)
+    if (role === 'applicant') {
+      const lawyers = await db.query.users.findMany({
+        where: eq(users.role, 'lawyer')
+      });
+      lawyers.forEach(l => uniqueUserIds.add(l.id)); // Assuming l.id is string
+    }
 
     // Get user details
     const conversationUsers = await Promise.all(
-      uniqueUserIds.map(async (id) => {
+      Array.from(uniqueUserIds).map(async (id) => {
         const user = await db.query.users.findFirst({
           where: eq(users.id, id),
         });
@@ -147,13 +157,13 @@ router.get(
         // Get last message
         const lastMessage = userMessages.find(
           (m) =>
-            (m.senderId === userId && m.recipientId === id) ||
-            (m.senderId === id && m.recipientId === userId)
+            (m.senderId === userId && m.receiverId === id) ||
+            (m.senderId === id && m.receiverId === userId)
         );
 
         // Get unread count
         const unreadCount = userMessages.filter(
-          (m) => m.recipientId === userId && m.senderId === id && !m.isRead
+          (m) => m.receiverId === userId && m.senderId === id && !m.isRead
         ).length;
 
         return {
@@ -162,8 +172,8 @@ router.get(
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
-          lastMessage: lastMessage?.content.substring(0, 50),
-          lastMessageTime: lastMessage?.createdAt,
+          lastMessage: lastMessage?.content.substring(0, 50) || "Start a conversation",
+          lastMessageTime: lastMessage?.createdAt || null,
           unreadCount,
         };
       })
@@ -182,7 +192,7 @@ router.get(
     const userId = req.user!.userId;
 
     const unreadCount = await db.query.messages.findMany({
-      where: and(eq(messages.recipientId, userId), eq(messages.isRead, false)),
+      where: and(eq(messages.receiverId, userId), eq(messages.isRead, false)),
     });
 
     res.json({
@@ -207,7 +217,7 @@ router.patch(
     }
 
     // Only recipient can mark as read
-    if (message.recipientId !== userId) {
+    if (message.receiverId !== userId) {
       throw new AppError(403, "Access denied");
     }
 
@@ -233,7 +243,7 @@ router.delete(
     }
 
     // Only sender or recipient can delete
-    if (message.senderId !== userId && message.recipientId !== userId) {
+    if (message.senderId !== userId && message.receiverId !== userId) {
       throw new AppError(403, "Access denied");
     }
 

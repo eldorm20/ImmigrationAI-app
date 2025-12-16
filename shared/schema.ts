@@ -525,3 +525,47 @@ export const fileBlobs = pgTable("file_blobs", {
   mimeType: varchar("mime_type", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Community / Research Comments
+export const articleComments = pgTable("article_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  articleId: varchar("article_id", { length: 255 }).notNull().references(() => researchArticles.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  articleIdIdx: index("article_comments_article_id_idx").on(table.articleId),
+  userIdIdx: index("article_comments_user_id_idx").on(table.userId),
+}));
+
+// Community / Research Reactions (Likes)
+export const articleReactions = pgTable("article_reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  articleId: varchar("article_id", { length: 255 }).notNull().references(() => researchArticles.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull().default("like"), // like, love, insightful, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  articleIdIdx: index("article_reactions_article_id_idx").on(table.articleId),
+  userIdArticleIdIdx: index("article_reactions_user_article_idx").on(table.userId, table.articleId),
+}));
+
+export const insertArticleCommentSchema = createInsertSchema(articleComments, {
+  content: z.string().min(1).max(1000),
+}).pick({
+  articleId: true,
+  userId: true,
+  content: true,
+});
+
+export const insertArticleReactionSchema = createInsertSchema(articleReactions).pick({
+  articleId: true,
+  userId: true,
+  type: true,
+});
+
+export type InsertArticleComment = z.infer<typeof insertArticleCommentSchema>;
+export type ArticleComment = typeof articleComments.$inferSelect;
+export type InsertArticleReaction = z.infer<typeof insertArticleReactionSchema>;
+export type ArticleReaction = typeof articleReactions.$inferSelect;

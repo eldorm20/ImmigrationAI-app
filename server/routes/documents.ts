@@ -165,6 +165,17 @@ router.post(
     // Return a fresh presigned URL for the client
     try {
       const presigned = await getPresignedUrl(uploadResult.key);
+
+      // Attempt to update roadmap progress if application is linked
+      if (body.applicationId) {
+        try {
+          const { updateRoadmapProgress } = await import("../lib/roadmap");
+          await updateRoadmapProgress(body.applicationId);
+        } catch (err) {
+          logger.warn({ err }, "Failed to auto-update roadmap after doc upload");
+        }
+      }
+
       res.status(201).json({ ...document, url: presigned });
     } catch (err) {
       res.status(201).json(document);

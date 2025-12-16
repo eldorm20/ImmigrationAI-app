@@ -655,22 +655,27 @@ Common documents requiring translation:
 💡 Use our Translation feature to get AI-assisted translations, then have them certified by an official translator.`;
   }
 
-  // Generic helpful response
-  return `I'm here to help with your immigration questions! Here's what I can assist with:
+  if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi ') || lowerPrompt.includes('hey')) {
+    return "Hello! I am your immigration AI assistant. How can I help you today? I can assist with visa requirements, document preparation, or translations.";
+  }
 
-🛫 **Visa Information** - Requirements for different countries
-📝 **Document Preparation** - What you need and how to organize
-✍️ **Translation** - AI-powered document translation
-📅 **Timelines** - Processing times and deadlines
-💼 **Work Permits** - Employment authorization guidance
+  if (lowerPrompt.includes('thank')) {
+    return "You're welcome! Let me know if you need anything else.";
+  }
 
-Please ask a specific question about:
-- UK, Germany, Poland, or other EU countries
-- Required documents for your visa type
-- Application procedures and timelines
-- Translation requirements
+  if (lowerPrompt.includes('status') || lowerPrompt.includes('check')) {
+    return "To check your application status, please visit the Dashboard or the 'My Applications' section. I can explain the general process if you like.";
+  }
 
-Example: "What documents do I need for a UK Skilled Worker visa?"`;
+  // Generic helpful response but dynamic
+  return `I understand you're asking about "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}". 
+  
+Currently, I am operating in limited mode (offline/demo). I can answer specific questions about:
+- **Visas** (UK, Germany, etc.)
+- **Documents** (Requirements, Prep)
+- **Translation** (General info)
+
+For a fully interactive experience, an administrator needs to configure the AI Provider (Ollama or HuggingFace).`;
 
 
 }

@@ -295,24 +295,9 @@ export async function verifyEmployer(
         }
       }
 
-      // 3. Fallback / Simulation Mode if NO API keys are configured and no results found
-      if (results.length === 0 && !process.env.UK_COMPANIES_HOUSE_API_KEY && !process.env.OPENCORPORATES_API_KEY) {
-        logger.info("No API keys found, returning demo data");
-        // Deterministic sample for demo
-        results.push({
-          found: true,
-          companyName: companyName + " (Demo)",
-          country: country,
-          registryType: 'demo_mode',
-          registryId: 'DEMO-' + Math.floor(Math.random() * 10000),
-          registeredAddress: '123 Innovation Way, Tech Park',
-          businessType: 'Limited Company',
-          status: 'active',
-          registrationDate: new Date('2023-01-01'),
-          verifiedAt: new Date(),
-          confidence: 70,
-          raw_data: { note: "Configure API keys for real data" }
-        });
+      // 3. Fallback: If no results found, return empty (do not show fake demo data)
+      if (results.length === 0) {
+        logger.info("No matching records found in registries");
       }
     }
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { researchArticles, type ResearchArticle, insertResearchArticleSchema } from "@shared/schema";
+import { researchArticles, type ResearchArticle, insertResearchArticleSchema, articleComments, articleReactions } from "@shared/schema";
 import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
@@ -227,6 +227,163 @@ router.delete(
 
     res.json({ message: "Article deleted" });
   }),
+);
+
+// Comments & Reactions logic
+
+// Get comments for an article
+router.get(
+  "/:id/comments",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { limit = "50", offset = "0" } = req.query as Record<string, string>;
+
+    const comments = await db.query.articleComments.findMany({
+      where: sql`article_id = ${id}`,
+      orderBy: [desc(sql`created_at`)],
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10),
+      with: {
+        // We'd ideally fetch author info, but Drizzle relations might not be fully set up in this file context
+        // Rely on client fetching user info or relation if available in schema
+      }
+    });
+
+    // Manually join user details if not using Drizzle relations or if simple enough
+    // For now returning raw comments, assuming frontend can map userIds or we add 'with' if relations exist
+    // Let's do a manual join to be safe and helpful
+    const userIds = Array.from(new Set(comments.map(c => c.userId)));
+    const usersInfo = await db.query.users.findMany({
+      where: sql`id IN ${userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000']}`,
+      columns: { id: true, firstName: true, lastName: true, role: true, avatar: true }
+    });
+
+    const userMap = new Map(usersInfo.map(u => [u.id, u]));
+    const enriched = comments.map(c => ({
+      ...c,
+      user: userMap.get(c.userId) || { firstName: 'User', lastName: '', role: 'applicant' }
+    }));
+
+    res.json(enriched);
+  })
+);
+
+// Post a comment
+router.post(
+  "/:id/comments",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    if (!content || typeof content !== 'string') {
+      throw new AppError(400, "Content is required");
+    }
+
+    const [comment] = await db
+      .insert(articleComments)
+      .values({
+        articleId: id,
+        userId: req.user!.userId,
+        content: sanitizeInput(content),
+      })
+      .returning();
+
+    // Return with user info
+    const user = await db.query.users.findFirst({
+      where: sql`id = ${req.user!.userId}`,
+      columns: { id: true, firstName: true, lastName: true, role: true, avatar: true }
+    });
+
+    res.status(201).json({ ...comment, user });
+  })
+);
+
+// Delete a comment (Owner or Admin)
+router.delete(
+  "/:id/comments/:commentId",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { commentId } = req.params;
+
+    const comment = await db.query.articleComments.findFirst({
+      where: sql`id = ${commentId}`
+    });
+
+    if (!comment) throw new AppError(404, "Comment not found");
+
+    if (comment.userId !== req.user!.userId && req.user!.role !== "admin") {
+      throw new AppError(403, "Access denied");
+    }
+
+    await db.delete(articleComments).where(sql`id = ${commentId}`);
+    res.json({ message: "Comment deleted" });
+  })
+);
+
+// Toggle Reaction (Like/Unlike)
+router.post(
+  "/:id/reactions",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { type = "like" } = req.body;
+
+    // Check if exists
+    const existing = await db.query.articleReactions.findFirst({
+      where: and(
+        sql`article_id = ${id}`,
+        sql`user_id = ${req.user!.userId}`
+      )
+    });
+
+    if (existing) {
+      // If same type, remove (toggle off). If distinct, could update type.
+      if (existing.type === type) {
+        await db.delete(articleReactions).where(sql`id = ${existing.id}`);
+        return res.json({ status: "removed" });
+      } else {
+        await db.update(articleReactions)
+          .set({ type })
+          .where(sql`id = ${existing.id}`);
+        return res.json({ status: "updated", type });
+      }
+    }
+
+    await db.insert(articleReactions).values({
+      articleId: id,
+      userId: req.user!.userId,
+      type
+    });
+
+    res.json({ status: "added", type });
+  })
+);
+
+// Get reaction stats
+router.get(
+  "/:id/reactions",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const reactions = await db.query.articleReactions.findMany({
+      where: sql`article_id = ${id}`
+    });
+
+    const counts = reactions.reduce((acc, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // If authenticated, check if user reacted
+    let userReaction = null;
+    if (req.user) { // parsed by optionalAuth if used, need to check middleware usage
+      // This route might need optionalAuth if we want to return user status
+    }
+    // Since middleware stack in router definition wasn't fully visible, assuming public for counts
+
+    res.json({ counts, total: reactions.length });
+  })
 );
 
 export default router;

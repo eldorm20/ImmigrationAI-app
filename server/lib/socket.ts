@@ -39,17 +39,35 @@ export function setupSocketIO(httpServer: HTTPServer) {
   // Middleware: authenticate socket connection via JWT token
   io.use(async (socket: Socket, next: (err?: any) => void) => {
     try {
-      const token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
+      let token = (socket.handshake.auth && (socket.handshake.auth as any).token) as string;
+
+      // Fallback: Check Authorization header
+      if (!token && socket.handshake.headers.authorization) {
+        const parts = socket.handshake.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0] === 'Bearer') {
+          token = parts[1];
+        }
+      }
+
+      // Fallback: Check cookie (if HttpOnly cookie is used/proxied)
+      if (!token && socket.handshake.headers.cookie) {
+        // Simple cookie parse (or use 'cookie' library if available)
+        const match = socket.handshake.headers.cookie.match(/accessToken=([^;]+)/);
+        if (match) token = match[1];
+      }
+
       if (!token) {
-        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token - allowing to proceed");
-        // Don't block unauthenticated connections - let them connect but fail on message send
+        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token - allowing as Guest");
         return next();
       }
 
       const payload = await verifyAccessToken(token);
       if (!payload) {
-        logger.warn({ socketId: socket.id, token: token.slice(0, 20) }, "Socket.IO token verification failed");
-        return next(new Error("Invalid or expired token"));
+        logger.warn({ socketId: socket.id, tokenPrefix: token.substring(0, 10) }, "Socket.IO token verification failed");
+        // Force disconnect so client knows auth failed? 
+        // Or allow as guest but fail messages? 
+        // Better to fail connection so client can refresh token.
+        return next(new Error("Authentication error"));
       }
 
       socket.data.user = payload as any;
@@ -57,7 +75,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
       return next();
     } catch (err) {
       logger.error({ err, socketId: socket.id }, "Socket.IO authentication error");
-      return next(err as any);
+      return next(new Error("Internal authentication error"));
     }
   });
 

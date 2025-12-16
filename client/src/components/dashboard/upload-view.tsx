@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { FileUp, Upload, Loader2, FileText, Eye, Trash2 } from "lucide-react";
 
-export const UploadView = () => {
+export const UploadView = ({ applicationId }: { applicationId?: string }) => {
     interface UploadedFile {
         id: string | number;
         name: string;
@@ -74,6 +74,9 @@ export const UploadView = () => {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('documentType', 'application_document');
+                if (applicationId) {
+                    formData.append('applicationId', applicationId);
+                }
 
                 try {
                     // Use apiRequest so auth/refresh logic and error handling are consistent

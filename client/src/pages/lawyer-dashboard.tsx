@@ -782,7 +782,7 @@ export default function LawyerDashboard() {
             >
               ← Back to Dashboard
             </button>
-            <UploadView />
+            <UploadView applicationId={selectedLead?.id ? String(selectedLead.id) : undefined} />
           </div>
         )}
       </main>

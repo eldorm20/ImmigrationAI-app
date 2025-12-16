@@ -43,11 +43,17 @@ router.get(
       // Admin/Lawyer stats
       const where = role === "lawyer" ? eq(applications.lawyerId, userId) : undefined;
       const allApps = await db.query.applications.findMany({ where });
-      const allPayments = await db.query.payments.findMany({
-        where: eq(payments.status, "completed"),
-      });
-
-      const totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+      let totalRevenue = 0;
+      if (role === "lawyer") {
+        totalRevenue = allApps
+          .filter((app) => app.fee && app.status === "approved")
+          .reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
+      } else {
+        const allPayments = await db.query.payments.findMany({
+          where: eq(payments.status, "completed"),
+        });
+        totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+      }
       const totalLeads = allApps.length;
       const pendingLeads = allApps.filter((app) => app.status === "new" || app.status === "in_progress").length;
       const approvedLeads = allApps.filter((app) => app.status === "approved").length;

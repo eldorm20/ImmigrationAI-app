@@ -39,7 +39,7 @@ router.get(
   "/current",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
     const now = new Date();
@@ -66,7 +66,7 @@ router.get(
   "/check/:feature",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { feature } = req.params;
 
     const hasAccess = await checkFeatureAccess(userId, feature as any);
@@ -85,7 +85,7 @@ router.get(
   "/usage",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     try {
       const aiDocs = await getUsageRemaining(userId, "aiDocumentGenerations");
@@ -109,7 +109,7 @@ router.post(
   "/upgrade",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { tier, planId } = req.body;
 
     // Accept both 'tier' and 'planId' for compatibility
@@ -121,7 +121,7 @@ router.post(
 
     // Validate tier
     if (!Object.keys(TIER_CONFIGURATIONS).includes(requestedTier)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: `Invalid subscription tier: ${requestedTier}. Valid options: ${Object.keys(TIER_CONFIGURATIONS).join(", ")}`
       });
     }
@@ -135,37 +135,47 @@ router.post(
       });
     }
 
-    // For paid tiers, create Stripe subscription
+    // For paid tiers, create Stripe subscription using Checkout Flow
     const user = req.user!;
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
-      const subscription = await createSubscription(
+      // Import dynamically to avoid circular dependency issues if any
+      const { createCheckoutSession } = await import("../lib/subscription");
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
+      const checkoutUrl = await createCheckoutSession(
         userId,
         tierConfig.stripePriceId,
-        user.email
+        user.email,
+        `${baseUrl}/dashboard?payment=success&tier=${requestedTier}`,
+        `${baseUrl}/container/subscription?payment=cancelled`
       );
 
-      if (!subscription) {
+      if (!checkoutUrl) {
         return res.status(503).json({
           success: false,
-          message: "Stripe integration is not available. Please contact support.",
+          message: "Stripe integration is not available or failed. Please contact support.",
         });
       }
 
       res.json({
         success: true,
-        message: `Upgraded to ${tierConfig.name} tier`,
-        tier: requestedTier,
-        subscription: { id: subscription.id, status: subscription.status },
+        message: `Redirecting to checkout for ${tierConfig.name}`,
+        checkoutUrl,
       });
     } catch (error) {
       logger.error({ error, userId }, "Subscription upgrade error");
+      // ... error handling
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Subscription upgrade failed",
+        error: "Failed to initiate checkout"
       });
     }
+
   })
 );
 
@@ -174,7 +184,7 @@ router.get(
   "/details",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
@@ -209,8 +219,8 @@ router.get(
   "/billing-history",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
-    
+    const userId = req.user!.userId;
+
     try {
       // For now, return empty billing history
       // In production, this would fetch from Stripe
@@ -229,8 +239,8 @@ router.post(
   "/cancel",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
-    
+    const userId = req.user!.userId;
+
     try {
       // Find active subscription for user
       const subscription = await db.query.subscriptions.findFirst({
@@ -264,7 +274,7 @@ router.post(
       // Update subscription status to canceled
       await db
         .update(subscriptions)
-        .set({ 
+        .set({
           status: "canceled",
           updatedAt: new Date()
         })

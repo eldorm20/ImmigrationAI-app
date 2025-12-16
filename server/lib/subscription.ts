@@ -1,4 +1,5 @@
 import { db } from "../db";
+import type Stripe from "stripe";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
@@ -156,6 +157,63 @@ export async function createSubscription(
     return subscription;
   } catch (error) {
     logger.error({ error, userId, planId }, "Failed to create subscription");
+    return null;
+  }
+}
+
+export async function createCheckoutSession(
+  userId: string,
+  planId: string,
+  email: string,
+  successUrl: string,
+  cancelUrl: string
+): Promise<string | null> {
+  try {
+    const stripeClient = await getStripe();
+    if (!stripeClient) {
+      logger.warn("Stripe client unavailable");
+      return null;
+    }
+
+    // Ensure customer exists (reuse createSubscription logic potentially, or duplicate simple check)
+    let customer: Stripe.Customer;
+    const userInDb = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    const existingMetadata = userInDb?.metadata && typeof userInDb.metadata === 'object' ? (userInDb.metadata as any) : {};
+    const stripeCustomerId = existingMetadata?.stripeCustomerId;
+
+    if (stripeCustomerId) {
+      try {
+        customer = (await stripeClient.customers.retrieve(stripeCustomerId)) as Stripe.Customer;
+        if ((customer as any).deleted) throw new Error("Deleted");
+      } catch {
+        customer = await stripeClient.customers.create({ email, metadata: { userId } });
+      }
+    } else {
+      customer = await stripeClient.customers.create({ email, metadata: { userId } });
+    }
+
+    // Save customer ID if new
+    if (customer.id !== stripeCustomerId) {
+      try {
+        await db.update(users)
+          .set({ metadata: { ...existingMetadata, stripeCustomerId: customer.id } as any })
+          .where(eq(users.id, userId));
+      } catch { }
+    }
+
+    const session = await stripeClient.checkout.sessions.create({
+      customer: customer.id,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: planId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: { userId, planId },
+    });
+
+    return session.url;
+  } catch (error) {
+    logger.error({ error, userId }, "Failed to create checkout session");
     return null;
   }
 }
