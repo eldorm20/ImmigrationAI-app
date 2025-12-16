@@ -301,7 +301,6 @@ export async function runMigrationsIfNeeded(): Promise<void> {
             metadata JSONB,
             created_at TIMESTAMP DEFAULT NOW()
         )
-        )
       `);
 
       // 9. Community & News
