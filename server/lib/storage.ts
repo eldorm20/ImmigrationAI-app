@@ -153,9 +153,9 @@ export async function uploadFile(
   }
   const key = generateFileKey(userId, applicationId, file.originalname);
 
-  // As per user request, prioritize Database Storage for file uploads
+  // As per user request, prioritize Database Storage for file uploads ONLY if S3 is not configured
   // This allows "local database for file upload" instead of S3
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && !BUCKET_NAME) {
     try {
       // Store file blob in Postgres table `file_blobs` (created on-demand)
       const { Pool } = await import('pg');
