@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth';
-import { asyncHandler } from '../middleware/errorHandler';
+import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { db } from '../db';
-import { employerVerifications, employerDirectory } from '@shared/schema';
+import { employerVerifications, employerDirectory, companies, jobs, insertCompanySchema, insertJobSchema } from '@shared/schema';
 import {
   verifyEmployer,
   searchEmployersMultiRegistry,
@@ -14,6 +14,14 @@ import { logger } from '../lib/logger';
 import { eq, and, desc } from 'drizzle-orm';
 
 const router = Router();
+
+// Middleware to ensure user is an employer
+const requireEmployer = (req: any, res: any, next: any) => {
+  if (req.user.role !== "employer" && req.user.role !== "admin") {
+    return next(new AppError(403, "Access denied. Employer account required."));
+  }
+  next();
+};
 
 // Validation schemas
 const employerSearchSchema = z.object({
@@ -426,6 +434,128 @@ router.post(
       totalProcessed: body.employers.length,
       successCount: results.filter((r) => r.status !== 'error').length,
     });
+  })
+);
+
+// --- Employer Portal Routes ---
+
+// Get current user's company
+router.get(
+  "/company",
+  requireEmployer,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const company = await db.query.companies.findFirst({
+      where: eq(companies.userId, userId),
+    });
+    res.json(company || null);
+  })
+);
+
+// Create/Update company
+router.post(
+  "/company",
+  requireEmployer,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const body = insertCompanySchema.parse(req.body);
+
+    // Check if exists
+    const existing = await db.query.companies.findFirst({
+      where: eq(companies.userId, userId),
+    });
+
+    let company;
+    if (existing) {
+      const [updated] = await db
+        .update(companies)
+        .set({ ...body, updatedAt: new Date() })
+        .where(eq(companies.id, existing.id))
+        .returning();
+      company = updated;
+    } else {
+      const [created] = await db
+        .insert(companies)
+        .values({ ...body, userId })
+        .returning();
+      company = created;
+    }
+
+    res.json(company);
+  })
+);
+
+// List my jobs
+router.get(
+  "/jobs",
+  requireEmployer,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+
+    // Get company first
+    const company = await db.query.companies.findFirst({
+      where: eq(companies.userId, userId),
+    });
+
+    if (!company) return res.json([]);
+
+    const myJobs = await db.query.jobs.findMany({
+      where: eq(jobs.companyId, company.id),
+      orderBy: [desc(jobs.createdAt)],
+    });
+
+    res.json(myJobs);
+  })
+);
+
+// Post a job
+router.post(
+  "/jobs",
+  requireEmployer,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const body = insertJobSchema.parse(req.body);
+
+    const company = await db.query.companies.findFirst({
+      where: eq(companies.userId, userId),
+    });
+
+    if (!company) {
+      throw new AppError(400, "You must create a company profile before posting jobs.");
+    }
+
+    const [job] = await db.insert(jobs).values({
+      ...body,
+      companyId: company.id,
+      status: "active"
+    }).returning();
+
+    res.json(job);
+  })
+);
+
+// Delete/Close a job
+router.delete(
+  "/jobs/:id",
+  requireEmployer,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const company = await db.query.companies.findFirst({
+      where: eq(companies.userId, userId),
+    });
+
+    if (!company) throw new AppError(404, "Company not found");
+
+    const [deleted] = await db
+      .delete(jobs)
+      .where(and(eq(jobs.id, id), eq(jobs.companyId, company.id)))
+      .returning();
+
+    if (!deleted) throw new AppError(404, "Job not found");
+
+    res.json({ message: "Job deleted" });
   })
 );
 

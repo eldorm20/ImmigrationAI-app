@@ -16,7 +16,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "lawyer", "applicant"]);
+export const userRoleEnum = pgEnum("user_role", ["admin", "lawyer", "applicant", "employer"]);
 export const applicationStatusEnum = pgEnum("application_status", [
   "new",
   "in_progress",
@@ -569,3 +569,73 @@ export type InsertArticleComment = z.infer<typeof insertArticleCommentSchema>;
 export type ArticleComment = typeof articleComments.$inferSelect;
 export type InsertArticleReaction = z.infer<typeof insertArticleReactionSchema>;
 export type ArticleReaction = typeof articleReactions.$inferSelect;
+
+// Employer Company Profile
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  industry: varchar("industry", { length: 100 }),
+  size: varchar("size", { length: 50 }),
+  description: text("description"),
+  website: varchar("website", { length: 255 }),
+  logo: text("logo"), // URL
+  isVerified: boolean("is_verified").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("companies_user_id_idx").on(table.userId),
+}));
+
+// Job Listings
+export const jobs = pgTable("jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id", { length: 255 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  location: varchar("location", { length: 100 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("full-time"), // full-time, part-time, contract
+  salaryRange: varchar("salary_range", { length: 100 }),
+  visaSponsorship: boolean("visa_sponsorship").default(true),
+  requirements: jsonb("requirements"), // Array of strings
+  status: varchar("status", { length: 50 }).default("active"), // active, closed, draft
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  companyIdIdx: index("jobs_company_id_idx").on(table.companyId),
+  statusIdx: index("jobs_status_idx").on(table.status),
+}));
+
+export const insertCompanySchema = createInsertSchema(companies, {
+  name: z.string().min(2).max(255),
+  website: z.string().url().optional().nullable(),
+}).pick({
+  userId: true,
+  name: true,
+  industry: true,
+  size: true,
+  description: true,
+  website: true,
+  logo: true,
+});
+
+export const insertJobSchema = createInsertSchema(jobs, {
+  title: z.string().min(3).max(255),
+  description: z.string().min(10),
+  location: z.string().min(2),
+}).pick({
+  companyId: true,
+  title: true,
+  description: true,
+  location: true,
+  type: true,
+  salaryRange: true,
+  visaSponsorship: true,
+  requirements: true,
+  status: true,
+});
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+export type InsertJob = z.infer<typeof insertJobSchema>;
+export type Job = typeof jobs.$inferSelect;

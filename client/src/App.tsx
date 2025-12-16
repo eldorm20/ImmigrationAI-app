@@ -39,9 +39,10 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
 import EmployerVerificationPage from "@/pages/employer-verification";
+import EmployerDashboard from "@/pages/employer-dashboard";
 import VideoCallPage from "@/pages/video-call";
 
-function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
+function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' | 'employer' }) {
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
 
@@ -58,7 +59,9 @@ function ProtectedRoute({ component: Component, role }: { component: React.Compo
 
   // If role doesn't match, redirect to appropriate dashboard
   if (role && user.role !== role) {
-    const targetRoute = (user.role === 'lawyer' || user.role === 'admin') ? '/lawyer' : '/dashboard';
+    const targetRoute = (user.role === 'lawyer' || user.role === 'admin')
+      ? '/lawyer'
+      : (user.role === 'employer' ? '/employer-dashboard' : '/dashboard');
     setLocation(targetRoute);
     return null;
   }
@@ -137,6 +140,10 @@ function Router() {
 
         <Route path="/employer-verification">
           <ProtectedRoute component={EmployerVerificationPage} role="applicant" />
+        </Route>
+
+        <Route path="/employer-dashboard">
+          <ProtectedRoute component={EmployerDashboard} role="employer" />
         </Route>
 
         <Route path="/video-call/:roomId">
