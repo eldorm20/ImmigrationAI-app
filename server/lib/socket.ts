@@ -85,10 +85,13 @@ export function setupSocketIO(httpServer: HTTPServer) {
   const userMeta = new Map<string, { userName: string; email: string; role: string }>();
 
   io.on("connection", (socket: Socket) => {
-    const user = socket.data.user as SocketUser | undefined;
-    const userId = user?.id || `guest:${socket.id}`;
+    // JWT payload has 'userId', not 'id'
+    const jwtPayload = socket.data.user as { userId: string; email: string; role: string } | undefined;
+    const userId = jwtPayload?.userId || `guest:${socket.id}`;
+    const userEmail = jwtPayload?.email || '';
+    const userRole = jwtPayload?.role || 'guest';
 
-    logger.info({ userId, socketId: socket.id }, "Socket.IO client connected");
+    logger.info({ userId, socketId: socket.id, hasAuth: !!jwtPayload }, "Socket.IO client connected");
 
     // Track user's sockets
     if (!userSockets.has(userId)) userSockets.set(userId, new Set());
@@ -97,13 +100,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
     // Join user room (e.g., for private notifications)
     socket.join(`user:${userId}`);
 
-    // Attempt to seed metadata for presence
-    if (user && (user as any).email) {
-      userMeta.set(userId, { userName: (user as any).email.split('@')[0], email: (user as any).email, role: (user as any).role });
-    } else {
-      // Guest connections are tracked but limited
-      userMeta.set(userId, { userName: `guest_${socket.id.slice(0, 6)}`, email: "", role: "guest" });
-    }
+    // Set metadata for presence
+    userMeta.set(userId, {
+      userName: userEmail ? userEmail.split('@')[0] : `guest_${socket.id.slice(0, 6)}`,
+      email: userEmail,
+      role: userRole
+    });
 
     // Send greeting
     socket.emit("connect:success", { message: "Connected to messaging server", userId });
@@ -114,9 +116,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle incoming messages (support both server and frontend event names)
     const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
-      // If no authenticated user, check if we have fallback userId
-      const effectiveUserId = user?.id || userId;
-      if (!effectiveUserId || effectiveUserId.startsWith('guest:')) {
+      // Check if user is authenticated (not a guest)
+      if (userId.startsWith('guest:')) {
         logger.warn({ socketId: socket.id }, 'Message attempt without auth');
         return ack?.({ success: false, error: "Please sign in to send messages" });
       }
@@ -149,8 +150,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
         const payloadOut = {
           id: savedMessage.id,
           content,
-          senderId: effectiveUserId,
-          senderName: user?.email || 'User',
+          senderId: userId,
+          senderName: userEmail || 'User',
           receiverId,
           applicationId,
           timestamp: createdAt,
@@ -176,7 +177,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle message read status (support both names)
     const handleMarkRead = async (data: any) => {
-      if (!user || !user.id) return;
+      if (userId.startsWith('guest:')) return;
       try {
         const messageId = typeof data === 'string' ? data : data.messageId;
         await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
@@ -213,12 +214,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
-      if (!user) return;
+      if (userId.startsWith('guest:')) return;
       try {
         const m = {
-          userName: meta.name || meta.userName || (user as any).email?.split('@')[0] || "User",
-          email: meta.email || (user as any).email,
-          role: meta.role || (user as any).role
+          userName: meta.name || meta.userName || (userEmail ? userEmail.split('@')[0] : "User"),
+          email: meta.email || userEmail,
+          role: meta.role || userRole
         };
         (m as any).lastSeen = Date.now();
         userMeta.set(userId, m);
@@ -240,7 +241,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
         if (sockets.size === 0) {
           userSockets.delete(userId);
           // mark last seen timestamp
-          const meta = userMeta.get(userId) || { userName: user?.email?.split('@')[0] || 'unknown', role: user?.role || 'guest' };
+          const meta = userMeta.get(userId) || { userName: userEmail ? userEmail.split('@')[0] : 'unknown', email: userEmail, role: userRole };
           (meta as any).lastSeen = Date.now();
           userMeta.set(userId, meta as any);
           io.emit('user_status_changed', { userId, status: 'offline', lastSeen: (meta as any).lastSeen });

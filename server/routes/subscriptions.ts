@@ -152,7 +152,7 @@ router.post(
         tierConfig.stripePriceId,
         user.email,
         `${baseUrl}/dashboard?payment=success&tier=${requestedTier}`,
-        `${baseUrl}/container/subscription?payment=cancelled`
+        `${baseUrl}/subscription?payment=cancelled`
       );
 
       if (!checkoutUrl) {
