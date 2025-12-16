@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/api";
 export interface User {
   id: string;
   email: string;
-  role: "admin" | "lawyer" | "applicant";
+  role: "admin" | "lawyer" | "applicant" | "employer";
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
@@ -105,24 +105,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-    setTokens(data.accessToken, data.refreshToken);
-    const userData = data.user as Omit<User, "name">;
-    const nameFromEmail = userData.email.split("@")[0];
-    const fullName =
-      [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
-      nameFromEmail;
+      setTokens(data.accessToken, data.refreshToken);
+      const userData = data.user as Omit<User, "name">;
+      const nameFromEmail = userData.email.split("@")[0];
+      const fullName =
+        [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
+        nameFromEmail;
 
-    setUser({
-      ...userData,
-      name: fullName,
-    });
+      setUser({
+        ...userData,
+        name: fullName,
+      });
 
-    // Redirect based on role
-    if (userData.role === "lawyer" || userData.role === "admin") {
-      setLocation("/lawyer");
-    } else {
-      setLocation("/dashboard");
-    }
+      // Redirect based on role
+      if (userData.role === "lawyer" || userData.role === "admin") {
+        setLocation("/lawyer");
+      } else {
+        setLocation("/dashboard");
+      }
     } catch (err) {
       // Propagate error so callers can handle it
       throw err;
@@ -141,25 +141,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: "POST",
         body: JSON.stringify({ email, password, firstName, lastName, role }),
       });
-    setTokens(data.accessToken, data.refreshToken);
-    const userData = data.user as Omit<User, "name">;
-    const nameFromEmail = userData.email.split("@")[0];
-    const fullName =
-      [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
-      nameFromEmail;
+      setTokens(data.accessToken, data.refreshToken);
+      const userData = data.user as Omit<User, "name">;
+      const nameFromEmail = userData.email.split("@")[0];
+      const fullName =
+        [userData.firstName, userData.lastName].filter(Boolean).join(" ").trim() ||
+        nameFromEmail;
 
-    const mappedUser: User = {
-      ...userData,
-      name: fullName,
-    };
+      const mappedUser: User = {
+        ...userData,
+        name: fullName,
+      };
 
-    setUser(mappedUser);
+      setUser(mappedUser);
 
-    if (mappedUser.role === "lawyer" || mappedUser.role === "admin") {
-      setLocation("/lawyer");
-    } else {
-      setLocation("/dashboard");
-    }
+      if (mappedUser.role === "lawyer" || mappedUser.role === "admin") {
+        setLocation("/lawyer");
+      } else {
+        setLocation("/dashboard");
+      }
     } catch (err) {
       // Propagate registration errors to caller
       throw err;

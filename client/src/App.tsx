@@ -40,6 +40,8 @@ import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
 import EmployerVerificationPage from "@/pages/employer-verification";
 import EmployerDashboard from "@/pages/employer-dashboard";
+import AuditLogsPage from "@/pages/admin/audit-logs";
+import SignaturesPage from "@/pages/signatures";
 import VideoCallPage from "@/pages/video-call";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' | 'employer' }) {
@@ -157,8 +159,16 @@ function Router() {
         <Route path="/admin">
           <ProtectedRoute component={AdminDashboard} role="admin" />
         </Route>
+
+        <Route path="/admin/audit">
+          <ProtectedRoute component={AuditLogsPage} role="admin" />
+        </Route>
         <Route path="/admin/subscriptions">
           <ProtectedRoute component={AdminSubscriptions} role="admin" />
+        </Route>
+
+        <Route path="/signatures">
+          <ProtectedRoute component={SignaturesPage} />
         </Route>
         <Route path="/admin/users">
           <ProtectedRoute component={AdminUsersPage} role="admin" />

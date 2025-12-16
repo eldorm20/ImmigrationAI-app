@@ -668,3 +668,33 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+
+// Signature Requests
+export const signatureRequests = pgTable("signature_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requesterId: varchar("requester_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  signerId: varchar("signer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  documentId: varchar("document_id", { length: 255 }).references(() => documents.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, signed, rejected
+  signatureUrl: text("signature_url"),
+  signedAt: timestamp("signed_at"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  signerIdIdx: index("signature_requests_signer_id_idx").on(table.signerId),
+  requesterIdIdx: index("signature_requests_requester_id_idx").on(table.requesterId),
+  statusIdx: index("signature_requests_status_idx").on(table.status),
+}));
+
+export const insertSignatureRequestSchema = createInsertSchema(signatureRequests).pick({
+  requesterId: true,
+  signerId: true,
+  documentId: true,
+  status: true,
+  signatureUrl: true,
+  metadata: true,
+});
+
+export type InsertSignatureRequest = z.infer<typeof insertSignatureRequestSchema>;
+export type SignatureRequest = typeof signatureRequests.$inferSelect;
