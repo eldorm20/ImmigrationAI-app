@@ -10,9 +10,10 @@ import {
   jsonb,
   pgEnum,
   index,
-  customType
+  customType,
+  uuid
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
