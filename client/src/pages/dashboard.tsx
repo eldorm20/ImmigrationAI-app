@@ -24,7 +24,8 @@ import { UploadView } from "@/components/dashboard/upload-view";
 import { VisaPredictorView } from "@/components/dashboard/visa-predictor-view";
 import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-view";
 import { OCRUploadView } from "@/components/dashboard/ocr-upload-view";
-import { Target, CalendarClock } from "lucide-react";
+import ReferralView from "@/components/dashboard/referral-view";
+import { Target, CalendarClock, Gift } from "lucide-react";
 
 
 
@@ -90,6 +91,7 @@ export default function UserDash() {
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
             { id: 'scan', icon: Scan, label: 'Scan Doc' },
+            { id: 'referrals', icon: Gift, label: 'Refer & Earn' },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
@@ -194,6 +196,11 @@ export default function UserDash() {
           {activeTab === 'scan' && (
             <AnimatedCard>
               <OCRUploadView />
+            </AnimatedCard>
+          )}
+          {activeTab === 'referrals' && (
+            <AnimatedCard>
+              <ReferralView />
             </AnimatedCard>
           )}
           {activeTab === 'translate' && <TranslateView key="translate" />}

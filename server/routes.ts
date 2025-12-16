@@ -26,6 +26,7 @@ import predictRoutes from "./routes/predict";
 import deadlinesRoutes from "./routes/deadlines";
 import videoRoutes from "./routes/video";
 import ocrRoutes from "./routes/ocr";
+import referralRoutes from "./routes/referrals";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -59,4 +60,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/deadlines", deadlinesRoutes);
   app.use("/api/video", videoRoutes);
   app.use("/api/ocr", ocrRoutes);
+  app.use("/api/referrals", referralRoutes);
 }

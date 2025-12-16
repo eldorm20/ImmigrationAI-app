@@ -87,6 +87,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
   avatar: text("avatar"),
+  referralCode: varchar("referral_code", { length: 20 }).unique(),
   metadata: jsonb("metadata"), // Store subscription and other metadata
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -638,4 +639,32 @@ export const insertJobSchema = createInsertSchema(jobs, {
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;
+// ... (User table update logic is tricky with replace, I will use multi_replace for users table and append for referrals table)
+
 export type Job = typeof jobs.$inferSelect;
+
+// Referrals
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  referredUserId: varchar("referred_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, completed, paid
+  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }).default("0"),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  referrerIdIdx: index("referrals_referrer_id_idx").on(table.referrerId),
+  referredUserIdIdx: index("referrals_referred_user_id_idx").on(table.referredUserId),
+}));
+
+export const insertReferralSchema = createInsertSchema(referrals).pick({
+  referrerId: true,
+  referredUserId: true,
+  status: true,
+  rewardAmount: true,
+});
+
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
