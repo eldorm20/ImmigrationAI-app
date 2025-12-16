@@ -23,6 +23,7 @@ import debugRoutes from "./routes/debug";
 
 import publicStatsRouter from "./routes/public-stats";
 import predictRoutes from "./routes/predict";
+import deadlinesRoutes from "./routes/deadlines";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -53,4 +54,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/employers", employersRoutes);
   app.use("/api/debug", debugRoutes);
   app.use("/api/predict", predictRoutes);
+  app.use("/api/deadlines", deadlinesRoutes);
 }

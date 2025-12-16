@@ -22,7 +22,8 @@ import { ChatView } from "@/components/dashboard/chat-view";
 import { TranslateView } from "@/components/dashboard/translate-view";
 import { UploadView } from "@/components/dashboard/upload-view";
 import { VisaPredictorView } from "@/components/dashboard/visa-predictor-view";
-import { Target } from "lucide-react";
+import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-view";
+import { Target, CalendarClock } from "lucide-react";
 
 
 
@@ -83,6 +84,7 @@ export default function UserDash() {
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
             { id: 'predictor', icon: Target, label: 'Visa Predictor' },
+            { id: 'deadlines', icon: CalendarClock, label: 'Deadlines' },
             { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
@@ -183,6 +185,7 @@ export default function UserDash() {
         <AnimatePresence mode="wait">
           {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} toast={toast} />}
           {activeTab === 'predictor' && <VisaPredictorView key="predictor" />}
+          {activeTab === 'deadlines' && <DeadlineTrackerView key="deadlines" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
