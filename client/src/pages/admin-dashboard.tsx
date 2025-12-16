@@ -74,6 +74,9 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-4">
+          <button onClick={() => setLocation("/admin/analytics")} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700">
+            <TrendingUp className="w-4 h-4" /> Analytics
+          </button>
           <button onClick={() => setLocation("/admin/audit")} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700">
             <BarChart3 className="w-4 h-4" /> Audit Logs
           </button>

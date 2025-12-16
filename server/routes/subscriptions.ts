@@ -110,7 +110,7 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    const { tier, planId } = req.body;
+    const { tier, planId, companyId } = req.body;
 
     // Accept both 'tier' and 'planId' for compatibility
     const requestedTier = tier || planId;
@@ -147,12 +147,26 @@ router.post(
       const host = req.get('host');
       const baseUrl = `${protocol}://${host}`;
 
+      // If company upgrade, verify ownership
+      if (companyId) {
+        const company = await db.query.companies.findFirst({
+          where: eq(require("@shared/schema").companies.id, companyId)
+        });
+        if (!company) {
+          return res.status(404).json({ message: "Company not found" });
+        }
+        if (company.userId !== userId) {
+          return res.status(403).json({ message: "Only the company owner can upgrade the subscription" });
+        }
+      }
+
       const checkoutUrl = await createCheckoutSession(
         userId,
         tierConfig.stripePriceId,
         user.email,
-        `${baseUrl}/dashboard?payment=success&tier=${requestedTier}`,
-        `${baseUrl}/subscription?payment=cancelled`
+        `${baseUrl}/dashboard?payment=success&tier=${requestedTier}${companyId ? '&companyId=' + companyId : ''}`,
+        `${baseUrl}/subscription?payment=cancelled`,
+        companyId
       );
 
       if (!checkoutUrl) {

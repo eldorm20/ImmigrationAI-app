@@ -282,7 +282,8 @@ export const insertUserSchema = createInsertSchema(users, {
 // Subscriptions table (normalized storage for provider subscriptions)
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 255 }).references(() => companies.id, { onDelete: "cascade" }),
   provider: paymentProviderEnum("provider").notNull().default("stripe"),
   providerSubscriptionId: varchar("provider_subscription_id", { length: 255 }).notNull().unique(),
   planId: varchar("plan_id", { length: 255 }),
@@ -587,6 +588,10 @@ export const companies = pgTable("companies", {
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // Billing
+  billingEmail: varchar("billing_email", { length: 255 }),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  subscriptionStatus: varchar("subscription_status", { length: 50 }),
 }, (table) => ({
   userIdIdx: index("companies_user_id_idx").on(table.userId),
   subdomainIdx: index("companies_subdomain_idx").on(table.subdomain),

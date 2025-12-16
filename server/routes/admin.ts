@@ -3,11 +3,12 @@ import { z } from "zod";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { db } from "../db";
-import { users, consultations, applications, payments } from "@shared/schema";
+import { users, consultations, applications, payments, companies, subscriptions } from "@shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
 import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
+import { getStripeClient } from "../lib/subscription";
 
 
 const router = Router();
@@ -35,6 +36,9 @@ router.get(
     const allPayments = await db.query.payments.findMany({
       where: eq(payments.status, "completed")
     });
+
+    const allCompanies = await db.query.companies.findMany();
+    const activeCompanies = allCompanies.filter(c => c.isActive);
 
     // Calculate total earnings
     const totalEarnings = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
@@ -83,6 +87,8 @@ router.get(
         totalLawyers: lawyers.length,
         totalApplicants: applicants.length,
         adminUsers: admins.length,
+        totalCompanies: allCompanies.length,
+        activeCompanies: activeCompanies.length,
       },
       metrics: {
         activeUsers: applicants.length,
@@ -142,23 +148,54 @@ router.get(
 );
 
 // Get revenue analytics
+// Get revenue analytics (Real Stripe Data)
 router.get(
   "/revenue/analytics",
   asyncHandler(async (req, res) => {
-    res.json({
-      revenue: {
-        total: 0,
-        thisMonth: 0,
-        thisQuarter: 0,
-        thisYear: 0,
-      },
-      breakdown: {
-        subscriptions: 0,
-        consultations: 0,
-        documents: 0,
-      },
-      topEarners: [],
-    });
+    try {
+      const stripe = await getStripeClient();
+      if (!stripe) {
+        return res.json({
+          totalRevenue: 0,
+          monthlyRevenue: [],
+          breakdown: { subscriptions: 0, consultations: 0, documents: 0 }
+        });
+      }
+
+      // Fetch balance transactions (limit 100 for now)
+      const charges = await stripe.charges.list({ limit: 100 });
+
+      let totalRevenue = 0;
+      const monthlyRevenue = new Map<string, number>();
+
+      charges.data.forEach((charge: any) => {
+        if (charge.paid && !charge.refunded) {
+          totalRevenue += charge.amount;
+
+          const date = new Date(charge.created * 1000);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyRevenue.set(monthKey, (monthlyRevenue.get(monthKey) || 0) + charge.amount);
+        }
+      });
+
+      // Convert cents to dollars
+      totalRevenue = totalRevenue / 100;
+      const graphData = Array.from(monthlyRevenue.entries())
+        .map(([month, amount]) => ({ month, revenue: amount / 100 }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      res.json({
+        revenue: {
+          total: totalRevenue,
+          thisMonth: graphData[graphData.length - 1]?.revenue || 0,
+        },
+        monthlyRevenue: graphData
+      });
+
+    } catch (error) {
+      logger.error({ error }, "Failed to fetch revenue stats");
+      res.status(500).json({ message: "Failed to fetch revenue stats" });
+    }
   })
 );
 

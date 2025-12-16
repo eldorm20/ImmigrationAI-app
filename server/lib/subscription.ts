@@ -55,7 +55,8 @@ export interface UserSubscription {
 export async function createSubscription(
   userId: string,
   planId: string,
-  email: string
+  email: string,
+  companyId?: string
 ): Promise<Stripe.Subscription | null> {
   try {
     const stripeClient = await getStripe();
@@ -118,7 +119,7 @@ export async function createSubscription(
       subscription = await stripeClient.subscriptions.create({
         customer: customer.id,
         items: [{ price: planId }],
-        metadata: { userId, planId },
+        metadata: { userId, planId, companyId: companyId || "" },
         payment_behavior: "default_incomplete",
         expand: ["latest_invoice.payment_intent"],
       });
@@ -166,7 +167,8 @@ export async function createCheckoutSession(
   planId: string,
   email: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  companyId?: string
 ): Promise<string | null> {
   try {
     const stripeClient = await getStripe();
@@ -208,7 +210,7 @@ export async function createCheckoutSession(
       line_items: [{ price: planId, quantity: 1 }],
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: { userId, planId },
+      metadata: { userId, planId, companyId: companyId || "" },
     });
 
     return session.url;

@@ -202,6 +202,13 @@ export async function runMigrationsIfNeeded(): Promise<void> {
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS subdomain TEXT UNIQUE");
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS branding_config JSONB");
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true");
+
+        // 2b. B2B Billing
+        await pool.query("ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS company_id TEXT REFERENCES companies(id) ON DELETE CASCADE");
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS billing_email TEXT");
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT");
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_status TEXT");
+
       } catch (err) {
         logger.warn({ err }, "Could not add new B2B columns to companies table");
       }
