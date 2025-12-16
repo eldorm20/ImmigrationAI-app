@@ -305,30 +305,48 @@ export default function MessagingPanel() {
 
     setIsSending(true);
 
-    socket.emit("message:send", {
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      senderId: user!.id,
+      receiverId: selectedParticipant,
       content: inputMessage,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInputMessage("");
+
+    socket.emit("message:send", {
+      content: optimisticMessage.content,
       receiverId: selectedParticipant,
       applicationId: undefined,
     }, (ack: SocketAck) => {
       if (ack?.success) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: ack.messageId || `temp-${Date.now()}`,
-            senderId: user!.id,
-            receiverId: selectedParticipant,
-            content: inputMessage,
-            timestamp: new Date().toISOString(),
-            isRead: false,
-          },
-        ]);
-        setInputMessage("");
+        // Update the temp message with real ID if needed, 
+        // but typically we just leave it or strictly replace it.
+        // For simplicity, we can update the ID in place if we tracked it, 
+        // but react state update is cleaner if we just let the "message:received" 
+        // (which might come back from server echo) handle it? 
+        // No, server echoes to sender? Let's check socket.ts.
+        // socket.ts emits 'message_sent' back to sender.
+        // We should listen to 'message_sent' to confirm/replace ID?
+        // OR just assume success keeps it. 
+        // To avoid duplicate if server echoes 'new_message' to sender (it doesn't, it sends 'message_sent'),
+        // we can update the ID here.
+
+        setMessages((prev) => prev.map(m => m.id === tempId ? { ...m, id: ack.messageId || m.id } : m));
       } else {
         toast({
           title: t.common.error,
           description: ack?.error || t.messaging.sendError,
           variant: "destructive",
         });
+        // Revert on failure
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
+        setInputMessage(optimisticMessage.content); // Restore input
       }
       setIsSending(false);
     });

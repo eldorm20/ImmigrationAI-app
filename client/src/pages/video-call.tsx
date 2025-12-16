@@ -242,6 +242,23 @@ export default function VideoCallPage() {
                 </div>
             </div>
 
+            {/* Share Link Overlay */}
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 bg-slate-900/50 backdrop-blur-sm p-2 rounded-full border border-white/10 flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
+                <div className="bg-brand-500/20 text-brand-300 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2">
+                    <Users className="w-3 h-3" />
+                    {roomId}
+                </div>
+                <button
+                    onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast({ title: "Link Copied", description: "Share this link with your client" });
+                    }}
+                    className="bg-white text-slate-900 px-3 py-1 rounded-full text-xs font-bold hover:bg-slate-200 transition-colors"
+                >
+                    Copy Link
+                </button>
+            </div>
+
             {/* Video Grid */}
             <div className="w-full h-full flex items-center justify-center p-4">
                 <div className="relative w-full max-w-6xl aspect-video bg-slate-900 rounded-xl overflow-hidden shadow-2xl border border-slate-800">

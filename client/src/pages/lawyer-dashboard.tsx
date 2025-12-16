@@ -112,7 +112,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'ai-chat' | 'translate' | 'upload'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'translate' | 'upload'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -444,10 +444,7 @@ export default function LawyerDashboard() {
                     setActiveTab('ai-docs');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    setActiveTab('ai-chat');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.openChat || 'Open Chat'}</ActionButton>
+
                   <ActionButton variant="ghost" onClick={() => {
                     setActiveTab('translate');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -755,17 +752,7 @@ export default function LawyerDashboard() {
             <AIDocsView />
           </div>
         )}
-        {activeTab === 'ai-chat' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveTab('applications')}
-              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-            <ChatView />
-          </div>
-        )}
+
         {activeTab === 'translate' && (
           <div className="space-y-4">
             <button

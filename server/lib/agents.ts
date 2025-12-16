@@ -446,8 +446,8 @@ async function generateTextWithProvider(
   // Accept multiple environment variable names for local Ollama-like endpoints
   const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || process.env.OLLAMA_LOCAL_URL;
   const hasLocalAI = Boolean(localAIUrl);
-  // OpenAI usage intentionally disabled — prefer local/HuggingFace open-source providers
-  const hasOpenAI = false;
+  // OpenAI usage enabled if key is present
+  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
   );

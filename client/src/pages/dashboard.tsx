@@ -24,6 +24,7 @@ import { UploadView } from "@/components/dashboard/upload-view";
 import { VisaPredictorView } from "@/components/dashboard/visa-predictor-view";
 import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-view";
 import { OCRUploadView } from "@/components/dashboard/ocr-upload-view";
+import { DocumentsView } from "@/components/dashboard/documents-view";
 import ReferralView from "@/components/dashboard/referral-view";
 import { Target, CalendarClock, Gift } from "lucide-react";
 
@@ -87,10 +88,9 @@ export default function UserDash() {
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
             { id: 'predictor', icon: Target, label: 'Visa Predictor' },
             { id: 'deadlines', icon: CalendarClock, label: 'Deadlines' },
-            { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
+            { id: 'docs', icon: Sparkles, label: 'AI Docs' }, // Renamed from Documents to avoid confusion
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
-            { id: 'upload', icon: Upload, label: t.dash.upload },
-            { id: 'scan', icon: Scan, label: 'Scan Doc' },
+            { id: 'documents', icon: FileText, label: 'Documents' }, // Merged Upload + Scan
             { id: 'referrals', icon: Gift, label: 'Refer & Earn' },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
@@ -192,12 +192,7 @@ export default function UserDash() {
           {activeTab === 'deadlines' && <DeadlineTrackerView key="deadlines" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
-          {activeTab === 'upload' && <UploadView key="upload" />}
-          {activeTab === 'scan' && (
-            <AnimatedCard>
-              <OCRUploadView />
-            </AnimatedCard>
-          )}
+          {activeTab === 'documents' && <DocumentsView key="documents" />}
           {activeTab === 'referrals' && (
             <AnimatedCard>
               <ReferralView />
