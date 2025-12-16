@@ -86,22 +86,33 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     // Merge and deduplicate by ID
     const messageMap = new Map<string, ChatMessage>();
 
+    // Safe date parser helper
+    const safeDate = (val: unknown): Date => {
+      if (!val) return new Date();
+      if (val instanceof Date) return isNaN(val.getTime()) ? new Date() : val;
+      const parsed = new Date(val as string | number);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    };
+
     // Add history first
     history.forEach(msg => {
       messageMap.set(msg.id, {
         ...msg,
-        timestamp: new Date(msg.timestamp) // Ensure date object
+        timestamp: safeDate(msg.timestamp) // Ensure valid date object
       });
     });
 
     // Add/Overwrite with live messages
     liveMessages.forEach(msg => {
-      messageMap.set(msg.id, msg);
+      messageMap.set(msg.id, {
+        ...msg,
+        timestamp: safeDate(msg.timestamp)
+      });
     });
 
     // Convert to array and sort
     const combined = Array.from(messageMap.values()).sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => safeDate(a.timestamp).getTime() - safeDate(b.timestamp).getTime()
     );
 
     setFilteredMessages(combined);
@@ -229,9 +240,12 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
                   <p className="text-sm">{msg.content}</p>
                   <div className="flex items-center justify-between mt-1 gap-2">
                     <span className="text-xs opacity-70">
-                      {formatDistanceToNow(new Date(msg.timestamp), {
-                        addSuffix: true,
-                      })}
+                      {(() => {
+                        try {
+                          const ts = msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp);
+                          return isNaN(ts.getTime()) ? 'Just now' : formatDistanceToNow(ts, { addSuffix: true });
+                        } catch { return 'Just now'; }
+                      })()}
                     </span>
                     {msg.senderId === user?.id && (
                       <div className="flex">

@@ -114,9 +114,11 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle incoming messages (support both server and frontend event names)
     const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
-      // Require authenticated user for sending messages
-      if (!user || !user.id) {
-        return ack?.({ success: false, error: "Authentication required to send messages" });
+      // If no authenticated user, check if we have fallback userId
+      const effectiveUserId = user?.id || userId;
+      if (!effectiveUserId || effectiveUserId.startsWith('guest:')) {
+        logger.warn({ socketId: socket.id }, 'Message attempt without auth');
+        return ack?.({ success: false, error: "Please sign in to send messages" });
       }
       try {
         const { content, receiverId, applicationId } = payload;
@@ -139,14 +141,19 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
         logger.info({ messageId: savedMessage.id, senderId: userId, receiverId }, "Message persisted");
 
+        // Ensure timestamp is a valid ISO string
+        const createdAt = savedMessage.createdAt instanceof Date
+          ? savedMessage.createdAt.toISOString()
+          : (savedMessage.createdAt || new Date().toISOString());
+
         const payloadOut = {
           id: savedMessage.id,
           content,
-          senderId: userId,
-          senderName: user.email,
+          senderId: effectiveUserId,
+          senderName: user?.email || 'User',
           receiverId,
           applicationId,
-          timestamp: savedMessage.createdAt,
+          timestamp: createdAt,
           isRead: false,
         };
 

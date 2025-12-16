@@ -20,7 +20,7 @@ export default function Checkout() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const [stripe, setStripe] = useState<Stripe | null>(null);
   const [elements, setElements] = useState<StripeElements | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -37,8 +37,31 @@ export default function Checkout() {
       return;
     }
 
+    // Handle success/canceled query params from Stripe redirect
+    if (params.get('success') === 'true') {
+      setPaymentComplete(true);
+      toast({
+        title: "Payment Successful!",
+        description: "Your subscription has been activated.",
+        className: "bg-green-50 text-green-900 border-green-200"
+      });
+      setTimeout(() => setLocation('/dashboard'), 2000);
+      return;
+    }
+
+    if (params.get('canceled') === 'true') {
+      toast({
+        title: "Payment Canceled",
+        description: "You can try again when ready.",
+        className: "bg-yellow-50 text-yellow-900 border-yellow-200"
+      });
+      setLocation('/dashboard');
+      return;
+    }
+
     if (!clientSecret) {
-      setLocation('/pricing');
+      // No clientSecret means user navigated here directly - go back to dashboard
+      setLocation('/dashboard');
       return;
     }
 
@@ -49,7 +72,7 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !clientSecret) return;
 
     setProcessing(true);
