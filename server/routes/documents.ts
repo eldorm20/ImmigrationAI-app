@@ -11,6 +11,8 @@ import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/st
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
+import { extractTextFromBuffer, parseTextToJSON } from "../lib/ocr";
+import { analyzeDocument } from "../lib/ai";
 
 const router = Router();
 
@@ -114,6 +116,34 @@ router.post(
       throw new AppError(500, msg.includes("size") ? "File is too large. Maximum 10MB allowed." : msg);
     }
 
+    // AI Analysis & OCR (Auto-Review)
+    let aiAnalysisResult = null;
+    let ocrData = null;
+
+    try {
+      // Only analyze if image or PDF and file buffer exists
+      if (req.file?.buffer && (uploadResult.mimeType.startsWith('image/') || uploadResult.mimeType === 'application/pdf')) {
+        logger.info("Starting AI Analysis for uploaded document...");
+
+        // Extract text
+        const text = await extractTextFromBuffer(req.file.buffer);
+
+        // Structured data (OCR)
+        ocrData = await parseTextToJSON(text);
+
+        // Analyze Integrity/Red Flags
+        const docType = body.documentType || 'unknown';
+        // Note: analyzeDocument expects a URL, but for text analysis we might pass the extracted text if logic allowed, 
+        // currently it uses the URL or just the type + data. 
+        // We pass the URL (snapshot) but the agent relies on `ocrData` mostly.
+        aiAnalysisResult = await analyzeDocument(uploadResult.url, docType, ocrData);
+
+        logger.info({ flags: aiAnalysisResult.issues.length }, "AI Analysis completed");
+      }
+    } catch (analysisErr) {
+      logger.warn({ analysisErr }, "AI Analysis failed during upload (non-blocking)");
+    }
+
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
     let document: any;
     try {
@@ -129,6 +159,8 @@ router.post(
           mimeType: uploadResult.mimeType,
           fileSize: uploadResult.fileSize,
           documentType: body.documentType || null,
+          ocrData: ocrData,
+          aiAnalysis: aiAnalysisResult,
         })
         .returning();
       document = res[0];
@@ -145,6 +177,8 @@ router.post(
             mimeType: uploadResult.mimeType,
             fileSize: uploadResult.fileSize,
             documentType: body.documentType || null,
+            ocrData: ocrData,
+            aiAnalysis: aiAnalysisResult,
           })
           .returning();
         document = res2[0];

@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
-import { Sparkles, User, Send } from "lucide-react";
+import { Sparkles, User, Send, Mic } from "lucide-react";
 
 export const ChatView = () => {
     const { t, lang } = useI18n();
@@ -11,6 +11,39 @@ export const ChatView = () => {
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+
+    // Voice Input Handler
+    const startListening = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert(t.tools?.voiceNotSupported || "Voice input not supported in this browser.");
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+
+        if (lang === 'uz') {
+            recognition.lang = 'uz-UZ';
+        } else if (lang === 'ru') {
+            recognition.lang = 'ru-RU';
+        } else {
+            recognition.lang = 'en-US';
+        }
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onerror = () => setIsListening(false);
+
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        };
+
+        recognition.start();
+    };
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,6 +164,16 @@ export const ChatView = () => {
                         />
                         <LiveButton type="submit" size="icon" className="w-12 h-12 rounded-xl p-0" icon={Send} >
                             <span className="sr-only">Send</span>
+                        </LiveButton>
+                        <LiveButton
+                            type="button"
+                            onClick={startListening}
+                            variant={isListening ? "danger" : "secondary"}
+                            size="icon"
+                            className={`w-12 h-12 rounded-xl p-0 ${isListening ? 'animate-pulse' : ''}`}
+                            icon={Mic}
+                        >
+                            <span className="sr-only">Voice Input</span>
                         </LiveButton>
                     </form>
                     <p className="text-xs text-slate-400 mt-2 text-center">Press Cmd/Ctrl + Enter to send</p>

@@ -132,13 +132,26 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     }
   }, [filteredMessages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!messageInput.trim() || !isConnected) return;
 
-    sendMessage(recipientId, messageInput);
-    setMessageInput('');
+    const currentInput = messageInput;
+    setMessageInput(''); // Optimistic clear
     emitStopTyping(recipientId);
     setIsTyping(false);
+
+    try {
+      const success = await sendMessage(recipientId, currentInput);
+      if (!success) {
+        // Restore input on failure
+        setMessageInput(currentInput);
+        // You might want to show a toast here using useToast hook if available in this component context
+        console.error("Failed to send message");
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setMessageInput(currentInput);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

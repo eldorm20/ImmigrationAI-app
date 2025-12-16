@@ -194,19 +194,34 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, [userId, userName, userEmail, userRole, autoConnect, token]);
 
   // Send message
+  // Send message
   const sendMessage = useCallback(
-    (recipientId: string, content: string) => {
-      if (!socketRef.current?.connected) {
-        logError('WebSocket not connected');
-        return false;
-      }
+    (recipientId: string, content: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        if (!socketRef.current?.connected) {
+          logError('WebSocket not connected');
+          resolve(false);
+          return;
+        }
 
-      socketRef.current.emit('send_message', {
-        recipientId,
-        content,
+        const timeout = setTimeout(() => {
+          logError('Message send timeout');
+          resolve(false);
+        }, 5000);
+
+        socketRef.current.emit('send_message', {
+          recipientId,
+          content,
+        }, (response: any) => {
+          clearTimeout(timeout);
+          if (response?.success) {
+            resolve(true);
+          } else {
+            logError('Message send failed:', response?.error);
+            resolve(false);
+          }
+        });
       });
-
-      return true;
     },
     []
   );

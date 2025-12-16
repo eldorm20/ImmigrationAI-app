@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
-import { FileUp, Upload, Loader2, FileText, Eye, Trash2 } from "lucide-react";
+import { FileUp, Upload, Loader2, FileText, Eye, Trash2, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
 export const UploadView = ({ applicationId }: { applicationId?: string }) => {
     interface UploadedFile {
@@ -17,6 +17,11 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
         uploadedAt: string;
         status: 'analyzed' | 'pending';
         url: string;
+        aiAnalysis?: {
+            issues: string[];
+            quality: 'excellent' | 'good' | 'poor';
+            suggestions: string[];
+        };
     }
 
     const { user } = useAuth();
@@ -26,6 +31,29 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
     const [uploading, setUploading] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch existing documents on mount
+    React.useEffect(() => {
+        const fetchDocs = async () => {
+            try {
+                const url = applicationId ? `/documents?applicationId=${applicationId}` : '/documents';
+                const docs = await apiRequest<any[]>(url);
+                setFiles(docs.map(d => ({
+                    id: d.id,
+                    name: d.fileName,
+                    size: d.fileSize,
+                    type: d.mimeType,
+                    uploadedAt: d.createdAt,
+                    status: 'analyzed',
+                    url: d.url,
+                    aiAnalysis: d.aiAnalysis
+                })));
+            } catch (err) {
+                console.error("Failed to fetch documents", err);
+            }
+        };
+        fetchDocs();
+    }, [applicationId]);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -95,7 +123,8 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
                         type: uploadedDoc.mimeType,
                         uploadedAt: uploadedDoc.createdAt || new Date().toISOString(),
                         status: 'analyzed' as const,
-                        url: uploadedDoc.url
+                        url: uploadedDoc.url,
+                        aiAnalysis: uploadedDoc.aiAnalysis
                     };
 
                     setFiles(prev => [newFile, ...prev]);
@@ -201,9 +230,23 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
                                             {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-                                        {t.upload.analyzed}
-                                    </span>
+                                    {file.aiAnalysis ? (
+                                        <div className="flex gap-2">
+                                            {file.aiAnalysis.quality === 'good' || file.aiAnalysis.quality === 'excellent' ? (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full">
+                                                    <CheckCircle size={12} /> Valid
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-100 dark:bg-amber-900/20 px-2 py-1 rounded-full">
+                                                    <AlertTriangle size={12} /> {file.aiAnalysis.issues.length} Issues
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+                                            {t.upload.analyzed}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex gap-2 ml-4">
                                     <LiveButton variant="ghost" size="sm" icon={Eye} onClick={() => {
@@ -215,7 +258,8 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
                         ))}
                     </div>
                 </AnimatedCard>
-            )}
-        </motion.div>
+            )
+            }
+        </motion.div >
     );
 };

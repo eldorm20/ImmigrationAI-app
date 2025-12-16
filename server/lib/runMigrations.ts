@@ -180,15 +180,15 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       // 2. Companies table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS companies (
-            id SERIAL PRIMARY KEY,
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
             description TEXT,
-            logo_url TEXT,
+            logo TEXT,
             website TEXT,
             industry TEXT,
             size TEXT,
-            location TEXT,
-            verified BOOLEAN DEFAULT false,
+            is_verified BOOLEAN DEFAULT false,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
@@ -197,15 +197,16 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       // 3. Jobs table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS jobs (
-            id SERIAL PRIMARY KEY,
-            company_id INTEGER REFERENCES companies(id),
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            company_id TEXT REFERENCES companies(id) ON DELETE CASCADE,
             title TEXT NOT NULL,
-            description TEXT,
-            requirements TEXT,
-            location TEXT,
+            description TEXT NOT NULL,
+            requirements JSONB,
+            location TEXT NOT NULL,
             salary_range TEXT,
-            type TEXT,
-            status TEXT DEFAULT 'open',
+            type TEXT DEFAULT 'full-time',
+            status TEXT DEFAULT 'active',
+            visa_sponsorship BOOLEAN DEFAULT true,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
@@ -214,43 +215,46 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       // 4. Referrals table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS referrals (
-            id SERIAL PRIMARY KEY,
-            referrer_id INTEGER REFERENCES users(id),
-            referred_email TEXT NOT NULL,
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            referrer_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            referred_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
             status TEXT DEFAULT 'pending',
-            code TEXT NOT NULL,
-            reward_amount INTEGER DEFAULT 0,
+            reward_amount DECIMAL DEFAULT 0,
+            currency TEXT DEFAULT 'USD',
+            metadata JSONB,
             created_at TIMESTAMP DEFAULT NOW(),
-            completed_at TIMESTAMP
+            updated_at TIMESTAMP DEFAULT NOW()
         )
       `);
 
       // 5. Audit Logs table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS audit_logs (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER,
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
             action TEXT NOT NULL,
-            entity_type TEXT NOT NULL,
-            entity_id INTEGER,
-            details JSONB,
+            resource_type TEXT,
+            resource_id TEXT,
+            metadata JSONB,
             ip_address TEXT,
             user_agent TEXT,
-            created_at TIMESTAMP DEFAULT NOW()
+            timestamp TIMESTAMP DEFAULT NOW()
         )
       `);
 
       // 6. Signature Requests table
       await pool.query(`
         CREATE TABLE IF NOT EXISTS signature_requests (
-            id SERIAL PRIMARY KEY,
-            requester_id INTEGER REFERENCES users(id),
-            signer_id INTEGER REFERENCES users(id),
-            document_id INTEGER,
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            requester_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            signer_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            document_id TEXT,
             status TEXT DEFAULT 'pending',
-            signature_data TEXT,
+            signature_url TEXT,
+            signed_at TIMESTAMP,
+            metadata JSONB,
             created_at TIMESTAMP DEFAULT NOW(),
-            signed_at TIMESTAMP
+            updated_at TIMESTAMP DEFAULT NOW()
         )
       `);
 
