@@ -188,11 +188,23 @@ export async function runMigrationsIfNeeded(): Promise<void> {
             website TEXT,
             industry TEXT,
             size TEXT,
+            subdomain TEXT UNIQUE,
+            branding_config JSONB,
+            is_active BOOLEAN DEFAULT true,
             is_verified BOOLEAN DEFAULT false,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
       `);
+
+      // Add columns if they don't exist (for existing tables)
+      try {
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS subdomain TEXT UNIQUE");
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS branding_config JSONB");
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true");
+      } catch (err) {
+        logger.warn({ err }, "Could not add new B2B columns to companies table");
+      }
 
       // 3. Jobs table
       await pool.query(`
@@ -256,6 +268,72 @@ export async function runMigrationsIfNeeded(): Promise<void> {
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
+      `);
+
+      // 7. Verification Chain (Blockchain)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS verification_chain (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            document_id TEXT REFERENCES documents(id) ON DELETE CASCADE,
+            file_hash VARCHAR(64) NOT NULL,
+            previous_hash VARCHAR(64) NOT NULL,
+            block_hash VARCHAR(64) NOT NULL,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // 8. AI Dataset (Fine-Tuning)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS ai_dataset (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            query TEXT NOT NULL,
+            response TEXT NOT NULL,
+            rating INTEGER,
+            category VARCHAR(50),
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        )
+      `);
+
+      // 9. Community & News
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS research_articles (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            slug VARCHAR(255) NOT NULL UNIQUE,
+            title VARCHAR(255) NOT NULL,
+            summary TEXT,
+            body TEXT,
+            category VARCHAR(50),
+            type VARCHAR(50),
+            tags TEXT[],
+            language VARCHAR(10) DEFAULT 'en',
+            source VARCHAR(255),
+            source_url TEXT,
+            is_published BOOLEAN DEFAULT TRUE,
+            created_by_user_id VARCHAR(255),
+            updated_by_user_id VARCHAR(255),
+            published_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS article_comments (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            article_id TEXT REFERENCES research_articles(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS article_reactions (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            article_id TEXT REFERENCES research_articles(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            type VARCHAR(20) NOT NULL,
+            UNIQUE(article_id, user_id, type)
+        );
       `);
 
       logger.info("✓ Manual schema updates for new features completed");

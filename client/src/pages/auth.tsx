@@ -93,12 +93,27 @@ export default function AuthPage() {
     }
   };
 
+  const brandName = tenant?.name || "ImmigrationAI";
+  const brandLogo = tenant?.logo;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 font-sans text-slate-800 dark:text-slate-100">
       <AnimatedCard className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
         <button onClick={() => setLocation("/")} className="mb-6 flex gap-2 text-slate-500 font-bold hover:text-brand-600 items-center transition-colors">
           <ArrowLeft size={18} /> {t.auth.back}
         </button>
+
+        {/* Dynamic Logo Section */}
+        <div className="flex justify-center mb-6">
+          <div className="text-center">
+            {brandLogo ? (
+              <img src={brandLogo} alt={brandName} className="h-12 mx-auto mb-2 object-contain" />
+            ) : null}
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-blue-600">
+              {brandName}
+            </h1>
+          </div>
+        </div>
 
         <div className="flex gap-2 mb-6">
           <LiveButton
@@ -123,10 +138,10 @@ export default function AuthPage() {
           </LiveButton>
         </div>
 
-        <h2 className="text-3xl font-extrabold mb-2 text-slate-900 dark:text-white">
+        <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white text-center">
           {mode === "login" ? t.auth.applicantLogin : t.auth.register}
         </h2>
-        <p className="text-slate-500 mb-8">{mode === "login" ? t.auth.enterDetails : t.auth.enterDetails}</p>
+        <p className="text-slate-500 mb-8 text-center text-sm">{mode === "login" ? t.auth.enterDetails : t.auth.enterDetails}</p>
 
         <form onSubmit={handleSubmit} noValidate>
           {mode === "register" && (

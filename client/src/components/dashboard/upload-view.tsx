@@ -250,7 +250,11 @@ export const UploadView = ({ applicationId }: { applicationId?: string }) => {
                                 </div>
                                 <div className="flex gap-2 ml-4">
                                     <LiveButton variant="ghost" size="sm" icon={Eye} onClick={() => {
-                                        toast({ title: "Document Preview", description: `Previewing ${file.name}`, className: "bg-blue-50 text-blue-900 border-blue-200" });
+                                        if (file.url) {
+                                            window.open(file.url, '_blank');
+                                        } else {
+                                            toast({ title: "Error", description: "File URL not available", variant: "destructive" });
+                                        }
                                     }}>{t.upload.view}</LiveButton>
                                     <LiveButton variant="ghost" size="sm" icon={Trash2} onClick={() => deleteFile(file.id)}>{t.upload.delete}</LiveButton>
                                 </div>

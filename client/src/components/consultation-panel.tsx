@@ -449,7 +449,9 @@ export default function ConsultationPanel() {
                     <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-brand-600 dark:text-brand-400">
                       <User size={16} />
                     </div>
-                    <span className="font-bold text-lg text-slate-900 dark:text-white">{t.consultation?.title || 'Lawyer Consultation'}</span>
+                    <span className="font-bold text-lg text-slate-900 dark:text-white">
+                      {t.consultation?.title || 'Consultation'}
+                    </span>
                   </div>
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(consultation.status)}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current" />

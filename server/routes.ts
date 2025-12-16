@@ -29,6 +29,8 @@ import ocrRoutes from "./routes/ocr";
 import referralRoutes from "./routes/referrals";
 import auditRoutes from "./routes/audit";
 import signatureRoutes from "./routes/signatures";
+import verificationRoutes from "./routes/verification";
+import datasetRoutes from "./routes/dataset";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -57,6 +59,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/visa", visaRoutes);
   app.use("/api/analytics", analyticsRoutes);
   app.use("/api/employers", employersRoutes);
+  app.use("/api/dataset", datasetRoutes);
   app.use("/api/debug", debugRoutes);
   app.use("/api/predict", predictRoutes);
   app.use("/api/deadlines", deadlinesRoutes);

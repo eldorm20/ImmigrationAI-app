@@ -71,137 +71,140 @@ function ProtectedRoute({ component: Component, role }: { component: React.Compo
   return <Component />;
 }
 
+import { TenantProvider } from "@/lib/tenant-context";
+
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/pricing" component={Pricing} />
-        <Route path="/assessment" component={AssessmentPage} />
-        <Route path="/partner" component={PartnerPage} />
-        <Route path="/checkout" component={Checkout} />
-        <Route path="/features" component={Features} />
+    <TenantProvider>
+      <Layout>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/pricing" component={Pricing} />
+          <Route path="/assessment" component={AssessmentPage} />
+          <Route path="/partner" component={PartnerPage} />
+          <Route path="/checkout" component={Checkout} />
+          <Route path="/features" component={Features} />
 
-        <Route path="/research">
-          <Research />
-        </Route>
+          <Route path="/research">
+            <Research />
+          </Route>
 
-        <Route path="/blog">
-          <Blog />
-        </Route>
+          <Route path="/blog">
+            <Blog />
+          </Route>
 
-        <Route path="/help">
-          <Help />
-        </Route>
+          <Route path="/help">
+            <Help />
+          </Route>
 
-        <Route path="/privacy">
-          <Privacy />
-        </Route>
+          <Route path="/privacy">
+            <Privacy />
+          </Route>
 
-        <Route path="/terms">
-          <Terms />
-        </Route>
+          <Route path="/terms">
+            <Terms />
+          </Route>
 
-        <Route path="/contact">
-          <Contact />
-        </Route>
+          <Route path="/contact">
+            <Contact />
+          </Route>
 
-        <Route path="/dashboard">
-          <ProtectedRoute component={Dashboard} role="applicant" />
-        </Route>
-        {/* Applications Removed */}
+          <Route path="/dashboard">
+            <ProtectedRoute component={Dashboard} role="applicant" />
+          </Route>
+          {/* Applications Removed */}
 
-        <Route path="/subscription">
-          <ProtectedRoute component={Subscription} role="applicant" />
-        </Route>
+          <Route path="/subscription">
+            <ProtectedRoute component={Subscription} role="applicant" />
+          </Route>
 
-        <Route path="/settings">
-          <ProtectedRoute component={Settings} role="applicant" />
-        </Route>
+          <Route path="/settings">
+            <ProtectedRoute component={Settings} role="applicant" />
+          </Route>
 
-        <Route path="/notifications">
-          <ProtectedRoute component={Notifications} role="applicant" />
-        </Route>
+          <Route path="/notifications">
+            <ProtectedRoute component={Notifications} role="applicant" />
+          </Route>
 
-        <Route path="/payment-history">
-          <ProtectedRoute component={PaymentHistory} role="applicant" />
-        </Route>
+          <Route path="/payment-history">
+            <ProtectedRoute component={PaymentHistory} role="applicant" />
+          </Route>
 
-        <Route path="/messages">
-          <ProtectedRoute component={Messages} />
-        </Route>
+          <Route path="/messages">
+            <ProtectedRoute component={Messages} />
+          </Route>
 
-        <Route path="/analytics">
-          <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
-        </Route>
+          <Route path="/analytics">
+            <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
+          </Route>
 
-        <Route path="/visa-comparison">
-          <VisaComparison />
-        </Route>
+          <Route path="/visa-comparison">
+            <VisaComparison />
+          </Route>
 
-        <Route path="/employer-verification">
-          <ProtectedRoute component={EmployerVerificationPage} role="applicant" />
-        </Route>
+          <Route path="/employer-verification">
+            <ProtectedRoute component={EmployerVerificationPage} role="applicant" />
+          </Route>
 
-        <Route path="/employer-dashboard">
-          <ProtectedRoute component={EmployerDashboard} role="employer" />
-        </Route>
+          <Route path="/employer-dashboard">
+            <ProtectedRoute component={EmployerDashboard} role="employer" />
+          </Route>
 
-        <Route path="/video-call/:roomId">
-          <VideoCallPage />
-        </Route>
+          <Route path="/video-call/:roomId">
+            <VideoCallPage />
+          </Route>
 
-        <Route path="/forum">
-          <CommunityForum />
-        </Route>
+          <Route path="/forum">
+            <CommunityForum />
+          </Route>
 
-        <Route path="/admin">
-          <ProtectedRoute component={AdminDashboard} role="admin" />
-        </Route>
+          <Route path="/admin">
+            <ProtectedRoute component={AdminDashboard} role="admin" />
+          </Route>
 
-        <Route path="/admin/audit">
-          <ProtectedRoute component={AuditLogsPage} role="admin" />
-        </Route>
-        <Route path="/admin/subscriptions">
-          <ProtectedRoute component={AdminSubscriptions} role="admin" />
-        </Route>
+          <Route path="/admin/audit">
+            <ProtectedRoute component={AuditLogsPage} role="admin" />
+          </Route>
+          <Route path="/admin/subscriptions">
+            <ProtectedRoute component={AdminSubscriptions} role="admin" />
+          </Route>
 
-        <Route path="/signatures">
-          <ProtectedRoute component={SignaturesPage} />
-        </Route>
-        <Route path="/admin/users">
-          <ProtectedRoute component={AdminUsersPage} role="admin" />
-        </Route>
+          <Route path="/signatures">
+            <ProtectedRoute component={SignaturesPage} />
+          </Route>
+          <Route path="/admin/users">
+            <ProtectedRoute component={AdminUsersPage} role="admin" />
+          </Route>
 
-        <Route path="/lawyer">
-          <ProtectedRoute component={LawyerDashboard} role="lawyer" />
-        </Route>
+          <Route path="/lawyer">
+            <ProtectedRoute component={LawyerDashboard} role="lawyer" />
+          </Route>
 
-        {/* Legacy/alternate path for compatibility */}
-        <Route path="/lawyer-dashboard">
-          <ProtectedRoute component={LawyerDashboard} role="lawyer" />
-        </Route>
+          {/* Legacy/alternate path for compatibility */}
+          <Route path="/lawyer-dashboard">
+            <ProtectedRoute component={LawyerDashboard} role="lawyer" />
+          </Route>
 
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
-  );
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+      );
 }
 
-function App() {
+      function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Router />
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
-      </I18nProvider>
-    </QueryClientProvider>
-  );
+      <QueryClientProvider client={queryClient}>
+        <I18nProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Router />
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </QueryClientProvider>
+      );
 }
 
-export default App;
+      export default App;

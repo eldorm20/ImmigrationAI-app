@@ -581,11 +581,15 @@ export const companies = pgTable("companies", {
   description: text("description"),
   website: varchar("website", { length: 255 }),
   logo: text("logo"), // URL
+  subdomain: varchar("subdomain", { length: 63 }).unique(),
+  brandingConfig: jsonb("branding_config"), // { primaryColor: string, ... }
+  isActive: boolean("is_active").default(true),
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   userIdIdx: index("companies_user_id_idx").on(table.userId),
+  subdomainIdx: index("companies_subdomain_idx").on(table.subdomain),
 }));
 
 // Job Listings
@@ -669,32 +673,35 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
 
-// Signature Requests
-export const signatureRequests = pgTable("signature_requests", {
+// Blockchain Verification Ledger
+export const verificationChain = pgTable("verification_chain", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  requesterId: varchar("requester_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  signerId: varchar("signer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  documentId: varchar("document_id", { length: 255 }).references(() => documents.id, { onDelete: "set null" }),
-  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, signed, rejected
-  signatureUrl: text("signature_url"),
-  signedAt: timestamp("signed_at"),
+  documentId: varchar("document_id", { length: 255 }).notNull().references(() => documents.id, { onDelete: "cascade" }),
+  fileHash: varchar("file_hash", { length: 64 }).notNull(), // SHA-256
+  previousHash: varchar("previous_hash", { length: 64 }).notNull(),
+  blockHash: varchar("block_hash", { length: 64 }).notNull(), // Hash of this record
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  signerIdIdx: index("signature_requests_signer_id_idx").on(table.signerId),
-  requesterIdIdx: index("signature_requests_requester_id_idx").on(table.requesterId),
-  statusIdx: index("signature_requests_status_idx").on(table.status),
+  documentIdIdx: index("verification_chain_document_id_idx").on(table.documentId),
+  blockHashIdx: index("verification_chain_block_hash_idx").on(table.blockHash),
 }));
 
-export const insertSignatureRequestSchema = createInsertSchema(signatureRequests).pick({
-  requesterId: true,
-  signerId: true,
-  documentId: true,
-  status: true,
-  signatureUrl: true,
-  metadata: true,
-});
+export const insertVerificationChainSchema = createInsertSchema(verificationChain);
+export type VerificationBlock = typeof verificationChain.$inferSelect;
 
-export type InsertSignatureRequest = z.infer<typeof insertSignatureRequestSchema>;
-export type SignatureRequest = typeof signatureRequests.$inferSelect;
+// AI Fine-Tuning Dataset
+export const aiDataset = pgTable("ai_dataset", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  query: text("query").notNull(),
+  response: text("response").notNull(),
+  rating: integer("rating"), // 1 (Good) or -1 (Bad)
+  category: varchar("category", { length: 50 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  ratingIdx: index("ai_dataset_rating_idx").on(table.rating),
+}));
+
+export const insertAiDatasetSchema = createInsertSchema(aiDataset);
+export type AiDatasetEntry = typeof aiDataset.$inferSelect;

@@ -122,7 +122,9 @@ export function setupSocketIO(httpServer: HTTPServer) {
         return ack?.({ success: false, error: "Please sign in to send messages" });
       }
       try {
-        const { content, receiverId, applicationId } = payload;
+        const { content, applicationId } = payload;
+        // Handle field mismatch: client sends recipientId, server expects receiverId
+        const receiverId = payload.receiverId || (payload as any).recipientId;
 
         if (!content || !receiverId) {
           return ack?.({ success: false, error: "Missing content or receiverId" });

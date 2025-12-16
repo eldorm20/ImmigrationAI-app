@@ -103,8 +103,26 @@ export const ChatView = () => {
                                     }`}>
                                     {m.text}
                                     {m.ts && (
-                                        <div className={`text-xs mt-2 opacity-70 ${m.role === 'user' ? 'text-white/70' : 'text-slate-400'}`}>
-                                            {new Date(m.ts).toLocaleTimeString()}
+                                        <div className={`text-xs mt-2 opacity-70 flex items-center justify-between ${m.role === 'user' ? 'text-white/70' : 'text-slate-400'}`}>
+                                            <span>{new Date(m.ts).toLocaleTimeString()}</span>
+                                            {m.role === 'ai' && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => apiRequest("/dataset/feedback", { method: "POST", body: JSON.stringify({ query: messages[i - 1]?.text, response: m.text, rating: 1 }) })}
+                                                        className="hover:text-green-500 transition-colors"
+                                                        title="Good Answer"
+                                                    >
+                                                        👍
+                                                    </button>
+                                                    <button
+                                                        onClick={() => apiRequest("/dataset/feedback", { method: "POST", body: JSON.stringify({ query: messages[i - 1]?.text, response: m.text, rating: -1 }) })}
+                                                        className="hover:text-red-500 transition-colors"
+                                                        title="Bad Answer"
+                                                    >
+                                                        👎
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
