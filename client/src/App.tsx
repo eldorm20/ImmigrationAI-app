@@ -189,22 +189,23 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </Layout>
-      );
+    </TenantProvider>
+  );
 }
 
-      function App() {
+function App() {
   return (
-      <QueryClientProvider client={queryClient}>
-        <I18nProvider>
-          <AuthProvider>
-            <TooltipProvider>
-              <Router />
-              <Toaster />
-            </TooltipProvider>
-          </AuthProvider>
-        </I18nProvider>
-      </QueryClientProvider>
-      );
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Router />
+            <Toaster />
+          </TooltipProvider>
+        </AuthProvider>
+      </I18nProvider>
+    </QueryClientProvider>
+  );
 }
 
-      export default App;
+export default App;
