@@ -1,6 +1,6 @@
 import { logger } from "./logger";
 
-export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?: string, messages?: Array<{role: string, content: string}>) {
+export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?: string, messages?: Array<{ role: string, content: string }>) {
   // Ollama supports both /api/generate (prompt-based) and /api/chat (messages-based)
   // Use messages format if conversation history is provided for better context
   if (messages && messages.length > 0) {
@@ -14,7 +14,7 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
     };
     return body;
   }
-  
+
   // Fallback to prompt-based format
   const body: any = { prompt: `${systemPrompt || ""}\n\n${prompt}`.trim() };
   if (model) body.model = model;
@@ -76,8 +76,13 @@ export async function probeOllamaEndpoint(url: string, model?: string, timeoutMs
       if (r2 && r2.status < 500) return { reachable: true, status: r2.status };
 
       // Try a small POST probe
+      let probeUrl = url;
+      if (!probeUrl.includes("/api/") && !probeUrl.includes("/v1/")) {
+        probeUrl = probeUrl.replace(/\/+$/, "") + "/api/generate";
+      }
+
       const body = JSON.stringify(buildOllamaPayload("health-check", undefined, model));
-      const r3 = await (globalThis as any).fetch(url, { method: "POST", body, headers: { "Content-Type": "application/json" }, signal: controller.signal }).catch(() => null);
+      const r3 = await (globalThis as any).fetch(probeUrl, { method: "POST", body, headers: { "Content-Type": "application/json" }, signal: controller.signal }).catch(() => null);
       if (r3) return { reachable: r3.status < 500, status: r3.status };
       return { reachable: false, reason: "no response" };
     } finally {

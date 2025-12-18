@@ -323,13 +323,13 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    
+
     // Increment AI usage
     try {
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
-        message: (err as any).message || 'AI quota exceeded' 
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
+        message: (err as any).message || 'AI quota exceeded'
       });
     }
 
@@ -345,8 +345,14 @@ router.post(
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
           const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
           const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat');
-          
-          const response = await fetch(localAIUrl, {
+
+          // Construct correct URL
+          let fetchUrl = localAIUrl;
+          if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
+            fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
+          }
+
+          const response = await fetch(fetchUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -393,13 +399,13 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-    
+
     // Increment AI usage
     try {
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ 
-        message: (err as any).message || 'AI quota exceeded' 
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
+        message: (err as any).message || 'AI quota exceeded'
       });
     }
 
@@ -413,14 +419,14 @@ router.post(
 
     try {
       let messageText = '';
-      let history: Array<{role: string, content: string}> = parsed.history || [];
+      let history: Array<{ role: string, content: string }> = parsed.history || [];
 
       if (parsed.messages) {
         // Build message from last user message and use previous items as history
         const msgs = parsed.messages as Array<any>;
-        history = msgs.slice(0, -1).map((m: any) => ({ 
-          role: m.role === 'ai' ? 'assistant' : 'user', 
-          content: m.content 
+        history = msgs.slice(0, -1).map((m: any) => ({
+          role: m.role === 'ai' ? 'assistant' : 'user',
+          content: m.content
         }));
         const last = msgs[msgs.length - 1];
         messageText = last.role === 'user' ? last.content : '';
@@ -443,11 +449,17 @@ router.post(
       if (localAIUrl) {
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
-          
+
           // Use /api/chat endpoint if available (better for conversation)
-          const chatUrl = localAIUrl.replace('/api/generate', '/api/chat');
+          // Construct correct URL for chat
+          let chatUrl = localAIUrl;
+          if (chatUrl.includes("/api/generate")) {
+            chatUrl = chatUrl.replace('/api/generate', '/api/chat');
+          } else if (!chatUrl.includes("/api/") && !chatUrl.includes("/v1/")) {
+            chatUrl = chatUrl.replace(/\/+$/, "") + "/api/chat";
+          }
           const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
-          
+
           const response = await fetch(chatUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
