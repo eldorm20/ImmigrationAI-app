@@ -460,7 +460,13 @@ async function generateTextWithProvider(
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
 
-      const res = await fetch(localAIUrl as string, {
+      // FIX: Ensure URL ends with /api/generate if simply pointing to the base host
+      let fetchUrl = localAIUrl as string;
+      if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
+        fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
+      }
+
+      const res = await fetch(fetchUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
