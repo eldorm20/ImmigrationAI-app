@@ -22,7 +22,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: "36-50", label: "36-50 years" },
       { value: "50+", label: "50+ years" }
     ],
-    weight: 0.15
+    weight: 0.12
   },
   {
     id: "education",
@@ -33,7 +33,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: "masters", label: "Master's Degree" },
       { value: "doctorate", label: "Doctorate/PhD" }
     ],
-    weight: 0.25
+    weight: 0.18
   },
   {
     id: "experience",
@@ -44,7 +44,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: "5-10", label: "5-10 years" },
       { value: "10+", label: "10+ years" }
     ],
-    weight: 0.25
+    weight: 0.18
   },
   {
     id: "country",
@@ -57,7 +57,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: "europe", label: "EU Countries 🇪🇺" },
       { value: "other", label: "Other Country" }
     ],
-    weight: 0.2
+    weight: 0.15
   },
   {
     id: "language",
@@ -68,42 +68,80 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       { value: "fluent", label: "Fluent (C1-C2)" },
       { value: "native", label: "Native Speaker" }
     ],
-    weight: 0.15
+    weight: 0.12
+  },
+  {
+    id: "occupation",
+    label: "What is your profession/field?",
+    options: [
+      { value: "tech", label: "IT / Software" },
+      { value: "healthcare", label: "Healthcare / Medical" },
+      { value: "engineering", label: "Engineering" },
+      { value: "finance", label: "Finance / Accounting" },
+      { value: "education", label: "Education / Academia" },
+      { value: "other-field", label: "Other Field" }
+    ],
+    weight: 0.12
+  },
+  {
+    id: "salary",
+    label: "Expected annual salary in destination?",
+    options: [
+      { value: "under-50k", label: "Under $50,000" },
+      { value: "50k-80k", label: "$50,000 - $80,000" },
+      { value: "80k-120k", label: "$80,000 - $120,000" },
+      { value: "120k-plus", label: "$120,000+" }
+    ],
+    weight: 0.13
   }
 ];
 
 const APPROVAL_SCORES: Record<string, number> = {
-  // Age (weight 0.15)
+  // Age (weight 0.12)
   "18-25": 0.70,
   "26-35": 0.85,
   "36-50": 0.75,
   "50+": 0.60,
-  
-  // Education (weight 0.25)
+
+  // Education (weight 0.18)
   "high-school": 0.65,
   "bachelors": 0.80,
   "masters": 0.90,
   "doctorate": 0.95,
-  
-  // Experience (weight 0.25)
+
+  // Experience (weight 0.18)
   "0-2": 0.60,
   "2-5": 0.75,
   "5-10": 0.85,
   "10+": 0.90,
-  
-  // Country (weight 0.20)
+
+  // Country (weight 0.15)
   "canada": 0.88,
   "uk": 0.85,
   "usa": 0.80,
   "australia": 0.87,
   "europe": 0.82,
   "other": 0.70,
-  
-  // Language (weight 0.15)
+
+  // Language (weight 0.12)
   "basic": 0.50,
   "intermediate": 0.70,
   "fluent": 0.90,
-  "native": 0.95
+  "native": 0.95,
+
+  // Occupation (weight 0.12)
+  "tech": 0.92,
+  "healthcare": 0.90,
+  "engineering": 0.88,
+  "finance": 0.85,
+  "education": 0.78,
+  "other-field": 0.70,
+
+  // Salary (weight 0.13)
+  "under-50k": 0.60,
+  "50k-80k": 0.75,
+  "80k-120k": 0.88,
+  "120k-plus": 0.95
 };
 
 interface EligibilityQuizProps {
@@ -174,11 +212,10 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
                   <button
                     key={option.value}
                     onClick={() => setAnswers({ ...answers, [question.id]: option.value })}
-                    className={`p-3 text-sm font-medium rounded-lg border-2 transition-all ${
-                      answers[question.id] === option.value
-                        ? "bg-brand-500 text-white border-brand-500"
-                        : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-brand-300"
-                    }`}
+                    className={`p-3 text-sm font-medium rounded-lg border-2 transition-all ${answers[question.id] === option.value
+                      ? "bg-brand-500 text-white border-brand-500"
+                      : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-brand-300"
+                      }`}
                   >
                     {option.label}
                   </button>
@@ -186,7 +223,7 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
               </div>
             </motion.div>
           ))}
-          
+
           {answers["age"] && answers["education"] && answers["experience"] && (
             <motion.button
               initial={{ opacity: 0, y: 10 }}
@@ -244,11 +281,10 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleSelect(QUIZ_QUESTIONS[currentStep].id, option.value)}
-                  className={`p-4 text-left font-medium rounded-2xl border-2 transition-all ${
-                    answers[QUIZ_QUESTIONS[currentStep].id] === option.value
-                      ? "bg-gradient-to-r from-brand-500 to-purple-500 text-white border-brand-500 shadow-lg shadow-brand-500/20"
-                      : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`p-4 text-left font-medium rounded-2xl border-2 transition-all ${answers[QUIZ_QUESTIONS[currentStep].id] === option.value
+                    ? "bg-gradient-to-r from-brand-500 to-purple-500 text-white border-brand-500 shadow-lg shadow-brand-500/20"
+                    : "border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span>{option.label}</span>
@@ -354,10 +390,10 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
                   {approvalScore >= 85
                     ? "You're an excellent candidate for immigration. Our AI has identified you as highly likely to succeed."
                     : approvalScore >= 70
-                    ? "You have good potential for immigration. Let's work on strengthening your application."
-                    : approvalScore >= 55
-                    ? "There's a possible path forward. An expert consultation can help identify opportunities."
-                    : "We recommend consulting with an immigration expert to explore your options."}
+                      ? "You have good potential for immigration. Let's work on strengthening your application."
+                      : approvalScore >= 55
+                        ? "There's a possible path forward. An expert consultation can help identify opportunities."
+                        : "We recommend consulting with an immigration expert to explore your options."}
                 </p>
               </motion.div>
             </div>

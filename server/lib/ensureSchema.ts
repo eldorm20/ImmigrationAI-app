@@ -28,7 +28,7 @@ export async function ensureSchemaExists(): Promise<void> {
       )
       .catch(() => null);
 
-    if (!tableExists || !tableExists?.[0]?.exists) {
+    if (!tableExists || !tableExists.rows?.[0]?.exists) {
       logger.warn(
         "Users table does not exist - schema may not be initialized. Running migrations..."
       );

@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { db } from './db';
 import { users } from '@shared/schema';
-import { hash } from 'bcryptjs';
+import { hashPassword } from './lib/auth';
 import { logger } from './lib/logger';
+import { eq } from 'drizzle-orm';
 
 /**
  * Seed script to populate lawyer records in the database.
@@ -75,7 +76,7 @@ async function seedLawyers() {
       const existing = await db
         .select()
         .from(users)
-        .where((table) => table.email === lawyer.email)
+        .where(eq(users.email, lawyer.email))
         .limit(1)
         .then((res) => res[0]);
 
@@ -85,7 +86,7 @@ async function seedLawyers() {
       }
 
       // Create a default password hash (password: "LawyerPass123!")
-      const hashedPassword = await hash('LawyerPass123!', 10);
+      const hashedPassword = await hashPassword('LawyerPass123!');
 
       // Insert lawyer
       const inserted = await db

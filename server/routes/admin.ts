@@ -8,7 +8,6 @@ import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
 import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
-import { db } from "../db";
 import { sql } from "drizzle-orm";
 
 const router = Router();

@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -14,15 +14,17 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
 
-// Imported Views
+import { AgencyView } from "@/components/dashboard/AgencyView";
 import { RoadmapView } from "@/components/dashboard/RoadmapView";
 import { AIDocsView } from "@/components/dashboard/AIDocsView";
 import { UploadView } from "@/components/dashboard/UploadView";
 import { TranslateView } from "@/components/dashboard/TranslateView";
 import { ChatView } from "@/components/dashboard/ChatView";
 import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
+import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
+import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 
-// --- Main Dashboard Component ---
+
 
 export default function UserDash() {
   const { user, logout } = useAuth();
@@ -79,6 +81,9 @@ export default function UserDash() {
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
             { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
+            { id: 'templates', icon: FolderOpen, label: 'Templates' },
+            { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
+            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
             // Applications removed
@@ -178,12 +183,15 @@ export default function UserDash() {
         <AnimatePresence mode="wait">
           {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
+          {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
+          {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
+          {activeTab === 'agency' && <AgencyView key="agency" />}
           {activeTab === 'research' && (
             <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
               <AnimatedCard className="max-w-md mx-auto">
@@ -202,6 +210,6 @@ export default function UserDash() {
           )}
         </AnimatePresence>
       </main>
-    </div>
+    </div >
   );
 }

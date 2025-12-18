@@ -39,7 +39,7 @@ router.get(
   "/current",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
     const now = new Date();
@@ -66,7 +66,7 @@ router.get(
   "/check/:feature",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { feature } = req.params;
 
     const hasAccess = await checkFeatureAccess(userId, feature as any);
@@ -85,7 +85,7 @@ router.get(
   "/usage",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     try {
       const aiDocs = await getUsageRemaining(userId, "aiDocumentGenerations");
@@ -109,7 +109,7 @@ router.post(
   "/upgrade",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const { tier, planId } = req.body;
 
     // Accept both 'tier' and 'planId' for compatibility
@@ -121,7 +121,7 @@ router.post(
 
     // Validate tier
     if (!Object.keys(TIER_CONFIGURATIONS).includes(requestedTier)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: `Invalid subscription tier: ${requestedTier}. Valid options: ${Object.keys(TIER_CONFIGURATIONS).join(", ")}`
       });
     }
@@ -174,7 +174,7 @@ router.get(
   "/details",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
 
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
@@ -209,8 +209,8 @@ router.get(
   "/billing-history",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
-    
+    const userId = req.user!.userId;
+
     try {
       // For now, return empty billing history
       // In production, this would fetch from Stripe
@@ -229,8 +229,8 @@ router.post(
   "/cancel",
   authenticate,
   asyncHandler(async (req, res) => {
-    const userId = req.user!.id;
-    
+    const userId = req.user!.userId;
+
     try {
       // Find active subscription for user
       const subscription = await db.query.subscriptions.findFirst({
@@ -264,7 +264,7 @@ router.post(
       // Update subscription status to canceled
       await db
         .update(subscriptions)
-        .set({ 
+        .set({
           status: "canceled",
           updatedAt: new Date()
         })

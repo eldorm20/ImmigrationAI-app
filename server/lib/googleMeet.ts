@@ -50,6 +50,7 @@ export async function createCalendarEventWithMeet(
   const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (saKey) {
     try {
+      // @ts-ignore
       const { google } = await import("googleapis");
       const key = typeof saKey === "string" ? JSON.parse(saKey) : saKey;
 
@@ -138,9 +139,8 @@ function generateCalendarLink(eventData: {
   params.append("text", eventData.title);
 
   if (eventData.description) {
-    const description = `${eventData.description}\n\nMeet Link: ${
-      eventData.meetLink || ""
-    }`;
+    const description = `${eventData.description}\n\nMeet Link: ${eventData.meetLink || ""
+      }`;
     params.append("details", description);
   }
 

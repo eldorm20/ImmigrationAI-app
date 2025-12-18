@@ -22,6 +22,8 @@ interface ResearchItem {
   tags?: string[];
   source?: string;
   sourceUrl?: string;
+  publishedAt?: string;
+  createdAt?: string;
 }
 
 export default function Research() {
@@ -55,13 +57,13 @@ export default function Research() {
   ];
 
   const filteredResources = items.filter(resource => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       resource.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (resource.tags || []).some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesCategory = selectedCategory === "all" || resource.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -150,7 +152,7 @@ export default function Research() {
       {/* Navigation */}
       <nav className="fixed w-full z-50 px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <motion.div 
+          <motion.div
             className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
             onClick={() => setLocation('/dashboard')}
           >
@@ -161,9 +163,9 @@ export default function Research() {
           </motion.div>
           <div className="flex items-center gap-4">
             <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
-              {['en','uz','ru','de','fr','es'].map(l => (
-                <button key={l} onClick={()=>setLang(l as any)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang===l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+              {['en', 'uz', 'ru', 'de', 'fr', 'es'].map(l => (
+                <button key={l} onClick={() => setLang(l as any)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang === l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
                   {l}
                 </button>
               ))}
@@ -203,11 +205,10 @@ export default function Research() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                  selectedCategory === cat.id
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
                     ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
-                }`}
+                  }`}
               >
                 {cat.name} ({cat.count})
               </button>
@@ -332,8 +333,8 @@ export default function Research() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
                     {resource?.type === "guide" || resource?.type === "Guide" ? <Book className="text-brand-600 dark:text-brand-400" size={24} /> :
-                     resource?.type === "case_study" || resource?.type === "Case Study" ? <FileText className="text-brand-600 dark:text-brand-400" size={24} /> :
-                     <Globe className="text-brand-600 dark:text-brand-400" size={24} />}
+                      resource?.type === "case_study" || resource?.type === "Case Study" ? <FileText className="text-brand-600 dark:text-brand-400" size={24} /> :
+                        <Globe className="text-brand-600 dark:text-brand-400" size={24} />}
                   </div>
                   <div>
                     <span className="text-xs font-bold text-brand-600 dark:text-brand-400 uppercase">
@@ -351,7 +352,7 @@ export default function Research() {
               <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                 {resource?.title || "Untitled"}
               </h3>
-              
+
               <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
                 {resource?.summary || ""}
               </p>
@@ -365,8 +366,8 @@ export default function Research() {
                   ))}
                 </div>
                 <LiveButton variant="ghost" size="sm" icon={Download} onClick={() => {
-                  toast({ 
-                    title: t.research.download, 
+                  toast({
+                    title: t.research.download,
                     description: `Downloading ${resource?.title || "resource"}...`,
                     className: "bg-green-50 text-green-900 border-green-200"
                   });

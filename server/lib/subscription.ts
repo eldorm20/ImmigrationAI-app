@@ -2,6 +2,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
+import type Stripe from "stripe";
 
 let stripe: any | null = null;
 

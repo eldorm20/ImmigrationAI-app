@@ -1,4 +1,4 @@
-import Queue from "bull";
+import Queue, { Job } from "bull";
 import { logger } from "./logger";
 import { sendEmail } from "./email";
 
@@ -9,8 +9,8 @@ const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 function createMockQueue(name: string) {
   return {
     add: async (job: any) => Promise.resolve({ id: `mock-${name}-${Date.now()}` }),
-    process: (_fn: any) => {},
-    on: (_ev: any, _fn: any) => {},
+    process: (_fn: any) => { },
+    on: (_ev: any, _fn: any) => { },
     close: async () => Promise.resolve(),
   } as any;
 }
@@ -18,49 +18,49 @@ function createMockQueue(name: string) {
 export const emailQueue = process.env.NODE_ENV === "test"
   ? createMockQueue("emails")
   : new Queue("emails", {
-      redis: redisUrl,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
+    redis: redisUrl,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
       },
-    });
+      removeOnComplete: true,
+      removeOnFail: false,
+    },
+  });
 
 export const documentQueue = process.env.NODE_ENV === "test"
   ? createMockQueue("documents")
   : new Queue("documents", {
-      redis: redisUrl,
-      defaultJobOptions: {
-        attempts: 2,
-        backoff: {
-          type: "exponential",
-          delay: 2000,
-        },
+    redis: redisUrl,
+    defaultJobOptions: {
+      attempts: 2,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
       },
-    });
+    },
+  });
 
 export const notificationQueue = process.env.NODE_ENV === "test"
   ? createMockQueue("notifications")
   : new Queue("notifications", {
-      redis: redisUrl,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 1000,
-        },
-        removeOnComplete: true,
+    redis: redisUrl,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 1000,
       },
-    });
+      removeOnComplete: true,
+    },
+  });
 
 // Setup processors and event listeners only when not running tests
 if (process.env.NODE_ENV !== "test") {
   // Setup processors
-  emailQueue.process(async (job) => {
+  emailQueue.process(async (job: Job) => {
     try {
       const { to, subject, html } = job.data;
       await sendEmail({ to, subject, html });
@@ -71,7 +71,7 @@ if (process.env.NODE_ENV !== "test") {
     }
   });
 
-  documentQueue.process(async (job) => {
+  documentQueue.process(async (job: Job) => {
     try {
       const { documentId } = job.data;
       logger.info({ documentId }, "Document analysis job started");
@@ -82,7 +82,7 @@ if (process.env.NODE_ENV !== "test") {
     }
   });
 
-  notificationQueue.process(async (job) => {
+  notificationQueue.process(async (job: Job) => {
     try {
       const { userId, message } = job.data;
       logger.info({ userId }, "Notification job processed");
@@ -93,15 +93,15 @@ if (process.env.NODE_ENV !== "test") {
   });
 
   // Queue event listeners
-  emailQueue.on("failed", (job, err) => {
+  emailQueue.on("failed", (job: Job | undefined, err: Error) => {
     logger.error({ jobId: job?.id, error: err.message }, "Email queue job failed");
   });
 
-  documentQueue.on("failed", (job, err) => {
+  documentQueue.on("failed", (job: Job | undefined, err: Error) => {
     logger.error({ jobId: job?.id, error: err.message }, "Document queue job failed");
   });
 
-  notificationQueue.on("failed", (job, err) => {
+  notificationQueue.on("failed", (job: Job | undefined, err: Error) => {
     logger.error({ jobId: job?.id, error: err.message }, "Notification queue job failed");
   });
 }

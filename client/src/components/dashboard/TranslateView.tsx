@@ -33,9 +33,9 @@ export const TranslateView = () => {
 
         setTranslating(true);
         try {
-            const resp = await apiRequest<{ translation: string }>("/ai/translate", {
+            const resp = await apiRequest<{ translation: string }>("/api/translate", {
                 method: "POST",
-                body: JSON.stringify({ fromLang, toLang, text }),
+                body: JSON.stringify({ text, source: fromLang, target: toLang }),
             });
             setTranslated(resp.translation || "");
             toast({ title: t.translate.complete, description: certified ? t.translate.certifiedReady : t.translate.aiComplete, className: "bg-green-50 text-green-900 border-green-200" });

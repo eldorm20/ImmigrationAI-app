@@ -5,6 +5,7 @@ import * as db from "../db";
 import { logger } from "../lib/logger";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { hashPassword, verifyPassword } from "../lib/auth";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ const router = express.Router();
 router.get("/settings", authenticate, async (req, res) => {
   try {
     const userId = req.user!.userId;
-    
+
     const user = await db.db
       .select({
         id: users.id,
@@ -107,15 +108,14 @@ router.post("/change-password", authenticate, async (req, res) => {
     const user = userResult[0];
 
     // Verify current password
-    const bcrypt = await import("bcryptjs");
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.hashedPassword);
+    const isPasswordValid = await verifyPassword(user.hashedPassword, currentPassword);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Current password is incorrect" });
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
     // Update password
     await db.db

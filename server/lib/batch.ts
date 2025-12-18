@@ -70,13 +70,13 @@ export async function processBatchDocuments(
   documentIds: string[]
 ): Promise<BatchJob | null> {
   const job = createBatchJob(jobId, "document_analysis", documentIds.length);
-  
+
   // TODO: Implement actual batch processing
   for (let i = 0; i < documentIds.length; i++) {
     try {
       // Process document
       updateBatchProgress(jobId, i + 1);
-      
+
       // Simulate processing
       await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
@@ -128,7 +128,7 @@ export function cleanupOldBatchJobs(hoursOld: number = 24): number {
   const cutoffTime = Date.now() - hoursOld * 60 * 60 * 1000;
   let removed = 0;
 
-  for (const [jobId, job] of batchQueue.entries()) {
+  for (const [jobId, job] of Array.from(batchQueue.entries())) {
     if (job.completedAt && job.completedAt.getTime() < cutoffTime) {
       batchQueue.delete(jobId);
       removed++;

@@ -11,14 +11,14 @@ export async function checkFeatureLimit(
   currentUsage: number
 ) {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
     if (!userId) {
       throw new AppError(401, "Unauthorized");
     }
 
     const tier = await getUserSubscriptionTier(userId);
     const tierFeatures = getTierFeatures(tier);
-    const limit = tierFeatures.features[feature as any];
+    const limit = (tierFeatures.features as any)[feature];
 
     if (typeof limit !== "number") {
       throw new AppError(400, "Invalid feature");
@@ -27,7 +27,7 @@ export async function checkFeatureLimit(
     if (currentUsage >= limit) {
       throw new AppError(
         403,
-        `You have reached the limit for ${feature.replace(/_/g, " ")} on your ${tier} plan. Upgrade to continue.`
+        `You have reached the limit for ${String(feature).replace(/_/g, " ")} on your ${tier} plan. Upgrade to continue.`
       );
     }
 
@@ -46,14 +46,14 @@ export function enforceFeatureGating(feature: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     (async () => {
       try {
-        const userId = req.user?.id;
+        const userId = req.user?.userId;
         if (!userId) {
           throw new AppError(401, "Unauthorized");
         }
 
         const tier = await getUserSubscriptionTier(userId);
         const tierFeatures = getTierFeatures(tier).features;
-        const hasAccess = tierFeatures[feature as any];
+        const hasAccess = (tierFeatures as any)[feature];
 
         if (!hasAccess) {
           throw new AppError(

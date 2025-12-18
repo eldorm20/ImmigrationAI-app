@@ -15,6 +15,8 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: "admin" | "lawyer" | "applicant";
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface AuthTokens {
@@ -153,6 +155,8 @@ export async function generateTokens(userId: string): Promise<AuthTokens> {
     userId: user.id,
     email: user.email,
     role: user.role as "admin" | "lawyer" | "applicant",
+    firstName: user.firstName || undefined,
+    lastName: user.lastName || undefined,
   };
 
   const accessToken = generateAccessToken(payload);

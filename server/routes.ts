@@ -20,7 +20,7 @@ import visaRoutes from "./routes/visa";
 import analyticsRoutes from "./routes/analytics";
 import employersRoutes from "./routes/employers";
 import debugRoutes from "./routes/debug";
-
+import translateRoutes from "./routes/translate"; // New import
 import publicStatsRouter from "./routes/public-stats";
 
 export async function registerRoutes(app: Express) {
@@ -51,4 +51,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/analytics", analyticsRoutes);
   app.use("/api/employers", employersRoutes);
   app.use("/api/debug", debugRoutes);
+  app.use("/api/translate", translateRoutes);
 }
