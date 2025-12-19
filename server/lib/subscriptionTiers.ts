@@ -79,7 +79,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
     tier: "enterprise",
     name: "Enterprise",
     monthlyPrice: 99, // Set to $99 as per user requirement
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_99",
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_placeholder_needs_config",
     features: {
       documentUploadLimit: 10000,
       aiDocumentGenerations: 10000,

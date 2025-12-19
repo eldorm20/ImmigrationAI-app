@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -29,6 +29,7 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "cancelled"
 ]);
 export const consultationStatusEnum = pgEnum("consultation_status", [
+  "pending",
   "scheduled",
   "completed",
   "cancelled",
@@ -144,7 +145,7 @@ export const consultations = pgTable("consultations", {
   applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
   scheduledTime: timestamp("scheduled_time").notNull(),
   duration: integer("duration").default(60), // minutes
-  status: consultationStatusEnum("status").notNull().default("scheduled"),
+  status: consultationStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
   meetingLink: varchar("meeting_link", { length: 500 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -929,3 +930,51 @@ export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+
+// === RELATIONS ===
+
+export const usersRelations = relations(users, ({ many }) => ({
+  applications: many(applications),
+  consultations: many(consultations),
+  tasks: many(tasks), // Client's tasks
+  lawyerTasks: many(tasks), // Tasks assigned to lawyer
+}));
+
+export const applicationsRelations = relations(applications, ({ one }) => ({
+  user: one(users, {
+    fields: [applications.userId],
+    references: [users.id],
+  }),
+  lawyer: one(users, {
+    fields: [applications.lawyerId],
+    references: [users.id],
+  }),
+}));
+
+export const consultationsRelations = relations(consultations, ({ one }) => ({
+  user: one(users, {
+    fields: [consultations.userId],
+    references: [users.id],
+  }),
+  lawyer: one(users, {
+    fields: [consultations.lawyerId],
+    references: [users.id],
+  }),
+}));
+
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  client: one(users, {
+    fields: [tasks.clientId],
+    references: [users.id],
+    relationName: "tasks"
+  }),
+  lawyer: one(users, {
+    fields: [tasks.lawyerId],
+    references: [users.id],
+    relationName: "lawyerTasks"
+  }),
+  application: one(applications, {
+    fields: [tasks.applicationId],
+    references: [applications.id],
+  }),
+}));

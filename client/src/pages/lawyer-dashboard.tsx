@@ -22,6 +22,8 @@ import { UploadView } from "@/components/dashboard/upload-view";
 import Invoicing from "@/components/lawyer/Invoicing";
 import TimeTracker from "@/components/lawyer/TimeTracker";
 import TaskManager from "@/components/lawyer/TaskManager";
+import ClientPortfolio from "@/components/lawyer/ClientPortfolio";
+import DocumentTemplates from '@/components/lawyer/DocumentTemplates';
 
 // --- Types & Components ---
 
@@ -115,7 +117,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'translate' | 'upload' | 'financials' | 'tasks'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'translate' | 'upload' | 'financials' | 'tasks' | 'clients' | 'invoicing' | 'templates'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -401,597 +403,666 @@ export default function LawyerDashboard() {
             <Bell size={18} />
             {t.lawyerDashboard?.consultations || t.lawyer?.consultations || 'Consultations'}
           </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('clients')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'clients'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <Users size={18} />
+            Clients
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('invoicing')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'invoicing'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <DollarSign size={18} />
+            Financials
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('templates')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'templates'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <FileText size={18} />
+            Templates
+          </motion.button>
         </div>
 
         {/* Applications Tab Content */}
-        {activeTab === 'applications' && (
-          <>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={stats?.totalLeads ?? leads.length} icon={Users} color="blue" trend="+12%" />
-              <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${(stats?.totalRevenue ?? totalRevenue).toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
-              <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={stats?.pendingLeads ?? leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
-              <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
-            </div>
+        {
+          activeTab === 'applications' && (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={stats?.totalLeads ?? leads.length} icon={Users} color="blue" trend="+12%" />
+                <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${(stats?.totalRevenue ?? totalRevenue).toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
+                <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={stats?.pendingLeads ?? leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
+                <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
+              </div >
 
-            {/* Quick Actions for lawyers */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.quickActions || 'Quick Actions'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
-                <div className="flex flex-col gap-2">
-                  <ActionButton variant="primary" onClick={() => {
-                    // Open messaging panel
-                    setLocation('/messages');
-                  }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
-                  <ActionButton variant="success" icon={Video} onClick={handleStartCall}>
-                    Start Video Call
-                  </ActionButton>
-                  <ActionButton variant="success" onClick={() => {
-                    // Switch to consultations tab
-                    setActiveTab('consultations');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.newConsultation || 'New Consultation'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    setActiveTab('upload');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.uploadDoc || 'Upload Doc'}</ActionButton>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.aiTools || 'AI Tools'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
-                <div className="flex flex-col gap-2">
-                  <ActionButton variant="primary" onClick={() => {
-                    setActiveTab('ai-docs');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
-
-                  <ActionButton variant="ghost" onClick={() => {
-                    setActiveTab('translate');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.translation || 'Translation'}</ActionButton>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.caseTools || 'Case Tools'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
-                <div className="flex flex-col gap-2">
-                  <ActionButton variant="ghost" onClick={() => {
-                    // Show all applications in current view
-                    setActiveTab('applications');
-                    setFilterStatus('All');
-                    toast({
-                      title: "Showing All Applications",
-                      description: `${leads.length} applications loaded`,
-                      className: "bg-green-50 text-green-900 border-green-200"
-                    });
-                  }}>{t.lawyerDashboard?.allApplications || 'All Applications'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    setShowReport(true);
-                  }}>{t.lawyerDashboard?.analytics || 'Analytics'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    window.open('/research', '_blank');
-                  }}>{'Research Library'}</ActionButton>
-                </div>
-              </div>
-
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StatCard title={t.lawyerDashboard?.newThisWeek || 'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
-              <StatCard title={t.lawyerDashboard?.totalFees || 'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> {t.lawyerDashboard?.revenueAnalytics || 'Revenue Analytics'}</h3>
-                <ResponsiveContainer width="100%" height="85%">
-                  <AreaChart data={revenueData}>
-                    <defs>
-                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.2} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff' }} />
-                    <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-brand-600 dark:bg-brand-700 p-6 rounded-2xl shadow-xl shadow-brand-500/30 text-white relative overflow-hidden flex flex-col justify-center items-center text-center">
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Briefcase size={32} className="text-white" />
+              {/* Quick Actions for lawyers */}
+              < div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-bold mb-2">{t.lawyerDashboard?.quickActions || 'Quick Actions'}</h4>
+                  <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
+                  <div className="flex flex-col gap-2">
+                    <ActionButton variant="primary" onClick={() => {
+                      // Open messaging panel
+                      setLocation('/messages');
+                    }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
+                    <ActionButton variant="success" icon={Video} onClick={handleStartCall}>
+                      Start Video Call
+                    </ActionButton>
+                    <ActionButton variant="success" onClick={() => {
+                      // Switch to consultations tab
+                      setActiveTab('consultations');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>{t.lawyerDashboard?.newConsultation || 'New Consultation'}</ActionButton>
+                    <ActionButton variant="ghost" onClick={() => {
+                      setActiveTab('upload');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>{t.lawyerDashboard?.uploadDoc || 'Upload Doc'}</ActionButton>
                   </div>
-                  <h3 className="text-2xl font-extrabold mb-2">{t.lawyerDashboard?.topPerformer || 'Top Performer'}</h3>
-                  <p className="text-brand-100 mb-6">You are in the top 5% of partners this month.</p>
-                  <button
-                    onClick={() => setShowReport(true)}
-                    className="bg-white text-brand-600 px-6 py-3 rounded-xl font-bold hover:bg-brand-50 transition-colors shadow-lg"
-                  >
-                    {t.lawyerDashboard?.viewReport || 'View Report'}
-                  </button>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-bold mb-2">{t.lawyerDashboard?.aiTools || 'AI Tools'}</h4>
+                  <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
+                  <div className="flex flex-col gap-2">
+                    <ActionButton variant="primary" onClick={() => {
+                      setActiveTab('ai-docs');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
+
+                    <ActionButton variant="ghost" onClick={() => {
+                      setActiveTab('translate');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}>{t.lawyerDashboard?.translation || 'Translation'}</ActionButton>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-bold mb-2">{t.lawyerDashboard?.caseTools || 'Case Tools'}</h4>
+                  <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
+                  <div className="flex flex-col gap-2">
+                    <ActionButton variant="ghost" onClick={() => {
+                      // Show all applications in current view
+                      setActiveTab('applications');
+                      setFilterStatus('All');
+                      toast({
+                        title: "Showing All Applications",
+                        description: `${leads.length} applications loaded`,
+                        className: "bg-green-50 text-green-900 border-green-200"
+                      });
+                    }}>{t.lawyerDashboard?.allApplications || 'All Applications'}</ActionButton>
+                    <ActionButton variant="ghost" onClick={() => {
+                      setShowReport(true);
+                    }}>{t.lawyerDashboard?.analytics || 'Analytics'}</ActionButton>
+                    <ActionButton variant="ghost" onClick={() => {
+                      window.open('/research', '_blank');
+                    }}>{'Research Library'}</ActionButton>
+                  </div>
+                </div>
+
+              </div >
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatCard title={t.lawyerDashboard?.newThisWeek || 'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
+                <StatCard title={t.lawyerDashboard?.totalFees || 'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                  <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> {t.lawyerDashboard?.revenueAnalytics || 'Revenue Analytics'}</h3>
+                  <ResponsiveContainer width="100%" height="85%">
+                    <AreaChart data={revenueData}>
+                      <defs>
+                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.2} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff' }} />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-brand-600 dark:bg-brand-700 p-6 rounded-2xl shadow-xl shadow-brand-500/30 text-white relative overflow-hidden flex flex-col justify-center items-center text-center">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                  <div className="relative z-10">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Briefcase size={32} className="text-white" />
+                    </div>
+                    <h3 className="text-2xl font-extrabold mb-2">{t.lawyerDashboard?.topPerformer || 'Top Performer'}</h3>
+                    <p className="text-brand-100 mb-6">You are in the top 5% of partners this month.</p>
+                    <button
+                      onClick={() => setShowReport(true)}
+                      className="bg-white text-brand-600 px-6 py-3 rounded-xl font-bold hover:bg-brand-50 transition-colors shadow-lg"
+                    >
+                      {t.lawyerDashboard?.viewReport || 'View Report'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Leads Table */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}</h3>
+                      <div className="flex gap-2">
+                        {['All', 'New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                          const statusLabels: Record<string, string> = {
+                            'All': 'All',
+                            'New': t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending',
+                            'Reviewing': 'Reviewing',
+                            'Approved': t.lawyerDashboard?.approved || t.lawyer?.approved || 'Approved',
+                            'Rejected': 'Rejected'
+                          };
+                          return (
+                            <button
+                              key={status}
+                              onClick={() => { setFilterStatus(status); setPage(1); }}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${filterStatus === status ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                            >
+                              {statusLabels[status] || status}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                          value={searchQuery}
+                          onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                          placeholder={t.lawyerDashboard?.searchPlaceholder || t.lawyer?.searchPlaceholder || ''}
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                      >
+                        <option value="date_desc">{t.common?.date || 'Date'} ↓</option>
+                        <option value="date_asc">{t.common?.date || 'Date'} ↑</option>
+                        <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↓</option>
+                        <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↑</option>
+                      </select>
+                      <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                        {assignedOnly ? 'Assigned to me' : 'All'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, filteredLeads.length)} of {filteredLeads.length} applications
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="p-12 text-center text-slate-400">Loading...</div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider">
+                          <tr>
+                            <th className="px-6 py-4">{t.lawyer?.clientInfo || 'Applicant'}</th>
+                            <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
+                            <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
+                            <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
+                            <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
+                            <th className="px-6 py-4">Assigned</th>
+                            <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {pageData.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                {t.research?.noResults?.replace('resources', 'applications') || 'No applications found'}
+                              </td>
+                            </tr>
+                          ) : (
+                            pageData.map((lead) => (
+                              <tr key={lead.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+                                      {(lead.name || "?")[0]}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900 dark:text-white">{lead.name}</p>
+                                      <p className="text-xs text-slate-400">{lead.email}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">{lead.visa}</span>
+                                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> {lead.country}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 font-bold font-mono text-slate-600 dark:text-slate-300">
+                                  ${lead.fee?.toLocaleString() || 0}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lead.status === 'Approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400' :
+                                    lead.status === 'New' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' :
+                                      lead.status === 'Reviewing' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400' :
+                                        lead.status === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' :
+                                          'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                                    }`}>
+                                    {lead.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
+                                  {new Date(lead.date || lead.createdAt || 0).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-slate-600">
+                                    {lead.lawyerId ? (lead.lawyerId === user?.id ? 'You' : `Lawyer ${lead.lawyerId.slice(0, 8)}`) : 'Unassigned'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ActionButton
+                                      variant="ghost"
+                                      icon={Eye}
+                                      onClick={() => {
+                                        setSelectedLead(lead);
+                                        // Scroll to top to see modal
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      }}
+                                    >
+                                      {t.common?.view || 'View'}
+                                    </ActionButton>
+                                    {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
+                                      <ActionButton
+                                        variant="success"
+                                        icon={CheckCircle}
+                                        onClick={() => {
+                                          if (confirm(`${t.success?.message || 'Approve'} ${lead.name}?`)) {
+                                            handleStatusChange(lead.id, 'Approved');
+                                          }
+                                        }}
+                                      >
+                                        {t.lawyer?.approveApplication || 'Approve'}
+                                      </ActionButton>
+                                    )}
+                                    {lead.status === 'New' && (
+                                      <ActionButton
+                                        variant="danger"
+                                        icon={XCircle}
+                                        onClick={() => {
+                                          if (confirm(`${t.error?.message || 'Reject'} ${lead.name}?`)) {
+                                            handleStatusChange(lead.id, 'Rejected');
+                                          }
+                                        }}
+                                      >
+                                        {t.lawyer?.rejectApplication || 'Reject'}
+                                      </ActionButton>
+                                    )}
+                                    {lead.status === 'New' && (
+                                      <ActionButton
+                                        variant="ghost"
+                                        icon={Clock}
+                                        onClick={() => handleStatusChange(lead.id, 'Reviewing')}
+                                      >
+                                        {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
+                                      </ActionButton>
+                                    )}
+                                    {(!lead.lawyerId || lead.lawyerId !== user?.id) && (
+                                      <ActionButton variant="primary" icon={Users} onClick={() => handleAssignToMe(lead.id)}>
+                                        Assign to me
+                                      </ActionButton>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          {t.common?.page || 'Page'} {page} {t.common?.of || 'of'} {totalPages}
+                        </div>
+                        <div className="flex gap-2">
+                          <ActionButton
+                            variant="ghost"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                          >
+                            {t.common?.previous || 'Previous'}
+                          </ActionButton>
+                          <ActionButton
+                            variant="ghost"
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                          >
+                            {t.common?.next || 'Next'}
+                          </ActionButton>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          )
+        }
+
+        {/* Clients Tab Content */}
+        {
+          activeTab === 'clients' && (
+            <ClientPortfolio />
+          )
+        }
+
+        {/* Templates Tab Content */}
+        {activeTab === 'templates' && (
+          <DocumentTemplates />
+        )}
+
+        {/* Consultations Tab Content */}
+        {
+          activeTab === 'consultations' && (
+            <LawyerConsultations />
+          )
+        }
+
+        {/* AI Tools & Upload Views */}
+        {
+          activeTab === 'ai-docs' && (
+            <div className="space-y-4">
+              <button
+                onClick={() => setActiveTab('applications')}
+                className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+              >
+                ← Back to Dashboard
+              </button>
+              <AIDocsView />
+            </div>
+          )
+        }
+
+        {
+          activeTab === 'translate' && (
+            <div className="space-y-4">
+              <button
+                onClick={() => setActiveTab('applications')}
+                className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+              >
+                ← Back to Dashboard
+              </button>
+              <TranslateView />
+            </div>
+          )
+        }
+        {
+          activeTab === 'upload' && (
+            <div className="space-y-4">
+              <button
+                onClick={() => setActiveTab('applications')}
+                className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
+              >
+                ← Back to Dashboard
+              </button>
+              <UploadView applicationId={selectedLead?.id ? String(selectedLead.id) : undefined} />
+            </div>
+          )
+        }
+        {
+          activeTab === 'tasks' && (
+            <div className="space-y-6">
+              <TaskManager />
+            </div>
+          )
+        }
+
+        {
+          activeTab === 'financials' && (
+            <div className="space-y-8">
+              <section>
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Clock size={20} /> Time Tracking</h3>
+                <TimeTracker />
+              </section>
+              <section>
+                <Invoicing />
+              </section>
+            </div>
+          )
+        }
+      </main >
+
+      {/* Client Detail Modal */}
+      <AnimatePresence>
+        {
+          selectedLead && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-lg relative z-10 shadow-2xl border border-white/10">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t.lawyerDashboard?.active || t.lawyer?.active || 'Active'} Details</h3>
+                  <button onClick={() => setSelectedLead(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <div className="w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl font-bold">
+                      {(selectedLead.name || "?")[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedLead.name}</h4>
+                      <p className="text-slate-500 dark:text-slate-400">{selectedLead.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Visa Type</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.visa}</p>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Destination</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.country}</p>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Submitted</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white">
+                        {selectedLead.date || new Date(selectedLead.createdAt || Date.now()).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Fee Paid</p>
+                      <p className="font-bold text-lg text-green-600 dark:text-green-400">${selectedLead.fee || 0}</p>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</p>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedLead.status === 'Approved' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' :
+                        selectedLead.status === 'New' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
+                          selectedLead.status === 'Reviewing' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400' :
+                            selectedLead.status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
+                              'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                        {selectedLead.status}
+                      </span>
+                    </div>
+                    <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                      <p className="text-xs font-bold text-slate-400 uppercase">Application ID</p>
+                      <p className="font-bold text-lg text-slate-900 dark:text-white font-mono text-sm">#{selectedLead.id}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h5 className="font-bold text-sm mb-2 flex items-center gap-2 text-slate-700 dark:text-slate-300"><FileText size={16} /> AI Summary</h5>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Applicant shows high eligibility score (85/100). Documents for Proof of Funds and English Proficiency are verified. Recommended for approval based on provided data.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="success"
+                      icon={CheckCircle}
+                      onClick={() => {
+                        handleStatusChange(selectedLead.id, 'Approved');
+                        setTimeout(() => setSelectedLead(null), 500);
+                      }}
+                    >
+                      Approve Application
+                    </ActionButton>
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="danger"
+                      icon={XCircle}
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to reject ${selectedLead.name}'s application?`)) {
+                          handleStatusChange(selectedLead.id, 'Rejected');
+                          setTimeout(() => setSelectedLead(null), 500);
+                        }
+                      }}
+                    >
+                      Reject
+                    </ActionButton>
+                  </div>
                 </div>
               </motion.div>
             </div>
+          )
+        }
+      </AnimatePresence >
 
-            {/* Leads Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}</h3>
-                    <div className="flex gap-2">
-                      {['All', 'New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                        const statusLabels: Record<string, string> = {
-                          'All': 'All',
-                          'New': t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending',
-                          'Reviewing': 'Reviewing',
-                          'Approved': t.lawyerDashboard?.approved || t.lawyer?.approved || 'Approved',
-                          'Rejected': 'Rejected'
-                        };
+      {/* Performance Report Modal */}
+      <AnimatePresence>
+        {
+          showReport && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
+                  <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
+                    <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
+                        <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
+                        <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
+                        <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
+                    <div className="space-y-2">
+                      {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                        const count = leads.filter(l => l.status === status).length;
+                        const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
                         return (
-                          <button
-                            key={status}
-                            onClick={() => { setFilterStatus(status); setPage(1); }}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${filterStatus === status ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                          >
-                            {statusLabels[status] || status}
-                          </button>
+                          <div key={status} className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
+                            <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full ${status === 'Approved' ? 'bg-green-500' :
+                                  status === 'Reviewing' ? 'bg-yellow-500' :
+                                    status === 'Rejected' ? 'bg-red-500' :
+                                      'bg-blue-500'
+                                  }`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
+                          </div>
                         );
                       })}
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <div className="relative w-full md:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                      <input
-                        value={searchQuery}
-                        onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                        placeholder={t.lawyerDashboard?.searchPlaceholder || t.lawyer?.searchPlaceholder || ''}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-900 dark:text-white"
-                      />
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
+                      </div>
                     </div>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                  </div>
+
+                  <div className="flex gap-3">
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="primary"
+                      icon={Download}
+                      onClick={() => {
+                        toast({
+                          title: "Report Downloaded",
+                          description: "Performance report has been downloaded as PDF",
+                          className: "bg-green-50 text-green-900 border-green-200"
+                        });
+                      }}
                     >
-                      <option value="date_desc">{t.common?.date || 'Date'} ↓</option>
-                      <option value="date_asc">{t.common?.date || 'Date'} ↑</option>
-                      <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↓</option>
-                      <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↑</option>
-                    </select>
-                    <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
-                      {assignedOnly ? 'Assigned to me' : 'All'}
-                    </button>
+                      Download as PDF
+                    </ActionButton>
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="ghost"
+                      onClick={() => setShowReport(false)}
+                    >
+                      Close
+                    </ActionButton>
                   </div>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, filteredLeads.length)} of {filteredLeads.length} applications
-                </div>
-              </div>
-
-              {loading ? (
-                <div className="p-12 text-center text-slate-400">Loading...</div>
-              ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider">
-                        <tr>
-                          <th className="px-6 py-4">{t.lawyer?.clientInfo || 'Applicant'}</th>
-                          <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
-                          <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
-                          <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
-                          <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
-                          <th className="px-6 py-4">Assigned</th>
-                          <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {pageData.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                              {t.research?.noResults?.replace('resources', 'applications') || 'No applications found'}
-                            </td>
-                          </tr>
-                        ) : (
-                          pageData.map((lead) => (
-                            <tr key={lead.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
-                                    {(lead.name || "?")[0]}
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-slate-900 dark:text-white">{lead.name}</p>
-                                    <p className="text-xs text-slate-400">{lead.email}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-700 dark:text-slate-300">{lead.visa}</span>
-                                  <span className="text-xs text-slate-500 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> {lead.country}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 font-bold font-mono text-slate-600 dark:text-slate-300">
-                                ${lead.fee?.toLocaleString() || 0}
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lead.status === 'Approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400' :
-                                  lead.status === 'New' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' :
-                                    lead.status === 'Reviewing' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400' :
-                                      lead.status === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' :
-                                        'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-                                  }`}>
-                                  {lead.status}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
-                                {new Date(lead.date || lead.createdAt || 0).toLocaleDateString()}
-                              </td>
-                              <td className="px-6 py-4">
-                                <div className="text-sm text-slate-600">
-                                  {lead.lawyerId ? (lead.lawyerId === user?.id ? 'You' : `Lawyer ${lead.lawyerId.slice(0, 8)}`) : 'Unassigned'}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <ActionButton
-                                    variant="ghost"
-                                    icon={Eye}
-                                    onClick={() => {
-                                      setSelectedLead(lead);
-                                      // Scroll to top to see modal
-                                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                  >
-                                    {t.common?.view || 'View'}
-                                  </ActionButton>
-                                  {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
-                                    <ActionButton
-                                      variant="success"
-                                      icon={CheckCircle}
-                                      onClick={() => {
-                                        if (confirm(`${t.success?.message || 'Approve'} ${lead.name}?`)) {
-                                          handleStatusChange(lead.id, 'Approved');
-                                        }
-                                      }}
-                                    >
-                                      {t.lawyer?.approveApplication || 'Approve'}
-                                    </ActionButton>
-                                  )}
-                                  {lead.status === 'New' && (
-                                    <ActionButton
-                                      variant="danger"
-                                      icon={XCircle}
-                                      onClick={() => {
-                                        if (confirm(`${t.error?.message || 'Reject'} ${lead.name}?`)) {
-                                          handleStatusChange(lead.id, 'Rejected');
-                                        }
-                                      }}
-                                    >
-                                      {t.lawyer?.rejectApplication || 'Reject'}
-                                    </ActionButton>
-                                  )}
-                                  {lead.status === 'New' && (
-                                    <ActionButton
-                                      variant="ghost"
-                                      icon={Clock}
-                                      onClick={() => handleStatusChange(lead.id, 'Reviewing')}
-                                    >
-                                      {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
-                                    </ActionButton>
-                                  )}
-                                  {(!lead.lawyerId || lead.lawyerId !== user?.id) && (
-                                    <ActionButton variant="primary" icon={Users} onClick={() => handleAssignToMe(lead.id)}>
-                                      Assign to me
-                                    </ActionButton>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                      <div className="text-sm text-slate-500 dark:text-slate-400">
-                        {t.common?.page || 'Page'} {page} {t.common?.of || 'of'} {totalPages}
-                      </div>
-                      <div className="flex gap-2">
-                        <ActionButton
-                          variant="ghost"
-                          onClick={() => setPage(p => Math.max(1, p - 1))}
-                          disabled={page === 1}
-                        >
-                          {t.common?.previous || 'Previous'}
-                        </ActionButton>
-                        <ActionButton
-                          variant="ghost"
-                          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                          disabled={page === totalPages}
-                        >
-                          {t.common?.next || 'Next'}
-                        </ActionButton>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+              </motion.div>
             </div>
-          </>
-        )}
-
-        {/* Consultations Tab Content */}
-        {activeTab === 'consultations' && (
-          <LawyerConsultations />
-        )}
-
-        {/* AI Tools & Upload Views */}
-        {activeTab === 'ai-docs' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveTab('applications')}
-              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-            <AIDocsView />
-          </div>
-        )}
-
-        {activeTab === 'translate' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveTab('applications')}
-              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-            <TranslateView />
-          </div>
-        )}
-        {activeTab === 'upload' && (
-          <div className="space-y-4">
-            <button
-              onClick={() => setActiveTab('applications')}
-              className="text-sm text-slate-500 hover:text-brand-600 flex items-center gap-1 mb-4 font-medium transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-            <UploadView applicationId={selectedLead?.id ? String(selectedLead.id) : undefined} />
-          </div>
-        )}
-        {activeTab === 'tasks' && (
-          <div className="space-y-6">
-            <TaskManager />
-          </div>
-        )}
-
-        {activeTab === 'financials' && (
-          <div className="space-y-8">
-            <section>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Clock size={20} /> Time Tracking</h3>
-              <TimeTracker />
-            </section>
-            <section>
-              <Invoicing />
-            </section>
-          </div>
-        )}
-      </main>
-
-      {/* Client Detail Modal */}
-      <AnimatePresence>
-        {selectedLead && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-lg relative z-10 shadow-2xl border border-white/10">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t.lawyerDashboard?.active || t.lawyer?.active || 'Active'} Details</h3>
-                <button onClick={() => setSelectedLead(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                  <div className="w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl font-bold">
-                    {(selectedLead.name || "?")[0]}
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedLead.name}</h4>
-                    <p className="text-slate-500 dark:text-slate-400">{selectedLead.email}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Visa Type</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.visa}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Destination</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.country}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Submitted</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                      {selectedLead.date || new Date(selectedLead.createdAt || Date.now()).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Fee Paid</p>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">${selectedLead.fee || 0}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</p>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedLead.status === 'Approved' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' :
-                      selectedLead.status === 'New' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
-                        selectedLead.status === 'Reviewing' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400' :
-                          selectedLead.status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
-                            'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}>
-                      {selectedLead.status}
-                    </span>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Application ID</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white font-mono text-sm">#{selectedLead.id}</p>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                  <h5 className="font-bold text-sm mb-2 flex items-center gap-2 text-slate-700 dark:text-slate-300"><FileText size={16} /> AI Summary</h5>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Applicant shows high eligibility score (85/100). Documents for Proof of Funds and English Proficiency are verified. Recommended for approval based on provided data.
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="success"
-                    icon={CheckCircle}
-                    onClick={() => {
-                      handleStatusChange(selectedLead.id, 'Approved');
-                      setTimeout(() => setSelectedLead(null), 500);
-                    }}
-                  >
-                    Approve Application
-                  </ActionButton>
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="danger"
-                    icon={XCircle}
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to reject ${selectedLead.name}'s application?`)) {
-                        handleStatusChange(selectedLead.id, 'Rejected');
-                        setTimeout(() => setSelectedLead(null), 500);
-                      }
-                    }}
-                  >
-                    Reject
-                  </ActionButton>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Performance Report Modal */}
-      <AnimatePresence>
-        {showReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
-                <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
-                  <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
-                      <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
-                      <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
-                      <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
-                  <div className="space-y-2">
-                    {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                      const count = leads.filter(l => l.status === status).length;
-                      const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
-                      return (
-                        <div key={status} className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
-                          <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full ${status === 'Approved' ? 'bg-green-500' :
-                                status === 'Reviewing' ? 'bg-yellow-500' :
-                                  status === 'Rejected' ? 'bg-red-500' :
-                                    'bg-blue-500'
-                                }`}
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
-                      <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
-                      <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="primary"
-                    icon={Download}
-                    onClick={() => {
-                      toast({
-                        title: "Report Downloaded",
-                        description: "Performance report has been downloaded as PDF",
-                        className: "bg-green-50 text-green-900 border-green-200"
-                      });
-                    }}
-                  >
-                    Download as PDF
-                  </ActionButton>
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="ghost"
-                    onClick={() => setShowReport(false)}
-                  >
-                    Close
-                  </ActionButton>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          )
+        }
+      </AnimatePresence >
     </div >
   );
 }

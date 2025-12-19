@@ -64,6 +64,93 @@ export default function Invoicing() {
         setNewInvoice({ ...newInvoice, items });
     };
 
+    const handlePrint = (invoice: any) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            toast({ title: "Pop-up blocked", description: "Please allow pop-ups to print invoices", variant: "destructive" });
+            return;
+        }
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Invoice ${invoice.number}</title>
+                <style>
+                    body { font-family: sans-serif; padding: 40px; color: #333; }
+                    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+                    .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
+                    .invoice-details { text-align: right; }
+                    .bill-to { margin-bottom: 30px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    th { text-align: left; border-bottom: 2px solid #eee; padding: 10px; }
+                    td { border-bottom: 1px solid #eee; padding: 10px; }
+                    .total { text-align: right; font-size: 20px; font-weight: bold; margin-top: 20px; }
+                    .footer { margin-top: 50px; font-size: 12px; color: #888; text-align: center; }
+                    button { display: none; }
+                    @media print {
+                        body { padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="logo">ImmigrationAI</div>
+                    <div class="invoice-details">
+                        <h1>INVOICE</h1>
+                        <p>#${invoice.number}</p>
+                        <p>Date: ${new Date(invoice.issueDate).toLocaleDateString()}</p>
+                        <p>Due: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon Receipt'}</p>
+                    </div>
+                </div>
+
+                <div class="bill-to">
+                    <h3>Bill To:</h3>
+                    <p>Client ID: ${invoice.clientId}</p>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoice.items?.map((item: any) => `
+                            <tr>
+                                <td>${item.description}</td>
+                                <td>${item.quantity}</td>
+                                <td>$${Number(item.rate).toFixed(2)}</td>
+                                <td>$${Number(item.amount).toFixed(2)}</td>
+                            </tr>
+                        `).join('') || ''}
+                    </tbody>
+                </table>
+
+                <div class="total">
+                    Total: $${Number(invoice.amount).toFixed(2)}
+                </div>
+
+                ${invoice.notes ? `<p><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
+
+                <div class="footer">
+                    <p>Thank you for your business.</p>
+                </div>
+                
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
     const markPaid = async (id: string) => {
         try {
             await apiRequest(`/invoices/${id}`, {
@@ -193,7 +280,11 @@ export default function Invoicing() {
                                                 Mark Paid
                                             </button>
                                         )}
-                                        <button className="text-slate-400 hover:text-brand-600">
+                                        <button
+                                            onClick={() => handlePrint(inv)}
+                                            className="text-slate-400 hover:text-brand-600"
+                                            title="Print Invoice"
+                                        >
                                             <Download size={16} />
                                         </button>
                                     </td>

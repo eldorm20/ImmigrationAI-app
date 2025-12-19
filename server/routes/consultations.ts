@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { users, consultations, applications } from "@shared/schema";
-import { eq, and, or, desc, gte, lt } from "drizzle-orm";
+import { users, consultations, applications, tasks } from "@shared/schema";
+import { eq, and, or, desc, gte, lt, sql } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { emailQueue } from "../lib/queue";
@@ -25,7 +25,7 @@ const createConsultationSchema = z.object({
 });
 
 const updateConsultationSchema = z.object({
-  status: z.enum(["scheduled", "completed", "cancelled", "no_show"]).optional(),
+  status: z.enum(["pending", "scheduled", "completed", "cancelled", "no_show"]).optional(),
   notes: z.string().max(2000).optional(),
   meetingLink: z.string().url().optional(),
 });
@@ -55,8 +55,35 @@ router.post(
       where: eq(users.id, user.userId),
     });
 
+
     if (!applicant) {
       throw new AppError(404, "User not found");
+    }
+
+    // Validate scheduledTime is in the future
+    const scheduledDate = new Date(body.scheduledTime);
+    if (scheduledDate < new Date()) {
+      throw new AppError(400, "Consultation time must be in the future");
+    }
+
+    // Check for double booking
+    const durationMinutes = body.duration;
+    const endTime = new Date(scheduledDate.getTime() + durationMinutes * 60000);
+
+    const existingConsultation = await db.query.consultations.findFirst({
+      where: and(
+        eq(consultations.lawyerId, body.lawyerId),
+        or(eq(consultations.status, "scheduled"), eq(consultations.status, "pending")),
+        // Overlap Check: existing_start < new_end AND existing_end > new_start
+        and(
+          lt(consultations.scheduledTime, endTime),
+          sql`(${consultations.scheduledTime} + (${consultations.duration} || ' minutes')::interval) > ${scheduledDate.toISOString()}`
+        )
+      ),
+    });
+
+    if (existingConsultation) {
+      throw new AppError(409, "The selected time slot is already booked. Please choose another time.");
     }
 
     // Generate Jitsi Meet link for video consultation
@@ -72,7 +99,7 @@ router.post(
         scheduledTime: new Date(body.scheduledTime),
         duration: body.duration,
         notes: body.notes,
-        status: "scheduled",
+        status: "pending",
         meetingLink: meetingLink,
       })
       .returning();
@@ -264,6 +291,27 @@ router.patch(
       const otherUser = await db.query.users.findFirst({
         where: eq(users.id, otherUserId),
       });
+
+      // Automatic Task Creation: If status is 'completed' and user is lawyer, create follow-up task
+      if (body.status === 'completed') {
+        // Fetch client details if not already fetched
+        const clientUser = user.userId === consultation.lawyerId ? otherUser : await db.query.users.findFirst({ where: eq(users.id, consultation.userId) });
+
+        if (clientUser) {
+          await db.insert(tasks).values({
+            lawyerId: consultation.lawyerId,
+            clientId: consultation.userId,
+            applicationId: consultation.applicationId,
+            title: `Follow up: Consultation with ${clientUser.firstName} ${clientUser.lastName}`,
+            description: `Consultation completed on ${new Date().toLocaleDateString()}. \n\nReview notes: ${body.notes || consultation.notes || 'No notes provided'}. \n\nAction: Send follow-up email or proposal.`,
+            status: 'todo',
+            priority: 'medium',
+            dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Due in 2 days
+          });
+
+          logger.info({ lawyerId: consultation.lawyerId, consultationId: consultation.id }, "Auto-created follow-up task");
+        }
+      }
 
       if (otherUser) {
         try {

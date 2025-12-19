@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { tasks, documentTemplates, applications, users } from "@shared/schema";
+import { tasks, documentTemplates, applications, users, consultations } from "@shared/schema";
 import { eq, and, desc, asc, like } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
@@ -29,9 +29,9 @@ router.get(
         // For now assume lawyer tool
         if (user.role === "lawyer") {
             conditions.push(eq(tasks.lawyerId, user.userId));
+        } else if (user.role === "applicant") {
+            conditions.push(eq(tasks.clientId, user.userId));
         } else {
-            // Clients might see tasks assigned to them? Or tasks related to their app?
-            // For now, restrict to lawyers
             throw new AppError(403, "Access denied");
         }
 
@@ -203,6 +203,97 @@ router.post(
         }).returning();
 
         res.status(201).json(template);
+    })
+);
+
+
+// === CLIENTS / CRM ===
+
+// Get Clients (CRM)
+router.get(
+    "/clients",
+    asyncHandler(async (req, res) => {
+        const user = req.user!;
+        if (user.role !== "lawyer") throw new AppError(403, "Access denied");
+
+        // 1. Get clients from Applications
+        const appClients = await db.query.applications.findMany({
+            where: eq(applications.lawyerId, user.userId),
+            with: {
+                user: true
+            }
+        });
+
+        // 2. Get clients from Consultations
+        const consultClients = await db.query.consultations.findMany({
+            where: eq(consultations.lawyerId, user.userId),
+            with: {
+                user: true // Using the relation alias 'user' (make sure schema defines this relation!)
+            }
+        });
+
+        // Combined unique map
+        const clientMap = new Map();
+
+        // Process Application Clients
+        appClients.forEach(app => {
+            if (app.user) {
+                if (!clientMap.has(app.userId)) {
+                    clientMap.set(app.userId, {
+                        id: app.userId,
+                        firstName: app.user.firstName,
+                        lastName: app.user.lastName,
+                        email: app.user.email,
+                        phone: app.user.phone,
+                        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${app.user.firstName}`,
+                        status: "active", // active if they have an application
+                        lastInteraction: app.updatedAt,
+                        totalSpent: 0, // Mock for now
+                        caseCount: 1,
+                        source: "Application"
+                    });
+                } else {
+                    const existing = clientMap.get(app.userId);
+                    existing.caseCount++;
+                    if (new Date(app.updatedAt) > new Date(existing.lastInteraction)) {
+                        existing.lastInteraction = app.updatedAt;
+                    }
+                }
+            }
+        });
+
+        // Process Consultation Clients
+        // Note: Relation might be named differently in schema relations, usually 'user' if defined.
+        // If query fails on 'with', we might need to manual fetch. assuming schema relations exist.
+        consultClients.forEach(c => {
+            const clientUser = c.user as unknown as typeof users.$inferSelect;
+
+            if (clientUser) {
+                if (!clientMap.has(clientUser.id)) {
+                    clientMap.set(clientUser.id, {
+                        id: clientUser.id,
+                        firstName: clientUser.firstName,
+                        lastName: clientUser.lastName,
+                        email: clientUser.email,
+                        phone: clientUser.phone,
+                        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${clientUser.firstName}`,
+                        status: "lead", // Lead if only consultation
+                        lastInteraction: c.createdAt,
+                        totalSpent: c.status === 'completed' ? 150 : 0, // Mock consult fee
+                        caseCount: 0,
+                        source: "Consultation"
+                    });
+                } else {
+                    const existing = clientMap.get(clientUser.id);
+                    existing.totalSpent += (c.status === 'completed' ? 150 : 0);
+                    if (new Date(c.createdAt) > new Date(existing.lastInteraction)) {
+                        existing.lastInteraction = c.createdAt;
+                    }
+                }
+            }
+        });
+
+        res.json(Array.from(clientMap.values()));
     })
 );
 

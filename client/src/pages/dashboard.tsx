@@ -27,19 +27,7 @@ import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-vie
 import { OCRUploadView } from "@/components/dashboard/ocr-upload-view";
 import { DocumentsView } from "@/components/dashboard/documents-view";
 import ReferralView from "@/components/dashboard/referral-view";
-import { Target, CalendarClock, Gift } from "lucide-react";
 
-
-
-import { AgencyView } from "@/components/dashboard/AgencyView";
-import { RoadmapView } from "@/components/dashboard/RoadmapView";
-import { AIDocsView } from "@/components/dashboard/AIDocsView";
-import { UploadView } from "@/components/dashboard/UploadView";
-import { TranslateView } from "@/components/dashboard/TranslateView";
-import { ChatView } from "@/components/dashboard/ChatView";
-import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
-import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
-import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 
 
 
@@ -97,20 +85,15 @@ export default function UserDash() {
         <nav className="flex-1 px-4 space-y-2">
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
-
-            { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
-            { id: 'templates', icon: FolderOpen, label: 'Templates' },
-            { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
-            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
-            { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
-            { id: 'documents', icon: FileText, label: 'Documents' }, // Merged Upload + Scan
-            { id: 'referrals', icon: Gift, label: 'Refer & Earn' },
-            // Applications removed
-            { id: 'translate', icon: Globe, label: t.dash.translate },
-            { id: 'chat', icon: MessageSquare, label: t.dash.chat },
-            { id: 'messages', icon: Send, label: t.dash.messages },
+            { id: 'tasks', icon: CheckCircle, label: 'My Tasks' },
+            { id: 'documents', icon: FolderOpen, label: 'My Files' },
+            { id: 'docs', icon: Sparkles, label: 'AI Generator' },
             { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
-            { id: 'research', icon: Book, label: t.dash.research }
+            { id: 'messages', icon: Send, label: t.dash.messages },
+            { id: 'tools', icon: Settings, label: 'Tools' }, // Simple group label? No, assume user knows
+            { id: 'translate', icon: Globe, label: t.dash.translate },
+            { id: 'predictor', icon: Target, label: 'Visa Predictor' },
+            { id: 'employer', icon: BadgeCheck, label: 'Company Check' },
           ].map(item => (
             <motion.button
               key={item.id}
@@ -201,39 +184,14 @@ export default function UserDash() {
 
         <AnimatePresence mode="wait">
           {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} toast={toast} />}
+          {activeTab === 'tasks' && <ClientTasksView key="tasks" />}
           {activeTab === 'predictor' && <VisaPredictorView key="predictor" />}
-          {activeTab === 'deadlines' && <DeadlineTrackerView key="deadlines" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
-          {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
-          {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'documents' && <DocumentsView key="documents" />}
-          {activeTab === 'referrals' && (
-            <AnimatedCard>
-              <ReferralView />
-            </AnimatedCard>
-          )}
           {activeTab === 'translate' && <TranslateView key="translate" />}
-          {activeTab === 'chat' && <ChatView key="chat" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
-          {activeTab === 'agency' && <AgencyView key="agency" />}
-          {activeTab === 'research' && (
-            <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
-              <AnimatedCard className="max-w-md mx-auto">
-                <Book className="w-16 h-16 mx-auto mb-4 text-brand-500" />
-                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">{t.research.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  {t.research.subtitle}
-                </p>
-                <LiveButton onClick={() => {
-                  setLocation('/research');
-                }} icon={Book}>
-                  {t.research.title}
-                </LiveButton>
-              </AnimatedCard>
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
     </div >
@@ -425,4 +383,63 @@ const EmployerVerificationView = () => {
 };
 
 // Sub-views have been extracted to components/dashboard/
+
+const ClientTasksView = () => {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTasks = async () => {
+    try {
+      const data = await apiRequest<any[]>('/tasks');
+      setTasks(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchTasks(); }, []);
+
+  return (
+    <AnimatedCard>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">My Tasks</h2>
+        <div className="text-sm text-slate-500">Assigned by your Lawyer</div>
+      </div>
+
+      {loading ? <div className="p-8 text-center text-slate-400">Loading tasks...</div> :
+        tasks.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-3" />
+            <h3 className="font-medium text-slate-900 dark:text-white">All caught up!</h3>
+            <p className="text-slate-500">You have no pending tasks.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {tasks.map(task => (
+              <div key={task.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-4 items-start shadow-sm">
+                <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${task.status === 'done' ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300'}`}>
+                  {task.status === 'done' && <CheckCircle size={14} />}
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-bold text-slate-900 dark:text-white ${task.status === 'done' ? 'line-through text-slate-400' : ''}`}>{task.title}</h4>
+                  <p className="text-sm text-slate-500 mt-1">{task.description}</p>
+                  {task.dueDate && (
+                    <div className="text-xs text-brand-600 mt-2 font-medium flex items-center gap-1">
+                      <CalendarClock size={12} /> Due: {new Date(task.dueDate).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+                <div className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 uppercase font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {task.priority}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </AnimatedCard>
+  );
+};
 
