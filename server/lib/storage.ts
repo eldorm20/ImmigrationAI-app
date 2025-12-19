@@ -42,14 +42,30 @@ function validateBucketName(bucketName: string): { valid: boolean; error?: strin
   return { valid: true };
 }
 
+// Validate and log S3 configuration status
+let S3_ENABLED = false;
+
 if (BUCKET_NAME) {
   const validation = validateBucketName(BUCKET_NAME);
   if (!validation.valid) {
-    logger.error({ bucketName: BUCKET_NAME, error: validation.error }, "Invalid S3 bucket name configuration");
+    logger.warn({
+      bucketName: BUCKET_NAME,
+      error: validation.error,
+      remedy: "Set S3_BUCKET or AWS_S3_BUCKET environment variable to a valid bucket name (3-63 lowercase chars). Falling back to PostgreSQL storage."
+    }, "Invalid S3 bucket name configuration");
+    S3_ENABLED = false;
+  } else {
+    // Bucket name is valid
+    S3_ENABLED = true;
+    logger.info({ bucketName: BUCKET_NAME }, "S3 storage configured successfully");
   }
 } else {
-  logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
+  logger.warn("S3 bucket not configured (S3_BUCKET or AWS_S3_BUCKET not set) - using PostgreSQL file_blobs table for storage");
+  S3_ENABLED = false;
 }
+
+// Export S3 status for other modules to check
+export { S3_ENABLED };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [

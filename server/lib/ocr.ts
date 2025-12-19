@@ -7,15 +7,27 @@ const openai = process.env.OPENAI_API_KEY
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null;
 
-export async function extractTextFromBuffer(buffer: Buffer): Promise<string> {
+export async function extractTextFromBuffer(buffer: Buffer, mimeType?: string): Promise<string> {
     try {
+        // Check if it's a PDF - Tesseract doesn't support PDFs directly
+        if (mimeType === 'application/pdf' || buffer.toString('utf8', 0, 4) === '%PDF') {
+            logger.warn("PDF files are not supported for OCR extraction - use PDF.js or similar");
+            throw new Error("PDF files require conversion to images before OCR. Please upload an image file (JPEG, PNG).");
+        }
+
         const worker = await createWorker('eng');
         const { data: { text } } = await worker.recognize(buffer);
         await worker.terminate();
         return text;
-    } catch (err) {
-        logger.error({ err }, "OCR extraction failed");
-        throw new Error("Failed to extract text from document");
+    } catch (err: any) {
+        // Check if it's the PDF error
+        if (err.message?.includes('pixReadStream') || err.message?.includes('Pdf reading is not supported')) {
+            logger.error("Attempted to OCR a PDF file - not supported");
+            throw new Error("PDF files are not supported. Please convert to image format first.");
+        }
+
+        logger.error({ err: err.message }, "OCR extraction failed");
+        throw new Error(`Failed to extract text from document: ${err.message || 'Unknown error'}`);
     }
 }
 
