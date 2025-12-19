@@ -376,15 +376,16 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
   try {
     // If using local filesystem fallback, return a direct URL path
     if (!BUCKET_NAME) {
-      const base = process.env.APP_URL || "";
-      return `${base}/uploads/${key}`;
+      logger.warn("S3 not configured, using PostgreSQL endpoint for file access");
+      return `/api/documents/file/${encodeURIComponent(key)}`;
     }
 
     // Validate bucket configuration before attempting to generate URL
     const validation = validateBucketName(BUCKET_NAME);
     if (!validation.valid) {
-      logger.error({ bucketName: BUCKET_NAME, error: validation.error }, "Cannot generate presigned URL: invalid bucket configuration");
-      throw new Error(`Invalid S3 bucket configuration: ${validation.error}`);
+      logger.warn({ bucketName: BUCKET_NAME, error: validation.error }, "S3 bucket validation failed, using PostgreSQL fallback");
+      // Return PostgreSQL endpoint instead of throwing
+      return `/api/documents/file/${encodeURIComponent(key)}`;
     }
 
     return await retryWithBackoff(
@@ -401,14 +402,9 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
       { key, expiresIn, bucket: BUCKET_NAME }
     );
   } catch (error) {
-    logger.error({ error, key, bucket: BUCKET_NAME }, "Failed to generate presigned URL after retries");
-
-    // Provide specific error message for bucket configuration issues
-    if (error instanceof Error && error.message.includes('Invalid S3 bucket')) {
-      throw error; // Re-throw configuration errors as-is
-    }
-
-    throw new Error("Failed to generate file URL. Please check S3 configuration.");
+    logger.warn({ error, key, bucket: BUCKET_NAME }, "S3 presigned URL failed, using PostgreSQL fallback");
+    // Return PostgreSQL fallback URL instead of throwing error
+    return `/api/documents/file/${encodeURIComponent(key)}`;
   }
 }
 

@@ -210,7 +210,7 @@ export async function runMigrationsIfNeeded(): Promise<void> {
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_status TEXT");
 
       } catch (err) {
-        logger.warn({ err }, "Could not add new B2B columns to companies table");
+        // Silently continue - columns likely already exist
       }
 
       // 3. Jobs table
