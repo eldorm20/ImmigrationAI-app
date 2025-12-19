@@ -1,0 +1,1 @@
+try { const Z = require('zod'); console.log('Type:', typeof Z); console.log('Keys:', Object.keys(Z)); console.log('Is Z.z present?:', !!Z.z); console.log('Is Z.string present?:', !!Z.string); } catch (e) { console.error(e); }

@@ -131,10 +131,16 @@ ${new Date().toLocaleDateString()}`;
 
         (async () => {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
                 const resp = await apiRequest<{ document: string }>("/ai/documents/generate", {
                     method: "POST",
                     body: JSON.stringify({ template: docType, data: formData, language: lang || 'en' }),
+                    signal: controller.signal,
                 });
+
+                clearTimeout(timeoutId);
 
                 const targetText = resp.document || "";
                 try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch { };
@@ -158,7 +164,31 @@ ${new Date().toLocaleDateString()}`;
                 }, 10);
             } catch (err) {
                 setIsGenerating(false);
-                toast({ title: "Generation Error", description: err instanceof Error ? err.message : 'Failed to generate document', variant: 'destructive' });
+
+                // Provide specific error messages based on error type
+                let errorTitle = "Generation Error";
+                let errorMessage = "Failed to generate document";
+
+                if (err instanceof Error) {
+                    if (err.name === 'AbortError') {
+                        errorTitle = "Request Timeout";
+                        errorMessage = "The AI service took too long to respond. Please try again.";
+                    } else if (err.message.includes("quota") || err.message.includes("limit")) {
+                        errorTitle = "Usage Limit Reached";
+                        errorMessage = "You've reached your AI document generation limit for this month. Please upgrade your plan.";
+                    } else if (err.message.includes("AI service") || err.message.includes("Ollama") || err.message.includes("reachable")) {
+                        errorTitle = "AI Service Unavailable";
+                        errorMessage = "The AI service is temporarily unavailable. A basic template will be generated instead.";
+                    } else {
+                        errorMessage = err.message;
+                    }
+                }
+
+                toast({
+                    title: errorTitle,
+                    description: errorMessage,
+                    variant: 'destructive'
+                });
             }
         })();
     };

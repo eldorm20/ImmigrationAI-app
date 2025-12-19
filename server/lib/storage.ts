@@ -19,9 +19,38 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
-if (!BUCKET_NAME) {
+
+// Validate bucket name format
+function validateBucketName(bucketName: string): { valid: boolean; error?: string } {
+  if (!bucketName) {
+    return { valid: false, error: "Bucket name is empty" };
+  }
+
+  // S3 bucket naming rules
+  if (bucketName.length < 3 || bucketName.length > 63) {
+    return { valid: false, error: "Bucket name must be between 3 and 63 characters" };
+  }
+
+  if (!/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(bucketName)) {
+    return { valid: false, error: "Bucket name contains invalid characters" };
+  }
+
+  if (bucketName.includes('..') || bucketName.startsWith('.') || bucketName.endsWith('.')) {
+    return { valid: false, error: "Bucket name has invalid dot placement" };
+  }
+
+  return { valid: true };
+}
+
+if (BUCKET_NAME) {
+  const validation = validateBucketName(BUCKET_NAME);
+  if (!validation.valid) {
+    logger.error({ bucketName: BUCKET_NAME, error: validation.error }, "Invalid S3 bucket name configuration");
+  }
+} else {
   logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
 }
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -335,6 +364,13 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
       return `${base}/uploads/${key}`;
     }
 
+    // Validate bucket configuration before attempting to generate URL
+    const validation = validateBucketName(BUCKET_NAME);
+    if (!validation.valid) {
+      logger.error({ bucketName: BUCKET_NAME, error: validation.error }, "Cannot generate presigned URL: invalid bucket configuration");
+      throw new Error(`Invalid S3 bucket configuration: ${validation.error}`);
+    }
+
     return await retryWithBackoff(
       async () => {
         const command = new GetObjectCommand({
@@ -346,11 +382,17 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
         return url;
       },
       "presigned URL generation",
-      { key, expiresIn }
+      { key, expiresIn, bucket: BUCKET_NAME }
     );
   } catch (error) {
-    logger.error({ error, key }, "Failed to generate presigned URL after retries");
-    throw new Error("Failed to generate file URL");
+    logger.error({ error, key, bucket: BUCKET_NAME }, "Failed to generate presigned URL after retries");
+
+    // Provide specific error message for bucket configuration issues
+    if (error instanceof Error && error.message.includes('Invalid S3 bucket')) {
+      throw error; // Re-throw configuration errors as-is
+    }
+
+    throw new Error("Failed to generate file URL. Please check S3 configuration.");
   }
 }
 

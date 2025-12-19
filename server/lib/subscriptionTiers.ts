@@ -43,9 +43,9 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   },
   pro: {
     tier: "pro",
-    name: "Pro",
-    monthlyPrice: 99,  // Updated to match Stripe product
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_99",
+    name: "Professional",
+    monthlyPrice: 29,  // Correct price as per user requirement
+    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_29",
     features: {
       documentUploadLimit: 100,
       aiDocumentGenerations: 50,
@@ -61,7 +61,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   premium: {
     tier: "premium",
     name: "Premium",
-    monthlyPrice: 299,  // Updated to match Stripe product
+    monthlyPrice: 299,  // Keep premium at higher tier
     stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_premium_299",
     features: {
       documentUploadLimit: 500,
@@ -78,8 +78,8 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   enterprise: {
     tier: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 0, // Contact for pricing
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise",
+    monthlyPrice: 99, // Set to $99 as per user requirement
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_99",
     features: {
       documentUploadLimit: 10000,
       aiDocumentGenerations: 10000,

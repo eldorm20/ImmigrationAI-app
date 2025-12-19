@@ -167,7 +167,10 @@ router.post(
       await incrementUsage(userId, 'aiDocumentGenerations', 1);
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
+      logger.warn({ userId, error: (err as any)?.message }, "AI usage quota exceeded");
+      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
+        message: (err as any).message || 'AI quota exceeded. Please upgrade your plan to continue using AI features.'
+      });
     }
 
     const { template, data, language } = z
@@ -175,11 +178,16 @@ router.post(
       .parse(req.body);
 
     let doc;
+    let usedFallback = false;
+
     try {
+      logger.info({ userId, template, language }, "Attempting AI document generation");
       doc = await generateDocument(template, data || {}, language || 'en');
+      logger.info({ userId, template, success: true }, "AI document generation successful");
     } catch (err: any) {
       // Fallback: Generate document using local templates when AI fails
-      logger.warn({ err: err?.message, template }, 'AI document generation failed, using local fallback');
+      usedFallback = true;
+      logger.warn({ err: err?.message, template, userId }, 'AI document generation failed, using local fallback');
 
       const userData = data || {};
       const name = userData.name || req.user?.email?.split('@')[0] || '[Your Name]';
@@ -286,7 +294,13 @@ Generated on ${new Date().toLocaleDateString()}`;
       }
     }
 
-    res.json({ document: doc });
+    // Return document with metadata about fallback usage
+    res.json({
+      document: doc,
+      ...(usedFallback && {
+        note: "Generated using local template. AI service temporarily unavailable."
+      })
+    });
   })
 );
 

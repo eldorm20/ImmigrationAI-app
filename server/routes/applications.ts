@@ -79,8 +79,8 @@ router.get(
       role === "applicant"
         ? eq(applications.userId, userId)
         : role === "lawyer" && assigned === "true"
-        ? eq(applications.lawyerId, userId)
-        : undefined;
+          ? eq(applications.lawyerId, userId)
+          : undefined;
 
     const allApps = await db.query.applications.findMany({
       where: whereClause as any,
@@ -268,6 +268,9 @@ router.patch(
       updateData.lawyerId = body.lawyerId;
     }
 
+    // Log the update operation
+    logger.info({ userId, applicationId: id, updates: updateData }, "Updating application");
+
     const [updated] = await db
       .update(applications)
       .set({
@@ -277,25 +280,32 @@ router.patch(
       .where(eq(applications.id, id))
       .returning();
 
+    if (!updated) {
+      throw new AppError(500, "Failed to update application");
+    }
+
+    logger.info({ userId, applicationId: id, newStatus: updated.status }, "Application updated successfully");
+
     // Send email notification if status changed
     if (body.status && body.status !== application.status) {
-      const applicant = await db.query.users.findFirst({
-        where: eq(users.id, application.userId),
-      });
-
-      if (applicant) {
+      try {
+        const applicant = await db.query.users.findFirst({
+          where: eq(users.id, application.userId),
+        });
         await emailQueue.add(
+          "status-update",
           {
-            to: applicant.email,
-            subject: `Application Status Update - ${body.status.toUpperCase()}`,
-            html: generateApplicationStatusEmail(
-              body.status,
-              applicant.firstName || "Applicant",
-              id
-            ),
+            to: applicant?.email || "",
+            applicationId: id,
+            oldStatus: application.status,
+            newStatus: body.status,
+            html: `Your application status changed from ${application.status} to ${body.status}`,
           },
           { jobId: `app-status-${id}-${Date.now()}` }
         );
+      } catch (emailError) {
+        // Don't fail the request if email fails
+        logger.error({ error: emailError, applicationId: id }, "Failed to send status update email");
       }
     }
 

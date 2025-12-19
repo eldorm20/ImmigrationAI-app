@@ -58,99 +58,136 @@ router.post(
   '/verify',
   authenticate,
   asyncHandler(async (req, res) => {
-    const body = employerSearchSchema.parse(req.body);
-    const userId = req.user!.userId;
+    try {
+      const body = employerSearchSchema.parse(req.body);
+      const userId = req.user!.userId;
 
-    const params: CompanySearchParams = {
-      companyName: body.companyName,
-      country: body.country || 'GB',
-      registryType: body.registryType,
-    };
+      const params: CompanySearchParams = {
+        companyName: body.companyName,
+        country: body.country || 'GB',
+        registryType: body.registryType,
+      };
 
-    logger.info(
-      { userId, params },
-      'Employer verification request'
-    );
+      logger.info(
+        { userId, params },
+        'Employer verification request'
+      );
 
-    // Verify employer
-    const result = await verifyEmployer(params);
+      // Verify employer with timeout protection
+      let result;
+      try {
+        result = await Promise.race([
+          verifyEmployer(params),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Verification timeout')), 30000)
+          ),
+        ]) as any;
+      } catch (verifyError: any) {
+        logger.error({ error: verifyError, params, userId }, 'Employer verification API failed');
 
-    // Save verification record to database
-    if (result.results && result.results.length > 0) {
-      for (const companyResult of result.results) {
-        try {
-          await db.insert(employerVerifications).values({
-            userId,
-            applicationId: body.applicationId,
-            companyName: companyResult.companyName,
-            country: companyResult.country,
-            registryType: companyResult.registryType,
-            registryId: companyResult.registryId,
-            verificationStatus: companyResult.found ? 'verified' : 'invalid',
-            companyData: companyResult.raw_data,
-            registeredAddress: companyResult.registeredAddress,
-            businessType: companyResult.businessType,
-            registrationDate: companyResult.registrationDate,
-            status: companyResult.status,
-            companyNumber: companyResult.registryId || undefined,
-            directorNames: companyResult.directors,
-            sic_codes: companyResult.sic_codes,
-            verificationDate: new Date(),
-            expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days cache
-            metadata: {
-              confidence: companyResult.confidence,
-              searchParams: params,
-            },
+        // Return user-friendly error message
+        if (verifyError.message?.includes('timeout')) {
+          return res.status(504).json({
+            success: false,
+            message: 'Employer verification service timed out. Please try again.',
+            error: 'TIMEOUT',
           });
+        }
 
-          // Update or create directory entry
-          const existingEntry = await db
-            .select()
-            .from(employerDirectory)
-            .where(
-              and(
-                eq(
-                  employerDirectory.registryId,
-                  companyResult.registryId || ''
-                ),
-                eq(employerDirectory.registryType, companyResult.registryType)
-              )
-            )
-            .limit(1);
+        return res.status(503).json({
+          success: false,
+          message: 'Employer verification service temporarily unavailable. Please try again later.',
+          error: 'SERVICE_UNAVAILABLE',
+        });
+      }
 
-          if (existingEntry.length > 0) {
-            await db
-              .update(employerDirectory)
-              .set({
-                verificationsCount:
-                  (existingEntry[0].verificationsCount || 0) + 1,
-                lastVerifiedAt: new Date(),
-                updatedAt: new Date(),
-              })
-              .where(eq(employerDirectory.id, existingEntry[0].id));
-          } else if (companyResult.found) {
-            await db.insert(employerDirectory).values({
+      // Save verification record to database (non-blocking)
+      if (result.results && result.results.length > 0) {
+        for (const companyResult of result.results) {
+          try {
+            await db.insert(employerVerifications).values({
+              userId,
+              applicationId: body.applicationId,
               companyName: companyResult.companyName,
               country: companyResult.country,
               registryType: companyResult.registryType,
-              registryId: companyResult.registryId || '',
-              companyData: companyResult.raw_data || {},
+              registryId: companyResult.registryId,
+              verificationStatus: companyResult.found ? 'verified' : 'invalid',
+              companyData: companyResult.raw_data,
+              registeredAddress: companyResult.registeredAddress,
+              businessType: companyResult.businessType,
+              registrationDate: companyResult.registrationDate,
               status: companyResult.status,
-              lastVerifiedAt: new Date(),
-              verificationsCount: 1,
+              companyNumber: companyResult.registryId || undefined,
+              directorNames: companyResult.directors,
+              sic_codes: companyResult.sic_codes,
+              verificationDate: new Date(),
+              expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days cache
+              metadata: {
+                confidence: companyResult.confidence,
+                searchParams: params,
+              },
             });
+
+            // Update or create directory entry
+            const existingEntry = await db
+              .select()
+              .from(employerDirectory)
+              .where(
+                and(
+                  eq(
+                    employerDirectory.registryId,
+                    companyResult.registryId || ''
+                  ),
+                  eq(employerDirectory.registryType, companyResult.registryType)
+                )
+              )
+              .limit(1);
+
+            if (existingEntry.length > 0) {
+              await db
+                .update(employerDirectory)
+                .set({
+                  verificationsCount:
+                    (existingEntry[0].verificationsCount || 0) + 1,
+                  lastVerifiedAt: new Date(),
+                  updatedAt: new Date(),
+                })
+                .where(eq(employerDirectory.id, existingEntry[0].id));
+            } else if (companyResult.found) {
+              await db.insert(employerDirectory).values({
+                companyName: companyResult.companyName,
+                country: companyResult.country,
+                registryType: companyResult.registryType,
+                registryId: companyResult.registryId || '',
+                companyData: companyResult.raw_data || {},
+                status: companyResult.status,
+                lastVerifiedAt: new Date(),
+                verificationsCount: 1,
+              });
+            }
+          } catch (dbError) {
+            // Log database errors but don't fail the request
+            logger.error({ error: dbError, userId, companyName: companyResult.companyName }, 'Error saving verification record');
           }
-        } catch (error) {
-          logger.error({ error }, 'Error saving verification record');
         }
       }
-    }
 
-    res.json({
-      success: true,
-      ...result,
-      recordSaved: result.results.length > 0,
-    });
+      res.json({
+        success: true,
+        ...result,
+        recordSaved: result.results.length > 0,
+      });
+    } catch (error) {
+      logger.error({ error, userId: req.user?.userId }, 'Unexpected error in employer verification');
+
+      // Return generic error for unexpected issues
+      return res.status(500).json({
+        success: false,
+        message: 'An unexpected error occurred during verification. Please try again.',
+        error: 'INTERNAL_ERROR',
+      });
+    }
   })
 );
 
