@@ -917,18 +917,7 @@ export const documentTemplates = pgTable("document_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Referrals
-export const referrals = pgTable("referrals", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  referrerId: varchar("referrer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  refereeId: varchar("referee_id", { length: 255 }).references(() => users.id),
-  status: varchar("status", { length: 50 }).default("pending"),
-  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }).default("0"),
-  currency: varchar("currency", { length: 3 }).default("USD"),
-  paidAt: timestamp("paid_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+
 
 // Insert schemas
 export const insertInvoiceSchema = createInsertSchema(invoices);
@@ -942,9 +931,7 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
-export type Task = typeof tasks.$inferSelect;
 export type DocumentTemplate = typeof documentTemplates.$inferSelect;
-export type Referral = typeof referrals.$inferSelect;
 
 // === RELATIONS ===
 
