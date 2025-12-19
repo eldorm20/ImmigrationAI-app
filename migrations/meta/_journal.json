@@ -29,6 +29,13 @@
       "when": 1764846900000,
       "tag": "0003_add_metadata_safe",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766132597513,
+      "tag": "0004_chunky_clea",
+      "breakpoints": true
     }
   ]
 }
