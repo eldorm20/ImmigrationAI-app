@@ -141,6 +141,17 @@ router.post(
     const user = req.user!;
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
+    // Check if tier has valid Stripe configuration
+    if (!tierConfig.stripePriceId || tierConfig.stripePriceId.includes('_placeholder') || tierConfig.stripePriceId.includes('_99')) {
+      logger.warn({ tier: requestedTier, priceId: tierConfig.stripePriceId }, "Tier not configured with valid Stripe price ID");
+      return res.status(400).json({
+        success: false,
+        message: `The ${tierConfig.name} plan is not available for direct purchase. Please contact our sales team for custom pricing.`,
+        error: "TIER_NOT_CONFIGURED",
+        contactEmail: "sales@immigrationai.com"
+      });
+    }
+
     try {
       const { getStripeClient } = await import("../lib/subscription");
       const stripe = await getStripeClient();

@@ -21,36 +21,61 @@ router.get(
     asyncHandler(async (req, res) => {
         const userId = req.user!.userId;
 
-        // Check if user already has a code
-        const user = await db.query.users.findFirst({
-            where: eq(users.id, userId),
-        });
-
-        if (user?.referralCode) {
-            return res.json({ code: user.referralCode });
-        }
-
-        // Generate new unique code
-        let code = generateCode();
-        let isUnique = false;
-
-        // Retry logic (simple)
-        for (let i = 0; i < 5; i++) {
-            const existing = await db.query.users.findFirst({
-                where: eq(users.referralCode, code)
+        try {
+            // Check if user already has a code
+            const user = await db.query.users.findFirst({
+                where: eq(users.id, userId),
             });
-            if (!existing) {
-                isUnique = true;
-                break;
+
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
             }
-            code = generateCode();
+
+            if (user.referralCode) {
+                return res.json({ code: user.referralCode });
+            }
+
+            // Generate new unique code
+            let code = generateCode();
+            let isUnique = false;
+
+            // Retry logic (simple)
+            for (let i = 0; i < 5; i++) {
+                const existing = await db.query.users.findFirst({
+                    where: eq(users.referralCode, code)
+                });
+                if (!existing) {
+                    isUnique = true;
+                    break;
+                }
+                code = generateCode();
+            }
+
+            if (!isUnique) {
+                logger.error({ userId }, "Failed to generate unique referral code");
+                return res.status(500).json({
+                    message: "Failed to generate referral code. Please try again later."
+                });
+            }
+
+            await db.update(users).set({ referralCode: code }).where(eq(users.id, userId));
+
+            res.json({ code });
+        } catch (err: any) {
+            logger.error({ err: err.message, stack: err.stack, userId }, "Referral code endpoint error");
+
+            // Check if it's a database column error
+            if (err.message?.includes('referralCode') || err.message?.includes('referral_code') || err.message?.includes('column')) {
+                return res.status(503).json({
+                    message: "Referral system is currently being set up. Please check back soon.",
+                    error: "FEATURE_UNAVAILABLE"
+                });
+            }
+
+            return res.status(500).json({
+                message: "Failed to load referral data. Please try again later."
+            });
         }
-
-        if (!isUnique) throw new AppError(500, "Failed to generate unique referral code");
-
-        await db.update(users).set({ referralCode: code }).where(eq(users.id, userId));
-
-        res.json({ code });
     })
 );
 
