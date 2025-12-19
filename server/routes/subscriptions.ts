@@ -142,14 +142,15 @@ router.post(
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
-
       const { getStripeClient } = await import("../lib/subscription");
       const stripe = await getStripeClient();
 
       if (!stripe) {
+        logger.warn({ userId }, "Stripe not configured - cannot create checkout session");
         return res.status(503).json({
           success: false,
-          message: "Stripe integration is not available or failed. Please contact support.",
+          message: "Payment processing is temporarily unavailable. Please try again later or contact support.",
+          error: "STRIPE_UNAVAILABLE"
         });
       }
 
@@ -168,30 +169,52 @@ router.post(
       });
 
       if (!session || !session.url) {
-        throw new Error("Failed to create checkout session");
+        throw new Error("Failed to create checkout session - no URL returned");
       }
+
+      logger.info({ userId, tier: requestedTier, sessionId: session.id }, "Stripe checkout session created");
 
       res.json({
         success: true,
-
         message: "Redirecting to checkout...",
         checkoutUrl: session.url
       });
-    } catch (error) {
-      logger.error({ error, userId }, "Subscription upgrade error");
+    } catch (error: any) {
+      logger.error({ error: error?.message, stack: error?.stack, userId, tier: requestedTier }, "Subscription upgrade error");
+
       // Handle "Stripe not configured" gracefully
       if (process.env.NODE_ENV !== "production" && (!process.env.STRIPE_SECRET_KEY)) {
         return res.json({
           success: true,
-          message: "Simulated upgrade (Stripe not configured)",
+          message: "Simulated upgrade (Stripe not configured in development)",
           tier: requestedTier,
           fake: true
-        })
+        });
+      }
+
+      // Return specific error messages
+      const errorMessage = error?.message || "Unknown error";
+
+      if (errorMessage.includes("No such price")) {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_PRICE_ID",
+          message: "This subscription plan is not properly configured. Please contact support."
+        });
+      }
+
+      if (errorMessage.includes("Invalid API")) {
+        return res.status(503).json({
+          success: false,
+          error: "STRIPE_CONFIG_ERROR",
+          message: "Payment system configuration issue. Please contact support."
+        });
       }
 
       res.status(500).json({
         success: false,
-        error: "Failed to initiate checkout"
+        error: "CHECKOUT_FAILED",
+        message: "Failed to initiate checkout. Please try again or contact support if the issue persists."
       });
     }
 
