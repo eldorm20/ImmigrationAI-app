@@ -57,17 +57,14 @@ export function setupSocketIO(httpServer: HTTPServer) {
       }
 
       if (!token) {
-        logger.warn({ socketId: socket.id }, "Socket.IO connection attempt without token - allowing as Guest");
-        return next();
+        logger.warn({ socketId: socket.id }, "Socket.IO connection rejected - no authentication token provided");
+        return next(new Error("Authentication required"));
       }
 
       const payload = await verifyAccessToken(token);
       if (!payload) {
         logger.warn({ socketId: socket.id, tokenPrefix: token.substring(0, 10) }, "Socket.IO token verification failed");
-        // Force disconnect so client knows auth failed? 
-        // Or allow as guest but fail messages? 
-        // Better to fail connection so client can refresh token.
-        return next(new Error("Authentication error"));
+        return next(new Error("Invalid or expired token"));
       }
 
       socket.data.user = {
@@ -89,13 +86,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
   const userMeta = new Map<string, { userName: string; email: string; role: string }>();
 
   io.on("connection", (socket: Socket) => {
-    // JWT payload has 'userId', not 'id'
-    const jwtPayload = socket.data.user as { userId: string; email: string; role: string } | undefined;
-    const userId = jwtPayload?.userId || `guest:${socket.id}`;
-    const userEmail = jwtPayload?.email || '';
-    const userRole = jwtPayload?.role || 'guest';
+    const jwtPayload = socket.data.user as { userId: string; email: string; role: string };
+    const userId = jwtPayload.userId;
+    const userEmail = jwtPayload.email;
+    const userRole = jwtPayload.role;
 
-    logger.info({ userId, socketId: socket.id, hasAuth: !!jwtPayload }, "Socket.IO client connected");
+    logger.info({ userId, socketId: socket.id }, "Socket.IO client connected");
 
     // Track user's sockets
     if (!userSockets.has(userId)) userSockets.set(userId, new Set());
@@ -106,7 +102,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Set metadata for presence
     userMeta.set(userId, {
-      userName: userEmail ? userEmail.split('@')[0] : `guest_${socket.id.slice(0, 6)}`,
+      userName: userEmail ? userEmail.split('@')[0] : `user_${socket.id.slice(0, 6)}`,
       email: userEmail,
       role: userRole
     });
@@ -120,11 +116,6 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle incoming messages (support both server and frontend event names)
     const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
-      // Check if user is authenticated (not a guest)
-      if (userId.startsWith('guest:')) {
-        logger.warn({ socketId: socket.id }, 'Message attempt without auth');
-        return ack?.({ success: false, error: "Please sign in to send messages" });
-      }
       try {
         const { content, applicationId } = payload;
         // Handle field mismatch: client sends recipientId, server expects receiverId
@@ -183,7 +174,6 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle message read status (support both names)
     const handleMarkRead = async (data: any) => {
-      if (userId.startsWith('guest:')) return;
       try {
         const messageId = typeof data === 'string' ? data : data.messageId;
         await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
@@ -220,7 +210,6 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
-      if (userId.startsWith('guest:')) return;
       try {
         const m = {
           userName: meta.name || meta.userName || (userEmail ? userEmail.split('@')[0] : "User"),
