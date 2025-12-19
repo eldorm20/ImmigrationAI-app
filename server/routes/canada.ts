@@ -3,7 +3,7 @@ import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -36,12 +36,19 @@ router.post(
         }
 
         // Verify NOC code exists (optional - for better UX)
-        const nocExists = await db.query.expressEntryRequirements?.findFirst({
-            where: (table: any, { eq }: any) => eq(table.nocCode, nocCode)
-        });
+        // Note: Using raw SQL until schema is fully integrated
+        try {
+            const nocResult = await db.execute(sql`
+        SELECT noc_code, noc_title FROM express_entry_requirements 
+        WHERE noc_code = ${nocCode}
+        LIMIT 1
+      `);
 
-        if (!nocExists) {
-            logger.warn({ nocCode, userId }, "NOC code not found in database");
+            if (!nocResult.rows || nocResult.rows.length === 0) {
+                logger.warn({ nocCode, userId }, "NOC code not found in database");
+            }
+        } catch (err) {
+            logger.warn({ error: err, nocCode }, "Failed to verify NOC code");
         }
 
         // Calculate CRS score
@@ -101,7 +108,7 @@ router.post(
             pointsNeeded: eligible ? 0 : currentCutoff - crsScore,
             estimatedWaitTime: eligible ? '3-6 months' : 'Not currently eligible',
             breakdown: {
-                age: calculateAgePoints(age, marital Status === 'married'),
+                age: calculateAgePoints(age, maritalStatus === 'married'),
                 language: calculateLanguagePoints(parseInt(englishLevel), frenchLevel ? parseInt(frenchLevel) : 0, maritalStatus === 'married'),
                 education: calculateEducationPoints(educationLevel, canadianEducation, maritalStatus === 'married'),
                 experience: calculateExperiencePoints(yearsExperience, canadianExperience)
@@ -126,15 +133,19 @@ router.post(
         }
 
         // Find provinces that prioritize this occupation
-        const eligibleProvinces = await db.query.canadaPnpProvinces?.find({
-            where: (table: any, { arrayContains }: any) => arrayContains(table.priorityOccupations, [nocCode])
-        }) || [];
+        const provincesResult = await db.execute(sql`
+      SELECT province_code, province_name, min_points, processing_days, description
+      FROM canada_pnp_provinces
+      WHERE ${nocCode} = ANY(priority_occupations)
+    `);
+
+        const eligibleProvinces = provincesResult.rows || [];
 
         const pnpRecommendations = eligibleProvinces.map((province: any) => ({
-            provinceCode: province.provinceCode,
-            provinceName: province.provinceName,
-            minPoints: province.minPoints,
-            processingDays: province.processingDays,
+            provinceCode: province.province_code,
+            provinceName: province.province_name,
+            minPoints: province.min_points,
+            processingDays: province.processing_days,
             eligible: crsScore ? crsScore + 600 >= 546 : null, // PNP adds 600 points
             description: province.description
         }));
@@ -158,15 +169,19 @@ router.get(
             throw new AppError(400, "Search query must be at least 2 characters");
         }
 
-        const nocCodes = await db.query.expressEntryRequirements?.find({
-            where: (table: any, { or, like }: any) => or(
-                like(table.nocCode, `%${search}%`),
-                like(table.nocTitle, `%${search}%`)
-            ),
-            limit: 20
-        }) || [];
+        const searchPattern = `%${search}%`;
 
-        res.json({ results: nocCodes });
+        const nocResult = await db.execute(sql`
+      SELECT noc_code, noc_title, min_clb_score, min_education_level, 
+             preferred_experience_years, in_demand
+      FROM express_entry_requirements
+      WHERE noc_code ILIKE ${searchPattern} 
+         OR noc_title ILIKE ${searchPattern}
+      ORDER BY in_demand DESC, noc_code ASC
+      LIMIT 20
+    `);
+
+        res.json({ results: nocResult.rows || [] });
     })
 );
 

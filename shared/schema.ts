@@ -784,3 +784,53 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
+// === CANADA EXPRESS ENTRY TABLES ===
+
+// Canada Visa Types
+export const visaTypesCanada = pgTable("visa_types_canada", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  visaCode: varchar("visa_code", { length: 50 }).notNull().unique(),
+  visaName: varchar("visa_name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 50 }).notNull(),
+  processingDays: integer("processing_days"),
+  processingCost: decimal("processing_cost", { precision: 10, scale: 2 }),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Express Entry Requirements (NOC Codes)
+export const expressEntryRequirements = pgTable("express_entry_requirements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  nocCode: varchar("noc_code", { length: 10 }).notNull().unique(),
+  nocTitle: varchar("noc_title", { length: 255 }).notNull(),
+  minClbScore: integer("min_clb_score"),
+  minEducationLevel: varchar("min_education_level", { length: 50 }),
+  preferredExperienceYears: integer("preferred_experience_years"),
+  maxAge: integer("max_age"),
+  minSalaryCad: decimal("min_salary_cad", { precision: 10, scale: 2 }),
+  inDemand: boolean("in_demand").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  nocCodeIdx: index("noc_code_idx").on(table.nocCode),
+  inDemandIdx: index("noc_in_demand_idx").on(table.inDemand),
+}));
+
+// Canada Provincial Nominee Programs
+export const canadaPnpProvinces = pgTable("canada_pnp_provinces", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  provinceCode: varchar("province_code", { length: 10 }).notNull().unique(),
+  provinceName: varchar("province_name", { length: 100 }).notNull(),
+  priorityOccupations: text("priority_occupations").array(),
+  minPoints: integer("min_points"),
+  processingDays: integer("processing_days"),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Type exports for Canada tables
+export type VisaTypeCanada = typeof visaTypesCanada.$inferSelect;
+export type ExpressEntryRequirement = typeof expressEntryRequirements.$inferSelect;
+export type CanadaPnpProvince = typeof canadaPnpProvinces.$inferSelect;
