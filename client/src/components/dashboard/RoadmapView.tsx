@@ -86,19 +86,13 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
     }
 
     const items = roadmapItems.length > 0 ? roadmapItems : [
-<<<<<<< HEAD
-        { title: t.roadmap?.eligibility || 'Eligibility Assessment', status: 'done', description: t.roadmap?.defaults?.eligibilityDesc || 'Passed with 85 points' },
-        { title: t.roadmap?.collection || 'Document Collection', status: 'current', description: t.roadmap?.defaults?.collectionDesc || 'Passport, Degree, TB Test' },
-        { title: t.roadmap?.translation || 'Official Translation', status: 'pending', description: t.roadmap?.defaults?.translationDesc || 'Notarized translations required' },
-        { title: t.roadmap?.submission || 'Visa Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Home Office portal' }
-=======
+
         { title: t.roadmap?.assessment || 'Assessment Complete', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated, visa route identified' },
         { title: t.roadmap?.documents || 'Documents Uploaded', status: 'current', description: t.roadmap?.defaults?.documentsDesc || 'Upload passport, degree, work experience proof' },
         { title: t.roadmap?.aiReview || 'AI Document Review', status: 'pending', description: t.roadmap?.defaults?.aiReviewDesc || 'Automated verification and compliance check' },
         { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional consultation and case review' },
         { title: t.roadmap?.employerVerification || 'Employer Verification', status: 'pending', description: t.roadmap?.defaults?.employerDesc || 'Sponsor company registry validation' },
         { title: t.roadmap?.submission || 'Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission to immigration authority' }
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     ];
 
     return (

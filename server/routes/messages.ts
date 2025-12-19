@@ -43,11 +43,8 @@ router.post(
       .insert(messages)
       .values({
         senderId,
-<<<<<<< HEAD
-        receiverId: body.recipientId, // Fixed: recipientId -> receiverId
-=======
+
         receiverId: body.receiverId,
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
         content: body.content,
         isRead: false,
       })
@@ -138,22 +135,7 @@ router.get(
       limit: isNaN(limitVal) ? 50 : limitVal,
     });
 
-<<<<<<< HEAD
-    // Get unique user IDs from history
-    const uniqueUserIds = new Set<string>();
-    userMessages.forEach((m) => {
-      if (m.senderId === userId) uniqueUserIds.add(m.receiverId);
-      else uniqueUserIds.add(m.senderId);
-    });
 
-    // If applicant, also fetch ALL lawyers to populate the list (so they can start chat)
-    if (role === 'applicant') {
-      const lawyers = await db.query.users.findMany({
-        where: eq(users.role, 'lawyer')
-      });
-      lawyers.forEach(l => uniqueUserIds.add(l.id)); // Assuming l.id is string
-    }
-=======
     // Get unique user IDs
     const uniqueUserIds = Array.from(
       new Set(
@@ -162,7 +144,6 @@ router.get(
         )
       )
     );
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
     // Get user details
     const conversationUsers = await Promise.all(

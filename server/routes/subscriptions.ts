@@ -110,11 +110,8 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
-<<<<<<< HEAD
-    const { tier, planId, companyId } = req.body;
-=======
+
     const { tier, planId } = req.body;
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
     // Accept both 'tier' and 'planId' for compatibility
     const requestedTier = tier || planId;
@@ -139,52 +136,17 @@ router.post(
       });
     }
 
-<<<<<<< HEAD
-    // For paid tiers, create Stripe subscription using Checkout Flow
-=======
+
     // For paid tiers, use Stripe Checkout Session to collect payment details
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     const user = req.user!;
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
-<<<<<<< HEAD
-      // Import dynamically to avoid circular dependency issues if any
-      const { createCheckoutSession } = await import("../lib/subscription");
 
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const host = req.get('host');
-      const baseUrl = `${protocol}://${host}`;
-
-      // If company upgrade, verify ownership
-      if (companyId) {
-        const company = await db.query.companies.findFirst({
-          where: eq(require("@shared/schema").companies.id, companyId)
-        });
-        if (!company) {
-          return res.status(404).json({ message: "Company not found" });
-        }
-        if (company.userId !== userId) {
-          return res.status(403).json({ message: "Only the company owner can upgrade the subscription" });
-        }
-      }
-
-      const checkoutUrl = await createCheckoutSession(
-        userId,
-        tierConfig.stripePriceId,
-        user.email,
-        `${baseUrl}/dashboard?payment=success&tier=${requestedTier}${companyId ? '&companyId=' + companyId : ''}`,
-        `${baseUrl}/subscription?payment=cancelled`,
-        companyId
-      );
-
-      if (!checkoutUrl) {
-=======
       const { getStripeClient } = await import("../lib/subscription");
       const stripe = await getStripeClient();
 
       if (!stripe) {
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
         return res.status(503).json({
           success: false,
           message: "Stripe integration is not available or failed. Please contact support.",
@@ -211,14 +173,7 @@ router.post(
 
       res.json({
         success: true,
-<<<<<<< HEAD
-        message: `Redirecting to checkout for ${tierConfig.name}`,
-        checkoutUrl,
-      });
-    } catch (error) {
-      logger.error({ error, userId }, "Subscription upgrade error");
-      // ... error handling
-=======
+
         message: "Redirecting to checkout...",
         checkoutUrl: session.url
       });
@@ -234,7 +189,6 @@ router.post(
         })
       }
 
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
       res.status(500).json({
         success: false,
         error: "Failed to initiate checkout"

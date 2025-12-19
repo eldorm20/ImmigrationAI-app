@@ -9,8 +9,7 @@ export default function EmployerVerificationPage() {
         <div className="container mx-auto py-12 px-4 max-w-6xl">
           <EmployerVerificationPanel />
         </div>
-<<<<<<< HEAD
-=======
+
 
         {/* Error Banner */}
         {(registriesError || historyError) && (
@@ -344,7 +343,6 @@ export default function EmployerVerificationPage() {
             </Alert>
           </TabsContent>
         </Tabs>
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
       </div>
     </ErrorBoundary>
   );

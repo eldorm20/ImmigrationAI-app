@@ -1,11 +1,4 @@
-<<<<<<< HEAD
-import React from "react";
-import { LiveButton } from "@/components/ui/live-elements";
-import { BadgeCheck, CheckCircle } from "lucide-react";
-import { motion } from "framer-motion";
 
-export const EmployerVerificationView = () => {
-=======
 import React, { useState, useEffect } from "react";
 import { LiveButton } from "@/components/ui/live-elements";
 import { BadgeCheck, CheckCircle, Clock, XCircle, AlertCircle, Loader2 } from "lucide-react";
@@ -87,7 +80,6 @@ export const EmployerVerificationView = () => {
     const config = STATUS_CONFIG[verificationStatus.status];
     const StatusIcon = config.icon;
 
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -106,8 +98,7 @@ export const EmployerVerificationView = () => {
                     </p>
                 </div>
 
-<<<<<<< HEAD
-=======
+
                 {/* Status Badge - NEW */}
                 <div className={`mb-8 p-6 rounded-xl border-2 ${config.bgColor} ${config.borderColor}`}>
                     {loading ? (
@@ -138,7 +129,6 @@ export const EmployerVerificationView = () => {
                     )}
                 </div>
 
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                     <div className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-900 shadow-sm dark:shadow-black/30">
                         <CheckCircle className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-3" />
@@ -159,11 +149,8 @@ export const EmployerVerificationView = () => {
                         className="inline-flex items-center gap-2"
                     >
                         <BadgeCheck size={18} />
-<<<<<<< HEAD
-                        Go to Employer Verification
-=======
+
                         {verificationStatus.status === 'not_verified' ? 'Start Verification' : 'Manage Verification'}
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                     </LiveButton>
                 </div>
             </div>

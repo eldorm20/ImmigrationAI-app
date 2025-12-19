@@ -62,16 +62,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/employers", employersRoutes);
   app.use("/api/dataset", datasetRoutes);
   app.use("/api/debug", debugRoutes);
-<<<<<<< HEAD
-  app.use("/api/predict", predictRoutes);
-  app.use("/api/deadlines", deadlinesRoutes);
-  app.use("/api/video", videoRoutes);
-  app.use("/api/ocr", ocrRoutes);
-  app.use("/api/referrals", referralRoutes);
-  app.use("/api/audit", auditRoutes);
-  app.use("/api/signatures", signatureRoutes);
-  app.use("/api/interview", interviewRoutes);
-=======
+
   app.use("/api/translate", translateRoutes);
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 }

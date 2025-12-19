@@ -456,11 +456,8 @@ async function generateTextWithProvider(
 ): Promise<string> {
   const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || process.env.OLLAMA_LOCAL_URL;
   const hasLocalAI = Boolean(localAIUrl);
-<<<<<<< HEAD
-  // OpenAI usage enabled if key is present
-=======
+
   // Enable OpenAI if key is present
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
@@ -593,118 +590,8 @@ async function generateTextWithProvider(
     }
   }
 
-<<<<<<< HEAD
-  // Intelligent pre-built responses for common immigration queries
-  logger.info("Using intelligent response system for: " + prompt.substring(0, 50) + "...");
 
-  const lowerPrompt = prompt.toLowerCase();
-
-  // Immigration-specific intelligent responses
-  if (lowerPrompt.includes('visa') || lowerPrompt.includes('viza')) {
-    if (lowerPrompt.includes('uk') || lowerPrompt.includes('britain') || lowerPrompt.includes('england')) {
-      return `For UK visa applications, you'll typically need:
-
-1. **Valid Passport** - Must be valid for at least 6 months
-2. **Proof of Funds** - Bank statements showing sufficient funds
-3. **Employment/Study Letter** - Confirmation from employer or educational institution
-4. **Accommodation Details** - Where you'll be staying
-5. **TB Test Certificate** - Required for stays over 6 months
-
-The processing time varies: Standard (3 weeks), Priority (5 days), Super Priority (24 hours for additional fee).
-
-📝 Would you like me to help you prepare any specific documents?`;
-    }
-
-    if (lowerPrompt.includes('germany') || lowerPrompt.includes('german')) {
-      return `For German visa/residence permit applications:
-
-1. **Opportunity Card (Chancenkarte)** - For job seekers with qualifications
-2. **Skilled Worker Visa** - Requires job offer matching your qualifications
-3. **EU Blue Card** - For highly qualified professionals (salary threshold: €58,400/year)
-
-**Key Documents:**
-- University degree (must be recognized in Germany)
-- Proof of German language skills (B1 or higher preferred)
-- Health insurance coverage
-- Proof of accommodation
-
-Processing time: Usually 4-12 weeks through the German embassy.
-
-🔍 Which visa category interests you?`;
-    }
-  }
-
-  if (lowerPrompt.includes('document') || lowerPrompt.includes('hujjat')) {
-    return `Here are the commonly required immigration documents:
-
-📋 **Personal Documents:**
-- Valid passport (6+ months validity)
-- Birth certificate
-- Marriage certificate (if applicable)
-- Police clearance certificate
-
-📋 **Financial Documents:**
-- Bank statements (last 6 months)
-- Salary slips
-- Tax returns
-- Sponsorship letter (if applicable)
-
-📋 **Employment/Education:**
-- Employment letter
-- Degree certificates
-- Professional certifications
-
-📋 **Additional:**
-- Passport photos (biometric)
-- Travel itinerary
-- Accommodation proof
-
-💡 **Tip:** All documents should be translated and notarized if not in the destination country's language.`;
-  }
-
-  if (lowerPrompt.includes('translation') || lowerPrompt.includes('tarjima')) {
-    return `For immigration documents, you typically need:
-
-✅ **Certified/Official Translation** - Required for legal documents
-✅ **Notarized Translation** - May be required for some countries
-✅ **Apostille** - International authentication for documents
-
-Common documents requiring translation:
-- Birth certificates
-- Marriage/Divorce certificates  
-- Educational diplomas
-- Police clearances
-- Bank statements
-
-💡 Use our Translation feature to get AI-assisted translations, then have them certified by an official translator.`;
-  }
-
-  if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi ') || lowerPrompt.includes('hey')) {
-    return "Hello! I am your immigration AI assistant. How can I help you today? I can assist with visa requirements, document preparation, or translations.";
-  }
-
-  if (lowerPrompt.includes('thank')) {
-    return "You're welcome! Let me know if you need anything else.";
-  }
-
-  if (lowerPrompt.includes('status') || lowerPrompt.includes('check')) {
-    return "To check your application status, please visit the Dashboard or the 'My Applications' section. I can explain the general process if you like.";
-  }
-
-  // Generic helpful response but dynamic
-  return `I understand you're asking about "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}". 
-  
-Currently, I am operating in limited mode (offline/demo). I can answer specific questions about:
-- **Visas** (UK, Germany, etc.)
-- **Documents** (Requirements, Prep)
-- **Translation** (General info)
-
-For a fully interactive experience, an administrator needs to configure the AI Provider (Ollama or HuggingFace).`;
-
-
-=======
   throw new Error(`AI Provider configured but failed to respond. Local: ${hasLocalAI}, OpenAI: ${hasOpenAI}, HF: ${hasHuggingFace}`);
->>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 }
 
 /**
