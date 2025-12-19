@@ -6,8 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { error as logError } from "@/lib/logger";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users
+  Loader2,
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users,
+  Target, CalendarClock, Gift, Sparkles, CheckCircle, Circle, ArrowRight, Zap
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";

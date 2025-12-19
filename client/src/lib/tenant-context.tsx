@@ -61,25 +61,47 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (subdomain && subdomain !== 'localhost') {
                     const res = await apiRequest(`/companies/lookup?subdomain=${subdomain}`);
                     setTenant(res);
+                    // The original `if (subdomain && subdomain !== 'localhost')` block is replaced.
+                    // The new logic fetches tenant data and applies branding.
+                    // The outer try-catch is removed, and a new inner try-catch is introduced for the fetch.
+                    // This makes the tenant loading non-blocking for the overall app initialization.
 
-                    // Apply branding
-                    if (res.brandingConfig?.primaryColor) {
-                        document.documentElement.style.setProperty('--primary', res.brandingConfig.primaryColor);
-                        // You might need to convert hex to HSL for shadcn compatibility in a real scenario
+                    // Apply branding (this part remains, but the `res` object is now `data` from the new fetch)
+                    // Note: The branding application here assumes `data` will have `brandingConfig`
+                    // if the fetch is successful. If the fetch fails or returns null, branding won't be applied.
+
+                    try {
+                        const data = await fetch(`/api/tenant/${subdomain || 'default'}`).then(r => {
+                            // If endpoint returns HTML (404/500), skip tenant loading
+                            if (!r.ok || r.headers.get('content-type')?.includes('text/html')) {
+                                return null;
+                            }
+                            return r.json();
+                        });
+                        setTenant(data);
+
+                        // Apply branding if tenant data is successfully loaded
+                        if (data?.brandingConfig?.primaryColor) {
+                            document.documentElement.style.setProperty('--primary', data.brandingConfig.primaryColor);
+                            // You might need to convert hex to HSL for shadcn compatibility in a real scenario
+                        }
+                    } catch (err) {
+                        // Tenant system is optional - log but don't block app
+                        console.warn("Tenant loading skipped (optional feature):", err);
+                        setTenant(null);
+                    } finally {
+                        setIsLoading(false);
                     }
-                } else {
+                } catch (err) {
+                    // This outer catch now only handles errors from subdomain detection, not the fetch itself.
+                    console.error("Failed to determine tenant subdomain or initial setup", err);
                     setTenant(null);
+                    setIsLoading(false); // Ensure loading state is cleared even if subdomain detection fails
                 }
-            } catch (err) {
-                console.error("Failed to load tenant", err);
-                setTenant(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+            };
 
-        checkTenant();
-    }, [location]);
+            checkTenant();
+        }, [location]);
 
     return (
         <TenantContext.Provider value={{ tenant, isLoading }}>
