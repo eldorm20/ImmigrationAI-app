@@ -8,8 +8,12 @@ import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { getUsageForUser, getUsageRemaining } from "../lib/aiUsage";
 import { setUserSubscriptionTier } from "../lib/subscriptionTiers";
+<<<<<<< HEAD
 import { getStripeClient } from "../lib/subscription";
 
+=======
+import { sql } from "drizzle-orm";
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
 const router = Router();
 

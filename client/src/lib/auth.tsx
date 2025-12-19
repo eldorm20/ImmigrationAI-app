@@ -9,6 +9,7 @@ export interface User {
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
+  avatar?: string | null;
   emailVerified: boolean;
   /** Convenience display name for UI components */
   name: string;

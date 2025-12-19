@@ -22,8 +22,13 @@ interface ResearchItem {
   tags?: string[];
   source?: string;
   sourceUrl?: string;
+<<<<<<< HEAD
   publishedAt?: string | Date;
   createdAt?: string | Date;
+=======
+  publishedAt?: string;
+  createdAt?: string;
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 }
 
 export default function Research() {
@@ -270,8 +275,13 @@ export default function Research() {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
+<<<<<<< HEAD
                   ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
+=======
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                   }`}
               >
                 {cat.name} ({cat.count})
@@ -512,7 +522,11 @@ export default function Research() {
                 {resource?.title || "Untitled"}
               </h3>
 
+<<<<<<< HEAD
               <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed line-clamp-3">
+=======
+              <p className="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                 {resource?.summary || ""}
               </p>
 
@@ -527,8 +541,12 @@ export default function Research() {
                     <span className="px-2 py-1 rounded-lg text-xs text-slate-400">...</span>
                   )}
                 </div>
+<<<<<<< HEAD
                 <LiveButton variant="ghost" size="sm" icon={Download} onClick={(e) => {
                   e.stopPropagation();
+=======
+                <LiveButton variant="ghost" size="sm" icon={Download} onClick={() => {
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                   toast({
                     title: t.research.download,
                     description: `Downloading ${resource?.title || "resource"}...`,

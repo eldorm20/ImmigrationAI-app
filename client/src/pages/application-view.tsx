@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { apiRequest } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { useLocation } from "wouter";
 
 export default function ApplicationView() {
-  const [params] = useParams();
-  const id = (params as any).id as string;
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
   const [app, setApp] = useState<any | null>(null);
@@ -37,13 +36,13 @@ export default function ApplicationView() {
   }, [id]);
 
   if (loading) return <div className="p-6 text-center"><div className="animate-spin text-slate-500">Loading...</div></div>;
-  if (error) return <div className="p-6"><div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded border border-red-200 dark:border-red-800">Error: {error}<br/><button onClick={fetchApp} className="mt-2 text-blue-600 hover:underline">Retry</button></div></div>;
+  if (error) return <div className="p-6"><div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded border border-red-200 dark:border-red-800">Error: {error}<br /><button onClick={fetchApp} className="mt-2 text-blue-600 hover:underline">Retry</button></div></div>;
   if (!app) return <div className="p-6 text-center text-slate-500">Application not found</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold">Application #{app.id?.slice(0,8)}</h1>
+        <h1 className="text-2xl font-bold">Application #{app.id?.slice(0, 8)}</h1>
         <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 mt-4">
           <p><strong>Visa Type:</strong> {app.visaType}</p>
           <p><strong>Country:</strong> {app.country}</p>

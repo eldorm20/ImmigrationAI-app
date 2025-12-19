@@ -356,7 +356,7 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     try {
       await pool.end();
     } catch (e) {
-      logger.warn("Error closing pool after migrations", e);
+      logger.warn({ err: e }, "Error closing pool after migrations");
     }
   }
 }

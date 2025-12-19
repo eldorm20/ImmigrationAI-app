@@ -36,9 +36,9 @@ export default function AdminAiUsagePage() {
   async function setTier(userId: string, tier: string) {
     setAdjusting(userId);
     try {
-      const res = await apiRequest(`/admin/users/${userId}/adjust-tier`, {
+      const res = await apiRequest<{ success?: boolean }>(`/admin/users/${userId}/adjust-tier`, {
         method: "POST",
-        body: { tier },
+        body: JSON.stringify({ tier }),
       });
       if (res?.success) {
         await fetchData();

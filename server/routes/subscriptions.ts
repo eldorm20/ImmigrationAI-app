@@ -110,7 +110,11 @@ router.post(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
+<<<<<<< HEAD
     const { tier, planId, companyId } = req.body;
+=======
+    const { tier, planId } = req.body;
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
     // Accept both 'tier' and 'planId' for compatibility
     const requestedTier = tier || planId;
@@ -135,11 +139,16 @@ router.post(
       });
     }
 
+<<<<<<< HEAD
     // For paid tiers, create Stripe subscription using Checkout Flow
+=======
+    // For paid tiers, use Stripe Checkout Session to collect payment details
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     const user = req.user!;
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
+<<<<<<< HEAD
       // Import dynamically to avoid circular dependency issues if any
       const { createCheckoutSession } = await import("../lib/subscription");
 
@@ -170,20 +179,62 @@ router.post(
       );
 
       if (!checkoutUrl) {
+=======
+      const { getStripeClient } = await import("../lib/subscription");
+      const stripe = await getStripeClient();
+
+      if (!stripe) {
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
         return res.status(503).json({
           success: false,
           message: "Stripe integration is not available or failed. Please contact support.",
         });
       }
 
+      const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: tierConfig.stripePriceId, quantity: 1 }],
+        success_url: `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${clientUrl}/subscription`,
+        metadata: {
+          userId,
+          tier: requestedTier // Store tier in metadata for webhook handling
+        },
+        customer_email: user.email,
+      });
+
+      if (!session || !session.url) {
+        throw new Error("Failed to create checkout session");
+      }
+
       res.json({
         success: true,
+<<<<<<< HEAD
         message: `Redirecting to checkout for ${tierConfig.name}`,
         checkoutUrl,
       });
     } catch (error) {
       logger.error({ error, userId }, "Subscription upgrade error");
       // ... error handling
+=======
+        message: "Redirecting to checkout...",
+        checkoutUrl: session.url
+      });
+    } catch (error) {
+      logger.error({ error, userId }, "Subscription upgrade error");
+      // Handle "Stripe not configured" gracefully
+      if (process.env.NODE_ENV !== "production" && (!process.env.STRIPE_SECRET_KEY)) {
+        return res.json({
+          success: true,
+          message: "Simulated upgrade (Stripe not configured)",
+          tier: requestedTier,
+          fake: true
+        })
+      }
+
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
       res.status(500).json({
         success: false,
         error: "Failed to initiate checkout"

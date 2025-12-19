@@ -7,6 +7,7 @@ import { logger } from "../lib/logger";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { emailQueue } from "../lib/queue";
 import { generatePaymentConfirmationEmail } from "../lib/email";
+import type Stripe from "stripe";
 
 const router = Router();
 
@@ -22,7 +23,7 @@ const initializeStripe = async () => {
     const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
     stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
   } catch (err) {
-    logger.warn("Stripe SDK failed to initialize for webhooks", err);
+    logger.warn({ err }, "Stripe SDK failed to initialize for webhooks");
   }
 };
 

@@ -178,7 +178,7 @@ export function generateTenantApiKey(tenantId: string): string {
 
 // Get tenant by custom domain
 export function getTenantByDomain(domain: string): TenantSettings | null {
-  for (const [, branding] of tenantBranding.entries()) {
+  for (const [, branding] of Array.from(tenantBranding.entries())) {
     if (branding.customDomain === domain) {
       return tenants.get(branding.tenantId) || null;
     }

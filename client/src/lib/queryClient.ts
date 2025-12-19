@@ -5,17 +5,17 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    try {
-      const data = await sharedApiRequest<any>(queryKey.join("/"));
-      return data as T;
-    } catch (err: any) {
-      if (unauthorizedBehavior === "returnNull" && err instanceof APIError && err.statusCode === 401) {
-        return null as any;
+    async ({ queryKey }) => {
+      try {
+        const data = await sharedApiRequest<any>(queryKey.join("/"));
+        return data as any;
+      } catch (err: any) {
+        if (unauthorizedBehavior === "returnNull" && err instanceof APIError && err.statusCode === 401) {
+          return null as any;
+        }
+        throw err;
       }
-      throw err;
-    }
-  };
+    };
 
 export const queryClient = new QueryClient({
   defaultOptions: {

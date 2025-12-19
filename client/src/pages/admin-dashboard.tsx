@@ -27,7 +27,11 @@ export default function AdminDashboard() {
 
   const fetchAdminStats = async () => {
     setStatsLoading(true);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     // Fetch admin overview
     try {
       setStatsError(null);
@@ -37,7 +41,11 @@ export default function AdminDashboard() {
       setStatsError(e instanceof Error ? e.message : 'Failed to load admin overview');
       setStats(null);
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     // Fetch AI status
     try {
       setAiError(null);
@@ -47,7 +55,11 @@ export default function AdminDashboard() {
       setAiError(e instanceof Error ? e.message : 'Failed to load AI status');
       setAiStatus(null);
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     // Fetch Stripe status
     try {
       setStripeError(null);
@@ -57,7 +69,11 @@ export default function AdminDashboard() {
       setStripeError(e instanceof Error ? e.message : 'Failed to load Stripe status');
       setStripeStatus(null);
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     setStatsLoading(false);
   };
 
@@ -71,6 +87,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
+<<<<<<< HEAD
       <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-4">
@@ -82,6 +99,9 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+=======
+      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
       {/* Error alerts */}
       {statsError && (
@@ -206,6 +226,7 @@ export default function AdminDashboard() {
           Recent Activity
         </h3>
         <div className="space-y-3 text-sm">
+<<<<<<< HEAD
           {stats?.recentActivity?.length > 0 ? (
             stats.recentActivity.map((activity: any, i: number) => (
               <div key={i} className="flex justify-between items-start py-3 border-b border-slate-200 dark:border-slate-800 last:border-0">
@@ -216,6 +237,20 @@ export default function AdminDashboard() {
           ) : (
             <div className="text-slate-500 italic py-4 text-center">No recent activity</div>
           )}
+=======
+          <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+            <span>New user registration</span>
+            <span className="text-slate-500">5 minutes ago</span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800">
+            <span>Document upload</span>
+            <span className="text-slate-500">15 minutes ago</span>
+          </div>
+          <div className="flex justify-between items-center py-2">
+            <span>Consultation scheduled</span>
+            <span className="text-slate-500">1 hour ago</span>
+          </div>
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
         </div>
       </div>
     </div>

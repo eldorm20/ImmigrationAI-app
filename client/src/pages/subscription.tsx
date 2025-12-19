@@ -139,7 +139,7 @@ export default function SubscriptionPage() {
   const handleUpgrade = async (planId: string) => {
     try {
       try { trackEvent('subscription_upgrade_initiated', { planId }); } catch { }
-      const response = await apiRequest("/subscription/upgrade", {
+      const response = await apiRequest<{ checkoutUrl?: string }>("/subscription/upgrade", {
         method: "POST",
         body: JSON.stringify({ planId }),
       });

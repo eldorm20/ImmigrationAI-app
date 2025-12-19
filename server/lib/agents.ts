@@ -454,10 +454,13 @@ async function generateTextWithProvider(
   prompt: string,
   systemPrompt: string
 ): Promise<string> {
-  // Accept multiple environment variable names for local Ollama-like endpoints
   const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || process.env.OLLAMA_LOCAL_URL;
   const hasLocalAI = Boolean(localAIUrl);
+<<<<<<< HEAD
   // OpenAI usage enabled if key is present
+=======
+  // Enable OpenAI if key is present
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
   const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
@@ -471,7 +474,16 @@ async function generateTextWithProvider(
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
 
-      const res = await fetch(localAIUrl as string, {
+      // FIX: Ensure URL ends with /api/generate only if it doesn't already have a path component
+      let fetchUrl = localAIUrl as string;
+      if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
+        fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
+      } else if (fetchUrl.endsWith("/v1/chat/completions")) {
+        // Support OpenAI-compatible local endpoints
+        // Adapt payload if needed, or assume the user configured it correctly
+      }
+
+      const res = await fetch(fetchUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -581,6 +593,7 @@ async function generateTextWithProvider(
     }
   }
 
+<<<<<<< HEAD
   // Intelligent pre-built responses for common immigration queries
   logger.info("Using intelligent response system for: " + prompt.substring(0, 50) + "...");
 
@@ -689,6 +702,9 @@ Currently, I am operating in limited mode (offline/demo). I can answer specific 
 For a fully interactive experience, an administrator needs to configure the AI Provider (Ollama or HuggingFace).`;
 
 
+=======
+  throw new Error(`AI Provider configured but failed to respond. Local: ${hasLocalAI}, OpenAI: ${hasOpenAI}, HF: ${hasHuggingFace}`);
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 }
 
 /**

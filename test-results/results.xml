@@ -1,0 +1,241 @@
+<testsuites id="" name="" tests="15" failures="12" skipped="2" errors="0" time="11.257057999999999">
+<testsuite name="accessibility.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.008" errors="0">
+<testcase name="Basic accessibility smoke (main role and headings)" classname="accessibility.spec.ts" time="0.008">
+<failure message="accessibility.spec.ts:5:1 Basic accessibility smoke (main role and headings)" type="FAILURE">
+<![CDATA[  [chromium] › accessibility.spec.ts:5:1 › Basic accessibility smoke (main role and headings) ──────
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="ai-chat.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.005" errors="0">
+<testcase name="AI chat assistant responds to a simple question" classname="ai-chat.spec.ts" time="0.005">
+<failure message="ai-chat.spec.ts:5:1 AI chat assistant responds to a simple question" type="FAILURE">
+<![CDATA[  [chromium] › ai-chat.spec.ts:5:1 › AI chat assistant responds to a simple question ───────────────
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="assessment.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.007" errors="0">
+<testcase name="Eligibility assessment flow (smoke, non-destructive)" classname="assessment.spec.ts" time="0.007">
+<failure message="assessment.spec.ts:5:1 Eligibility assessment flow (smoke, non-destructive)" type="FAILURE">
+<![CDATA[  [chromium] › assessment.spec.ts:5:1 › Eligibility assessment flow (smoke, non-destructive) ───────
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.122" errors="0">
+<testcase name="Protected API endpoints require auth and work with token" classname="auth.spec.ts" time="0.122">
+<failure message="auth.spec.ts:7:1 Protected API endpoints require auth and work with token" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:7:1 › Protected API endpoints require auth and work with token ─────────
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 300
+    Received:    200
+
+      10 |   const resNoAuth = await request.get(`${BASE}${protectedPath}`);
+      11 |   // Expect unauthorized or redirect
+    > 12 |   expect(resNoAuth.status()).toBeGreaterThanOrEqual(300);
+         |                              ^
+      13 |
+      14 |   test.skip(!CLIENT_EMAIL || !CLIENT_PASSWORD, 'CLIENT_EMAIL/CLIENT_PASSWORD not provided — skipping auth flow');
+      15 |   const login = await request.post(`${BASE}/api/auth/login`, { data: { email: CLIENT_EMAIL, password: CLIENT_PASSWORD } });
+        at /mnt/c/Users/USER/Documents/ImmigrationAI-app/ImmigrationAI-app-main/tests/e2e/auth.spec.ts:12:30
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="cases.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.009" errors="0">
+<testcase name="Case management: open create form and optionally submit (guarded)" classname="cases.spec.ts" time="0.009">
+<failure message="cases.spec.ts:6:1 Case management: open create form and optionally submit (guarded)" type="FAILURE">
+<![CDATA[  [chromium] › cases.spec.ts:6:1 › Case management: open create form and optionally submit (guarded) 
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="contact.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.008" errors="0">
+<testcase name="Contact form validation and optional submit" classname="contact.spec.ts" time="0.008">
+<failure message="contact.spec.ts:6:1 Contact form validation and optional submit" type="FAILURE">
+<![CDATA[  [chromium] › contact.spec.ts:6:1 › Contact form validation and optional submit ───────────────────
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="eligibility-full.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.006" errors="0">
+<testcase name="Eligibility assessment full smoke (non-destructive unless ALLOW_SUBMIT=1)" classname="eligibility-full.spec.ts" time="0.006">
+<failure message="eligibility-full.spec.ts:6:1 Eligibility assessment full smoke (non-destructive unless ALLOW_SUBMIT=1)" type="FAILURE">
+<![CDATA[  [chromium] › eligibility-full.spec.ts:6:1 › Eligibility assessment full smoke (non-destructive unless ALLOW_SUBMIT=1) 
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="login-ui.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="2" failures="2" skipped="0" time="0.011" errors="0">
+<testcase name="UI login flows (non-destructive) › client can sign in and see dashboard" classname="login-ui.spec.ts" time="0.006">
+<failure message="login-ui.spec.ts:12:3 client can sign in and see dashboard" type="FAILURE">
+<![CDATA[  [chromium] › login-ui.spec.ts:12:3 › UI login flows (non-destructive) › client can sign in and see dashboard 
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+<testcase name="UI login flows (non-destructive) › lawyer can sign in and access lawyer features" classname="login-ui.spec.ts" time="0.005">
+<failure message="login-ui.spec.ts:28:3 lawyer can sign in and access lawyer features" type="FAILURE">
+<![CDATA[  [chromium] › login-ui.spec.ts:28:3 › UI login flows (non-destructive) › lawyer can sign in and access lawyer features 
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="qa-credentials.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="4" failures="1" skipped="2" time="4.131" errors="0">
+<testcase name="Non-destructive QA checks - credentials &amp; UI smoke › client: API login should succeed (read-only)" classname="qa-credentials.spec.ts" time="0.04">
+<properties>
+<property name="skip" value="CLIENT_EMAIL/CLIENT_PASSWORD not provided">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Non-destructive QA checks - credentials &amp; UI smoke › lawyer: API login should succeed (read-only)" classname="qa-credentials.spec.ts" time="0.006">
+<properties>
+<property name="skip" value="LAWYER_EMAIL/LAWYER_PASSWORD not provided">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Non-destructive QA checks - credentials &amp; UI smoke › random credentials should not authenticate" classname="qa-credentials.spec.ts" time="4.084">
+</testcase>
+<testcase name="Non-destructive QA checks - credentials &amp; UI smoke › UI smoke: homepage CTA and assessment flow opens" classname="qa-credentials.spec.ts" time="0.001">
+<failure message="qa-credentials.spec.ts:44:3 UI smoke: homepage CTA and assessment flow opens" type="FAILURE">
+<![CDATA[  [chromium] › qa-credentials.spec.ts:44:3 › Non-destructive QA checks - credentials & UI smoke › UI smoke: homepage CTA and assessment flow opens 
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="research.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="0.007" errors="0">
+<testcase name="Research library search smoke" classname="research.spec.ts" time="0.007">
+<failure message="research.spec.ts:5:1 Research library search smoke" type="FAILURE">
+<![CDATA[  [chromium] › research.spec.ts:5:1 › Research library search smoke ────────────────────────────────
+
+    Error: browserType.launch: Executable doesn't exist at /home/samsap01/.cache/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-linux64/chrome-headless-shell
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="upload-password.spec.ts" timestamp="2025-12-18T01:08:25.935Z" hostname="chromium" tests="1" failures="1" skipped="0" time="3.305" errors="0">
+<testcase name="E2E: upload and change-password (API) › register -&gt; change password -&gt; upload document" classname="upload-password.spec.ts" time="3.305">
+<failure message="upload-password.spec.ts:11:3 register -&gt; change password -&gt; upload document" type="FAILURE">
+<![CDATA[  [chromium] › upload-password.spec.ts:11:3 › E2E: upload and change-password (API) › register -> change password -> upload document 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      22 |       },
+      23 |     });
+    > 24 |     expect(registerRes.ok()).toBeTruthy();
+         |                              ^
+      25 |     const registerJson = await registerRes.json();
+      26 |     expect(registerJson.accessToken).toBeTruthy();
+      27 |     const accessToken = registerJson.accessToken as string;
+        at /mnt/c/Users/USER/Documents/ImmigrationAI-app/ImmigrationAI-app-main/tests/e2e/upload-password.spec.ts:24:30
+]]>
+</failure>
+</testcase>
+</testsuite>
+</testsuites>

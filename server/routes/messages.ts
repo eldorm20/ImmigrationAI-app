@@ -14,7 +14,7 @@ const router = Router();
 router.use(authenticate);
 
 const createMessageSchema = z.object({
-  recipientId: z.string().min(1, "Recipient ID required"),
+  receiverId: z.string().min(1, "Recipient ID required"),
   content: z.string().min(1, "Message content required").max(5000),
 });
 
@@ -25,9 +25,13 @@ router.post(
     const senderId = req.user!.userId;
     const body = createMessageSchema.parse(req.body);
 
+    if (body.receiverId === senderId) {
+      return res.status(400).json({ message: "Cannot send message to yourself" });
+    }
+
     // Verify recipient exists
     const recipient = await db.query.users.findFirst({
-      where: eq(users.id, body.recipientId),
+      where: eq(users.id, body.receiverId),
     });
 
     if (!recipient) {
@@ -39,7 +43,11 @@ router.post(
       .insert(messages)
       .values({
         senderId,
+<<<<<<< HEAD
         receiverId: body.recipientId, // Fixed: recipientId -> receiverId
+=======
+        receiverId: body.receiverId,
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
         content: body.content,
         isRead: false,
       })
@@ -130,6 +138,7 @@ router.get(
       limit: isNaN(limitVal) ? 50 : limitVal,
     });
 
+<<<<<<< HEAD
     // Get unique user IDs from history
     const uniqueUserIds = new Set<string>();
     userMessages.forEach((m) => {
@@ -144,6 +153,16 @@ router.get(
       });
       lawyers.forEach(l => uniqueUserIds.add(l.id)); // Assuming l.id is string
     }
+=======
+    // Get unique user IDs
+    const uniqueUserIds = Array.from(
+      new Set(
+        userMessages.map((m) =>
+          m.senderId === userId ? m.receiverId : m.senderId
+        )
+      )
+    );
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
     // Get user details
     const conversationUsers = await Promise.all(

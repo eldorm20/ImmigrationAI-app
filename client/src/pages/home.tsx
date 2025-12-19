@@ -57,6 +57,45 @@ export default function Home() {
   return (
     <div className="min-h-screen relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
 
+      {/* Navigation Header */}
+      <nav className="fixed w-full top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-extrabold text-2xl tracking-tight cursor-pointer" onClick={() => setLocation("/")}>
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
+              <Globe size={18} />
+            </div>
+            <span className="text-slate-900 dark:text-white">{t.brand.name}</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
+            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/features"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Features</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/pricing"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Pricing</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/help"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Help</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/blog"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Blog</a>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                onClick={() => goLogin('applicant')}
+                className="text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 font-bold text-sm px-4 py-2"
+              >
+                Sign In
+              </button>
+              <LiveButton
+                onClick={() => goLogin('applicant')}
+                size="sm"
+                variant="primary"
+                className="shadow-lg shadow-brand-500/20"
+              >
+                Get Started
+              </LiveButton>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Modern Geometric Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -right-[20%] w-[80%] h-[80%] bg-brand-500/10 dark:bg-brand-500/20 rounded-full blur-[120px] animate-float"></div>
@@ -204,12 +243,41 @@ export default function Home() {
                 className="w-full py-4 border-2 border-slate-100 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 bg-transparent"
                 onClick={startAssessment}
               >
-                Full Assessment <ArrowRight size={16} />
+                Start Free Assessment <ArrowRight size={16} />
               </LiveButton>
             </div>
           </motion.div>
         </div>
       </div>
+      {/* Quick Assessment Section - Moved here for better conversion */}
+      <div className="py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-100 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-6">
+              <Sparkles size={16} /> Quick Assessment
+            </div>
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">See Your Visa Success Rate</h2>
+            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Get an instant AI evaluation based on your profile. See your approval chances before investing time and money.</p>
+          </div>
+
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+              <EligibilityQuiz compact={true} />
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <LiveButton
+              size="lg"
+              variant="secondary"
+              onClick={() => setLocation("/assessment")}
+            >
+              Start Free Assessment <ArrowRight size={18} />
+            </LiveButton>
+          </div>
+        </div>
+      </div>
+
       {/* Blog Highlights Section */}
       <div className="py-24 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6">
@@ -302,14 +370,14 @@ export default function Home() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: Globe, title: "Global Access", desc: "Expert guidance for UK, Germany, and Poland visas from anywhere.", plan: "FREE" },
-              { icon: Shield, title: "AI Verified", desc: "Smart eligibility checks reduce refusal risks by 90% before you apply.", plan: "STARTER" },
-              { icon: Users, title: "Community", desc: "Join 10,000+ Uzbek citizens sharing their journey and success.", plan: "FREE" }
+              { icon: Globe, title: "Global Access", desc: "Expert guidance for UK, Germany, and Poland visas from anywhere.", plan: "CORE" },
+              { icon: Shield, title: "AI Verified", desc: "Smart eligibility checks significantly reduce refusal risks before you apply.*", plan: "PREMIUM" },
+              { icon: Users, title: "Community Support", desc: "Join 10,000+ Uzbek citizens sharing their journey and success.", plan: "FREE" }
             ].map((f, i) => {
               const planColors = {
+                CORE: { bg: "bg-slate-100 dark:bg-slate-800", text: "text-slate-700 dark:text-slate-300", label: "Core" },
+                PREMIUM: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", label: "Premium" },
                 FREE: { bg: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-300", label: "Free" },
-                STARTER: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-300", label: "Starter" },
-                PRO: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", label: "Pro" },
               };
               const colors = planColors[f.plan as keyof typeof planColors];
 
@@ -398,34 +466,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Assessment Section */}
-      <div className="py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-100 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-6">
-              <Sparkles size={16} /> Quick Assessment
-            </div>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">See Your Visa Success Rate</h2>
-            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Get an instant AI evaluation based on your profile. See your approval chances before investing time and money.</p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
-              <EligibilityQuiz compact={true} />
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <LiveButton
-              size="lg"
-              variant="secondary"
-              onClick={() => setLocation("/assessment")}
-            >
-              Start Full Assessment <ArrowRight size={18} />
-            </LiveButton>
-          </div>
-        </div>
-      </div>
 
       {/* FAQ Section */}
       <div className="py-24 px-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
@@ -606,7 +646,7 @@ export default function Home() {
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <LiveButton variant="secondary" size="lg" onClick={() => goLogin('applicant')}>
-                Get Free Assessment <ArrowRight size={20} />
+                Start Free Assessment <ArrowRight size={20} />
               </LiveButton>
               <LiveButton variant="outline" size="lg" onClick={() => setLocation('/pricing')} className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                 View Pricing

@@ -6,8 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { error as logError } from "@/lib/logger";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
+<<<<<<< HEAD
   Globe, Send, Briefcase, Upload, Loader2, Zap, CheckCircle, Circle, ArrowRight, Sparkles, FileCheck, Scan,
   Edit3, RefreshCw, Download, User, FileUp, Eye, Trash2, Languages
+=======
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
@@ -29,8 +33,20 @@ import ReferralView from "@/components/dashboard/referral-view";
 import { Target, CalendarClock, Gift } from "lucide-react";
 
 
+<<<<<<< HEAD
+=======
+import { AgencyView } from "@/components/dashboard/AgencyView";
+import { RoadmapView } from "@/components/dashboard/RoadmapView";
+import { AIDocsView } from "@/components/dashboard/AIDocsView";
+import { UploadView } from "@/components/dashboard/UploadView";
+import { TranslateView } from "@/components/dashboard/TranslateView";
+import { ChatView } from "@/components/dashboard/ChatView";
+import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
+import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
+import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 
-// --- Main Dashboard Component ---
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
+
 
 export default function UserDash() {
   const { user, logout } = useAuth();
@@ -86,9 +102,16 @@ export default function UserDash() {
         <nav className="flex-1 px-4 space-y-2">
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
+<<<<<<< HEAD
             { id: 'predictor', icon: Target, label: 'Visa Predictor' },
             { id: 'deadlines', icon: CalendarClock, label: 'Deadlines' },
             { id: 'docs', icon: Sparkles, label: 'AI Docs' }, // Renamed from Documents to avoid confusion
+=======
+            { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
+            { id: 'templates', icon: FolderOpen, label: 'Templates' },
+            { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
+            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
             { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
             { id: 'documents', icon: FileText, label: 'Documents' }, // Merged Upload + Scan
             { id: 'referrals', icon: Gift, label: 'Refer & Earn' },
@@ -191,6 +214,8 @@ export default function UserDash() {
           {activeTab === 'predictor' && <VisaPredictorView key="predictor" />}
           {activeTab === 'deadlines' && <DeadlineTrackerView key="deadlines" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
+          {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
+          {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'documents' && <DocumentsView key="documents" />}
           {activeTab === 'referrals' && (
@@ -202,6 +227,7 @@ export default function UserDash() {
           {activeTab === 'chat' && <ChatView key="chat" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
+          {activeTab === 'agency' && <AgencyView key="agency" />}
           {activeTab === 'research' && (
             <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
               <AnimatedCard className="max-w-md mx-auto">
@@ -220,7 +246,7 @@ export default function UserDash() {
           )}
         </AnimatePresence>
       </main>
-    </div>
+    </div >
   );
 }
 

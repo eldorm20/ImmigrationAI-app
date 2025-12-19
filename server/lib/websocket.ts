@@ -30,7 +30,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
     try {
       const token = socket.handshake.auth.token;
       const userId = socket.handshake.auth.userId;
-      
+
       if (!userId || !token) {
         return next(new Error("Authentication error"));
       }
@@ -38,7 +38,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
       // Store user info on socket
       socket.data.userId = userId;
       socket.data.token = token;
-      
+
       next();
     } catch (error) {
       logger.error({ error }, "WebSocket authentication failed");
@@ -83,16 +83,16 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
 
     // Handle real-time messaging
     socket.on("send_message", async (messageData: {
-      recipientId: string;
+      receiverId: string;
       content: string;
     }) => {
       try {
         const senderId = userId;
-        const { recipientId, content } = messageData;
+        const { receiverId, content } = messageData;
 
         // Validate recipient exists
         const recipient = await db.query.users.findFirst({
-          where: eq(users.id, recipientId),
+          where: eq(users.id, receiverId),
         });
 
         if (!recipient) {
@@ -105,7 +105,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
           .insert(messages)
           .values({
             senderId,
-            recipientId,
+            receiverId,
             content,
             isRead: false,
           })
@@ -118,7 +118,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
 
         // Emit to recipient if online
         const recipientSocket = Array.from(connectedUsers.values()).find(
-          (u) => u.userId === recipientId
+          (u) => u.userId === receiverId
         );
 
         if (recipientSocket) {
@@ -129,7 +129,7 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
             content,
             timestamp: savedMessage.createdAt,
             isRead: false,
-            recipientId,
+            receiverId,
           });
         }
 
@@ -138,13 +138,13 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
           id: savedMessage.id,
           senderId,
           senderName: sender?.firstName || sender?.email || "Unknown",
-          recipientId,
+          receiverId,
           content,
           timestamp: savedMessage.createdAt,
           isRead: false,
         });
 
-        logger.info(`Message sent from ${senderId} to ${recipientId}`);
+        logger.info(`Message sent from ${senderId} to ${receiverId}`);
       } catch (error) {
         logger.error({ error }, "Failed to send message");
         socket.emit("message_error", { message: "Failed to send message" });
@@ -186,10 +186,10 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
     });
 
     // Handle typing indicator
-    socket.on("user_typing", (typingData: { recipientId: string }) => {
-      const { recipientId } = typingData;
+    socket.on("user_typing", (typingData: { receiverId: string }) => {
+      const { receiverId } = typingData;
       const recipientSocket = Array.from(connectedUsers.values()).find(
-        (u) => u.userId === recipientId
+        (u) => u.userId === receiverId
       );
 
       if (recipientSocket) {
@@ -202,10 +202,10 @@ export function initializeWebSocket(httpServer: HTTPServer): SocketIOServer {
     });
 
     // Handle stop typing
-    socket.on("user_stop_typing", (typingData: { recipientId: string }) => {
-      const { recipientId } = typingData;
+    socket.on("user_stop_typing", (typingData: { receiverId: string }) => {
+      const { receiverId } = typingData;
       const recipientSocket = Array.from(connectedUsers.values()).find(
-        (u) => u.userId === recipientId
+        (u) => u.userId === receiverId
       );
 
       if (recipientSocket) {

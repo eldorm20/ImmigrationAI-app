@@ -19,7 +19,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VideoCall from "./video-call";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
+<<<<<<< HEAD
 import { error as logError, info as logInfo } from "@/lib/logger";
+=======
+import { error as logError } from "@/lib/logger";
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
 
 interface Consultation {
   id: string;
@@ -182,6 +186,7 @@ export default function LawyerConsultations() {
     }
   };
 
+<<<<<<< HEAD
   const handleGenerateLink = async () => {
     if (!editingId) return;
     try {
@@ -220,10 +225,13 @@ export default function LawyerConsultations() {
     }
   };
 
+=======
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
   const handleStartCall = (consultation: Consultation) => {
     if (!consultation.meetingLink) return;
 
     // Extract room name from Jitsi link
+<<<<<<< HEAD
     const jitsiMatch = consultation.meetingLink.match(/meet\.jit\.si\/([^?&]+)/);
 
     // Check for internal video link
@@ -237,6 +245,14 @@ export default function LawyerConsultations() {
     } else if (internalMatch) {
       // Open internal page in new tab (or navigate if we prefer)
       window.open(consultation.meetingLink, '_blank');
+=======
+    const match = consultation.meetingLink.match(/meet\.jit\.si\/([^?&]+)/);
+    if (match) {
+      setActiveCall({
+        roomName: decodeURIComponent(match[1]),
+        displayName: `${user?.firstName || 'Lawyer'} ${user?.lastName || ''}`,
+      });
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
     } else {
       // Fallback for other links - open in new tab
       window.open(consultation.meetingLink, '_blank');
@@ -506,6 +522,7 @@ export default function LawyerConsultations() {
                               <label className="block text-xs font-medium text-yellow-700 dark:text-yellow-300 mb-1">
                                 Meeting Link (Zoom, Google Meet, etc.)
                               </label>
+<<<<<<< HEAD
                               <div className="flex gap-2">
                                 <input
                                   type="url"
@@ -524,6 +541,15 @@ export default function LawyerConsultations() {
                                   <Video size={14} className="inline mr-1" /> Generate
                                 </motion.button>
                               </div>
+=======
+                              <input
+                                type="url"
+                                placeholder="https://meet.google.com/..."
+                                value={meetingLink}
+                                onChange={(e) => setMeetingLink(e.target.value)}
+                                className="w-full px-3 py-2 border border-yellow-200 dark:border-yellow-700 rounded-lg dark:bg-slate-800 text-sm"
+                              />
+>>>>>>> ae371cb03865287dde318080e6e8b024b7d45b6c
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-yellow-700 dark:text-yellow-300 mb-1">
