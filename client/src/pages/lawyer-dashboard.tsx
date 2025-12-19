@@ -19,6 +19,9 @@ import { AIDocsView } from "@/components/dashboard/ai-docs-view";
 import { ChatView } from "@/components/dashboard/chat-view";
 import { TranslateView } from "@/components/dashboard/translate-view";
 import { UploadView } from "@/components/dashboard/upload-view";
+import Invoicing from "@/components/lawyer/Invoicing";
+import TimeTracker from "@/components/lawyer/TimeTracker";
+import TaskManager from "@/components/lawyer/TaskManager";
 
 // --- Types & Components ---
 
@@ -112,7 +115,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'translate' | 'upload'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'ai-docs' | 'translate' | 'upload' | 'financials' | 'tasks'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -773,6 +776,23 @@ export default function LawyerDashboard() {
               ← Back to Dashboard
             </button>
             <UploadView applicationId={selectedLead?.id ? String(selectedLead.id) : undefined} />
+          </div>
+        )}
+        {activeTab === 'tasks' && (
+          <div className="space-y-6">
+            <TaskManager />
+          </div>
+        )}
+
+        {activeTab === 'financials' && (
+          <div className="space-y-8">
+            <section>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Clock size={20} /> Time Tracking</h3>
+              <TimeTracker />
+            </section>
+            <section>
+              <Invoicing />
+            </section>
           </div>
         )}
       </main>

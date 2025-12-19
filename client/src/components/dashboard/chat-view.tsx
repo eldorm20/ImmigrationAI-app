@@ -7,11 +7,22 @@ import { Sparkles, User, Send, Mic } from "lucide-react";
 
 export const ChatView = () => {
     const { t, lang } = useI18n();
-    const [messages, setMessages] = useState<{ role: string; text: string; ts: string }[]>([{ role: 'ai', text: "Hello! I'm your Immigration AI Assistant. Ask me anything about UK or German visas.", ts: new Date().toISOString() }]);
+    const [messages, setMessages] = useState<{ role: string; text: string; ts: string }[]>([]);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
     const [isListening, setIsListening] = useState(false);
+
+    // Initial greeting based on language
+    useEffect(() => {
+        if (messages.length === 0) {
+            setMessages([{
+                role: 'ai',
+                text: t.tools?.chatWelcome || "Hello! I'm your Immigration AI Assistant. How can I help you today?",
+                ts: new Date().toISOString()
+            }]);
+        }
+    }, [t.tools?.chatWelcome]);
 
     // Voice Input Handler
     const startListening = () => {
@@ -77,7 +88,8 @@ export const ChatView = () => {
                 setMessages(prev => [...prev, { role: 'ai', text: resp.reply, ts: new Date().toISOString() }]);
             } catch (err) {
                 setIsTyping(false);
-                setMessages(prev => [...prev, { role: 'ai', text: "Sorry, I couldn't reach the AI service right now.", ts: new Date().toISOString() }]);
+                // Fallback message if even the backend fallback failed (e.g. network error)
+                setMessages(prev => [...prev, { role: 'ai', text: "I'm currently offline on the client side. Please check your internet connection.", ts: new Date().toISOString() }]);
             }
         })();
     };

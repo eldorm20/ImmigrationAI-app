@@ -33,6 +33,9 @@ import signatureRoutes from "./routes/signatures";
 import interviewRoutes from "./routes/interview";
 import verificationRoutes from "./routes/verification";
 import datasetRoutes from "./routes/dataset";
+import filesRoutes from "./routes/files";
+import financialsRoutes from "./routes/financials";
+import practiceRoutes from "./routes/practice";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -65,4 +68,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/debug", debugRoutes);
   app.use("/api/canada", canadaRoutes); // Canada CRS calculator
   app.use("/api/translate", translateRoutes);
+  app.use("/api/files", filesRoutes); // Authenticated file serving
+  app.use("/api", financialsRoutes); // Invoices & Time Entries: /api/invoices, /api/time-entries
+  app.use("/api", practiceRoutes); // Tasks & Templates: /api/tasks, /api/templates
 }

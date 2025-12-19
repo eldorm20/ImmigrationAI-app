@@ -180,9 +180,21 @@ router.post(
     let doc;
     let usedFallback = false;
 
+    // Set a longer timeout for AI generation (90 seconds)
+    res.setTimeout(90000, () => {
+      logger.warn({ userId, template }, "AI document generation timed out at 90s");
+    });
+
     try {
       logger.info({ userId, template, language }, "Attempting AI document generation");
-      doc = await generateDocument(template, data || {}, language || 'en');
+
+      // key-value to force promise race if needed, but simple await with express timeout is usually enough
+      // We'll wrap in a timeout promise to catch it before express cuts it off
+      const generationPromise = generateDocument(template, data || {}, language || 'en');
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("AI generation timed out")), 85000));
+
+      doc = await Promise.race([generationPromise, timeoutPromise]);
+
       logger.info({ userId, template, success: true }, "AI document generation successful");
     } catch (err: any) {
       // Fallback: Generate document using local templates when AI fails
@@ -628,8 +640,18 @@ router.post(
         ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: ${messageText}`
         : messageText;
 
-      const reply = await chatRespond(contextualMessage, language);
-      res.json({ reply });
+      // AI Chat Response with 15s timeout
+      try {
+        const chatPromise = chatRespond(contextualMessage, language);
+        const timeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error("AI chat timeout")), 15000)
+        );
+
+        const reply = await Promise.race([chatPromise, timeoutPromise]);
+        res.json({ reply });
+      } catch (err: any) {
+        throw new Error(err.message || "AI chat generation failed");
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.warn({ err: errorMsg }, "AI chat failed, using intelligent fallback responses");

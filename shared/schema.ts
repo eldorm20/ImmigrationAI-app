@@ -834,3 +834,98 @@ export const canadaPnpProvinces = pgTable("canada_pnp_provinces", {
 export type VisaTypeCanada = typeof visaTypesCanada.$inferSelect;
 export type ExpressEntryRequirement = typeof expressEntryRequirements.$inferSelect;
 export type CanadaPnpProvince = typeof canadaPnpProvinces.$inferSelect;
+
+// === LAWYER ERP TABLES ===
+
+// Invoices
+export const invoices = pgTable("invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  lawyerId: text("lawyer_id").notNull(), // text because user IDs are text
+  clientId: text("client_id").notNull(),
+  applicationId: uuid("application_id").references(() => applications.id),
+  number: varchar("number", { length: 50 }).notNull(), // e.g., INV-2023-001
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, sent, paid, void, overdue
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  issueDate: timestamp("issue_date").defaultNow(),
+  dueDate: timestamp("due_date"),
+  paidDate: timestamp("paid_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Invoice Items
+export const invoiceItems = pgTable("invoice_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: 'cascade' }).notNull(),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).default("1"),
+  rate: decimal("rate", { precision: 10, scale: 2 }).default("0"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Time Entries (Billable Hours)
+export const timeEntries = pgTable("time_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  lawyerId: text("lawyer_id").notNull(),
+  clientId: text("client_id"),
+  applicationId: uuid("application_id").references(() => applications.id),
+  description: text("description").notNull(),
+  startTime: timestamp("start_time"),
+  endTime: timestamp("end_time"),
+  duration: integer("duration_minutes").notNull(), // in minutes
+  isBillable: boolean("is_billable").default(true),
+  rate: decimal("rate", { precision: 10, scale: 2 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }),
+  status: varchar("status", { length: 20 }).default("unbilled"), // unbilled, billed
+  invoiceId: uuid("invoice_id").references(() => invoices.id),
+  date: timestamp("date").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tasks & Deadlines
+export const tasks = pgTable("tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  lawyerId: text("lawyer_id").notNull(),
+  clientId: text("client_id"), // Optional: related to a client
+  applicationId: uuid("application_id").references(() => applications.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 20 }).default("todo"), // todo, in_progress, review, done
+  priority: varchar("priority", { length: 10 }).default("medium"), // low, medium, high, urgent
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  assignedTo: text("assigned_to"), // if multiple lawyers/staff
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Document Templates
+export const documentTemplates = pgTable("document_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  lawyerId: text("lawyer_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  content: text("content"), // HTML or Markdown content
+  category: varchar("category", { length: 50 }), // contract, letter, form, email
+  language: varchar("language", { length: 10 }).default("en"),
+  isSystem: boolean("is_system").default(false), // true for default system templates
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas
+export const insertInvoiceSchema = createInsertSchema(invoices);
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
+export const insertTimeEntrySchema = createInsertSchema(timeEntries);
+export const insertTaskSchema = createInsertSchema(tasks);
+export const insertTemplateSchema = createInsertSchema(documentTemplates);
+
+// Type exports
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
