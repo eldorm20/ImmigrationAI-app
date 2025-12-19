@@ -843,7 +843,7 @@ export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   lawyerId: text("lawyer_id").notNull(), // text because user IDs are text
   clientId: text("client_id").notNull(),
-  applicationId: uuid("application_id").references(() => applications.id),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id),
   number: varchar("number", { length: 50 }).notNull(), // e.g., INV-2023-001
   status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, sent, paid, void, overdue
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull().default("0"),
@@ -872,7 +872,7 @@ export const timeEntries = pgTable("time_entries", {
   id: uuid("id").defaultRandom().primaryKey(),
   lawyerId: text("lawyer_id").notNull(),
   clientId: text("client_id"),
-  applicationId: uuid("application_id").references(() => applications.id),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id),
   description: text("description").notNull(),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
@@ -891,7 +891,7 @@ export const tasks = pgTable("tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
   lawyerId: text("lawyer_id").notNull(),
   clientId: text("client_id"), // Optional: related to a client
-  applicationId: uuid("application_id").references(() => applications.id),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   status: varchar("status", { length: 20 }).default("todo"), // todo, in_progress, review, done
@@ -917,6 +917,19 @@ export const documentTemplates = pgTable("document_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Referrals
+export const referrals = pgTable("referrals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  referrerId: varchar("referrer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  refereeId: varchar("referee_id", { length: 255 }).references(() => users.id),
+  status: varchar("status", { length: 50 }).default("pending"),
+  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }).default("0"),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertInvoiceSchema = createInsertSchema(invoices);
 export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
@@ -929,7 +942,9 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
 export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type Referral = typeof referrals.$inferSelect;
 
 // === RELATIONS ===
 
