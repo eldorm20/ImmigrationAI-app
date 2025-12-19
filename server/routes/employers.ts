@@ -68,18 +68,21 @@ router.post(
     const result = await verifyEmployer(params);
 
     // Save verification record to database
-    if (result.results && result.results.length > 0) {
+    if (result && result.results && Array.isArray(result.results) && result.results.length > 0) {
       for (const companyResult of result.results) {
         try {
+          // Log the data we are about to insert for debugging
+          // logger.debug({ companyResult }, "Inserting company verification record");
+
           await db.insert(employerVerifications).values({
             userId,
-            applicationId: body.applicationId,
-            companyName: companyResult.companyName,
-            country: companyResult.country,
-            registryType: companyResult.registryType,
-            registryId: companyResult.registryId,
+            applicationId: body.applicationId || null,
+            companyName: companyResult.companyName || "Unknown",
+            country: companyResult.country || "GB",
+            registryType: companyResult.registryType || "unknown",
+            registryId: companyResult.registryId, // Allow null as per schema
             verificationStatus: companyResult.found ? 'verified' : 'invalid',
-            companyData: companyResult.raw_data,
+            companyData: companyResult.raw_data || {},
             registeredAddress: companyResult.registeredAddress,
             businessType: companyResult.businessType,
             registrationDate: companyResult.registrationDate,
@@ -105,7 +108,7 @@ router.post(
                   employerDirectory.registryId,
                   companyResult.registryId || ''
                 ),
-                eq(employerDirectory.registryType, companyResult.registryType)
+                eq(employerDirectory.registryType, companyResult.registryType || 'unknown')
               )
             )
             .limit(1);
@@ -120,12 +123,13 @@ router.post(
                 updatedAt: new Date(),
               })
               .where(eq(employerDirectory.id, existingEntry[0].id));
-          } else if (companyResult.found) {
+          } else if (companyResult.found && companyResult.registryId) {
+            // Only addTo directory if found and has ID
             await db.insert(employerDirectory).values({
-              companyName: companyResult.companyName,
-              country: companyResult.country,
-              registryType: companyResult.registryType,
-              registryId: companyResult.registryId || '',
+              companyName: companyResult.companyName || "Unknown",
+              country: companyResult.country || "GB",
+              registryType: companyResult.registryType || "unknown",
+              registryId: companyResult.registryId,
               companyData: companyResult.raw_data || {},
               status: companyResult.status,
               lastVerifiedAt: new Date(),
@@ -133,7 +137,8 @@ router.post(
             });
           }
         } catch (error) {
-          logger.error({ error }, 'Error saving verification record');
+          logger.error({ error, company: companyResult.companyName }, 'Error saving verification record to DB - continuing');
+          // Do not rethrow - we want to return the API result even if save fails
         }
       }
     }

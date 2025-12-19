@@ -25,6 +25,10 @@ router.post(
     const senderId = req.user!.userId;
     const body = createMessageSchema.parse(req.body);
 
+    if (body.receiverId === senderId) {
+      return res.status(400).json({ message: "Cannot send message to yourself" });
+    }
+
     // Verify recipient exists
     const recipient = await db.query.users.findFirst({
       where: eq(users.id, body.receiverId),

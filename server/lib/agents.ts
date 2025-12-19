@@ -443,11 +443,10 @@ async function generateTextWithProvider(
   prompt: string,
   systemPrompt: string
 ): Promise<string> {
-  // Accept multiple environment variable names for local Ollama-like endpoints
   const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || process.env.OLLAMA_LOCAL_URL;
   const hasLocalAI = Boolean(localAIUrl);
-  // OpenAI usage intentionally disabled — prefer local/HuggingFace open-source providers
-  const hasOpenAI = false;
+  // Enable OpenAI if key is present
+  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
   const hasHuggingFace = Boolean(
     process.env.HUGGINGFACE_API_TOKEN && process.env.HF_MODEL
   );
@@ -460,10 +459,13 @@ async function generateTextWithProvider(
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
 
-      // FIX: Ensure URL ends with /api/generate if simply pointing to the base host
+      // FIX: Ensure URL ends with /api/generate only if it doesn't already have a path component
       let fetchUrl = localAIUrl as string;
       if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
         fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
+      } else if (fetchUrl.endsWith("/v1/chat/completions")) {
+        // Support OpenAI-compatible local endpoints
+        // Adapt payload if needed, or assume the user configured it correctly
       }
 
       const res = await fetch(fetchUrl, {
@@ -559,7 +561,7 @@ async function generateTextWithProvider(
     return "AI Configuration Error: No active AI provider found. Please launch Ollama locally (real free AI) or configure an API key.";
   }
 
-  throw new Error("AI Provider configured but failed to respond. Check server logs.");
+  throw new Error(`AI Provider configured but failed to respond. Local: ${hasLocalAI}, OpenAI: ${hasOpenAI}, HF: ${hasHuggingFace}`);
 }
 
 /**

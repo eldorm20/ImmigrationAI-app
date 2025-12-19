@@ -135,32 +135,56 @@ router.post(
       });
     }
 
-    // For paid tiers, create Stripe subscription
+    // For paid tiers, use Stripe Checkout Session to collect payment details
     const user = req.user!;
     const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
 
     try {
-      const subscription = await createSubscription(
-        userId,
-        tierConfig.stripePriceId,
-        user.email
-      );
+      const { getStripeClient } = await import("../lib/subscription");
+      const stripe = await getStripeClient();
 
-      if (!subscription) {
+      if (!stripe) {
         return res.status(503).json({
           success: false,
           message: "Stripe integration is not available. Please contact support.",
         });
       }
 
+      const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: tierConfig.stripePriceId, quantity: 1 }],
+        success_url: `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${clientUrl}/subscription`,
+        metadata: {
+          userId,
+          tier: requestedTier // Store tier in metadata for webhook handling
+        },
+        customer_email: user.email,
+      });
+
+      if (!session || !session.url) {
+        throw new Error("Failed to create checkout session");
+      }
+
       res.json({
         success: true,
-        message: `Upgraded to ${tierConfig.name} tier`,
-        tier: requestedTier,
-        subscription: { id: subscription.id, status: subscription.status },
+        message: "Redirecting to checkout...",
+        checkoutUrl: session.url
       });
     } catch (error) {
       logger.error({ error, userId }, "Subscription upgrade error");
+      // Handle "Stripe not configured" gracefully
+      if (process.env.NODE_ENV !== "production" && (!process.env.STRIPE_SECRET_KEY)) {
+        return res.json({
+          success: true,
+          message: "Simulated upgrade (Stripe not configured)",
+          tier: requestedTier,
+          fake: true
+        })
+      }
+
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Subscription upgrade failed",

@@ -52,8 +52,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
         return next(new Error("Invalid or expired token"));
       }
 
-      socket.data.user = payload as any;
-      logger.info({ userId: (payload as any).id, socketId: socket.id }, "Socket.IO client authenticated");
+      socket.data.user = {
+        id: payload.userId,
+        email: payload.email,
+        role: payload.role
+      };
+      logger.info({ userId: payload.userId, socketId: socket.id }, "Socket.IO client authenticated");
       return next();
     } catch (err) {
       logger.error({ err, socketId: socket.id }, "Socket.IO authentication error");

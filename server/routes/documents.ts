@@ -211,14 +211,36 @@ router.get(
     const docsWithUrls = await Promise.all(
       docs.map(async (doc) => {
         try {
-          const key = (doc as any).s3Key || (typeof doc.url === 'string' && !doc.url.startsWith('http') ? doc.url : null);
+          // 1. Try to use the explicit s3Key if available
+          let key = (doc as any).s3Key;
+
+          // 2. If no s3Key, try to extract it from the stored URL as a fallback
+          // This handles legacy records or cases where s3Key wasn't saved
+          if (!key && typeof doc.url === 'string') {
+            // If local upload path, extract filename
+            if (doc.url.includes('/uploads/')) {
+              key = doc.url.split('/uploads/')[1];
+            } else if (doc.url.includes('.com/')) {
+              // Try to extract object key from S3 URL
+              try {
+                const u = new URL(doc.url);
+                key = u.pathname.substring(1); // remove leading /
+              } catch (e) {
+                // ignore invalid URLs
+              }
+            }
+          }
+
           if (key) {
+            // Generate a fresh presigned URL valid for 1 hour
             const url = await getPresignedUrl(key);
             return { ...doc, url };
           }
-          // Fallback: return stored URL (possibly already presigned)
+
+          // Fallback: return stored URL (possibly expired if S3, or static if local)
           return doc;
-        } catch {
+        } catch (err) {
+          logger.warn({ err, docId: doc.id }, "Failed to generate presigned URL");
           return doc;
         }
       })
@@ -250,14 +272,28 @@ router.get(
     }
 
     // Generate fresh presigned URL using s3Key when available
+    // Generate fresh presigned URL using s3Key when available, or extract from URL
     try {
-      const key = (document as any).s3Key || (typeof document.url === 'string' && !document.url.startsWith('http') ? document.url : null);
+      let key = (document as any).s3Key;
+
+      if (!key && typeof document.url === 'string') {
+        if (document.url.includes('/uploads/')) {
+          key = document.url.split('/uploads/')[1];
+        } else if (document.url.includes('.com/')) {
+          try {
+            const u = new URL(document.url);
+            key = u.pathname.substring(1);
+          } catch (e) { }
+        }
+      }
+
       if (key) {
         const url = await getPresignedUrl(key);
         return res.json({ ...document, url });
       }
     } catch (err) {
       // ignore and fallthrough to return stored document
+      logger.warn({ err, docId: id }, "Failed to generate presigned URL for single doc");
     }
 
     res.json(document);
