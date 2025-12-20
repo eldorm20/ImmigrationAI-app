@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -20,7 +20,7 @@ import { AIDocsView } from "@/components/dashboard/AIDocsView";
 import { UploadView } from "@/components/dashboard/UploadView";
 import { TranslateView } from "@/components/dashboard/TranslateView";
 import { ChatView } from "@/components/dashboard/ChatView";
-
+import { GovChecksView } from "@/components/dashboard/GovChecksView";
 import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 
@@ -84,7 +84,7 @@ export default function UserDash() {
             { id: 'templates', icon: FolderOpen, label: 'Templates' },
             { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
             ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
-
+            { id: 'gov', icon: Shield, label: 'Gov Checks' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
@@ -185,7 +185,7 @@ export default function UserDash() {
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
           {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
-
+          {activeTab === 'gov' && <GovChecksView key="gov" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}
