@@ -50,17 +50,7 @@ export default function BillingManager() {
                 apiRequest<any[]>("/applications/clients/list")
             ]);
 
-            // Need to fetch user details for each invoice if not returned
-            const invoicesWithClients = await Promise.all((invoiceData || []).map(async (inv) => {
-                try {
-                    const client = await apiRequest<any>(`/users/${inv.applicantId}`);
-                    return { ...inv, applicant: client };
-                } catch {
-                    return inv;
-                }
-            }));
-
-            setInvoices(invoicesWithClients);
+            setInvoices(invoiceData || []);
             setClients((clientData || []).filter(u => u.role === 'applicant'));
         } catch (err) {
             toast({ title: "Error", description: "Failed to load billing data", variant: "destructive" });

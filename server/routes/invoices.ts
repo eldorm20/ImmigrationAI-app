@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
-import { invoices, insertInvoiceSchema } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { invoices, insertInvoiceSchema, users } from "@shared/schema";
+import { eq, and, or } from "drizzle-orm";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { validateBody } from "../middleware/validate";
@@ -28,7 +28,25 @@ router.get(
             where,
             orderBy: (invoices, { desc }) => [desc(invoices.createdAt)],
         });
-        res.json(allInvoices);
+
+        // Enrich with applicant details
+        const applicantIds = Array.from(new Set(allInvoices.map(i => i.applicantId)));
+        if (!applicantIds.length) return res.json(allInvoices);
+
+        const applicantList = await db.query.users.findMany({
+            where: or(...applicantIds.map(id => eq(users.id, id))),
+            columns: { id: true, firstName: true, lastName: true, email: true }
+        });
+
+        const userMap: Record<string, any> = {};
+        applicantList.forEach(u => userMap[u.id] = u);
+
+        const enriched = allInvoices.map(inv => ({
+            ...inv,
+            applicant: userMap[inv.applicantId]
+        }));
+
+        res.json(enriched);
     })
 );
 

@@ -453,30 +453,33 @@ export const insertTaskSchema = createInsertSchema(tasks, {
   description: z.string().optional().nullable(),
   status: z.enum(["pending", "in_progress", "completed", "archived"]),
   priority: z.enum(["low", "medium", "high"]),
-  dueDate: z.date().optional().nullable(),
+  dueDate: z.coerce.date().optional().nullable(),
 }).pick({
-  lawyerId: true,
   applicationId: true,
   title: true,
   description: true,
   status: true,
   priority: true,
   dueDate: true,
+}).extend({
+  lawyerId: z.string().optional(),
+  applicationId: z.string().optional().nullable(),
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices, {
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   status: z.enum(["draft", "sent", "paid", "void", "overdue"]),
-  dueDate: z.date().optional().nullable(),
+  dueDate: z.coerce.date().optional().nullable(),
 }).pick({
-  lawyerId: true,
   applicantId: true,
-  applicationId: true,
   amount: true,
   currency: true,
   status: true,
   dueDate: true,
   items: true,
+}).extend({
+  lawyerId: z.string().optional(),
+  applicationId: z.string().optional().nullable(),
 });
 
 // Employer verification table

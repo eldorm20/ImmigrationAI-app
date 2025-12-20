@@ -16,6 +16,7 @@ import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
 import { probeOllamaEndpoint } from "./lib/ollama";
 import { isStripeAvailable } from "./lib/subscription";
+import { ensureErpTablesExist } from "./lib/db-init";
 
 import "dotenv/config";
 
@@ -173,6 +174,7 @@ app.get("/health", async (_req, res) => {
     // Set `AUTO_RUN_MIGRATIONS=true` in Railway project variables to enable.
     try {
       await runMigrationsIfNeeded();
+      await ensureErpTablesExist();
     } catch (err) {
       logger.error({ err }, "Auto-run migrations failed");
       // continue startup; migrations failure might be transient but we want the app to start for debugging
