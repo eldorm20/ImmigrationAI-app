@@ -61,10 +61,12 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   }, [onlineUsers, recipientId]);
 
   // Fetch conversation history
-  const { data: historyData } = useQuery<{ messages: ChatMessage[] }>({
+  const { data: historyRes } = useQuery<{ user: any; messages: ChatMessage[] }>({
     queryKey: [`/api/messages/conversation/${recipientId}`],
     enabled: !!recipientId,
   });
+
+  const historyData = historyRes;
 
   // Track remote typing
   useEffect(() => {
@@ -170,18 +172,24 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
                 }`}
               title={recipientUser?.lastSeen === null ? 'Online' : 'Offline'}
             />
-            {recipientUser ? (
+            {recipientUser || historyData?.user ? (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span>{recipientUser.userName}</span>
+                  <span>
+                    {recipientUser?.userName ||
+                      (historyData?.user?.firstName
+                        ? `${historyData.user.firstName} ${historyData.user.lastName || ''}`.trim()
+                        : historyData?.user?.email) ||
+                      'Loading...'}
+                  </span>
                   <span className="text-sm font-normal text-gray-500">
-                    ({recipientUser.role})
+                    ({recipientUser?.role || historyData?.user?.role || '...'})
                   </span>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {recipientUser.lastSeen === null ? (
+                  {recipientUser?.lastSeen === null ? (
                     <span className="text-green-600">Online now</span>
-                  ) : recipientUser.lastSeen ? (
+                  ) : recipientUser?.lastSeen ? (
                     <span>
                       Last seen{' '}
                       {formatDistance(new Date(recipientUser.lastSeen), new Date(), {
@@ -189,7 +197,7 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
                       })}
                     </span>
                   ) : (
-                    <span>Unknown</span>
+                    <span>Offline</span>
                   )}
                 </div>
               </div>

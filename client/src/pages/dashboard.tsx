@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -23,6 +23,7 @@ import { ChatView } from "@/components/dashboard/ChatView";
 import { GovChecksView } from "@/components/dashboard/GovChecksView";
 import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
+import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 
 
 
@@ -85,6 +86,7 @@ export default function UserDash() {
             { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
             ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
             { id: 'gov', icon: Shield, label: 'Gov Checks' },
+            { id: 'trainer', icon: BrainCircuit, label: 'Interview Prep' },
             { id: 'upload', icon: Upload, label: t.dash.upload },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
@@ -186,6 +188,7 @@ export default function UserDash() {
           {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
           {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'gov' && <GovChecksView key="gov" />}
+          {activeTab === 'trainer' && <InterviewTrainerView key="trainer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}

@@ -25,6 +25,12 @@ export function parseOllamaResponse(json: any): string | null {
   try {
     if (!json) return null;
 
+    // Official Ollama /api/generate format
+    if (typeof json.response === "string") return json.response;
+
+    // Official Ollama /api/chat format
+    if (json.message && typeof json.message.content === "string") return json.message.content;
+
     // Ollama often returns { output: [{ type: 'message', content: '...' }], metadata: {...} }
     if (json.output && Array.isArray(json.output)) {
       // Find first content string

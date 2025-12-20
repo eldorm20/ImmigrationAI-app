@@ -20,6 +20,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface Lead {
   id: string | number;
+  userId: string;
   name?: string;
   email?: string;
   country?: string;
@@ -33,6 +34,7 @@ interface Lead {
 
 interface BackendApplication {
   id: string;
+  userId: string;
   metadata?: { applicantName?: string; email?: string };
   userName?: string;
   userEmail?: string;
@@ -157,6 +159,7 @@ export default function LawyerDashboard() {
         // Map backend applications to lead-like objects for UI
         const mapped: Lead[] = (data.applications || []).map((app: BackendApplication) => ({
           id: app.id,
+          userId: app.userId,
           name: app.metadata?.applicantName || app.userName || "Applicant",
           email: app.metadata?.email || app.userEmail || "",
           country: app.country,
@@ -799,6 +802,16 @@ export default function LawyerDashboard() {
                     }}
                   >
                     Approve Application
+                  </ActionButton>
+                  <ActionButton
+                    className="flex-1 py-3"
+                    variant="primary"
+                    icon={Bell}
+                    onClick={() => {
+                      setLocation(`/messages?userId=${selectedLead.userId}`);
+                    }}
+                  >
+                    Message Applicant
                   </ActionButton>
                   <ActionButton
                     className="flex-1 py-3"

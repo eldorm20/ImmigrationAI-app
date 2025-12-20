@@ -31,7 +31,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
       methods: ["GET", "POST"],
       credentials: true,
     },
-    transports: ["polling", "websocket"], // Standard fallback order: polling first, then upgrade
+    transports: ["websocket"], // Force websocket to avoid issues with proxies/load balancers on Railway
     pingInterval: 25000,
     pingTimeout: 20000,
   });

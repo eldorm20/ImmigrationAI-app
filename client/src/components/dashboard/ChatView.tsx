@@ -65,9 +65,10 @@ export const ChatView = () => {
                 });
                 setIsTyping(false);
                 setMessages(prev => [...prev, { role: 'ai', text: resp.reply, ts: new Date().toISOString() }]);
-            } catch (err) {
+            } catch (err: any) {
                 setIsTyping(false);
-                setMessages(prev => [...prev, { role: 'ai', text: "Sorry, I couldn't reach the AI service right now.", ts: new Date().toISOString() }]);
+                const errorMsg = err?.message || "Sorry, I couldn't reach the AI service right now.";
+                setMessages(prev => [...prev, { role: 'ai', text: errorMsg, ts: new Date().toISOString() }]);
             }
         })();
     };
