@@ -88,6 +88,7 @@ router.get(
 
                     // Get notes from user metadata
                     const notes = (user.metadata as any)?.lawyerNotes?.[lawyerId] || [];
+                    const tags = (user.metadata as any)?.lawyerTags?.[lawyerId] || [];
 
                     return {
                         ...user,
@@ -97,6 +98,7 @@ router.get(
                         totalBilled: billedAmount[0]?.total || 0,
                         latestApplication: latestApp,
                         notes,
+                        tags,
                     };
                 })
             );
@@ -160,6 +162,7 @@ router.get(
 
         // Get notes
         const notes = (user.metadata as any)?.lawyerNotes?.[lawyerId] || [];
+        const tags = (user.metadata as any)?.lawyerTags?.[lawyerId] || [];
 
         res.json({
             ...user,
@@ -168,6 +171,7 @@ router.get(
             invoices: clientInvoices,
             documents: clientDocs,
             notes,
+            tags,
         });
     })
 );

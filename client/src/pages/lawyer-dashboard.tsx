@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useI18n } from "@/lib/i18n";
@@ -14,6 +14,7 @@ import LawyerConsultations from "@/components/lawyer-consultations";
 import PracticeTasks from "@/components/practice-tasks";
 import BillingManager from "@/components/billing-manager";
 import LawyerAnalytics from "@/components/lawyer-analytics";
+import ClientProfile from "@/components/client-profile";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -561,10 +562,10 @@ export default function LawyerDashboard() {
                       onChange={(e) => setSortBy(e.target.value)}
                       className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                     >
-                      <option value="date_desc">{t.common?.date || 'Date'} ↓</option>
-                      <option value="date_asc">{t.common?.date || 'Date'} ↑</option>
-                      <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↓</option>
-                      <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} ↑</option>
+                      <option value="date_desc">{t.common?.date || 'Date'} â†“</option>
+                      <option value="date_asc">{t.common?.date || 'Date'} â†‘</option>
+                      <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†“</option>
+                      <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†‘</option>
                     </select>
                     <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
                       {assignedOnly ? 'Assigned to me' : 'All'}
@@ -759,206 +760,114 @@ export default function LawyerDashboard() {
         {selectedLead && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-lg relative z-10 shadow-2xl border border-white/10">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{t.lawyerDashboard?.active || t.lawyer?.active || 'Active'} Details</h3>
-                <button onClick={() => setSelectedLead(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                  <div className="w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-2xl font-bold">
-                    {(selectedLead.name || "?")[0]}
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-slate-900 dark:text-white">{selectedLead.name}</h4>
-                    <p className="text-slate-500 dark:text-slate-400">{selectedLead.email}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Visa Type</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.visa}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Destination</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">{selectedLead.country}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Submitted</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white">
-                      {selectedLead.date || new Date(selectedLead.createdAt || Date.now()).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Fee Paid</p>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">${selectedLead.fee || 0}</p>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</p>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedLead.status === 'Approved' ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400' :
-                      selectedLead.status === 'New' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' :
-                        selectedLead.status === 'Reviewing' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400' :
-                          selectedLead.status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' :
-                            'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}>
-                      {selectedLead.status}
-                    </span>
-                  </div>
-                  <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase">Application ID</p>
-                    <p className="font-bold text-lg text-slate-900 dark:text-white font-mono text-sm">#{selectedLead.id}</p>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                  <h5 className="font-bold text-sm mb-2 flex items-center gap-2 text-slate-700 dark:text-slate-300"><FileText size={16} /> AI Summary</h5>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    Applicant shows high eligibility score (85/100). Documents for Proof of Funds and English Proficiency are verified. Recommended for approval based on provided data.
-                  </p>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="success"
-                    icon={CheckCircle}
-                    onClick={() => {
-                      handleStatusChange(selectedLead.id, 'Approved');
-                      setTimeout(() => setSelectedLead(null), 500);
-                    }}
-                  >
-                    Approve Application
-                  </ActionButton>
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="primary"
-                    icon={Bell}
-                    onClick={() => {
-                      setLocation(`/messages?userId=${selectedLead.userId}`);
-                    }}
-                  >
-                    Message Applicant
-                  </ActionButton>
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="danger"
-                    icon={XCircle}
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to reject ${selectedLead.name}'s application?`)) {
-                        handleStatusChange(selectedLead.id, 'Rejected');
-                        setTimeout(() => setSelectedLead(null), 500);
-                      }
-                    }}
-                  >
-                    Reject
-                  </ActionButton>
-                </div>
-              </div>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] flex flex-col p-4 md:p-8">
+              <ClientProfile clientId={selectedLead.userId} onClose={() => setSelectedLead(null)} />
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+  )
+}
+      </AnimatePresence >
 
-      {/* Performance Report Modal */}
-      <AnimatePresence>
-        {showReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
-                <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+  {/* Performance Report Modal */ }
+  <AnimatePresence>
+{
+  showReport && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
+          <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
+            <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
+                <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
               </div>
-
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
-                  <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
-                      <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
-                      <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
-                      <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
-                  <div className="space-y-2">
-                    {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                      const count = leads.filter(l => l.status === status).length;
-                      const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
-                      return (
-                        <div key={status} className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
-                          <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full ${status === 'Approved' ? 'bg-green-500' :
-                                status === 'Reviewing' ? 'bg-yellow-500' :
-                                  status === 'Rejected' ? 'bg-red-500' :
-                                    'bg-blue-500'
-                                }`}
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
-                      <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
-                      <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="primary"
-                    icon={Download}
-                    onClick={() => {
-                      toast({
-                        title: "Report Downloaded",
-                        description: "Performance report has been downloaded as PDF",
-                        className: "bg-green-50 text-green-900 border-green-200"
-                      });
-                    }}
-                  >
-                    Download as PDF
-                  </ActionButton>
-                  <ActionButton
-                    className="flex-1 py-3"
-                    variant="ghost"
-                    onClick={() => setShowReport(false)}
-                  >
-                    Close
-                  </ActionButton>
-                </div>
+              <div>
+                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
+                <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
               </div>
-            </motion.div>
+              <div>
+                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
+                <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
+              </div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
+            <div className="space-y-2">
+              {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                const count = leads.filter(l => l.status === status).length;
+                const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
+                return (
+                  <div key={status} className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
+                    <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full ${status === 'Approved' ? 'bg-green-500' :
+                          status === 'Reviewing' ? 'bg-yellow-500' :
+                            status === 'Rejected' ? 'bg-red-500' :
+                              'bg-blue-500'
+                          }`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <ActionButton
+              className="flex-1 py-3"
+              variant="primary"
+              icon={Download}
+              onClick={() => {
+                toast({
+                  title: "Report Downloaded",
+                  description: "Performance report has been downloaded as PDF",
+                  className: "bg-green-50 text-green-900 border-green-200"
+                });
+              }}
+            >
+              Download as PDF
+            </ActionButton>
+            <ActionButton
+              className="flex-1 py-3"
+              variant="ghost"
+              onClick={() => setShowReport(false)}
+            >
+              Close
+            </ActionButton>
+          </div>
+        </div>
+      </motion.div>
     </div>
+  )
+}
+      </AnimatePresence >
+    </div >
   );
 }

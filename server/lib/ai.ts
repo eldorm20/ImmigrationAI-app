@@ -488,3 +488,75 @@ export async function chatRespond(message: string, language = "en"): Promise<str
     throw new Error("Failed to generate chat response");
   }
 }
+
+// Predictive Case Analysis
+export interface CaseAnalysis {
+  riskScore: number; // 0-100
+  successProbability: "High" | "Medium" | "Low";
+  redFlags: string[];
+  greenFlags: string[];
+  summary: string;
+  recommendations: string[];
+}
+
+export async function analyzeCase(
+  applicationData: Record<string, any>,
+  documents: Array<{ type: string; summary?: string }>
+): Promise<CaseAnalysis> {
+  try {
+    const prompt = `Analyze this immigration case for ${applicationData.visaType} (${applicationData.country}).
+    
+Applicant: ${JSON.stringify(applicationData.applicant)}
+Application Details: ${JSON.stringify(applicationData.details)}
+Documents Provided: ${JSON.stringify(documents)}
+
+Identify risks (red flags) and strengths (green flags). Estimate probability of success (High/Medium/Low) and a risk score (0-100, where 100 is perfect case). Provide a summary and recommendations.
+Return valid JSON only: { "riskScore": number, "successProbability": string, "redFlags": [], "greenFlags": [], "summary": string, "recommendations": [] }`;
+
+    const response = await agentsManager.processRequest(
+      "immigration-law",
+      "analyzeVisaOptions", // Reusing the immigration agent
+      [prompt, { context: "case analysis" }]
+    );
+
+    if (!response.success) {
+      throw new Error(response.error || "Case analysis failed");
+    }
+
+    let rawData = response.data;
+    if (typeof rawData === "string") {
+      // Clean up markdown code blocks if present
+      rawData = rawData.replace(/```json\n?/, "").replace(/```\s*$/, "").trim();
+      try { // Attempt to parse
+        const parsed = JSON.parse(rawData);
+        // Basic validation/sanitization could go here
+        return parsed as CaseAnalysis;
+      } catch (e) {
+        logger.warn({ error: e, rawData }, "Failed to parse AI analysis");
+        // Don't throw, return fallback
+      }
+    } else if (typeof rawData === 'object') {
+      return rawData as CaseAnalysis;
+    }
+
+    // Fallback if formatting fails
+    return {
+      riskScore: 50,
+      successProbability: "Medium",
+      redFlags: ["AI Analysis output format invalid"],
+      greenFlags: [],
+      summary: "AI generated an analysis but it was not in the expected format.",
+      recommendations: ["Review case manually"],
+    };
+  } catch (error) {
+    logger.error({ error }, "Failed to analyze case");
+    return {
+      riskScore: 0,
+      successProbability: "Low",
+      redFlags: ["System error during analysis"],
+      greenFlags: [],
+      summary: "Analysis failed due to a system error.",
+      recommendations: [],
+    };
+  }
+}
