@@ -6,42 +6,27 @@ export async function ensureErpTablesExist() {
   try {
     logger.info("Ensuring ERP tables and enums exist...");
 
-    // 1. Create Enums if they don't exist, and ensure all values are present
-    await db.execute(sql`
-      DO $$ BEGIN
-        -- task_status
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_status') THEN
-          CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'archived');
-        END IF;
-        
-        -- task_priority
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN
-          CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high');
-        END IF;
+    // 1. Create Enums if they don't exist
+    await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_status') THEN CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'archived'); END IF; END $$;`);
+    await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high'); END IF; END $$;`);
+    await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invoice_status') THEN CREATE TYPE invoice_status AS ENUM ('draft', 'sent', 'paid', 'void', 'overdue'); END IF; END $$;`);
+    await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'consultation_status') THEN CREATE TYPE consultation_status AS ENUM ('scheduled', 'completed', 'cancelled', 'no_show', 'accepted', 'pending'); END IF; END $$;`);
 
-        -- invoice_status
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invoice_status') THEN
-          CREATE TYPE invoice_status AS ENUM ('draft', 'sent', 'paid', 'void', 'overdue');
-        END IF;
+    // 2. Add new values to existing enums (Drizzle-friendly way)
+    // Note: ALTER TYPE ... ADD VALUE cannot be executed in a transaction block
+    const addEnumValue = async (typeName: string, value: string) => {
+      try {
+        await db.execute(sql.raw(`ALTER TYPE ${typeName} ADD VALUE IF NOT EXISTS '${value}'`));
+      } catch (err: any) {
+        if (err.message?.includes("already exists")) return;
+        logger.warn({ typeName, value, err: err.message }, "Attempted to add enum value");
+      }
+    };
 
-        -- consultation_status (crucial for confirmation fix)
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'consultation_status') THEN
-          CREATE TYPE consultation_status AS ENUM ('scheduled', 'completed', 'cancelled', 'no_show', 'accepted', 'pending');
-        ELSE
-          -- Ensure new values exist if the type was created by an older version
-          BEGIN
-            ALTER TYPE consultation_status ADD VALUE 'accepted';
-          EXCEPTION
-            WHEN duplicate_object THEN null;
-          END;
-          BEGIN
-            ALTER TYPE consultation_status ADD VALUE 'pending';
-          EXCEPTION
-            WHEN duplicate_object THEN null;
-          END;
-        END IF;
-      END $$;
-    `);
+    await addEnumValue('consultation_status', 'accepted');
+    await addEnumValue('consultation_status', 'pending');
+    await addEnumValue('application_status', 'under_review');
+    await addEnumValue('application_status', 'pending_documents');
 
     // 2. Create Tasks table
     await db.execute(sql`
