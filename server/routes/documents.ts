@@ -22,6 +22,29 @@ const upload = multer({
   },
 });
 
+// Serve Postgres-stored blobs (if USE_PG_STORAGE was used)
+// Note: This is placed BEFORE authenticate middleware to allow viewing via window.open
+router.get(
+  "/blob/:key",
+  asyncHandler(async (req, res) => {
+    const { Pool } = await import('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const client = await pool.connect();
+    try {
+      const key = decodeURIComponent(req.params.key);
+      const r = await client.query('SELECT file_data, file_name, mime_type FROM file_blobs WHERE key = $1', [key]);
+      if (!r || r.rowCount === 0) return res.status(404).json({ message: 'File not found' });
+      const row = r.rows[0];
+      res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${row.file_name}"`);
+      res.send(row.file_data);
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  })
+);
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -361,28 +384,6 @@ router.delete(
 
 export default router;
 
-// Serve Postgres-stored blobs (if USE_PG_STORAGE was used)
-router.get(
-  "/blob/:key",
-  asyncHandler(async (req, res) => {
-    const { Pool } = await import('pg');
-    // Guard removed: Always attempt to serve blobs if requested, assuming they exist in DB
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const client = await pool.connect();
-    try {
-      const key = decodeURIComponent(req.params.key);
-      const r = await client.query('SELECT file_data, file_name, mime_type FROM file_blobs WHERE key = $1', [key]);
-      if (!r || r.rowCount === 0) return res.status(404).json({ message: 'File not found' });
-      const row = r.rows[0];
-      res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${row.file_name}"`);
-      res.send(row.file_data);
-    } finally {
-      client.release();
-      await pool.end();
-    }
-  })
-);
 
 
 

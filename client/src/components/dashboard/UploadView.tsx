@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,32 @@ export const UploadView = () => {
     const [ocrResults, setOcrResults] = useState<Record<string | number, string>>({});
     const [copiedId, setCopiedId] = useState<string | number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        loadDocuments();
+    }, []);
+
+    const loadDocuments = async () => {
+        try {
+            setIsLoading(true);
+            const docs = await apiRequest<any[]>("/documents");
+            const mapped = docs.map(doc => ({
+                id: doc.id,
+                name: doc.fileName,
+                size: doc.fileSize,
+                type: doc.mimeType,
+                uploadedAt: doc.createdAt,
+                status: 'analyzed' as const,
+                url: doc.url
+            }));
+            setFiles(mapped);
+        } catch (err) {
+            console.error("Failed to load documents:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -144,9 +170,14 @@ export const UploadView = () => {
         }
     };
 
-    const deleteFile = (id: number) => {
-        setFiles(prev => prev.filter(f => f.id !== id));
-        toast({ title: t.upload.deleted, description: t.upload.deletedDesc });
+    const deleteFile = async (id: number) => {
+        try {
+            await apiRequest(`/documents/${id}`, { method: 'DELETE' });
+            setFiles(prev => prev.filter(f => f.id !== id));
+            toast({ title: t.upload.deleted, description: t.upload.deletedDesc });
+        } catch (err: any) {
+            toast({ title: "Delete Failed", description: err.message || "Could not delete file", variant: "destructive" });
+        }
     };
 
     const formatFileSize = (bytes: number) => {
