@@ -108,13 +108,18 @@ router.post(
 );
 
 // Generate interview questions
-const interviewQuestionsSchema = z.object({ visaType: z.string().min(1), country: z.string().length(2) });
+const interviewQuestionsSchema = z.object({
+  visaType: z.string().min(1),
+  country: z.string().min(1).max(25), // More flexible length
+  language: z.string().optional() // Allow language field
+});
 
 router.post(
   "/interview/questions",
   aiLimiter,
   validateBody(interviewQuestionsSchema),
   asyncHandler(async (req, res) => {
+    console.log('[AI Interview Questions] Request body:', req.body);
     const { visaType, country } = req.parsedBody as { visaType: string; country: string };
 
     const userId = req.user!.userId;

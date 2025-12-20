@@ -30,8 +30,12 @@ export const InterviewTrainerView = () => {
         try {
             const resp = await apiRequest<{ questions: Question[] }>("/ai/interview/questions", {
                 method: "POST",
-                body: JSON.stringify({ visaType, country: "UK" }), // Backend expects country (2 chars)
-                timeout: 60000, // Increase timeout for AI generation
+                body: JSON.stringify({
+                    visaType,
+                    country: "UK",
+                    language: lang || "en"
+                }),
+                timeout: 60000,
             });
             setQuestions(resp.questions || []);
             setCurrentQuestionIndex(0);

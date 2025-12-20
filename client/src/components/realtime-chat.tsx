@@ -90,9 +90,10 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
 
     // Add history first
     history.forEach(msg => {
+      const ts = msg.timestamp || (msg as any).createdAt;
       messageMap.set(msg.id, {
         ...msg,
-        timestamp: new Date(msg.timestamp) // Ensure date object
+        timestamp: ts ? new Date(ts) : new Date() // Ensure date object
       });
     });
 

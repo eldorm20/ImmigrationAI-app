@@ -20,7 +20,8 @@ export function validateBody(schema: ZodSchema<any>) {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        logger.warn({ issues: err.errors }, 'Validation failed for request body');
+        logger.warn({ issues: err.errors, body: req.body }, 'Validation failed for request body');
+        console.error('[Validation Error]', JSON.stringify(err.errors, null, 2));
         return res.status(400).json({ message: 'Invalid request', issues: err.errors });
       }
       next(err as any);
