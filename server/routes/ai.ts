@@ -122,7 +122,7 @@ router.post(
   validateBody(interviewQuestionsSchema),
   asyncHandler(async (req, res) => {
     console.log('[AI Interview Questions] Request body:', req.body);
-    const { visaType, country } = req.parsedBody as { visaType: string; country: string };
+    const { visaType, country, language } = req.parsedBody as { visaType: string; country: string; language?: string };
 
     const userId = req.user!.userId;
     try {
@@ -131,7 +131,7 @@ router.post(
       return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
     }
 
-    const questions = await generateInterviewQuestions(visaType, country);
+    const questions = await generateInterviewQuestions(visaType, country, language || 'en');
     res.json({ questions });
   })
 );
@@ -155,7 +155,7 @@ router.post(
       return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
     }
 
-    const feedback = await evaluateInterviewAnswer(question, answer);
+    const feedback = await evaluateInterviewAnswer(question, answer, (req.body as any).language || 'en');
     res.json(feedback);
   })
 );

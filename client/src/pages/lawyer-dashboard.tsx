@@ -34,6 +34,8 @@ interface Lead {
   lawyerId?: string;
   date?: string;
   createdAt?: string;
+  priorityScore?: number;
+  priorityLevel?: "High" | "Medium" | "Low";
 }
 
 interface BackendApplication {
@@ -173,6 +175,8 @@ export default function LawyerDashboard() {
           lawyerId: (app as any).lawyerId,
           date: app.createdAt,
           createdAt: app.createdAt,
+          priorityScore: (app as any).priorityScore,
+          priorityLevel: (app as any).priorityLevel,
         }));
         setLeads(mapped);
       } catch (_err) {
@@ -589,6 +593,7 @@ export default function LawyerDashboard() {
                           <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
                           <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
                           <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
+                          <th className="px-6 py-4">Priority</th>
                           <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
                           <th className="px-6 py-4">Assigned</th>
                           <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
@@ -634,6 +639,11 @@ export default function LawyerDashboard() {
                                         'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                                   }`}>
                                   {lead.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${lead.priorityLevel === 'High' ? 'bg-red-500 text-white' : lead.priorityLevel === 'Medium' ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                                  {lead.priorityLevel || 'Low'}
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">

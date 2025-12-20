@@ -280,4 +280,83 @@ router.patch(
     })
 );
 
+// Get client activity timeline
+router.get(
+    "/:clientId/activity",
+    asyncHandler(async (req, res) => {
+        const { clientId } = req.params;
+        const lawyerId = req.user!.userId;
+
+        // 1. Fetch data from various tables
+        const docs = await db.query.documents.findMany({
+            where: eq(documents.userId, clientId),
+            orderBy: [desc(documents.createdAt)],
+        });
+
+        const apps = await db.query.applications.findMany({
+            where: eq(applications.userId, clientId),
+            orderBy: [desc(applications.createdAt)],
+        });
+
+        const consults = await db.query.consultations.findMany({
+            where: eq(consultations.userId, clientId),
+            orderBy: [desc(consultations.createdAt)],
+        });
+
+        const msgs = await db.query.messages.findMany({
+            where: or(eq(messages.senderId, clientId), eq(messages.receiverId, clientId)),
+            orderBy: [desc(messages.createdAt)],
+        });
+
+        // 2. Combine and format into timeline events
+        type TimelineEvent = {
+            id: string;
+            type: "document" | "application" | "consultation" | "message" | "status_change";
+            title: string;
+            description: string;
+            timestamp: string;
+            meta?: any;
+        };
+
+        const events: TimelineEvent[] = [
+            ...docs.map(d => ({
+                id: d.id,
+                type: "document" as const,
+                title: "Document Uploaded",
+                description: `File: ${d.fileName} (${d.documentType || 'Other'})`,
+                timestamp: d.createdAt.toISOString(),
+                meta: { url: d.url }
+            })),
+            ...apps.map(a => ({
+                id: a.id,
+                type: "application" as const,
+                title: "Application Created",
+                description: `Started ${a.visaType} visa application for ${a.country}`,
+                timestamp: a.createdAt.toISOString(),
+                meta: { status: a.status }
+            })),
+            ...consults.map(c => ({
+                id: c.id,
+                type: "consultation" as const,
+                title: "Consultation Scheduled",
+                description: `Meeting on ${new Date(c.scheduledTime).toLocaleDateString()}`,
+                timestamp: c.createdAt.toISOString(),
+                meta: { status: c.status }
+            })),
+            ...msgs.slice(0, 20).map(m => ({
+                id: m.id,
+                type: "message" as const,
+                title: m.senderId === clientId ? "Message from Client" : "Message to Client",
+                description: m.content.length > 100 ? m.content.substring(0, 100) + "..." : m.content,
+                timestamp: m.createdAt.toISOString()
+            }))
+        ];
+
+        // Sort by timestamp descending
+        events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        res.json(events);
+    })
+);
+
 export default router;

@@ -19,6 +19,7 @@ import {
     Loader2,
     StickyNote,
     Briefcase,
+    Clock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PredictiveAnalysis from "./predictive-analysis";
@@ -73,7 +74,9 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     const [showNoteForm, setShowNoteForm] = useState(false);
     const [newTag, setNewTag] = useState("");
     const [isEditingTags, setIsEditingTags] = useState(false);
-    const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "notes" | "documents">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "notes" | "documents" | "activity">("overview");
+    const [activities, setActivities] = useState<any[]>([]);
+    const [loadingActivities, setLoadingActivities] = useState(false);
     const { user: authUser } = useAuth();
     const { t } = useI18n();
     const token = localStorage.getItem("accessToken");
@@ -91,15 +94,22 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     });
 
     useEffect(() => {
-        fetchClient();
-    }, [clientId]);
-
-    useEffect(() => {
-        if (client?.latestApplication?.id) {
-            joinApplication(client.latestApplication.id);
-            return () => leaveApplication(client.latestApplication!.id);
+        if (activeTab === "activity") {
+            fetchActivities();
         }
-    }, [client?.latestApplication?.id]);
+    }, [activeTab, clientId]);
+
+    const fetchActivities = async () => {
+        try {
+            setLoadingActivities(true);
+            const data = await apiRequest<any[]>(`/clients/${clientId}/activity`);
+            setActivities(data);
+        } catch (error) {
+            console.error("Failed to fetch activities", error);
+        } finally {
+            setLoadingActivities(false);
+        }
+    };
 
     const fetchClient = async () => {
         try {
@@ -386,6 +396,12 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                 >
                     {t.clientProfile.tabs.docs || "Documents"}
                 </button>
+                <button
+                    onClick={() => setActiveTab("activity")}
+                    className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === "activity" ? "bg-white dark:bg-slate-700 shadow-md text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5"}`}
+                >
+                    Activity
+                </button>
             </div>
 
             {activeTab === "overview" && (
@@ -651,6 +667,45 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                             )}
                         </div>
                     </AnimatedCard>
+                </div>
+            )}
+
+            {activeTab === "activity" && (
+                <div className="space-y-8 p-4">
+                    <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-3 text-slate-500">
+                        <Clock size={18} className="text-brand-500" />
+                        Client Activity History
+                    </h3>
+
+                    {loadingActivities ? (
+                        <div className="flex justify-center py-10">
+                            <Loader2 className="animate-spin text-slate-400" />
+                        </div>
+                    ) : activities.length > 0 ? (
+                        <div className="relative border-l-2 border-slate-100 dark:border-slate-800 ml-4 pl-8 space-y-10">
+                            {activities.map((event, idx) => (
+                                <div key={idx} className="relative">
+                                    <div className={`absolute -left-[41px] w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 shadow-sm ${event.type === 'document' ? 'bg-blue-500' : event.type === 'application' ? 'bg-brand-500' : event.type === 'message' ? 'bg-purple-500' : 'bg-green-500'}`} />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black uppercase text-slate-400 mb-1">
+                                            {new Date(event.timestamp).toLocaleString()}
+                                        </span>
+                                        <h4 className="font-bold text-slate-900 dark:text-white leading-none">
+                                            {event.title}
+                                        </h4>
+                                        <p className="text-sm text-slate-500 mt-2">
+                                            {event.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20 text-slate-400">
+                            <Clock size={40} className="mx-auto mb-4 opacity-20" />
+                            No activity recorded yet
+                        </div>
+                    )}
                 </div>
             )}
         </motion.div>

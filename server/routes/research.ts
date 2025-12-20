@@ -6,6 +6,7 @@ import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
+import { refreshImmigrationNews } from "../lib/news";
 
 const router = Router();
 
@@ -185,6 +186,17 @@ router.delete(
     await db.delete(researchArticles).where(sql`id = ${id}`);
 
     res.json({ message: "Article deleted" });
+  }),
+);
+
+// Trigger news refresh - lawyer or admin
+router.post(
+  "/refresh",
+  authenticate,
+  requireRole("admin", "lawyer"),
+  asyncHandler(async (req, res) => {
+    const result = await refreshImmigrationNews();
+    res.json({ message: "News library updated", ...result });
   }),
 );
 

@@ -1,5 +1,6 @@
 import { logger } from "./logger";
 import { agentsManager, AIAgentsManager } from "./agents";
+import Tesseract from "tesseract.js";
 
 // Re-export agents manager for use across the application
 export { agentsManager, AIAgentsManager } from "./agents";
@@ -176,13 +177,14 @@ export interface InterviewFeedback {
 
 export async function generateInterviewQuestions(
   visaType: string,
-  country: string
+  country: string,
+  language = "en"
 ): Promise<InterviewQuestion[]> {
   try {
     const response = await agentsManager.processRequest(
       "immigration-law",
       "generateInterviewQuestions",
-      [visaType, country]
+      [visaType, country, language]
     );
 
     if (!response.success) {
@@ -248,15 +250,16 @@ function getFallbackQuestions(visaType: string, country: string): InterviewQuest
 
 export async function evaluateInterviewAnswer(
   question: string,
-  answer: string
+  answer: string,
+  language = "en"
 ): Promise<InterviewFeedback> {
   try {
     const response = await agentsManager.processRequest(
       "customer-service",
       "handleUserQuery",
       [
-        `Evaluate this interview answer to "${question}": ${answer}. Provide strengths, weaknesses, and suggestions.`,
-        { context: "interview evaluation" },
+        `Evaluate this interview answer (in ${language}) for the question: "${question}". Answer provided: "${answer}". Provide strengths, weaknesses, and suggestions in ${language}.`,
+        { context: "interview evaluation", language },
       ]
     );
 
@@ -467,12 +470,26 @@ export async function translateText(
 // Chat responder specialized for immigration assistance
 export async function chatRespond(message: string, language = "en"): Promise<string> {
   try {
+    const langNames: Record<string, string> = {
+      uz: "Uzbek",
+      ru: "Russian",
+      en: "English",
+      de: "German",
+      fr: "French",
+      es: "Spanish"
+    };
+
+    const targetLang = langNames[language] || "English";
+    const systemPrompt = `You are a professional immigration assistant. You MUST respond in ${targetLang}. 
+    Provide accurate information regarding visas, requirements, and legal procedures. 
+    If the user greets you in ${targetLang}, greet them back in ${targetLang}.`;
+
     const response = await agentsManager.processRequest(
       "customer-service",
       "handleUserQuery",
       [
-        `Answer this immigration/visa related question in ${language}: ${message}`,
-        { context: "immigration chat", language },
+        `${systemPrompt}\n\nUser Question: ${message}`,
+        { context: "immigration chat", language: targetLang },
       ]
     );
 
@@ -704,6 +721,12 @@ export async function analyzeUploadedDocument(
     const { documents, applications } = await import("@shared/schema");
     const { eq } = await import("drizzle-orm");
 
+    const doc = await db.query.documents.findFirst({
+      where: eq(documents.id, documentId)
+    });
+
+    if (!doc) throw new Error("Document not found");
+
     let visaType = "general";
     if (applicationId) {
       const app = await db.query.applications.findFirst({
@@ -712,18 +735,33 @@ export async function analyzeUploadedDocument(
       if (app) visaType = app.visaType;
     }
 
-    // Since we don't have a full OCR engine here, we'll simulate the "extraction" 
-    // for the purpose of the requirement "ensure AI fully analyzes all uploaded documents"
-    // In a real prod env, we'd use AWS Textract or Tesseract here.
-    const mockContent = `Document: ${fileName}\nType: ${documentType || 'Unknown'}\nContext: ${visaType} Visa Application.`;
+    let extractedText = `Document: ${fileName}\nType: ${documentType || 'Unknown'}\nContext: ${visaType} Visa Application.`;
 
-    const analysis = await reviewDocument(mockContent, documentType || "Unknown", visaType);
+    // Perform OCR if it's an image
+    const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
+    if (isImage && doc.url) {
+      try {
+        logger.info({ documentId, url: doc.url }, "Starting OCR analysis");
+        const { data: { text } } = await Tesseract.recognize(doc.url, 'eng+uzb+rus');
+        if (text && text.trim().length > 10) {
+          extractedText += `\n\nExtracted Text Content:\n${text}`;
+          logger.info({ documentId }, "OCR extraction successful");
+        }
+      } catch (ocrError) {
+        logger.warn({ ocrError, documentId }, "OCR failed, falling back to basic analysis");
+      }
+    }
+
+    const analysis = await reviewDocument(extractedText, documentType || "Unknown", visaType);
 
     await db.update(documents)
-      .set({ aiAnalysis: analysis })
+      .set({
+        aiAnalysis: analysis,
+        ocrData: { extractedText: extractedText.substring(0, 10000) }
+      })
       .where(eq(documents.id, documentId));
 
-    logger.info({ documentId, fileName }, "Automated document analysis completed");
+    logger.info({ documentId, fileName }, "Automated document analysis with OCR completed");
   } catch (error) {
     logger.error({ error, documentId }, "Automated document analysis failed");
   }

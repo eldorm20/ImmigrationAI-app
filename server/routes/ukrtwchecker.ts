@@ -82,11 +82,8 @@ router.post(
         const errorData = await response.json().catch(() => ({}));
         logger.error({ error: errorData, status: response.status }, "UK RTW Check API failed");
 
-        // Pass through the API error message if available
-        throw new AppError(
-          response.status,
-          errorData.message || errorData.error || "Failed to verify Right to Work status"
-        );
+        const userMessage = errorData.message || errorData.error || errorData.details || "Failed to verify Right to Work status. Please check your share code and DOB.";
+        throw new AppError(response.status, userMessage);
       }
 
       const data = await response.json();
@@ -98,7 +95,7 @@ router.post(
     } catch (err: any) {
       if (err instanceof AppError) throw err;
       logger.error({ err }, "UK RTW Check internal error");
-      throw new AppError(500, "Internal server error during verification");
+      throw new AppError(500, err.message || "Internal server error during verification");
     }
   })
 );
@@ -121,9 +118,9 @@ router.post(
         dob: body.dob.replace(/\//g, '-')
       };
 
-      logger.info({ userId, body: formattedBody }, "Sending Immigration Check request to external API");
+      logger.info({ userId, body: formattedBody }, "Sending Immigration Status Check request to external API");
 
-      const response = await fetch(`${API_BASE_URL}/immigration`, {
+      const response = await fetch(`${API_BASE_URL}/v2/immigration`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,12 +131,10 @@ router.post(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        logger.error({ error: errorData, status: response.status }, "Immigration Check API failed");
+        logger.error({ error: errorData, status: response.status }, "UK Immigration Check API failed");
 
-        throw new AppError(
-          response.status,
-          errorData.message || errorData.error || "Failed to verify Immigration status"
-        );
+        const userMessage = errorData.message || errorData.error || errorData.details || "Failed to verify immigration status. Please ensure all details are correct.";
+        throw new AppError(response.status, userMessage);
       }
 
       const data = await response.json();
@@ -149,8 +144,8 @@ router.post(
       res.json(data);
     } catch (err: any) {
       if (err instanceof AppError) throw err;
-      logger.error({ err }, "Immigration Check internal error");
-      throw new AppError(500, "Internal server error during verification");
+      logger.error({ err }, "UK Immigration Check internal error");
+      throw new AppError(500, err.message || "Internal server error during verification");
     }
   })
 );

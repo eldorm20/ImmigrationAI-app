@@ -47,6 +47,7 @@ export default function Research() {
     sourceUrl: "",
     tags: "",
   });
+  const [refreshing, setRefreshing] = useState(false);
 
   const categories = [
     { id: "all", name: t.research.allResources, count: 150 },
@@ -147,6 +148,31 @@ export default function Research() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await apiRequest("/research/refresh", { method: "POST" });
+      toast({
+        title: "Library Refreshed",
+        description: "New immigration news and articles have been added to the library.",
+        className: "bg-green-50 text-green-900 border-green-200",
+      });
+      // Trigger a reload
+      const res = await apiRequest<{ items: ResearchItem[] }>(
+        `/research?search=${encodeURIComponent(searchQuery)}&category=${selectedCategory}&language=${lang}`,
+      );
+      setItems(res.items || []);
+    } catch (e: unknown) {
+      toast({
+        title: "Refresh failed",
+        description: e instanceof Error ? e.message : "Failed to refresh library",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Navigation */}
@@ -200,14 +226,27 @@ export default function Research() {
             />
           </div>
 
+          {(user?.role === "lawyer" || user?.role === "admin") && (
+            <div className="flex justify-end">
+              <LiveButton
+                variant="success"
+                onClick={handleRefresh}
+                loading={refreshing}
+                icon={Globe}
+              >
+                Refresh Library (AI News)
+              </LiveButton>
+            </div>
+          )}
+
           <div className="flex gap-2 flex-wrap">
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
+                  ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
                   }`}
               >
                 {cat.name} ({cat.count})

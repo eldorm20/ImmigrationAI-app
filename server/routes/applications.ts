@@ -154,10 +154,36 @@ router.get(
     const userMap: Record<string, any> = {};
     usersList.forEach((u) => (userMap[u.id] = u));
 
-    const enriched = paginated.map((a) => ({
-      ...a,
-      userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
-      userEmail: userMap[a.userId]?.email,
+    const enriched = await Promise.all(paginated.map(async (a) => {
+      // Calculate Priority Score (0-100)
+      let score = 0;
+      const feeNum = parseFloat(a.fee || "0");
+      if (feeNum >= 2000) score += 40;
+      else if (feeNum >= 1000) score += 20;
+
+      // Check document count
+      const docCount = await db.query.documents.findMany({
+        where: (docs, { eq }) => eq(docs.applicationId, a.id),
+      });
+      if (docCount.length >= 5) score += 30;
+      else if (docCount.length >= 2) score += 15;
+
+      // Age bonus (newer is higher priority for response)
+      const daysOld = (new Date().getTime() - new Date(a.createdAt).getTime()) / (1000 * 3600 * 24);
+      if (daysOld < 3) score += 30;
+      else if (daysOld < 7) score += 15;
+
+      let priorityLevel: "High" | "Medium" | "Low" = "Low";
+      if (score >= 70) priorityLevel = "High";
+      else if (score >= 40) priorityLevel = "Medium";
+
+      return {
+        ...a,
+        userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
+        userEmail: userMap[a.userId]?.email,
+        priorityScore: score,
+        priorityLevel: priorityLevel
+      };
     }));
 
     res.json({
