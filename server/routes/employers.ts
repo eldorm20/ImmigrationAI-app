@@ -64,8 +64,24 @@ router.post(
       'Employer verification request'
     );
 
-    // Verify employer
-    const result = await verifyEmployer(params);
+    // Verify employer with timeout protection
+    let result;
+    try {
+      result = await Promise.race([
+        verifyEmployer(params),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Verification timeout')), 30000)
+        ),
+      ]) as any;
+    } catch (apiError) {
+      logger.error({ apiError, params }, "Employer verification API failed or timed out");
+      // Return empty results instead of crashing
+      return res.json({
+        results: [],
+        message: "External verification service unavailable",
+        found: false
+      });
+    }
 
     // Save verification record to database
     if (result && result.results && Array.isArray(result.results) && result.results.length > 0) {

@@ -31,7 +31,9 @@ export const consultationStatusEnum = pgEnum("consultation_status", [
   "scheduled",
   "completed",
   "cancelled",
-  "no_show"
+  "no_show",
+  "accepted",
+  "pending",
 ]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "incomplete",

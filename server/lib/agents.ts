@@ -478,7 +478,8 @@ async function generateTextWithProvider(
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`Local AI error: ${res.status} ${text}`);
+        logger.error({ status: res.status, text, fetchUrl }, "Local AI provider failed");
+        throw new Error(`Local AI provider returned ${res.status}: ${text}`);
       }
 
       // Try parse JSON, prefer specialized Ollama parsing

@@ -25,7 +25,7 @@ const createConsultationSchema = z.object({
 });
 
 const updateConsultationSchema = z.object({
-  status: z.enum(["scheduled", "completed", "cancelled", "no_show"]).optional(),
+  status: z.enum(["scheduled", "completed", "cancelled", "no_show", "accepted", "pending"]).optional(),
   notes: z.string().max(2000).optional(),
   meetingLink: z.string().url().optional(),
 });
@@ -311,14 +311,7 @@ router.delete(
       throw new AppError(403, "Access denied");
     }
 
-    // Update status to cancelled
-    const [cancelled] = await db
-      .update(consultations)
-      .set({ status: "cancelled" })
-      .where(eq(consultations.id, id))
-      .returning();
-
-    // Notify other party
+    // Notify other party before deletion
     const otherUserId = user.userId === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
     const otherUser = await db.query.users.findFirst({
       where: eq(users.id, otherUserId),
@@ -343,7 +336,10 @@ router.delete(
       }
     }
 
-    res.json(cancelled);
+    // Hard delete
+    await db.delete(consultations).where(eq(consultations.id, id));
+
+    res.json({ message: "Consultation deleted" });
   })
 );
 

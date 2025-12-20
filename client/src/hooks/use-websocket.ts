@@ -55,7 +55,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Wait for token before connecting to ensure authentication
     if (!autoConnect || !userId || !token) return;
 
-    const serverUrl = window.location.origin;
+    // Determine server URL - prioritize environment variable, otherwise fallback to window origin
+    // Removing /api suffix if present in VITE_API_URL as socket.io needs the base URL
+    const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const serverUrl = apiUrl.replace(/\/api\/?$/, "");
+
     const socket = io(serverUrl, {
       auth: {
         token: token, // Use passed token

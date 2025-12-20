@@ -45,6 +45,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/reports", reportsRoutes);
   app.use("/api/subscription", subscriptionsRoutes);
   app.use("/api/messages", messagesRoutes);
+  app.use("/api/translate", translateRoutes);
   app.use("/api", settingsRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/visa", visaRoutes);

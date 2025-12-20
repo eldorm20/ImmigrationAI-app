@@ -18,7 +18,7 @@ const s3Client = new S3Client({
   forcePathStyle: true, // Required for Railway storage
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
+const BUCKET_NAME = (process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "").trim();
 if (!BUCKET_NAME) {
   logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
 }
