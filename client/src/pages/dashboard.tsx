@@ -20,7 +20,7 @@ import { AIDocsView } from "@/components/dashboard/AIDocsView";
 import { UploadView } from "@/components/dashboard/UploadView";
 import { TranslateView } from "@/components/dashboard/TranslateView";
 import { ChatView } from "@/components/dashboard/ChatView";
-import { EmployerVerificationView } from "@/components/dashboard/EmployerVerificationView";
+
 import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 
@@ -84,7 +84,7 @@ export default function UserDash() {
             { id: 'templates', icon: FolderOpen, label: 'Templates' },
             { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
             ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
-            { id: 'employer', icon: BadgeCheck, label: 'Employer Verification' },
+
             { id: 'upload', icon: Upload, label: t.dash.upload },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
@@ -185,7 +185,7 @@ export default function UserDash() {
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
           {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
-          {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
+
           {activeTab === 'upload' && <UploadView key="upload" />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'chat' && <ChatView key="chat" />}
