@@ -74,11 +74,25 @@ router.post(
         ),
       ]) as any;
     } catch (apiError) {
-      logger.error({ apiError, params }, "Employer verification API failed or timed out");
-      // Return empty results instead of crashing
+      logger.error({ apiError: apiError instanceof Error ? apiError.message : apiError, params }, "Employer verification API failed or timed out");
+      // Return empty results instead of crashing - fallback to manual entry
       return res.json({
         results: [],
-        message: "External verification service unavailable",
+        message: "External verification service unavailable. Please enter details manually.",
+        found: false
+      });
+    }
+
+    try {
+      if (!result) throw new Error("Verification result is undefined");
+
+      // ... (rest of insert logic)
+    } catch (dbError) {
+      logger.error({ dbError }, "Failed to save verification result to database");
+      // Still return success to frontend so user doesn't see a 500
+      return res.json({
+        results: [],
+        message: "Verification completed but failed to save record.",
         found: false
       });
     }
