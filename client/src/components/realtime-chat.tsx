@@ -78,12 +78,29 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   useEffect(() => {
     const history = historyData?.messages || [];
 
-    // Live messages for this conversation
-    const liveMessages = messages.filter(
-      (msg) =>
-        (msg.senderId === user?.id && msg.recipientId === recipientId) ||
-        (msg.senderId === recipientId && msg.recipientId === user?.id)
-    );
+    // Live messages for this conversation with robust matching
+    const liveMessages = messages.filter((msg: any) => {
+      const msgSenderId = String(msg.senderId || '').toLowerCase();
+      const msgRecipientId = String(msg.recipientId || msg.receiverId || '').toLowerCase();
+      const currentUserId = String(user?.id || '').toLowerCase();
+      const targetUserId = String(recipientId || '').toLowerCase();
+
+      // Case 1: We sent it
+      const isFromMe = msgSenderId === currentUserId && msgRecipientId === targetUserId;
+      // Case 2: We received it
+      const isToMe = msgSenderId === targetUserId && msgRecipientId === currentUserId;
+
+      return isFromMe || isToMe;
+    });
+
+    if (messages.length > 0) {
+      console.log('[RealtimeChat] Total messages in hook:', messages.length);
+      console.log('[RealtimeChat] Filtered live messages:', liveMessages.length, {
+        currentUserId: user?.id,
+        recipientId,
+        liveMessages: liveMessages.map(m => ({ id: m.id, from: m.senderId, to: (m as any).recipientId || (m as any).receiverId }))
+      });
+    }
 
     // Merge and deduplicate by ID
     const messageMap = new Map<string, ChatMessage>();
@@ -99,7 +116,11 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
 
     // Add/Overwrite with live messages
     liveMessages.forEach(msg => {
-      messageMap.set(msg.id, msg);
+      const ts = msg.timestamp || (msg as any).createdAt;
+      messageMap.set(msg.id, {
+        ...msg,
+        timestamp: ts ? new Date(ts) : new Date()
+      });
     });
 
     // Convert to array and sort

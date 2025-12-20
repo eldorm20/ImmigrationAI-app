@@ -131,6 +131,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // Message events
     socket.on('new_message', (message: MessageEvent) => {
+      console.log('[useWebSocket] Received new_message:', message);
       setMessages((prev) => [...prev, message]);
     });
 
