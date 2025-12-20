@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
     Plus, DollarSign, FileText, Send,
     CheckCircle, XCircle, MoreVertical,
-    Download, Filter, Search
+    Download, Filter, Search, Mail
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -109,6 +109,15 @@ export default function BillingManager() {
         }
     };
 
+    const sendReminder = async (invoice: Invoice) => {
+        try {
+            await apiRequest(`/invoices/${invoice.id}/remind`, { method: "POST" });
+            toast({ title: "Reminder Sent", description: `Email sent to ${invoice.applicant?.email}` });
+        } catch (err) {
+            toast({ title: "Error", description: "Failed to send reminder. Check server logs.", variant: "destructive" });
+        }
+    };
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'paid': return 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200';
@@ -200,6 +209,15 @@ export default function BillingManager() {
                                                         className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                                                     >
                                                         <CheckCircle size={14} />
+                                                    </button>
+                                                )}
+                                                {(invoice.status === 'sent' || invoice.status === 'overdue') && (
+                                                    <button
+                                                        onClick={() => sendReminder(invoice)}
+                                                        className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
+                                                        title="Send Payment Reminder"
+                                                    >
+                                                        <Mail size={14} />
                                                     </button>
                                                 )}
                                                 <button

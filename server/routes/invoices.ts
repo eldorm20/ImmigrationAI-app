@@ -6,6 +6,7 @@ import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { validateBody } from "../middleware/validate";
 import { logger } from "../lib/logger";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 
@@ -105,6 +106,72 @@ router.patch(
             res.json(updatedInvoice);
         } catch (error) {
             logger.error({ error, lawyerId, invoiceId: id }, "Failed to update invoice");
+            throw error;
+        }
+    })
+);
+
+// Send payment reminder
+router.post(
+    "/:id/remind",
+    requireRole("lawyer", "admin"),
+    asyncHandler(async (req, res) => {
+        const lawyerId = req.user!.userId;
+        const { id } = req.params;
+
+        try {
+            const [invoice] = await db
+                .select()
+                .from(invoices)
+                .where(and(eq(invoices.id, id), eq(invoices.lawyerId, lawyerId)));
+
+            if (!invoice) {
+                return res.status(404).json({ message: "Invoice not found" });
+            }
+
+            const [applicant] = await db
+                .select()
+                .from(users)
+                .where(eq(users.id, invoice.applicantId));
+
+            if (!applicant) {
+                return res.status(404).json({ message: "Client not found" });
+            }
+
+            const success = await sendEmail({
+                to: applicant.email,
+                subject: `Payment Reminder: Invoice #${invoice.id.slice(0, 8).toUpperCase()}`,
+                html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #3b82f6;">Payment Reminder</h2>
+              <p>Dear ${applicant.firstName || 'Client'},</p>
+              <p>This is a friendly reminder regarding invoice <strong>#${invoice.id.slice(0, 8).toUpperCase()}</strong>.</p>
+              
+              <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #6b7280; font-size: 14px;">Amount Due</p>
+                <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold; color: #111827;">$${invoice.amount}</p>
+                <div style="margin-top: 15px;">
+                  <span style="background: ${invoice.status === 'overdue' ? '#fee2e2' : '#dbeafe'}; color: ${invoice.status === 'overdue' ? '#991b1b' : '#1e40af'}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
+                    ${invoice.status}
+                  </span>
+                </div>
+              </div>
+
+              <p>Please arrange payment at your earliest convenience to avoid any service interruptions.</p>
+              <br/>
+              <p>Best regards,</p>
+              <p>The ImmigrationAI Team</p>
+            </div>
+            `
+            });
+
+            if (!success) {
+                return res.status(500).json({ message: "Failed to send email via Resend" });
+            }
+
+            res.json({ message: "Reminder sent successfully" });
+        } catch (error) {
+            logger.error({ error, lawyerId, invoiceId: id }, "Failed to send reminder");
             throw error;
         }
     })
