@@ -203,7 +203,6 @@ router.get(
 // Get consultation by ID
 router.get(
   "/:id",
-  authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = req.user!;
@@ -228,7 +227,6 @@ router.get(
 // Update consultation (lawyer accepts/rejects, sets meeting link, marks complete)
 router.patch(
   "/:id",
-  authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = req.user!;
