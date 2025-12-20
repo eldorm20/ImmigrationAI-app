@@ -16,7 +16,10 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
   }
 
   // Fallback to prompt-based format
-  const body: any = { prompt: `${systemPrompt || ""}\n\n${prompt}`.trim() };
+  const body: any = {
+    prompt: `${systemPrompt || ""}\n\n${prompt}`.trim(),
+    stream: false
+  };
   if (model) body.model = model;
   return body;
 }
