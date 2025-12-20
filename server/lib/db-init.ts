@@ -7,19 +7,27 @@ export async function ensureErpTablesExist() {
     logger.info("Ensuring ERP tables and enums exist...");
 
     // 1. Create Enums if they don't exist
+    logger.info("Checking/Creating task_status enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_status') THEN CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'archived'); END IF; END $$;`);
+
+    logger.info("Checking/Creating task_priority enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high'); END IF; END $$;`);
+
+    logger.info("Checking/Creating invoice_status enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invoice_status') THEN CREATE TYPE invoice_status AS ENUM ('draft', 'sent', 'paid', 'void', 'overdue'); END IF; END $$;`);
+
+    logger.info("Checking/Creating consultation_status enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'consultation_status') THEN CREATE TYPE consultation_status AS ENUM ('scheduled', 'completed', 'cancelled', 'no_show', 'accepted', 'pending'); END IF; END $$;`);
 
     // 2. Add new values to existing enums (Drizzle-friendly way)
-    // Note: ALTER TYPE ... ADD VALUE cannot be executed in a transaction block
+    logger.info("Checking for missing enum values...");
     const addEnumValue = async (typeName: string, value: string) => {
       try {
         await db.execute(sql.raw(`ALTER TYPE ${typeName} ADD VALUE IF NOT EXISTS '${value}'`));
+        logger.info(`Verified ${value} exists in ${typeName}`);
       } catch (err: any) {
         if (err.message?.includes("already exists")) return;
-        logger.warn({ typeName, value, err: err.message }, "Attempted to add enum value");
+        logger.warn({ typeName, value, err: err.message }, "Notice: Could not add enum value (this is normal if it exists)");
       }
     };
 
