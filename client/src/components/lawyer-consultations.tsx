@@ -99,7 +99,7 @@ export default function LawyerConsultations() {
         {
           method: "PATCH",
           body: JSON.stringify({
-            status: "scheduled",
+            status: "accepted",
             meetingLink: meetingLink || undefined,
             notes: notes || undefined,
           }),
@@ -202,6 +202,8 @@ export default function LawyerConsultations() {
     const styles: Record<string, string> = {
       scheduled:
         "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
+      accepted:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       completed:
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",

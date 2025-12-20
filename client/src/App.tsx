@@ -39,7 +39,6 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
 import Partner from "@/pages/partner";
-import EmployerVerificationPage from "@/pages/employer-verification";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
   const { user, isLoading } = useAuth();
@@ -135,9 +134,7 @@ function Router() {
           <VisaComparison />
         </Route>
 
-        <Route path="/employer-verification">
-          <ProtectedRoute component={EmployerVerificationPage} role="applicant" />
-        </Route>
+
 
         <Route path="/forum">
           <CommunityForum />

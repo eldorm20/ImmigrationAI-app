@@ -143,12 +143,8 @@ export default function LawyerDashboard() {
     return null;
   }
 
-  // Mock Chart Data
-  const revenueData = [
-    { name: 'Jan', value: 4000 }, { name: 'Feb', value: 3000 },
-    { name: 'Mar', value: 5000 }, { name: 'Apr', value: 8000 },
-    { name: 'May', value: 6000 }, { name: 'Jun', value: 9500 },
-  ];
+  // Chart Data
+  const revenueData = stats?.monthlyRevenue || [];
 
   useEffect(() => {
     const fetchLeads = async () => {

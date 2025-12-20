@@ -55,6 +55,23 @@ router.get(
       const newThisWeek = allApps.filter((app) => new Date(app.createdAt) > oneWeekAgo).length;
       const totalFees = allApps.reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
 
+      // Monthly Revenue for Charts
+      const monthlyRevenue = allPayments.reduce((acc, p) => {
+        const month = new Date(p.createdAt).toLocaleString('default', { month: 'short' });
+        const amount = parseFloat(p.amount || "0");
+        const existing = acc.find(m => m.name === month);
+        if (existing) {
+          existing.value += amount;
+        } else {
+          acc.push({ name: month, value: amount });
+        }
+        return acc;
+      }, [] as { name: string; value: number }[]);
+
+      // Sort by month (simple approch for now)
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      monthlyRevenue.sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+
       res.json({
         totalRevenue,
         totalLeads,
@@ -63,6 +80,7 @@ router.get(
         successRate,
         newThisWeek,
         totalFees,
+        monthlyRevenue
       });
     }
   })

@@ -489,17 +489,27 @@ router.post(
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.error({ err }, "Chat response failed");
 
+      // Check if it's a configuration issue
+      const isConfigError = !process.env.OPENAI_API_KEY && !process.env.LOCAL_AI_URL && !process.env.HUGGINGFACE_API_TOKEN;
+
+      if (isConfigError) {
+        return res.status(503).json({
+          error: "AI Service Not Configured",
+          message: "Please configure OPENAI_API_KEY or LOCAL_AI_URL in environment variables."
+        });
+      }
+
       // Return 503 if AI provider unavailable, 500 for other errors
-      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider")) {
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider") || errorMsg.includes("ECONNREFUSED")) {
         return res.status(503).json({
           error: "Chat service unavailable",
-          message: "AI provider not configured or unreachable. Please configure LOCAL_AI_URL (Ollama) or HuggingFace credentials."
+          message: "AI provider is currently unreachable. If using Local AI, ensure it is running."
         });
       }
 
       res.status(500).json({
         error: "Chat response failed",
-        message: errorMsg
+        message: "An unexpected error occurred while processing your request."
       });
     }
   })

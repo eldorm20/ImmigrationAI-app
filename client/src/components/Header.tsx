@@ -22,13 +22,13 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
   useEffect(() => {
     try {
       setCompactNav(localStorage.getItem('navbarCompact') === '1');
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const toggleCompact = () => {
     const next = !compactNav;
     setCompactNav(next);
-    try { localStorage.setItem('navbarCompact', next ? '1' : '0'); } catch (_) {}
+    try { localStorage.setItem('navbarCompact', next ? '1' : '0'); } catch (_) { }
     // trigger a small visual refresh by dispatching an event
     window.dispatchEvent(new Event('navbarCompactChange'));
   };
@@ -50,7 +50,7 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
 
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-6 py-3 sticky top-0 z-40 flex justify-between items-center">
-      <div className="flex items-center gap-3 font-extrabold text-lg text-brand-600 dark:text-brand-400 cursor-pointer" onClick={() => setLocation('/')}> 
+      <div className="flex items-center gap-3 font-extrabold text-lg text-brand-600 dark:text-brand-400 cursor-pointer" onClick={() => setLocation('/')}>
         <div className="w-8 h-8 bg-gradient-to-br from-brand-600 to-blue-400 rounded-lg text-white flex items-center justify-center shadow">L</div>
         <span className="hidden sm:inline">ImmigrationAI</span>
       </div>
@@ -73,9 +73,6 @@ export default function Header({ title, showBack, onBack, simple }: HeaderProps)
           <>
             <LiveButton variant="ghost" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event('exportCsv'))} icon={Download}>Export CSV</LiveButton>
             <LiveButton variant="ghost" className="hidden sm:inline-flex" onClick={() => window.dispatchEvent(new Event('exportJson'))} icon={Code}>Export JSON</LiveButton>
-            <LiveButton variant="ghost" className="hidden sm:inline-flex text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" onClick={() => setLocation('/employer-verification')} icon={Briefcase}>
-              Employer Verification
-            </LiveButton>
           </>
         )}
 

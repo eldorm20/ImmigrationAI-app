@@ -18,10 +18,10 @@ import settingsRoutes from "./routes/settings";
 import adminRoutes from "./routes/admin";
 import visaRoutes from "./routes/visa";
 import analyticsRoutes from "./routes/analytics";
-import employersRoutes from "./routes/employers";
 import debugRoutes from "./routes/debug";
 import translateRoutes from "./routes/translate"; // New import
 import publicStatsRouter from "./routes/public-stats";
+import ukRtwRoutes from "./routes/ukrtwchecker";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -50,7 +50,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/admin", adminRoutes);
   app.use("/api/visa", visaRoutes);
   app.use("/api/analytics", analyticsRoutes);
-  app.use("/api/employers", employersRoutes);
   app.use("/api/debug", debugRoutes);
+  app.use("/api/ukrtwchecker", ukRtwRoutes);
   app.use("/api/translate", translateRoutes);
 }

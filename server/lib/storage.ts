@@ -172,7 +172,6 @@ export async function uploadFile(
       )`;
       const client = await pool.connect();
       try {
-        await client.query(createSql);
         await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
         // Use a relative URL for the blob endpoint
         const url = `/api/documents/blob/${encodeURIComponent(key)}`;
