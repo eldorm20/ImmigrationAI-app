@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import InvoiceViewer from "./invoice-viewer";
 
 interface Invoice {
     id: string;
@@ -29,8 +30,12 @@ interface Invoice {
 export default function BillingManager() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [clients, setClients] = useState<any[]>([]);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [isViewerOpen, setIsViewerOpen] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
     const [newInvoice, setNewInvoice] = useState({
         applicantId: "",
@@ -54,10 +59,13 @@ export default function BillingManager() {
             setClients(clientData || []);
         } catch (err) {
             toast({ title: "Error", description: "Failed to load billing data", variant: "destructive" });
-        } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        apiRequest<any>("/user").then(setUser).catch(() => { });
+    }, []);
 
     useEffect(() => {
         fetchData();
@@ -194,7 +202,13 @@ export default function BillingManager() {
                                                         <CheckCircle size={14} />
                                                     </button>
                                                 )}
-                                                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedInvoice(invoice);
+                                                        setIsViewerOpen(true);
+                                                    }}
+                                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                                                >
                                                     <Download size={14} />
                                                 </button>
                                             </div>
@@ -292,6 +306,13 @@ export default function BillingManager() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <InvoiceViewer
+                open={isViewerOpen}
+                onClose={() => setIsViewerOpen(false)}
+                invoice={selectedInvoice}
+                lawyer={user}
+            />
         </div>
     );
 }

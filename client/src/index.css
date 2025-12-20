@@ -134,3 +134,43 @@ body {
     background-size: 300% 300%;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Ensure the dialog content is visible */
+  .printable-content, .printable-content * {
+    visibility: visible;
+  }
+  
+  .printable-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: black !important;
+    z-index: 9999;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Hide UI chrome */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Reset background colors for print */
+  .print-bg-white {
+    background-color: white !important;
+  }
+  
+  /* Ensure decent spacing */
+  .print-p-8 {
+    padding: 2rem !important;
+  }
+}
