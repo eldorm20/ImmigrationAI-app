@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PredictiveAnalysis from "./predictive-analysis";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useAuth } from "@/lib/auth";
+import { Eye } from "lucide-react";
 
 interface ClientNote {
     id: string;
@@ -68,10 +71,31 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     const [newTag, setNewTag] = useState("");
     const [isEditingTags, setIsEditingTags] = useState(false);
     const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "notes">("overview");
+    const { user: authUser } = useAuth();
+    const token = localStorage.getItem("accessToken");
+
+    const { activeViewers, joinApplication, leaveApplication, notifyUpdate } = useWebSocket({
+        userId: authUser?.id,
+        userName: authUser?.name,
+        userRole: authUser?.role,
+        token: token,
+        onApplicationUpdate: (appId) => {
+            if (appId === client?.latestApplication?.id) {
+                fetchClient();
+            }
+        }
+    });
 
     useEffect(() => {
         fetchClient();
     }, [clientId]);
+
+    useEffect(() => {
+        if (client?.latestApplication?.id) {
+            joinApplication(client.latestApplication.id);
+            return () => leaveApplication(client.latestApplication!.id);
+        }
+    }, [client?.latestApplication?.id]);
 
     const fetchClient = async () => {
         try {
@@ -97,6 +121,12 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
             setNoteContent("");
             setShowNoteForm(false);
             await fetchClient();
+
+            // Notify others
+            if (client?.latestApplication?.id) {
+                notifyUpdate(client.latestApplication.id);
+            }
+
             toast({ title: "Note Added", description: "Note saved successfully" });
         } catch (error) {
             toast({ title: "Error", description: "Failed to add note", variant: "destructive" });
@@ -109,6 +139,12 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
         try {
             await apiRequest(`/clients/${clientId}/notes/${noteId}`, { method: "DELETE" });
             await fetchClient();
+
+            // Notify others
+            if (client?.latestApplication?.id) {
+                notifyUpdate(client.latestApplication.id);
+            }
+
             toast({ title: "Note Deleted" });
         } catch (error) {
             toast({ title: "Error", description: "Failed to delete note", variant: "destructive" });
@@ -122,6 +158,12 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                 body: JSON.stringify({ tags: updatedTags }),
             });
             if (client) setClient({ ...client, tags: updatedTags });
+
+            // Notify others
+            if (client?.latestApplication?.id) {
+                notifyUpdate(client.latestApplication.id);
+            }
+
             toast({ title: "Tags Updated" });
         } catch (error) {
             toast({ title: "Error", description: "Failed to update tags", variant: "destructive" });
@@ -157,6 +199,31 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     const formatStatus = (status?: string) => {
         if (!status) return "N/A";
         return status.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const handleAutoCollect = async () => {
+        if (!client?.latestApplication?.id) return;
+
+        try {
+            toast({
+                title: "Agent Activated",
+                description: "AI is analyzing missing documents and drafting an email...",
+                className: "bg-blue-50 text-blue-900 border-blue-200"
+            });
+
+            const res = await apiRequest<{ details: { recipient: string; missingDocuments: string[] } }>(`/agents/collect-documents/${client.latestApplication.id}`, {
+                method: "POST"
+            });
+            const data = res; // apiRequest returns parsed JSON
+
+            toast({
+                title: "Email Drafted & Sent",
+                description: `Request sent to ${data.details.recipient} for: ${data.details.missingDocuments.join(", ")}`,
+                className: "bg-green-50 text-green-900 border-green-200"
+            });
+        } catch (error) {
+            toast({ title: "Agent Error", description: "Failed to run document collector", variant: "destructive" });
+        }
     };
 
     if (loading) {
@@ -236,11 +303,28 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                         </div>
                     </div>
                 </div>
-                {onClose && (
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                        <X size={20} />
-                    </button>
-                )}
+                <div className="flex items-center gap-3">
+                    {activeViewers.filter(v => v.userId !== authUser?.id).length > 0 && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 animate-pulse">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-xs font-bold text-green-700 dark:text-green-400">
+                                {activeViewers.filter(v => v.userId !== authUser?.id).length} Active Now
+                            </span>
+                            <div className="flex -space-x-2 ml-1">
+                                {activeViewers.filter(v => v.userId !== authUser?.id).slice(0, 3).map(v => (
+                                    <div key={v.userId} title={`${v.userName} (${v.role})`} className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900 flex items-center justify-center text-[8px] font-bold">
+                                        {v.userName[0].toUpperCase()}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {onClose && (
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                            <X size={20} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -292,22 +376,46 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
             {activeTab === "overview" && (
                 <div className="space-y-6">
                     {/* Latest Application */}
+                    {/* Latest Application */}
                     {client.latestApplication && (
-                        <AnimatedCard delay={0.2} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
-                            <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
-                                <FileText size={18} className="text-brand-500" />
-                                Current Application
-                            </h3>
-                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                                <div>
-                                    <p className="font-bold text-slate-900 dark:text-white">{client.latestApplication.visaType}</p>
-                                    <p className="text-sm text-slate-500">{client.latestApplication.country}</p>
+                        <>
+                            <AnimatedCard delay={0.2} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
+                                <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
+                                    <FileText size={18} className="text-brand-500" />
+                                    Current Application
+                                </h3>
+                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-white">{client.latestApplication.visaType}</p>
+                                        <p className="text-sm text-slate-500">{client.latestApplication.country}</p>
+                                    </div>
+                                    <span className="px-3 py-1 rounded-full text-sm font-bold bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                                        {formatStatus(client.latestApplication.status)}
+                                    </span>
                                 </div>
-                                <span className="px-3 py-1 rounded-full text-sm font-bold bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
-                                    {formatStatus(client.latestApplication.status)}
-                                </span>
-                            </div>
-                        </AnimatedCard>
+                            </AnimatedCard>
+
+                            <AnimatedCard delay={0.3} className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 border border-indigo-100 dark:border-indigo-900/30 p-6 rounded-2xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-2 text-indigo-900 dark:text-indigo-300">
+                                        <Briefcase size={18} className="text-indigo-500" />
+                                        AI Agent Actions
+                                    </h3>
+                                    <span className="text-xs font-bold uppercase bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800">
+                                        Autonomous
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                                    The AI agent can verify missing documents and automatically follow up with the client.
+                                </p>
+                                <button
+                                    onClick={handleAutoCollect}
+                                    className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                                >
+                                    <Mail size={18} /> Auto-Collect Missing Documents
+                                </button>
+                            </AnimatedCard>
+                        </>
                     )}
                 </div>
             )}

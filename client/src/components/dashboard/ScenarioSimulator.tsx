@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/api";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import {
     FlaskConical,
@@ -71,11 +72,23 @@ export const ScenarioSimulator = () => {
     const [result, setResult] = useState<ScenarioResult | null>(null);
     const [calculating, setCalculating] = useState(false);
 
-    const calculateScenario = () => {
+    const calculateScenario = async () => {
         setCalculating(true);
+        try {
+            const data = await apiRequest<any>("/ai/simulator/analyze", {
+                method: "POST",
+                body: JSON.stringify(scenario)
+            });
 
-        // Simulate AI calculation delay
-        setTimeout(() => {
+            setResult({
+                visaType: SCENARIO_OPTIONS.visaType.find(v => v.value === scenario.visaType)?.label || '',
+                eligibilityScore: data.score,
+                improvementTips: data.tips,
+                estimatedProcessingTime: data.processingTime,
+                successLikelihood: data.likelihood.toLowerCase() as any,
+            });
+        } catch (err) {
+            // Fallback to original mock if backend fails
             const eduScore = SCENARIO_OPTIONS.education.find(e => e.value === scenario.education)?.score || 0;
             const expScore = SCENARIO_OPTIONS.experience.find(e => e.value === scenario.experience)?.score || 0;
             const langScore = SCENARIO_OPTIONS.language.find(e => e.value === scenario.language)?.score || 0;
@@ -84,24 +97,16 @@ export const ScenarioSimulator = () => {
             const totalScore = eduScore + expScore + langScore + salScore;
             const normalizedScore = Math.min(Math.round((totalScore / 120) * 100), 100);
 
-            const tips: string[] = [];
-            if (langScore < 15) tips.push("Improve your English proficiency to IELTS 7+ for better chances");
-            if (expScore < 15) tips.push("Consider gaining more work experience in your field");
-            if (eduScore < 20) tips.push("A Master's degree would significantly boost your profile");
-            if (salScore < 15) tips.push("Aim for job offers with higher salary to meet threshold requirements");
-
-            const successLikelihood: ScenarioResult['successLikelihood'] =
-                normalizedScore >= 70 ? 'high' : normalizedScore >= 50 ? 'medium' : 'low';
-
             setResult({
                 visaType: SCENARIO_OPTIONS.visaType.find(v => v.value === scenario.visaType)?.label || '',
                 eligibilityScore: normalizedScore,
-                improvementTips: tips.length > 0 ? tips : ["Your profile looks strong! Minor improvements are nice-to-haves."],
+                improvementTips: ["Consider providing more details for a deeper AI analysis."],
                 estimatedProcessingTime: scenario.visaType === 'skilled_worker' ? '3-8 weeks' : '4-12 weeks',
-                successLikelihood,
+                successLikelihood: normalizedScore >= 70 ? 'high' : normalizedScore >= 50 ? 'medium' : 'low',
             });
+        } finally {
             setCalculating(false);
-        }, 1500);
+        }
     };
 
     const getLikelihoodColor = (likelihood: ScenarioResult['successLikelihood']) => {

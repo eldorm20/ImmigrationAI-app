@@ -10,7 +10,9 @@ import {
   analyzeDocument,
   generateInterviewQuestions,
   evaluateInterviewAnswer,
+  analyzeScenario,
   generateDocument,
+  reviewDocument,
   translateText,
   chatRespond,
 } from "../lib/ai";
@@ -213,6 +215,49 @@ router.post(
     // (Usage already incremented via incrementUsage)
 
     res.json({ document: doc });
+  })
+);
+
+// Review document for compliance
+router.post(
+  "/documents/review",
+  aiLimiter,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(403).json({ message: 'AI quota exceeded' });
+    }
+
+    const { content, docType, visaType } = z
+      .object({
+        content: z.string().min(10),
+        docType: z.string().min(1),
+        visaType: z.string().optional()
+      })
+      .parse(req.body);
+
+    const check = await reviewDocument(content, docType, visaType);
+    res.json(check);
+  })
+);
+
+// Analyze hypothetical scenario
+router.post(
+  "/simulator/analyze",
+  aiLimiter,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(403).json({ message: 'AI quota exceeded' });
+    }
+
+    const result = await analyzeScenario(req.body);
+    res.json(result);
   })
 );
 

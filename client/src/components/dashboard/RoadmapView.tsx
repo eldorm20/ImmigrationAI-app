@@ -87,10 +87,12 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
 
     const items = roadmapItems.length > 0 ? roadmapItems : [
         { title: t.roadmap?.assessment || 'Assessment Complete', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated, visa route identified' },
-        { title: t.roadmap?.documents || 'Documents Uploaded', status: 'current', description: t.roadmap?.defaults?.documentsDesc || 'Upload passport, degree, work experience proof' },
-        { title: t.roadmap?.aiReview || 'AI Document Review', status: 'pending', description: t.roadmap?.defaults?.aiReviewDesc || 'Automated verification and compliance check' },
+        { title: 'Visa Simulator', status: 'done', description: 'Scenario simulation and success probability check' },
+        { title: t.roadmap?.documents || 'Documents Uploaded', status: 'done', description: t.roadmap?.defaults?.documentsDesc || 'Upload passport, degree, work experience proof' },
+        { title: t.roadmap?.aiReview || 'AI Document Review', status: 'current', description: t.roadmap?.defaults?.aiReviewDesc || 'Automated verification and compliance check' },
+        { title: 'Gov Checks', status: 'pending', description: 'Employer verification and background screening' },
+        { title: 'Interview Prep', status: 'pending', description: 'AI-guided mock interview practice' },
         { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional consultation and case review' },
-        { title: t.roadmap?.employerVerification || 'Employer Verification', status: 'pending', description: t.roadmap?.defaults?.employerDesc || 'Sponsor company registry validation' },
         { title: t.roadmap?.submission || 'Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission to immigration authority' }
     ];
 
@@ -109,14 +111,14 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                         <p className="text-slate-500 mt-1">{t.roadmap?.applicationReference || 'Application Reference:'} #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
                     </div>
                     <div className="text-right">
-                        <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress}%</div>
+                        <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress || 40}%</div>
                         <div className="text-xs font-bold text-slate-400 uppercase">{t.roadmap?.completionLabel || 'Completion'}</div>
                     </div>
                 </div>
 
                 <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 mb-6 overflow-hidden">
                     <motion.div
-                        initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
+                        initial={{ width: 0 }} animate={{ width: `${progress || 40}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
                         className="bg-gradient-to-r from-brand-500 to-purple-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] relative"
                     >
                         <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
@@ -134,11 +136,17 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                     <AnimatedCard
                         key={i}
                         delay={i * 0.1}
-                        className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} ${step.status !== 'pending' ? 'hover:shadow-lg' : ''}`}
-                        onClick={() => step.status !== 'pending' && (
-                            step.title.includes('Document') ? setActiveTab('upload') :
-                                step.title.includes('Translation') ? setActiveTab('translate') : null
-                        )}
+                        className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} hover:shadow-lg`}
+                        onClick={() => {
+                            if (step.title.includes('Document') && step.title.includes('Review')) setActiveTab('docs');
+                            else if (step.title.includes('Document') && step.title.includes('Uploaded')) setActiveTab('upload');
+                            else if (step.title.includes('AI Document Review')) setActiveTab('docs');
+                            else if (step.title.includes('Translation')) setActiveTab('translate');
+                            else if (step.title.includes('Simulator')) setActiveTab('simulator');
+                            else if (step.title.includes('Gov Checks') || step.title.includes('Employer')) setActiveTab('gov');
+                            else if (step.title.includes('Interview')) setActiveTab('trainer');
+                            else if (step.title.includes('Lawyer')) setActiveTab('lawyer');
+                        }}
                     >
                         <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
                             {step.status === 'done' || step.status === 'completed' ? (

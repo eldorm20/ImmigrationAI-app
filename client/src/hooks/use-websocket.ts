@@ -9,6 +9,7 @@ interface UseWebSocketOptions {
   userRole?: string;
   autoConnect?: boolean;
   token?: string | null; // Pass token explicitly
+  onApplicationUpdate?: (applicationId: string) => void;
 }
 
 interface MessageEvent {
@@ -37,6 +38,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
+  const [activeViewers, setActiveViewers] = useState<UserPresence[]>([]);
   const [messages, setMessages] = useState<MessageEvent[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingEvent>>(new Map());
   const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -213,6 +215,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       typingTimeoutRef.current.delete(data.senderId);
     });
 
+    socket.on('presence_update', (data: { userId: string; userName?: string; role?: string; action: 'viewing' | 'left' }) => {
+      if (data.action === 'viewing') {
+        setActiveViewers(prev => [
+          ...prev.filter(v => v.userId !== data.userId),
+          { userId: data.userId, userName: data.userName || 'Unknown', role: data.role || 'guest' }
+        ]);
+      } else {
+        setActiveViewers(prev => prev.filter(v => v.userId !== data.userId));
+      }
+    });
+
+    socket.on('application_refetch', (data: { applicationId: string }) => {
+      if (options.onApplicationUpdate) {
+        options.onApplicationUpdate(data.applicationId);
+      }
+    });
+
     return () => {
       // Clear all typing timeouts
       typingTimeoutRef.current.forEach((timeout) => clearTimeout(timeout));
@@ -275,10 +294,28 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socketRef.current.emit('conversation:clear', { recipientId });
   }, []);
 
+  // Application Presence
+  const joinApplication = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('join_application', { applicationId });
+  }, []);
+
+  const leaveApplication = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('leave_application', { applicationId });
+    setActiveViewers([]); // Clear local state when leaving
+  }, []);
+
+  const notifyUpdate = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('update_application', { applicationId });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
     onlineUsers,
+    activeViewers,
     messages,
     typingUsers,
     sendMessage,
@@ -288,5 +325,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     editMessage,
     deleteMessage,
     clearConversation,
+    joinApplication,
+    leaveApplication,
+    notifyUpdate
   };
 }

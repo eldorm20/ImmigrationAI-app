@@ -220,6 +220,37 @@ export function setupSocketIO(httpServer: HTTPServer) {
       socket.to(`user:${userId}`).emit('message:deleted', { id });
     });
 
+    // Live Collaboration: Join Application Room
+    socket.on('join_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.join(room);
+
+      // Update presence
+      const meta = userMeta.get(userId) || { userName: "User", role: "guest" };
+      io.to(room).emit('presence_update', {
+        userId,
+        userName: (meta as any).userName,
+        role: (meta as any).role,
+        action: 'viewing'
+      });
+
+      logger.info({ userId, applicationId }, "Joined application room");
+    });
+
+    socket.on('leave_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.leave(room);
+
+      io.to(room).emit('presence_update', {
+        userId,
+        action: 'left'
+      });
+
+      logger.info({ userId, applicationId }, "Left application room");
+    });
+
     // Handle conversation clearing
     socket.on('conversation:clear', (data: { recipientId: string }) => {
       if (!user || !user.id) return;
@@ -247,6 +278,13 @@ export function setupSocketIO(httpServer: HTTPServer) {
       } catch (err) {
         logger.error({ err, meta }, 'Failed to update user presence');
       }
+    });
+
+    socket.on('update_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.to(room).emit('application_refetch', { applicationId });
+      logger.info({ userId, applicationId }, "Broadcasted application update refetch");
     });
 
     // Clean up on disconnect

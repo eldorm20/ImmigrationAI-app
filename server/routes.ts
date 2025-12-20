@@ -26,6 +26,8 @@ import tasksRoutes from "./routes/tasks";
 import invoicesRoutes from "./routes/invoices";
 import clientsRoutes from "./routes/clients";
 import predictiveRoutes from "./routes/predictive";
+import voiceRoutes from "./routes/voice";
+import agentsRoutes from "./routes/agents";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -60,4 +62,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/invoices", invoicesRoutes);
   app.use("/api/clients", clientsRoutes);
   app.use("/api/predictive", predictiveRoutes);
+  app.use("/api/voice", voiceRoutes);
+  app.use("/api/agents", agentsRoutes);
 }
