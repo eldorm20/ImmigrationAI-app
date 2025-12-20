@@ -43,6 +43,24 @@ export function GovChecksView() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+
+        // Auto-format DOB: DD-MM-YYYY
+        if (name === 'dob') {
+            const digits = value.replace(/\D/g, '').substring(0, 8);
+            let formatted = '';
+            if (digits.length > 0) {
+                formatted += digits.substring(0, 2);
+                if (digits.length > 2) {
+                    formatted += '-' + digits.substring(2, 4);
+                    if (digits.length > 4) {
+                        formatted += '-' + digits.substring(4, 8);
+                    }
+                }
+            }
+            setFormData(prev => ({ ...prev, [name]: formatted }));
+            return;
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 

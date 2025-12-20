@@ -329,12 +329,34 @@ export async function uploadFile(
 // Get presigned URL for file access
 export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
   try {
-    // If using local filesystem fallback, return a direct URL path
+    // 1. If DATABASE_URL is set, prioritize checking if it's a blob stored in Postgres
+    if (process.env.DATABASE_URL) {
+      try {
+        const { Pool } = await import('pg');
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+        const client = await pool.connect();
+        try {
+          const r = await client.query('SELECT key FROM file_blobs WHERE key = $1', [key]);
+          if (r && r.rowCount && r.rowCount > 0) {
+            // It's in the database, return the blob endpoint URL
+            return `/api/documents/blob/${encodeURIComponent(key)}`;
+          }
+        } finally {
+          client.release();
+          await pool.end();
+        }
+      } catch (err) {
+        logger.warn({ err, key }, "Failed to check database for file blob");
+      }
+    }
+
+    // 2. If using local filesystem fallback, return a direct URL path
     if (!BUCKET_NAME) {
       const base = process.env.APP_URL || "";
       return `${base}/uploads/${key}`;
     }
 
+    // 3. Otherwise use S3
     return await retryWithBackoff(
       async () => {
         const command = new GetObjectCommand({
