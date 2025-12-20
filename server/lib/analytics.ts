@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { users, documents, consultations, applications } from "@shared/schema";
+import { users, documents, consultations, applications, invoices } from "@shared/schema";
 import { eq, count, and, gte, sql } from "drizzle-orm";
 import { logger } from "./logger";
 
@@ -139,7 +139,7 @@ export async function getLawyerMetrics(lawyerId: string): Promise<LawyerMetrics 
       totalConsultations,
       completedConsultations,
       averageRating: 4.5, // TODO: Calculate from reviews
-      totalEarnings: 0, // TODO: Calculate from invoices
+      totalEarnings: await getLawyerEarnings(lawyerId),
       responseTime: 24, // Default 24 hours
       clientSatisfaction: 90,
       specializations: (lawyer?.metadata as any)?.specializations || [],
@@ -148,6 +148,43 @@ export async function getLawyerMetrics(lawyerId: string): Promise<LawyerMetrics 
   } catch (error) {
     logger.error({ error, lawyerId }, "Failed to get lawyer metrics");
     return null;
+  }
+}
+
+async function getLawyerEarnings(lawyerId: string): Promise<number> {
+  const earningsResult = await db
+    .select({ total: sql<number>`SUM(amount)` })
+    .from(invoices)
+    .where(and(eq(invoices.lawyerId, lawyerId), eq(invoices.status, 'paid')));
+  return Number(earningsResult[0]?.total) || 0;
+}
+
+export async function getRevenueAnalytics(lawyerId: string) {
+  try {
+    // Get last 6 months revenue
+    const revenueQuery = sql`
+      SELECT 
+        TO_CHAR(created_at, 'Mon') as name,
+        TO_CHAR(created_at, 'YYYY-MM') as sort_date,
+        COALESCE(SUM(amount), 0) as value
+      FROM invoices 
+      WHERE lawyer_id = ${lawyerId} 
+      AND status = 'paid'
+      AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
+      GROUP BY 1, 2
+      ORDER BY 2 ASC
+    `;
+
+    const result = await db.execute(revenueQuery);
+
+    // Fill in missing months if needed, but for now return what we have
+    return result.rows.map((row: any) => ({
+      name: row.name,
+      value: Number(row.value)
+    }));
+  } catch (error) {
+    logger.error({ error, lawyerId }, "Failed to get revenue analytics");
+    return [];
   }
 }
 

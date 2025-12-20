@@ -5,7 +5,7 @@ import { applications, consultations, invoices, tasks, users } from "@shared/sch
 import { eq, and, gte, lte, sql, count, desc } from "drizzle-orm";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
-import { getDashboardStats, getUserAnalytics } from "../lib/analytics";
+import { getDashboardStats, getUserAnalytics, getRevenueAnalytics } from "../lib/analytics";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -186,6 +186,16 @@ router.get(
           break;
         default: // month
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
+
+      if (period === "monthly" || !period) {
+        const data = await getRevenueAnalytics(lawyerId);
+        return res.json({
+          period: "monthly",
+          startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
+          endDate: now,
+          data
+        });
       }
 
       const revenueData = await db

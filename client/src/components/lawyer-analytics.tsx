@@ -13,6 +13,7 @@ import {
     FileText,
     BarChart3,
 } from "lucide-react";
+import RevenueChart from "./revenue-chart";
 
 interface DashboardAnalytics {
     applications: {
@@ -294,6 +295,9 @@ export default function LawyerAnalytics() {
                     </div>
                 </div>
             </div>
+
+            {/* Revenue Chart */}
+            <RevenueChart />
 
             {/* Performance Summary */}
             <div className="rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 p-6">
