@@ -35,7 +35,7 @@ export const InterviewTrainerView = () => {
                     country: "UK",
                     language: lang || "en"
                 }),
-                timeout: 60000,
+                timeout: 120000,
             });
             setQuestions(resp.questions || []);
             setCurrentQuestionIndex(0);
@@ -58,6 +58,7 @@ export const InterviewTrainerView = () => {
                     answer,
                     language: lang
                 }),
+                timeout: 60000, // Explicit 60s for evaluation
             });
             setEvaluation(resp.evaluation);
         } catch (err: any) {

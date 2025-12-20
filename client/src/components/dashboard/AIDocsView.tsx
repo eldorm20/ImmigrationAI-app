@@ -129,7 +129,7 @@ ${new Date().toLocaleDateString()}`;
                 const resp = await apiRequest<{ document: string }>("/ai/documents/generate", {
                     method: "POST",
                     body: JSON.stringify({ template: docType, data: formData, language: lang || 'en' }),
-                    timeout: 90000, // Increase timeout for AI document generation
+                    timeout: 120000, // Increase timeout for AI document generation
                 });
 
                 const targetText = resp.document || "";
