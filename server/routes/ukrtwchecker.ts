@@ -11,7 +11,7 @@ const router = Router();
 // We should ideally use env var but for this task I will use the key provided by user if env is missing, 
 // or I'll put it in env. User provided: 2fecabab3ff0636b76a2b6cc0540ad01858c6987117e906fc8be5a949c558747
 const UK_RTW_API_KEY = process.env.UK_RTW_API_KEY || "2fecabab3ff0636b76a2b6cc0540ad01858c6987117e906fc8be5a949c558747";
-const API_BASE_URL = "https://app.ukrtwchecker.co.uk/api";
+const API_BASE_URL = "https://app.ukrtwchecker.co.uk";
 
 router.use(authenticate);
 

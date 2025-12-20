@@ -35,12 +35,14 @@ export async function authenticate(
     const token = extractToken(req);
 
     if (!token) {
+      logger.warn({ path: req.path, method: req.method }, "Authentication failed: No token provided");
       return res.status(401).json({ message: "Authentication required" });
     }
 
     const payload = verifyAccessToken(token);
 
     if (!payload) {
+      logger.warn({ path: req.path, method: req.method }, "Authentication failed: Invalid or expired token");
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
