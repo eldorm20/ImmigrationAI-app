@@ -49,7 +49,7 @@ const plans = [
   {
     id: "pro",
     name: "Professional",
-    price: 29,
+    price: 99,
     period: "month",
     description: "For serious applicants",
     features: [
@@ -65,7 +65,7 @@ const plans = [
   {
     id: "enterprise",
     name: "Enterprise",
-    price: 99,
+    price: 299,
     period: "month",
     description: "For immigration firms",
     features: [
