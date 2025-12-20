@@ -27,7 +27,7 @@ const createConsultationSchema = z.object({
 const updateConsultationSchema = z.object({
   status: z.enum(["scheduled", "completed", "cancelled", "no_show", "accepted", "pending"]).optional(),
   notes: z.string().max(2000).optional(),
-  meetingLink: z.string().url().optional(),
+  meetingLink: z.string().url().or(z.string().length(0)).optional().nullable(),
 });
 
 // Create consultation request (Applicant requests lawyer)

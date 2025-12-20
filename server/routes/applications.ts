@@ -24,13 +24,24 @@ router.get(
     const lawyerId = req.user!.userId;
     const role = req.user!.role;
 
-    // Get applications assigned to this lawyer (or all if admin)
+    // 1. Get user IDs from applications assigned to this lawyer
     const myApps = await db.query.applications.findMany({
       where: role === "lawyer" ? eq(applications.lawyerId, lawyerId) : undefined,
       columns: { userId: true }
     });
 
-    const userIds = Array.from(new Set(myApps.map(a => a.userId)));
+    // 2. Get user IDs from consultations booked with this lawyer
+    const { consultations: consultationsTable } = await import("@shared/schema");
+    const myConsults = await db.query.consultations.findMany({
+      where: role === "lawyer" ? eq(consultationsTable.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    const userIds = Array.from(new Set([
+      ...myApps.map(a => a.userId),
+      ...myConsults.map(c => c.userId)
+    ]));
+
     if (!userIds.length) return res.json([]);
 
     const clientList = await db.query.users.findMany({
