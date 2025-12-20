@@ -22,6 +22,11 @@ import "dotenv/config";
 const app = express();
 const httpServer = createServer(app);
 
+// Startup Log to verify deployment version
+console.log("-----------------------------------------");
+console.log("STARTING DEPLOYMENT VERSION: f475180 (Sprint 2 Fixes)");
+console.log("-----------------------------------------");
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -261,7 +266,7 @@ app.get("/health", async (_req, res) => {
     // ============================================
     const gracefulShutdown = async (signal: string) => {
       logger.info(`${signal} signal received: closing HTTP server`);
-      
+
       httpServer.close(async () => {
         try {
           await closeQueues();
@@ -269,7 +274,7 @@ app.get("/health", async (_req, res) => {
         } catch (err) {
           logger.error({ err }, "Error closing queues");
         }
-        
+
         logger.info("HTTP server closed");
         process.exit(0);
       });
