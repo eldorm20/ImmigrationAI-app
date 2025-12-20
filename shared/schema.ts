@@ -453,7 +453,7 @@ export const insertTaskSchema = createInsertSchema(tasks, {
   description: z.string().optional().nullable(),
   status: z.enum(["pending", "in_progress", "completed", "archived"]),
   priority: z.enum(["low", "medium", "high"]),
-  dueDate: z.coerce.date().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable().or(z.null()).transform(val => val ? new Date(val) : null),
 }).pick({
   applicationId: true,
   title: true,
@@ -469,7 +469,7 @@ export const insertTaskSchema = createInsertSchema(tasks, {
 export const insertInvoiceSchema = createInsertSchema(invoices, {
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
   status: z.enum(["draft", "sent", "paid", "void", "overdue"]),
-  dueDate: z.coerce.date().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable().or(z.null()).transform(val => val ? new Date(val) : null),
 }).pick({
   applicantId: true,
   amount: true,

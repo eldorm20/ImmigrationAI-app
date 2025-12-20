@@ -186,7 +186,8 @@ export async function generateInterviewQuestions(
     );
 
     if (!response.success) {
-      throw new Error(response.error || "Failed to generate interview questions");
+      logger.warn({ error: response.error }, "AI service returned error, using fallback questions");
+      return getFallbackQuestions(visaType, country);
     }
 
     let rawData = response.data;
@@ -202,22 +203,47 @@ export async function generateInterviewQuestions(
         if (typeof parsed === 'object' && parsed.questions && Array.isArray(parsed.questions)) {
           return parsed.questions as InterviewQuestion[];
         }
-        throw new Error("Invalid AI response structure");
+        logger.warn("Invalid AI response structure, using fallback");
+        return getFallbackQuestions(visaType, country);
       } catch (e) {
-        // Fallback for generic text response
-        return [{
-          text: rawData.substring(0, 500),
-          category: "General",
-          expectedAnswer: "Review official requirements"
-        }];
+        logger.warn({ error: e }, "Failed to parse AI response, using fallback");
+        return getFallbackQuestions(visaType, country);
       }
     }
 
-    return [];
+    return getFallbackQuestions(visaType, country);
   } catch (error) {
-    logger.error({ error, visaType, country }, "Failed to generate interview questions");
-    return [];
+    logger.error({ error, visaType, country }, "Failed to generate interview questions, using fallback");
+    return getFallbackQuestions(visaType, country);
   }
+}
+
+// Fallback questions when AI service is unavailable
+function getFallbackQuestions(visaType: string, country: string): InterviewQuestion[] {
+  const commonQuestions: InterviewQuestion[] = [
+    {
+      text: `What are the main requirements for applying for a ${visaType} Visa in ${country}?`,
+      category: "Professional",
+      expectedAnswer: "Demonstrate understanding of eligibility criteria, required qualifications, and documentation needed for the visa application."
+    },
+    {
+      text: `What are the key differences between ${visaType} visa holders and other immigration categories in ${country}?`,
+      category: "Professional",
+      expectedAnswer: "Explain the specific rights, restrictions, and benefits associated with this visa type compared to others."
+    },
+    {
+      text: `How long can you stay in ${country} on a ${visaType} visa, and what are the renewal requirements?`,
+      category: "Professional",
+      expectedAnswer: "Detail the visa duration, extension procedures, and any opportunities for permanent residency."
+    },
+    {
+      text: `Are there any tax implications for ${visaType} visa holders in ${country}?`,
+      category: "Professional",
+      expectedAnswer: "Discuss tax residency status, obligations to pay taxes, and any tax treaties that might apply."
+    }
+  ];
+
+  return commonQuestions;
 }
 
 export async function evaluateInterviewAnswer(
