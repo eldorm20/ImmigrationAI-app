@@ -24,6 +24,7 @@ import publicStatsRouter from "./routes/public-stats";
 import ukRtwRoutes from "./routes/ukrtwchecker";
 import tasksRoutes from "./routes/tasks";
 import invoicesRoutes from "./routes/invoices";
+import clientsRoutes from "./routes/clients";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -56,4 +57,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/ukrtwchecker", ukRtwRoutes);
   app.use("/api/tasks", tasksRoutes);
   app.use("/api/invoices", invoicesRoutes);
+  app.use("/api/clients", clientsRoutes);
 }
