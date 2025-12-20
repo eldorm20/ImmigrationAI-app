@@ -57,6 +57,10 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "click"
 ]);
 
+export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "archived"]);
+export const taskPriorityEnum = pgEnum("task_priority", ["low", "medium", "high"]);
+export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "sent", "paid", "void", "overdue"]);
+
 export const researchCategoryEnum = pgEnum("research_category", [
   "visa",
   "cases",
@@ -189,6 +193,43 @@ export const messages = pgTable("messages", {
   receiverIdIdx: index("messages_receiver_id_idx").on(table.receiverId),
   applicationIdIdx: index("messages_application_id_idx").on(table.applicationId),
   createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
+}));
+
+// Internal Tasks table for lawyers
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: taskStatusEnum("status").notNull().default("pending"),
+  priority: taskPriorityEnum("priority").notNull().default("medium"),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  lawyerIdIdx: index("tasks_lawyer_id_idx").on(table.lawyerId),
+  applicationIdIdx: index("tasks_application_id_idx").on(table.applicationId),
+  statusIdx: index("tasks_status_idx").on(table.status),
+}));
+
+// Invoices table for lawyer billing
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicantId: varchar("applicant_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  status: invoiceStatusEnum("status").notNull().default("draft"),
+  dueDate: timestamp("due_date"),
+  items: jsonb("items"), // Array of { description, amount }
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  lawyerIdIdx: index("invoices_lawyer_id_idx").on(table.lawyerId),
+  applicantIdIdx: index("invoices_applicant_id_idx").on(table.applicantId),
+  statusIdx: index("invoices_status_idx").on(table.status),
 }));
 
 // Audit logs table
@@ -407,6 +448,37 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
   metadata: true,
 });
 
+export const insertTaskSchema = createInsertSchema(tasks, {
+  title: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  status: z.enum(["pending", "in_progress", "completed", "archived"]),
+  priority: z.enum(["low", "medium", "high"]),
+  dueDate: z.date().optional().nullable(),
+}).pick({
+  lawyerId: true,
+  applicationId: true,
+  title: true,
+  description: true,
+  status: true,
+  priority: true,
+  dueDate: true,
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices, {
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  status: z.enum(["draft", "sent", "paid", "void", "overdue"]),
+  dueDate: z.date().optional().nullable(),
+}).pick({
+  lawyerId: true,
+  applicantId: true,
+  applicationId: true,
+  amount: true,
+  currency: true,
+  status: true,
+  dueDate: true,
+  items: true,
+});
+
 // Employer verification table
 export const employerVerifications = pgTable("employer_verifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -512,6 +584,10 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertEmployerVerification = z.infer<typeof insertEmployerVerificationSchema>;
 export type EmployerVerification = typeof employerVerifications.$inferSelect;
 export type EmployerDirectory = typeof employerDirectory.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
 
 // File Blobs table (for database storage of files)
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({

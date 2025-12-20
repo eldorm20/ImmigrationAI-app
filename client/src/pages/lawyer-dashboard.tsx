@@ -7,10 +7,12 @@ import { apiRequest } from "@/lib/api";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell, CreditCard
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
+import PracticeTasks from "@/components/practice-tasks";
+import BillingManager from "@/components/billing-manager";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -110,7 +112,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -397,6 +399,30 @@ export default function LawyerDashboard() {
             <Bell size={18} />
             {t.lawyerDashboard?.consultations || t.lawyer?.consultations || 'Consultations'}
           </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('tasks')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'tasks'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <Clock size={18} />
+            Practice
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('billing')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'billing'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <DollarSign size={18} />
+            Financials
+          </motion.button>
         </div>
 
         {/* Applications Tab Content */}
@@ -410,54 +436,28 @@ export default function LawyerDashboard() {
               <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
             </div>
 
-            {/* Quick Actions for lawyers */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Practice Management Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.quickActions || 'Quick Actions'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
+                <h4 className="font-bold mb-2">Practice Management</h4>
+                <p className="text-sm text-slate-500 mb-4">Manage your internal workflow and client CRM</p>
                 <div className="flex flex-col gap-2">
-                  <ActionButton variant="primary" onClick={() => {
-                    // Open messaging panel
+                  <ActionButton variant="primary" icon={Plus} onClick={() => setActiveTab('tasks')}>Create New Task</ActionButton>
+                  <ActionButton variant="ghost" icon={Users} onClick={() => {
+                    setFilterStatus('All');
+                    setAssignedOnly(true);
+                  }}>My Assigned Cases</ActionButton>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <h4 className="font-bold mb-2">Financial Control</h4>
+                <p className="text-sm text-slate-500 mb-4">Professional billing and payment tracking</p>
+                <div className="flex flex-col gap-2">
+                  <ActionButton variant="success" icon={CreditCard} onClick={() => setActiveTab('billing')}>Generate New Invoice</ActionButton>
+                  <ActionButton variant="ghost" onClick={() => {
                     setLocation('/messages');
                   }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
-                  <ActionButton variant="success" onClick={() => {
-                    // Switch to consultations tab
-                    setActiveTab('consultations');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.newConsultation || 'New Consultation'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    // Navigate to applicant dashboard for document upload (lawyers can also upload)
-                    window.location.href = '/dashboard?tab=upload';
-                  }}>{t.lawyerDashboard?.uploadDoc || 'Upload Doc'}</ActionButton>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.aiTools || 'AI Tools'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
-                <div className="flex flex-col gap-2">
-                  <ActionButton variant="primary" onClick={() => {
-                    window.location.href = '/dashboard?tab=ai-docs';
-                  }}>{t.lawyerDashboard?.generateDoc || 'Generate Doc'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    window.location.href = '/dashboard?tab=ai-chat';
-                  }}>{t.lawyerDashboard?.openChat || 'Open Chat'}</ActionButton>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                <h4 className="font-bold mb-2">{t.lawyerDashboard?.caseTools || 'Case Tools'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Fast links for case management</p>
-                <div className="flex flex-col gap-2">
-                  <ActionButton variant="ghost" onClick={() => {
-                    // Show all applications in current view
-                    setActiveTab('applications');
-                    setFilterStatus('All');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}>{t.lawyerDashboard?.allApplications || 'All Applications'}</ActionButton>
-                  <ActionButton variant="ghost" onClick={() => {
-                    window.location.href = '/analytics';
-                  }}>{t.lawyerDashboard?.analytics || 'Analytics'}</ActionButton>
                 </div>
               </div>
             </div>
@@ -723,6 +723,16 @@ export default function LawyerDashboard() {
         {/* Consultations Tab Content */}
         {activeTab === 'consultations' && (
           <LawyerConsultations />
+        )}
+
+        {/* Practice (Tasks) Tab Content */}
+        {activeTab === 'tasks' && (
+          <PracticeTasks />
+        )}
+
+        {/* Financials (Billing) Tab Content */}
+        {activeTab === 'billing' && (
+          <BillingManager />
         )}
       </main>
 

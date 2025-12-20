@@ -16,6 +16,32 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Get unique clients (applicants) for the lawyer (needed for invoicing)
+router.get(
+  "/clients/list",
+  requireRole("lawyer", "admin"),
+  asyncHandler(async (req, res) => {
+    const lawyerId = req.user!.userId;
+    const role = req.user!.role;
+
+    // Get applications assigned to this lawyer (or all if admin)
+    const myApps = await db.query.applications.findMany({
+      where: role === "lawyer" ? eq(applications.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    const userIds = Array.from(new Set(myApps.map(a => a.userId)));
+    if (!userIds.length) return res.json([]);
+
+    const clientList = await db.query.users.findMany({
+      where: or(...userIds.map(id => eq(users.id, id))),
+      columns: { id: true, firstName: true, lastName: true, email: true }
+    });
+
+    res.json(clientList);
+  })
+);
+
 const createApplicationSchema = z.object({
   visaType: z.string().min(1).max(100),
   country: z.string().length(2),
@@ -79,8 +105,8 @@ router.get(
       role === "applicant"
         ? eq(applications.userId, userId)
         : role === "lawyer" && assigned === "true"
-        ? eq(applications.lawyerId, userId)
-        : undefined;
+          ? eq(applications.lawyerId, userId)
+          : undefined;
 
     const allApps = await db.query.applications.findMany({
       where: whereClause as any,
