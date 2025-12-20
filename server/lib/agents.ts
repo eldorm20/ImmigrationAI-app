@@ -468,13 +468,18 @@ async function generateTextWithProvider(
         // Adapt payload if needed, or assume the user configured it correctly
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+
       const res = await fetch(fetchUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(bodyPayload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");

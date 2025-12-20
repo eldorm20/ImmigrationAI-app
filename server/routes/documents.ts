@@ -114,6 +114,11 @@ router.post(
       throw new AppError(500, msg.includes("size") ? "File is too large. Maximum 10MB allowed." : msg);
     }
 
+    // Verify upload success before DB insertion
+    if (!uploadResult || !uploadResult.key) {
+      throw new AppError(500, "File upload failed to verify. Please try again.");
+    }
+
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
     let document: any;
     try {

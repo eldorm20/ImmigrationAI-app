@@ -138,7 +138,7 @@ router.post(
                 registryId: companyResult.registryId,
                 country: companyResult.country || "GB",
                 companyData: companyResult.raw_data || {},
-                lastUpdated: new Date(),
+                updatedAt: new Date(),
               });
             }
           } catch (insertError) {
