@@ -59,8 +59,12 @@ export default function PracticeTasks() {
         e.preventDefault();
         try {
             const taskData = {
-                ...newTask,
-                dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null
+                title: newTask.title,
+                description: newTask.description || "",
+                priority: newTask.priority,
+                status: newTask.status,
+                dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
+                applicationId: null // Optional field
             };
             const created = await apiRequest<Task>("/tasks", {
                 method: "POST",

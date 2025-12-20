@@ -29,11 +29,18 @@ interface Consultation {
   applicationId?: string;
   scheduledTime: string;
   duration: number;
-  status: "scheduled" | "completed" | "cancelled" | "no_show";
+  status: "scheduled" | "completed" | "cancelled" | "no_show" | "accepted";
   notes?: string;
   meetingLink?: string;
   createdAt: string;
   updatedAt: string;
+  applicant?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    phone?: string;
+  } | null;
 }
 
 interface User {
@@ -49,7 +56,6 @@ export default function LawyerConsultations() {
   const { toast } = useToast();
   const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [userDetails, setUserDetails] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("scheduled");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,18 +71,6 @@ export default function LawyerConsultations() {
         setLoading(true);
         const data = await apiRequest<Consultation[]>("/consultations");
         setConsultations(data || []);
-
-        // Fetch user details for each consultation
-        const userIds = new Set(data?.map((c) => c.userId) || []);
-        const userIdsArray = Array.from(userIds);
-        for (const userId of userIdsArray) {
-          try {
-            const userData = await apiRequest<User>(`/users/${userId}`);
-            setUserDetails((prev) => ({ ...prev, [userId]: userData }));
-          } catch {
-            // User fetch failed, will show ID instead
-          }
-        }
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         logError("Failed to load consultations:", msg);
@@ -346,7 +340,7 @@ export default function LawyerConsultations() {
                           {new Date(c.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="truncate font-medium text-slate-900 dark:text-slate-200">
-                          {userDetails[c.userId]?.firstName || 'Client'} {userDetails[c.userId]?.lastName}
+                          {c.applicant?.firstName || 'Client'} {c.applicant?.lastName || ''}
                         </div>
                         <div className={`mt-2 text-[10px] uppercase font-bold tracking-wider ${c.status === 'scheduled' || c.status === 'completed' ? 'text-green-500' : 'text-slate-400'}`}>
                           {c.status}
@@ -377,7 +371,7 @@ export default function LawyerConsultations() {
               </div>
             ) : (
               filteredConsultations.map((consultation) => {
-                const applicant = userDetails[consultation.userId];
+                const applicant = consultation.applicant;
                 const isEditing = editingId === consultation.id;
 
                 return (

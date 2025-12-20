@@ -51,7 +51,7 @@ export default function BillingManager() {
             ]);
 
             setInvoices(invoiceData || []);
-            setClients((clientData || []).filter(u => u.role === 'applicant'));
+            setClients(clientData || []);
         } catch (err) {
             toast({ title: "Error", description: "Failed to load billing data", variant: "destructive" });
         } finally {

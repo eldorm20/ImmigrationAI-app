@@ -175,6 +175,27 @@ router.get(
         });
       }
 
+      // Enrich with user details for lawyers
+      if (user.role === "lawyer" && results && results.length > 0) {
+        const enriched = await Promise.all(
+          results.map(async (consultation) => {
+            try {
+              const applicant = await db.query.users.findFirst({
+                where: eq(users.id, consultation.userId),
+                columns: { id: true, firstName: true, lastName: true, email: true, phone: true }
+              });
+              return {
+                ...consultation,
+                applicant: applicant || null
+              };
+            } catch {
+              return { ...consultation, applicant: null };
+            }
+          })
+        );
+        return res.json(enriched);
+      }
+
       res.json(results || []);
     } catch (err: any) {
       logger.error({ err, userId: user.userId }, "Failed to fetch consultations");
