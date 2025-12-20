@@ -290,6 +290,29 @@ router.patch(
   })
 );
 
+// Clear history (delete completed and cancelled consultations for the user)
+router.delete(
+  "/history",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const user = req.user!;
+
+    await db.delete(consultations).where(
+      and(
+        user.role === "lawyer"
+          ? eq(consultations.lawyerId, user.userId)
+          : eq(consultations.userId, user.userId),
+        or(
+          eq(consultations.status, "completed"),
+          eq(consultations.status, "cancelled")
+        )
+      )
+    );
+
+    res.json({ message: "Consultation history cleared" });
+  })
+);
+
 // Cancel consultation
 router.delete(
   "/:id",

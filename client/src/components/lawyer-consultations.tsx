@@ -14,6 +14,7 @@ import {
   Mail,
   Menu,
   Video,
+  Trash2,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VideoCall from "./video-call";
@@ -235,6 +236,25 @@ export default function LawyerConsultations() {
     filterStatus === "all" ? true : c.status === filterStatus
   );
 
+  const handleClearHistory = async () => {
+    if (!confirm(t.consultation?.confirmClearHistory || "Are you sure you want to clear your consultation history? This will remove all completed and cancelled consultations.")) return;
+    try {
+      await apiRequest("/consultations/history", { method: "DELETE" });
+      setConsultations(prev => prev.filter(c => c.status !== "completed" && c.status !== "cancelled"));
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation?.historyCleared || "Consultation history cleared",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || "Failed to clear history",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -247,7 +267,18 @@ export default function LawyerConsultations() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleClearHistory}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-medium border border-red-100 dark:border-red-800"
+          >
+            <Trash2 size={16} />
+            {t.consultation?.clearHistory || "Clear History"}
+          </motion.button>
+        </div>
         <div className="text-sm text-slate-600 dark:text-slate-400">
           {filteredConsultations.length} {t.lawyerDashboard?.consultations || t.lawyer?.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
         </div>

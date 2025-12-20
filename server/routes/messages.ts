@@ -115,7 +115,7 @@ router.get(
 
 // Get all conversations (list of users who have messages)
 router.get(
-  "/",
+  ["/", "/conversations"],
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
     const { limit = "50", offset = "0" } = req.query;
