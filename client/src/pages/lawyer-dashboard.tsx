@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
 import PracticeTasks from "@/components/practice-tasks";
 import BillingManager from "@/components/billing-manager";
+import LawyerAnalytics from "@/components/lawyer-analytics";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -112,7 +113,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -422,6 +423,18 @@ export default function LawyerDashboard() {
           >
             <DollarSign size={18} />
             Financials
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'analytics'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <TrendingUp size={18} />
+            Analytics
           </motion.button>
         </div>
 
@@ -733,6 +746,11 @@ export default function LawyerDashboard() {
         {/* Financials (Billing) Tab Content */}
         {activeTab === 'billing' && (
           <BillingManager />
+        )}
+
+        {/* Analytics Tab Content */}
+        {activeTab === 'analytics' && (
+          <LawyerAnalytics />
         )}
       </main>
 
