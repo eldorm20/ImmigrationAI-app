@@ -161,7 +161,7 @@ export async function analyzeDocument(
 
 // Interview Simulator
 export interface InterviewQuestion {
-  question: string;
+  text: string;
   category: string;
   expectedAnswer: string;
 }
@@ -181,42 +181,39 @@ export async function generateInterviewQuestions(
   try {
     const response = await agentsManager.processRequest(
       "immigration-law",
-      "checkDocumentRequirements",
-      [visaType]
+      "generateInterviewQuestions",
+      [visaType, country]
     );
 
     if (!response.success) {
       throw new Error(response.error || "Failed to generate interview questions");
     }
 
-    // Agent currently returns a single string, we need to parse it (assuming JSON or structured text).
-    // For now, if the agent returns a string, we might need to rely on the agent to return JSON.
-    // But since the original code mocked it, we must ensure the agent is expected to return JSON.
-    // The AgentsManager generally returns strings. 
-    // We will throw if not JSON parseable or specific format.
-    // For safety in this "real data" pass, if data isn't structured, we throw.
+    let rawData = response.data;
 
-    // However, looking at agents.ts, checkDocumentRequirements returns a string.
-    // We'll need to adapt the agent prompt later to return JSON, but for now, 
-    // let's just assume failure if we can't get real data.
-    // Since we can't easily change the agent prompt structure in this single step without risk,
-    // and the user wants NO MORE MOCKS, throwing error is safer than fake data.
+    // Improved JSON parsing: handle strings that might contain markdown code blocks
+    if (typeof rawData === "string") {
+      // Strip markdown JSON blocks if present
+      rawData = rawData.replace(/```json\n?/, "").replace(/```\s*$/, "").trim();
 
-    try {
-      const parsed = JSON.parse(response.data);
-      if (Array.isArray(parsed)) return parsed as InterviewQuestion[];
-      throw new Error("Invalid AI response format");
-    } catch (e) {
-      // If response is text, wrap it in a single question object as a fallback for "real but unstructured" data
-      if (typeof response.data === 'string') {
+      try {
+        const parsed = JSON.parse(rawData);
+        if (Array.isArray(parsed)) return parsed as InterviewQuestion[];
+        if (typeof parsed === 'object' && parsed.questions && Array.isArray(parsed.questions)) {
+          return parsed.questions as InterviewQuestion[];
+        }
+        throw new Error("Invalid AI response structure");
+      } catch (e) {
+        // Fallback for generic text response
         return [{
-          question: "Review requirements",
+          text: rawData.substring(0, 500),
           category: "General",
-          expectedAnswer: response.data
+          expectedAnswer: "Review official requirements"
         }];
       }
-      throw new Error("Failed to parse interview questions");
     }
+
+    return [];
   } catch (error) {
     logger.error({ error, visaType, country }, "Failed to generate interview questions");
     return [];

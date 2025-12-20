@@ -162,6 +162,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       logError('Message error:', error?.message || error);
     });
 
+    socket.on('message:updated', (data: { id: string; content: string }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.id ? { ...m, content: data.content } : m))
+      );
+    });
+
+    socket.on('message:deleted', (data: { id: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.id));
+    });
+
+    socket.on('conversation:cleared', (data: { userId: string }) => {
+      // Clear messages only if it relates to our current conversation participant
+      // Or just clear all if we want to be safe, but let's filter by participant if possible
+      // In this hook we don't know the current selected participant, so we clear all for now
+      // and the component will handle the logic if needed.
+      setMessages([]);
+    });
+
     // Typing indicators
     socket.on('user_typing', (data) => {
       const typingEvent: TypingEvent = { senderId: data.senderId, timestamp: data.timestamp || Date.now() };
@@ -239,6 +257,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socketRef.current.emit('user_stop_typing', { recipientId });
   }, []);
 
+  // Edit message
+  const editMessage = useCallback((recipientId: string, messageId: string, content: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('message:edit', { id: messageId, content, recipientId });
+  }, []);
+
+  // Delete message
+  const deleteMessage = useCallback((recipientId: string, messageId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('message:delete', { id: messageId, recipientId });
+  }, []);
+
+  // Clear conversation
+  const clearConversation = useCallback((recipientId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('conversation:clear', { recipientId });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -249,5 +285,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     markMessageRead,
     emitTyping,
     emitStopTyping,
+    editMessage,
+    deleteMessage,
+    clearConversation,
   };
 }

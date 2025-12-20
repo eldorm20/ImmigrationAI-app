@@ -8,7 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow, formatDistance } from 'date-fns';
-import { Send, User, CheckCheck, Check, Clock } from 'lucide-react';
+import { Send, User, CheckCheck, Check, Clock, MoreVertical, Trash2, Edit2, X } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { apiRequest } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
@@ -29,6 +32,7 @@ interface ChatUser {
 export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const { user } = useAuth();
   const { t } = useI18n();
+  const { toast } = useToast();
   const {
     isConnected,
     onlineUsers,
@@ -38,6 +42,9 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     markMessageRead,
     emitTyping,
     emitStopTyping,
+    editMessage: emitEditMessage,
+    deleteMessage: emitDeleteMessage,
+    clearConversation: emitClearConversation,
   } = useWebSocket({
     userId: user?.id,
     userName: user?.firstName || user?.email,
@@ -51,6 +58,8 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   const [filteredMessages, setFilteredMessages] = useState<ChatMessage[]>([]);
   const [recipientUser, setRecipientUser] = useState<ChatUser | null>(null);
   const [remoteTyping, setRemoteTyping] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -61,12 +70,12 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   }, [onlineUsers, recipientId]);
 
   // Fetch conversation history
-  const { data: historyRes } = useQuery<{ user: any; messages: ChatMessage[] }>({
-    queryKey: [`/api/messages/conversation/${recipientId}`],
-    enabled: !!recipientId,
+  const { data: conversationData, isLoading, refetch } = useQuery<{ user: any; messages: ChatMessage[] }>({
+    queryKey: ["/messages/conversation", recipientId],
+    enabled: !!recipientId && !!user,
   });
 
-  const historyData = historyRes;
+  const historyData = conversationData;
 
   // Track remote typing
   useEffect(() => {
@@ -184,6 +193,68 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     }
   };
 
+  const handleEditMessage = async (messageId: string, content: string) => {
+    try {
+      await apiRequest(`/messages/${messageId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
+      emitEditMessage(recipientId, messageId, content);
+      setEditingMessageId(null);
+      setEditingContent('');
+      toast({
+        title: t.common.success,
+        description: "Message updated",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to update message",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    try {
+      await apiRequest(`/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      emitDeleteMessage(recipientId, messageId);
+      toast({
+        title: t.common.success,
+        description: "Message deleted",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to delete message",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleClearConversation = async () => {
+    if (!confirm("Are you sure you want to clear this entire conversation? This action cannot be undone.")) return;
+    try {
+      await apiRequest(`/messages/conversation/${recipientId}`, {
+        method: 'DELETE',
+      });
+      emitClearConversation(recipientId);
+      toast({
+        title: t.common.success,
+        description: "Conversation cleared",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to clear conversation",
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="border-b">
@@ -227,12 +298,23 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
               <span>Loading...</span>
             )}
           </CardTitle>
-          <div className="text-xs font-medium">
-            {isConnected ? (
-              <span className="text-green-600">Connected</span>
-            ) : (
-              <span className="text-red-600">Disconnected</span>
-            )}
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-medium mr-2">
+              {isConnected ? (
+                <span className="text-green-600">Connected</span>
+              ) : (
+                <span className="text-red-600">Disconnected</span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearConversation}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              title="Clear Conversation"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -251,12 +333,69 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
                   }`}
               >
                 <div
-                  className={`max-w-xs rounded-lg px-4 py-2 ${msg.senderId === user?.id
+                  className={`max-w-xs rounded-lg px-4 py-2 relative group ${msg.senderId === user?.id
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-900'
                     }`}
                 >
-                  <p className="text-sm">{msg.content}</p>
+                  {editingMessageId === msg.id ? (
+                    <div className="space-y-2 py-1">
+                      <Input
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        className="text-sm bg-white text-gray-900 h-8"
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] text-white hover:bg-white/20"
+                          onClick={() => setEditingMessageId(null)}
+                        >
+                          <X className="w-3 h-3 mr-1" /> Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-6 px-2 text-[10px] bg-white text-blue-500 hover:bg-gray-100"
+                          onClick={() => handleEditMessage(msg.id, editingContent)}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm pr-4">{msg.content}</p>
+                      {msg.senderId === user?.id && (
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/20">
+                                <MoreVertical className="w-3 h-3 text-white" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingMessageId(msg.id);
+                                  setEditingContent(msg.content);
+                                }}
+                              >
+                                <Edit2 className="w-4 h-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDeleteMessage(msg.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="flex items-center justify-between mt-1 gap-2">
                     <span className="text-xs opacity-70">
                       {formatDistanceToNow(new Date(msg.timestamp), {

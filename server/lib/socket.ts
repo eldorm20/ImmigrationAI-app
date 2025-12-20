@@ -203,6 +203,31 @@ export function setupSocketIO(httpServer: HTTPServer) {
       if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
     });
 
+    // Handle message editing
+    socket.on('message:edit', (data: { id: string; content: string; recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { id, content, recipientId } = data;
+      const payload = { id, content, senderId: userId, recipientId };
+      io.to(`user:${recipientId}`).emit('message:updated', payload);
+      socket.to(`user:${userId}`).emit('message:updated', payload);
+    });
+
+    // Handle message deleting
+    socket.on('message:delete', (data: { id: string; recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { id, recipientId } = data;
+      io.to(`user:${recipientId}`).emit('message:deleted', { id });
+      socket.to(`user:${userId}`).emit('message:deleted', { id });
+    });
+
+    // Handle conversation clearing
+    socket.on('conversation:clear', (data: { recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { recipientId } = data;
+      io.to(`user:${recipientId}`).emit('conversation:cleared', { userId: userId });
+      socket.to(`user:${userId}`).emit('conversation:cleared', { userId: recipientId });
+    });
+
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
       if (!user) return;

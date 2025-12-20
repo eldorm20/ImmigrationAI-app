@@ -153,6 +153,21 @@ For each, mention if it needs notarization or translation.`;
 
     return this.process(prompt);
   }
+
+  async generateInterviewQuestions(visaType: string, country: string): Promise<AgentResponse> {
+    const prompt = `Generate 5 realistic interview questions for a ${visaType} for the country ${country}.
+Return the response ONLY as a JSON array of objects with the following structure:
+[
+  {
+    "text": "The question itself",
+    "category": "e.g., Personal, Financial, Professional",
+    "expectedAnswer": "Brief summary of what a good answer should include"
+  }
+]
+Do not include any other text or explanations before or after the JSON.`;
+
+    return this.process(prompt);
+  }
 }
 
 /**

@@ -3,7 +3,10 @@ import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Send, Loader2, MessageCircle, User, X, ChevronRight } from "lucide-react";
+import { Send, Loader2, MessageCircle, User, X, ChevronRight, MoreVertical, Trash2, Edit2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -57,6 +60,8 @@ export default function MessagingPanel() {
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Initialize Socket.IO connection
@@ -106,6 +111,21 @@ export default function MessagingPanel() {
       ]);
     });
 
+    newSocket.on("message:updated", (data: { id: string; content: string }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.id ? { ...m, content: data.content } : m))
+      );
+    });
+
+    newSocket.on("message:deleted", (data: { id: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.id));
+    });
+
+    newSocket.on("conversation:cleared", (data: { userId: string }) => {
+      // If the clear was for the current active conversation, empty the messages
+      setMessages([]);
+    });
+
     newSocket.on("disconnect", () => {
       logInfo("Disconnected from messaging server");
       toast({
@@ -139,6 +159,32 @@ export default function MessagingPanel() {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Fetch message history when a participant is selected
+  useEffect(() => {
+    if (!selectedParticipant) {
+      setMessages([]);
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const history = await apiRequest<{ user: any; messages: Message[] }>(
+          `/messages/conversation/${selectedParticipant}`
+        );
+        if (history && history.messages) {
+          setMessages(history.messages.map(m => ({
+            ...m,
+            timestamp: m.timestamp || (m as any).createdAt
+          })));
+        }
+      } catch (err) {
+        logError("Failed to fetch history:", err);
+      }
+    };
+
+    fetchHistory();
+  }, [selectedParticipant]);
 
   const selectedParticipantObj = selectedParticipant ? participants.find((p) => p.id === selectedParticipant) || null : null;
 
@@ -259,6 +305,68 @@ export default function MessagingPanel() {
     });
   };
 
+  const handleEditMessage = async (messageId: string, content: string) => {
+    try {
+      await apiRequest(`/messages/${messageId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
+      socket?.emit("message:edit", { id: messageId, content, recipientId: selectedParticipant });
+      setEditingMessageId(null);
+      setEditingContent("");
+      toast({
+        title: t.common.success,
+        description: "Message updated",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to update message",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    try {
+      await apiRequest(`/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      socket?.emit("message:delete", { id: messageId, recipientId: selectedParticipant });
+      toast({
+        title: t.common.success,
+        description: "Message deleted",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to delete message",
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleClearConversation = async () => {
+    if (!confirm("Are you sure you want to clear this entire conversation? This action cannot be undone.")) return;
+    try {
+      await apiRequest(`/messages/conversation/${selectedParticipant}`, {
+        method: 'DELETE',
+      });
+      socket?.emit("conversation:clear", { recipientId: selectedParticipant });
+      toast({
+        title: t.common.success,
+        description: "Conversation cleared",
+      });
+    } catch (err) {
+      toast({
+        title: t.common.error,
+        description: "Failed to clear conversation",
+        variant: 'destructive',
+      });
+    }
+  };
+
   const filteredMessages = selectedParticipant
     ? messages.filter(
       (m) =>
@@ -342,12 +450,21 @@ export default function MessagingPanel() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedParticipant(null)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleClearConversation}
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg"
+                  title="Clear Conversation"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <button
+                  onClick={() => setSelectedParticipant(null)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -365,16 +482,73 @@ export default function MessagingPanel() {
                     className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"} px-4`}
                   >
                     <div
-                      className={`flex items-end gap-2 max-w-xs ${msg.senderId === user?.id ? "flex-row-reverse" : ""
+                      className={`flex items-end gap-2 max-w-xs relative group ${msg.senderId === user?.id ? "flex-row-reverse" : ""
                         }`}
                     >
                       <div
-                        className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${msg.senderId === user?.id
+                        className={`px-4 py-2 rounded-2xl text-sm shadow-sm relative ${msg.senderId === user?.id
                           ? "bg-brand-600 text-white rounded-br-none"
                           : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200 dark:border-slate-700"
                           }`}
                       >
-                        {msg.content}
+                        {editingMessageId === msg.id ? (
+                          <div className="space-y-2 py-1 min-w-[200px]">
+                            <Input
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-8"
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px] text-white hover:bg-white/20"
+                                onClick={() => setEditingMessageId(null)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-6 px-2 text-[10px] bg-white text-brand-600 hover:bg-slate-100"
+                                onClick={() => handleEditMessage(msg.id, editingContent)}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="pr-4">{msg.content}</p>
+                            {msg.senderId === user?.id && (
+                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="p-0.5 hover:bg-white/20 rounded">
+                                      <MoreVertical size={12} className="text-white" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-32">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setEditingMessageId(msg.id);
+                                        setEditingContent(msg.content);
+                                      }}
+                                    >
+                                      <Edit2 size={14} className="mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                    >
+                                      <Trash2 size={14} className="mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                       <span className="text-xs text-slate-400">
                         {new Date(msg.timestamp).toLocaleTimeString([], {

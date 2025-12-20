@@ -18,6 +18,10 @@ const createMessageSchema = z.object({
   content: z.string().min(1, "Message content required").max(5000),
 });
 
+const updateMessageSchema = z.object({
+  content: z.string().min(1, "Message content required").max(5000),
+});
+
 // Send message
 router.post(
   "/",
@@ -244,6 +248,56 @@ router.delete(
     await db.delete(messages).where(eq(messages.id, id));
 
     res.json({ message: "Message deleted" });
+  })
+);
+
+// Edit message
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const { content } = updateMessageSchema.parse(req.body);
+
+    const message = await db.query.messages.findFirst({
+      where: eq(messages.id, id),
+    });
+
+    if (!message) {
+      throw new AppError(404, "Message not found");
+    }
+
+    // Only sender can edit
+    if (message.senderId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    const [updatedMessage] = await db
+      .update(messages)
+      .set({ content, isRead: false }) // Mark as unread so recipient sees update? or keep read status?
+      .where(eq(messages.id, id))
+      .returning();
+
+    res.json(updatedMessage);
+  })
+);
+
+// Clear conversation
+router.delete(
+  "/conversation/:otherUserId",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { otherUserId } = req.params;
+
+    // Delete all messages between these two users
+    await db.delete(messages).where(
+      or(
+        and(eq(messages.senderId, userId), eq(messages.receiverId, otherUserId)),
+        and(eq(messages.senderId, otherUserId), eq(messages.receiverId, userId))
+      )
+    );
+
+    res.json({ message: "Conversation cleared" });
   })
 );
 
