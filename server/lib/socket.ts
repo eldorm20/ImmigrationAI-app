@@ -100,16 +100,20 @@ export function setupSocketIO(httpServer: HTTPServer) {
     socket.emit('online_users', currentOnline);
 
     // Handle incoming messages (support both server and frontend event names)
-    const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
+    const handleIncomingMessage = async (payload: any, ack?: (res: any) => void) => {
       // Require authenticated user for sending messages
       if (!user || !user.id) {
+        logger.warn({ socketId: socket.id }, "Unauthorized message attempt");
         return ack?.({ success: false, error: "Authentication required to send messages" });
       }
       try {
-        const { content, receiverId, applicationId } = payload;
+        // Support both receiverId (older backend) and recipientId (frontend hook)
+        const recipientId = payload.recipientId || payload.receiverId;
+        const { content, applicationId } = payload;
 
-        if (!content || !receiverId) {
-          return ack?.({ success: false, error: "Missing content or receiverId" });
+        if (!content || !recipientId) {
+          logger.warn({ payload, userId }, "Message missing content or recipientId");
+          return ack?.({ success: false, error: "Missing content or recipientId" });
         }
 
         // Persist message to database
@@ -117,29 +121,35 @@ export function setupSocketIO(httpServer: HTTPServer) {
           .insert(messages)
           .values({
             senderId: userId,
-            receiverId,
+            receiverId: recipientId,
             applicationId: applicationId || null,
             content,
             isRead: false,
           })
           .returning();
 
-        logger.info({ messageId: savedMessage.id, senderId: userId, receiverId }, "Message persisted");
+        logger.info({ messageId: savedMessage.id, senderId: userId, recipientId }, "Message persisted");
 
         const payloadOut = {
           id: savedMessage.id,
           content,
           senderId: userId,
           senderName: user.email,
-          receiverId,
+          recipientId,
+          receiverId: recipientId, // alias for compatibility
           applicationId,
           timestamp: savedMessage.createdAt,
           isRead: false,
         };
 
-        // Emit to receiver's connected sockets (if they're online) using both event names
-        io.to(`user:${receiverId}`).emit('new_message', payloadOut);
-        io.to(`user:${receiverId}`).emit('message:received', payloadOut);
+        // Emit to receiver's connected sockets (if they're online) using multiple event names
+        const receiverRoom = `user:${recipientId}`;
+        io.to(receiverRoom).emit('new_message', payloadOut);
+        io.to(receiverRoom).emit('message:received', payloadOut);
+
+        // Also emit to all of SENDER's other sockets (so it appears on all their devices)
+        socket.to(`user:${userId}`).emit('new_message', payloadOut);
+        socket.to(`user:${userId}`).emit('message_sent', payloadOut);
 
         // Acknowledge back to sender with message_sent
         socket.emit('message_sent', payloadOut);
