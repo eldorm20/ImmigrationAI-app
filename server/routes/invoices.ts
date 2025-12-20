@@ -5,6 +5,7 @@ import { eq, and, or } from "drizzle-orm";
 import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { validateBody } from "../middleware/validate";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -17,36 +18,41 @@ router.get(
         const userId = req.user!.userId;
         const role = req.user!.role;
 
-        let where;
-        if (role === "applicant") {
-            where = eq(invoices.applicantId, userId);
-        } else {
-            where = eq(invoices.lawyerId, userId);
+        try {
+            let where;
+            if (role === "applicant") {
+                where = eq(invoices.applicantId, userId);
+            } else {
+                where = eq(invoices.lawyerId, userId);
+            }
+
+            const allInvoices = await db.query.invoices.findMany({
+                where,
+                orderBy: (invoices, { desc }) => [desc(invoices.createdAt)],
+            });
+
+            // Enrich with applicant details
+            const applicantIds = Array.from(new Set(allInvoices.map(i => i.applicantId)));
+            if (!applicantIds.length) return res.json(allInvoices);
+
+            const applicantList = await db.query.users.findMany({
+                where: or(...applicantIds.map(id => eq(users.id, id))),
+                columns: { id: true, firstName: true, lastName: true, email: true }
+            });
+
+            const userMap: Record<string, any> = {};
+            applicantList.forEach(u => userMap[u.id] = u);
+
+            const enriched = allInvoices.map(inv => ({
+                ...inv,
+                applicant: userMap[inv.applicantId]
+            }));
+
+            res.json(enriched);
+        } catch (error) {
+            logger.error({ error, userId, role }, "Failed to fetch invoices");
+            throw error;
         }
-
-        const allInvoices = await db.query.invoices.findMany({
-            where,
-            orderBy: (invoices, { desc }) => [desc(invoices.createdAt)],
-        });
-
-        // Enrich with applicant details
-        const applicantIds = Array.from(new Set(allInvoices.map(i => i.applicantId)));
-        if (!applicantIds.length) return res.json(allInvoices);
-
-        const applicantList = await db.query.users.findMany({
-            where: or(...applicantIds.map(id => eq(users.id, id))),
-            columns: { id: true, firstName: true, lastName: true, email: true }
-        });
-
-        const userMap: Record<string, any> = {};
-        applicantList.forEach(u => userMap[u.id] = u);
-
-        const enriched = allInvoices.map(inv => ({
-            ...inv,
-            applicant: userMap[inv.applicantId]
-        }));
-
-        res.json(enriched);
     })
 );
 
@@ -57,14 +63,19 @@ router.post(
     validateBody(insertInvoiceSchema),
     asyncHandler(async (req, res) => {
         const lawyerId = req.user!.userId;
-        const [invoice] = await db
-            .insert(invoices)
-            .values({
-                ...req.body,
-                lawyerId,
-            })
-            .returning();
-        res.status(201).json(invoice);
+        try {
+            const [invoice] = await db
+                .insert(invoices)
+                .values({
+                    ...req.body,
+                    lawyerId,
+                })
+                .returning();
+            res.status(201).json(invoice);
+        } catch (error) {
+            logger.error({ error, lawyerId, body: req.body }, "Failed to create invoice");
+            throw error;
+        }
     })
 );
 
@@ -72,24 +83,30 @@ router.post(
 router.patch(
     "/:id",
     requireRole("lawyer", "admin"),
+    validateBody(insertInvoiceSchema.partial()),
     asyncHandler(async (req, res) => {
         const lawyerId = req.user!.userId;
         const { id } = req.params;
 
-        const [updatedInvoice] = await db
-            .update(invoices)
-            .set({
-                ...req.body,
-                updatedAt: new Date(),
-            })
-            .where(and(eq(invoices.id, id), eq(invoices.lawyerId, lawyerId)))
-            .returning();
+        try {
+            const [updatedInvoice] = await db
+                .update(invoices)
+                .set({
+                    ...req.body,
+                    updatedAt: new Date(),
+                })
+                .where(and(eq(invoices.id, id), eq(invoices.lawyerId, lawyerId)))
+                .returning();
 
-        if (!updatedInvoice) {
-            return res.status(404).json({ message: "Invoice not found or access denied" });
+            if (!updatedInvoice) {
+                return res.status(404).json({ message: "Invoice not found or access denied" });
+            }
+
+            res.json(updatedInvoice);
+        } catch (error) {
+            logger.error({ error, lawyerId, invoiceId: id }, "Failed to update invoice");
+            throw error;
         }
-
-        res.json(updatedInvoice);
     })
 );
 
