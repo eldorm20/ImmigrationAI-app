@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
@@ -19,6 +19,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 
 // --- Types & Components ---
 
@@ -116,7 +117,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics' | 'trainer'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -440,6 +441,18 @@ export default function LawyerDashboard() {
           >
             <TrendingUp size={18} />
             Analytics
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('trainer')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'trainer'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <BrainCircuit size={18} />
+            {t.dash.trainer}
           </motion.button>
         </div>
 
@@ -769,6 +782,11 @@ export default function LawyerDashboard() {
         {/* Analytics Tab Content */}
         {activeTab === 'analytics' && (
           <LawyerAnalytics />
+        )}
+
+        {/* Interview Prep Tab Content */}
+        {activeTab === 'trainer' && (
+          <InterviewTrainerView />
         )}
       </main>
 
