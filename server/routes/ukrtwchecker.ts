@@ -61,13 +61,21 @@ router.post(
     // await incrementUsage(userId, 'verificationChecks', 1);
 
     try {
+      // Ensure DOB is in the exact format the external API expects (typically DD-MM-YYYY)
+      const formattedBody = {
+        ...body,
+        dob: body.dob.replace(/\//g, '-')
+      };
+
+      logger.info({ userId, body: formattedBody }, "Sending RTW Check request to external API");
+
       const response = await fetch(`${API_BASE_URL}/v2/rtw`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-UKRTWAPI-SECRET": UK_RTW_API_KEY,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(formattedBody),
       });
 
       if (!response.ok) {
@@ -107,13 +115,21 @@ router.post(
     }
 
     try {
+      // Ensure DOB is in the exact format the external API expects (typically DD-MM-YYYY)
+      const formattedBody = {
+        ...body,
+        dob: body.dob.replace(/\//g, '-')
+      };
+
+      logger.info({ userId, body: formattedBody }, "Sending Immigration Check request to external API");
+
       const response = await fetch(`${API_BASE_URL}/immigration`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-UKRTWAPI-SECRET": UK_RTW_API_KEY,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(formattedBody),
       });
 
       if (!response.ok) {

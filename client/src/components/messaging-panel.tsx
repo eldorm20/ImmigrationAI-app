@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Send, Loader2, MessageCircle, User, X, ChevronRight, MoreVertical, Trash2, Edit2 } from "lucide-react";
+import { Send, Loader2, MessageCircle, User, X, MoreVertical, Trash2, Edit2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { debug, info as logInfo, error as logError } from "@/lib/logger";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface Message {
   id: string;
@@ -47,13 +47,11 @@ interface Conversation {
   unreadCount: number;
 }
 
-type SocketAck = { success?: boolean; messageId?: string; error?: string };
-
 export default function MessagingPanel() {
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [socket, setSocket] = useState<Socket | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<ChatParticipant[]>([]);
   const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null);
@@ -64,101 +62,67 @@ export default function MessagingPanel() {
   const [editingContent, setEditingContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Socket.IO connection
+  const {
+    messages: socketMessages,
+    sendMessage: emitSendMessage,
+    editMessage: emitEditMessage,
+    deleteMessage: emitDeleteMessage,
+    clearConversation: emitClearConversation,
+    isConnected,
+    socket
+  } = useWebSocket({
+    userId: user?.id,
+    userName: user?.firstName || user?.name,
+    userRole: user?.role,
+    token: localStorage.getItem("accessToken")
+  });
+
+  // Sync socket messages with local messages state for the selected conversation
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setLoading(false);
-      logError("No auth token found for messaging");
-      return;
+    if (socketMessages.length > 0) {
+      const lastSocketMsg = socketMessages[socketMessages.length - 1];
+
+      // If the message is related to currently open conversation
+      const isRelevant =
+        (lastSocketMsg.senderId === selectedParticipant && lastSocketMsg.recipientId === user?.id) ||
+        (lastSocketMsg.senderId === user?.id && lastSocketMsg.recipientId === selectedParticipant);
+
+      if (isRelevant) {
+        setMessages(prev => {
+          if (prev.find(m => m.id === lastSocketMsg.id)) return prev;
+          return [...prev, {
+            id: lastSocketMsg.id,
+            senderId: lastSocketMsg.senderId,
+            receiverId: lastSocketMsg.recipientId!,
+            content: lastSocketMsg.content,
+            timestamp: new Date(lastSocketMsg.timestamp).toISOString(),
+            isRead: lastSocketMsg.isRead,
+          }];
+        });
+      }
+
+      // Also update participants list unread counts if it's a new incoming message for another participant
+      if (lastSocketMsg.recipientId === user?.id && lastSocketMsg.senderId !== selectedParticipant) {
+        setParticipants(prev => prev.map(p =>
+          p.id === lastSocketMsg.senderId ? { ...p, unreadCount: p.unreadCount + 1 } : p
+        ));
+      }
     }
+  }, [socketMessages, selectedParticipant, user?.id]);
 
-    const newSocket = io(window.location.origin, {
-      auth: { token },
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
-      transports: ['websocket', 'polling'],
-    });
-
-    newSocket.on("connect", () => {
-      logInfo("Connected to messaging server");
+  useEffect(() => {
+    if (isConnected) {
+      logInfo("Connected to messaging server via hook");
       setLoading(false);
-      toast({
-        title: t.common.connected,
-        description: t.messaging.connected,
-        className: "bg-green-50 text-green-900 border-green-200",
-      });
-    });
-
-    newSocket.on("connect:success", (data: Record<string, unknown>) => {
-      debug("Socket.IO auth success:", data);
-    });
-
-    newSocket.on("message:received", (msg: Message) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: msg.id,
-          senderId: msg.senderId,
-          receiverId: msg.receiverId,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          isRead: false,
-          applicationId: msg.applicationId,
-        },
-      ]);
-    });
-
-    newSocket.on("message:updated", (data: { id: string; content: string }) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === data.id ? { ...m, content: data.content } : m))
-      );
-    });
-
-    newSocket.on("message:deleted", (data: { id: string }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== data.id));
-    });
-
-    newSocket.on("conversation:cleared", (data: { userId: string }) => {
-      // If the clear was for the current active conversation, empty the messages
-      setMessages([]);
-    });
-
-    newSocket.on("disconnect", () => {
-      logInfo("Disconnected from messaging server");
-      toast({
-        title: t.common.disconnected,
-        description: t.messaging.disconnected,
-        variant: "destructive",
-      });
-    });
-
-    newSocket.on("error", (error: any) => {
-      logError("Socket.IO error:", error);
-      toast({
-        title: "Connection Error",
-        description: error?.message || "Failed to connect to messaging",
-        variant: "destructive",
-      });
-    });
-
-    newSocket.on("connect_error", (error: any) => {
-      logError("Socket.IO connect error:", error);
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
+    }
+  }, [isConnected]);
 
   // Auto-scroll to latest message
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    setTimeout(() => {
+      scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  }, [messages, selectedParticipant]);
 
   // Fetch message history when a participant is selected
   useEffect(() => {
@@ -177,6 +141,11 @@ export default function MessagingPanel() {
             ...m,
             timestamp: m.timestamp || (m as any).createdAt
           })));
+
+          // Clear unread count for this participant locally
+          setParticipants(prev => prev.map(p =>
+            p.id === selectedParticipant ? { ...p, unreadCount: 0 } : p
+          ));
         }
       } catch (err) {
         logError("Failed to fetch history:", err);
@@ -188,192 +157,137 @@ export default function MessagingPanel() {
 
   const selectedParticipantObj = selectedParticipant ? participants.find((p) => p.id === selectedParticipant) || null : null;
 
-  // Load conversations and consultations to build participant list
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const [conversationsRes, consultationsRes] = await Promise.all([
-          apiRequest<{ conversations: Conversation[] }>("/messages").catch(err => {
-            logError("Failed to load messages:", err);
-            return { conversations: [] };
-          }),
-          apiRequest<ConsultationSummary[]>("/consultations").catch(err => {
-            logError("Failed to load consultations:", err);
-            return [];
-          })
-        ]);
+  // Load participants
+  const loadParticipants = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [conversationsRes, consultationsRes] = await Promise.all([
+        apiRequest<{ conversations: Conversation[] }>("/messages").catch(err => {
+          logError("Failed to load messages:", err);
+          return { conversations: [] };
+        }),
+        apiRequest<ConsultationSummary[]>("/consultations").catch(err => {
+          logError("Failed to load consultations:", err);
+          return [];
+        })
+      ]);
 
-        const conversations = conversationsRes.conversations || [];
-        const consultations = Array.isArray(consultationsRes) ? consultationsRes : [];
+      const conversations = conversationsRes.conversations || [];
+      const consultations = Array.isArray(consultationsRes) ? consultationsRes : [];
 
-        const uniqueParticipants = new Map<string, ChatParticipant>();
+      const uniqueParticipants = new Map<string, ChatParticipant>();
 
-        // 1. Add existing conversations
-        conversations.forEach(c => {
-          uniqueParticipants.set(c.userId, {
-            id: c.userId,
-            name: `${c.firstName} ${c.lastName}`.trim() || c.email,
-            email: c.email,
-            role: c.role,
-            unreadCount: c.unreadCount
+      conversations.forEach(c => {
+        uniqueParticipants.set(c.userId, {
+          id: c.userId,
+          name: `${c.firstName} ${c.lastName}`.trim() || c.email,
+          email: c.email,
+          role: c.role,
+          unreadCount: c.unreadCount
+        });
+      });
+
+      consultations.forEach((c) => {
+        const idToCheck = user?.id === c.userId ? c.lawyerId : c.userId;
+        const role = user?.id === c.userId ? "lawyer" : "applicant";
+
+        if (!uniqueParticipants.has(idToCheck)) {
+          uniqueParticipants.set(idToCheck, {
+            id: idToCheck,
+            name: role === "lawyer" ? "Lawyer" : "Applicant",
+            email: "",
+            role: role as any,
+            unreadCount: 0,
           });
-        });
+        }
+      });
 
-        // 2. Add consultations if not already present
-        consultations.forEach((c) => {
-          if (user?.id === c.userId) {
-            // I'm the applicant; add the lawyer
-            const lawyerId = c.lawyerId;
-            if (!uniqueParticipants.has(lawyerId)) {
-              // We don't have lawyer details here, so we might show generic or fetch them?
-              // Ideally /consultations should return expanded lawyer info.
-              // For now, we add a placeholder which might be updated if we message them.
-              // Actually, better to skip if we can't get name, OR fetch user details.
-              // Let's rely on basic info or maybe we can't do much without name.
-              // IF we really need it, we should fetch user info.
-              // But strict 404/Empty is better than broken UI.
-              // Let's assuming if they have a consultation, they SHOULD have a conversation entry created upon booking?
-              // If not, maybe we just leave it. 
-              // BUT the previous code was creating "Lawyer" / "Applicant" placeholders.
-              uniqueParticipants.set(lawyerId, {
-                id: lawyerId,
-                name: `Lawyer`, // Generic fallback 
-                email: ``,
-                role: "lawyer",
-                unreadCount: 0,
-              });
-            }
-          } else if (user?.id === c.lawyerId) {
-            // I'm the lawyer; add the applicant
-            const applicantId = c.userId;
-            if (!uniqueParticipants.has(applicantId)) {
-              uniqueParticipants.set(applicantId, {
-                id: applicantId,
-                name: `Applicant`,
-                email: ``,
-                role: "applicant",
-                unreadCount: 0,
-              });
-            }
-          }
-        });
-
-        setParticipants(Array.from(uniqueParticipants.values()));
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        logError("Failed to load participants:", msg);
-        setParticipants([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
+      setParticipants(Array.from(uniqueParticipants.values()));
+    } catch (err) {
+      logError("Failed to load participants:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    loadParticipants();
+  }, [loadParticipants]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !selectedParticipant || !socket) return;
+    if (!inputMessage.trim() || !selectedParticipant) return;
 
     setIsSending(true);
+    const success = emitSendMessage(selectedParticipant, inputMessage);
 
-    socket.emit("message:send", {
-      content: inputMessage,
-      receiverId: selectedParticipant,
-      applicationId: undefined,
-    }, (ack: SocketAck) => {
-      if (ack?.success) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: ack.messageId || `temp-${Date.now()}`,
-            senderId: user!.id,
-            receiverId: selectedParticipant,
-            content: inputMessage,
-            timestamp: new Date().toISOString(),
-            isRead: false,
-          },
-        ]);
-        setInputMessage("");
-      } else {
-        toast({
-          title: t.common.error,
-          description: ack?.error || t.messaging.sendError,
-          variant: "destructive",
-        });
-      }
-      setIsSending(false);
-    });
+    if (success) {
+      // Local optimistic update
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `temp-${Date.now()}`,
+          senderId: user!.id,
+          receiverId: selectedParticipant,
+          content: inputMessage,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        },
+      ]);
+      setInputMessage("");
+    } else {
+      toast({
+        title: t.common.error,
+        description: t.messaging.sendError,
+        variant: "destructive",
+      });
+    }
+    setIsSending(false);
   };
 
   const handleEditMessage = async (messageId: string, content: string) => {
+    if (!selectedParticipant) return;
     try {
       await apiRequest(`/messages/${messageId}`, {
         method: 'PATCH',
         body: JSON.stringify({ content }),
       });
-      socket?.emit("message:edit", { id: messageId, content, recipientId: selectedParticipant });
+      emitEditMessage(selectedParticipant, messageId, content);
+
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content } : m));
       setEditingMessageId(null);
       setEditingContent("");
-      toast({
-        title: t.common.success,
-        description: "Message updated",
-      });
+      toast({ title: t.common.success, description: "Message updated" });
     } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to update message",
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: "Failed to update message", variant: 'destructive' });
     }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Are you sure you want to delete this message?")) return;
+    if (!selectedParticipant || !confirm("Delete this message?")) return;
     try {
-      await apiRequest(`/messages/${messageId}`, {
-        method: 'DELETE',
-      });
-      socket?.emit("message:delete", { id: messageId, recipientId: selectedParticipant });
-      toast({
-        title: t.common.success,
-        description: "Message deleted",
-      });
+      await apiRequest(`/messages/${messageId}`, { method: 'DELETE' });
+      emitDeleteMessage(selectedParticipant, messageId);
+
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast({ title: t.common.success, description: "Message deleted" });
     } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to delete message",
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: "Failed to delete message", variant: 'destructive' });
     }
   };
 
   const handleClearConversation = async () => {
-    if (!confirm("Are you sure you want to clear this entire conversation? This action cannot be undone.")) return;
+    if (!selectedParticipant || !confirm("Clear entire conversation?")) return;
     try {
-      await apiRequest(`/messages/conversation/${selectedParticipant}`, {
-        method: 'DELETE',
-      });
-      socket?.emit("conversation:clear", { recipientId: selectedParticipant });
-      toast({
-        title: t.common.success,
-        description: "Conversation cleared",
-      });
+      await apiRequest(`/messages/conversation/${selectedParticipant}`, { method: 'DELETE' });
+      emitClearConversation(selectedParticipant);
+
+      setMessages([]);
+      toast({ title: t.common.success, description: "Conversation cleared" });
     } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to clear conversation",
-        variant: 'destructive',
-      });
+      toast({ title: t.common.error, description: "Failed to clear conversation", variant: 'destructive' });
     }
   };
-
-  const filteredMessages = selectedParticipant
-    ? messages.filter(
-      (m) =>
-        (m.senderId === user?.id && m.receiverId === selectedParticipant) ||
-        (m.senderId === selectedParticipant && m.receiverId === user?.id)
-    )
-    : [];
 
   return (
     <motion.div
@@ -383,45 +297,57 @@ export default function MessagingPanel() {
       className="h-full flex gap-4"
     >
       {/* Participants List */}
-      <AnimatedCard className="w-72 flex flex-col">
-        <div className="flex items-center gap-2 mb-4 font-bold text-lg text-slate-900 dark:text-white">
-          <MessageCircle size={20} />
-          {t.messaging.title}
+      <AnimatedCard className="w-72 flex flex-col glass-premium border-none shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest text-slate-500">
+            <MessageCircle size={18} className="text-brand-500" />
+            {t.messaging.title}
+          </div>
+          <Button variant="ghost" size="sm" onClick={loadParticipants} className="h-8 px-2 text-[10px] font-black uppercase tracking-widest">
+            {t.messaging.refresh || "Refresh"}
+          </Button>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="animate-spin" />
+            <Loader2 className="animate-spin text-brand-500" />
           </div>
         ) : participants.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs font-bold text-center p-4 italic">
             {t.messaging.noConversations}
           </div>
         ) : (
-          <div className="flex-1 space-y-2 overflow-y-auto">
+          <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {participants.map((p) => (
               <motion.button
                 key={p.id}
                 onClick={() => setSelectedParticipant(p.id)}
-                whileHover={{ x: 4 }}
-                className={`w-full p-3 rounded-lg text-left transition-all ${selectedParticipant === p.id
-                  ? "bg-brand-100 dark:bg-brand-900/30 border border-brand-500"
-                  : "hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
+                whileHover={{ scale: 1.02, x: 5 }}
+                whileTap={{ scale: 0.98 }}
+                className={`w-full p-4 rounded-2xl text-left transition-all relative overflow-hidden ${selectedParticipant === p.id
+                  ? "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+                  : "hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400"
                   }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2 relative z-10">
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    <p className={`font-black text-sm truncate ${selectedParticipant === p.id ? "text-white" : "text-slate-900 dark:text-white"}`}>
                       {p.name}
                     </p>
-                    <p className="text-xs text-slate-400 truncate">{p.email}</p>
+                    <p className={`text-[10px] uppercase tracking-wider font-bold opacity-70 truncate`}>{p.email || p.role}</p>
                   </div>
                   {p.unreadCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">
+                    <span className="px-2 py-1 rounded-full bg-red-500 text-white text-[10px] font-black shadow-lg animate-pulse">
                       {p.unreadCount}
                     </span>
                   )}
                 </div>
+                {selectedParticipant === p.id && (
+                  <motion.div
+                    layoutId="active-bg"
+                    className="absolute inset-0 bg-gradient-to-r from-brand-600 to-brand-500"
+                  />
+                )}
               </motion.button>
             ))}
           </div>
@@ -429,20 +355,20 @@ export default function MessagingPanel() {
       </AnimatedCard>
 
       {/* Chat Area */}
-      <AnimatedCard className="flex-1 flex flex-col">
+      <AnimatedCard className="flex-1 flex flex-col glass-premium border-none shadow-xl overflow-hidden">
         {selectedParticipant ? (
           <>
             {/* Chat Header */}
-            <div className="pb-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
-                  <User size={18} className="text-brand-600 dark:text-brand-400" />
+            <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-lg">
+                  <User size={24} />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900 dark:text-white">
+                  <p className="font-black text-slate-900 dark:text-white text-lg leading-none">
                     {selectedParticipantObj?.name || t.messaging.participant}
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand-500 mt-1">
                     {(() => {
                       const roleKey = selectedParticipantObj?.role ?? "user";
                       return t.roles[roleKey as keyof typeof t.roles] || t.roles.user;
@@ -450,98 +376,99 @@ export default function MessagingPanel() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
+              <div className="flex items-center gap-3">
+                <LiveButton
                   onClick={handleClearConversation}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg"
+                  variant="ghost"
+                  className="w-10 h-10 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
                   title="Clear Conversation"
                 >
                   <Trash2 size={18} />
-                </button>
-                <button
+                </LiveButton>
+                <LiveButton
                   onClick={() => setSelectedParticipant(null)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  variant="ghost"
+                  className="w-10 h-10 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
                 >
                   <X size={18} />
-                </button>
+                </LiveButton>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50">
-              {filteredMessages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-400">
-                  <p className="text-center">{t.messaging.noMessages}</p>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 dark:bg-slate-950/30 custom-scrollbar">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-50">
+                  <MessageCircle size={64} className="mb-4 text-brand-500/20" />
+                  <p className="font-bold">{t.messaging.noMessages}</p>
                 </div>
               ) : (
-                filteredMessages.map((msg, i) => (
+                messages.map((msg, i) => (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"} px-4`}
+                    initial={{ opacity: 0, x: msg.senderId === user?.id ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex ${msg.senderId === user?.id ? "justify-end" : "justify-start"}`}
                   >
-                    <div
-                      className={`flex items-end gap-2 max-w-xs relative group ${msg.senderId === user?.id ? "flex-row-reverse" : ""
-                        }`}
-                    >
+                    <div className={`flex flex-col gap-1 max-w-[70%] ${msg.senderId === user?.id ? "items-end" : "items-start"}`}>
                       <div
-                        className={`px-4 py-2 rounded-2xl text-sm shadow-sm relative ${msg.senderId === user?.id
-                          ? "bg-brand-600 text-white rounded-br-none"
-                          : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-none border border-slate-200 dark:border-slate-700"
+                        className={`px-5 py-3 rounded-2xl text-sm shadow-md relative group ${msg.senderId === user?.id
+                          ? "bg-brand-600 text-white rounded-tr-none"
+                          : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none border border-white/20"
                           }`}
                       >
                         {editingMessageId === msg.id ? (
-                          <div className="space-y-2 py-1 min-w-[200px]">
+                          <div className="space-y-3 py-1 min-w-[240px]">
                             <Input
                               value={editingContent}
                               onChange={(e) => setEditingContent(e.target.value)}
-                              className="text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white h-8"
+                              className="bg-white/10 border-white/20 text-white h-10 focus:ring-white/30"
                               autoFocus
                             />
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end gap-2">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 px-2 text-[10px] text-white hover:bg-white/20"
-                                onClick={() => setEditingMessageId(null)}
+                                className="h-8 px-4 text-xs font-black uppercase text-white hover:bg-white/10"
+                                onClick={() => { setEditingMessageId(null); setEditingContent(""); }}
                               >
-                                Cancel
+                                {t.common.cancel}
                               </Button>
                               <Button
                                 size="sm"
-                                className="h-6 px-2 text-[10px] bg-white text-brand-600 hover:bg-slate-100"
+                                className="h-8 px-4 text-xs font-black uppercase bg-white text-brand-600 hover:bg-brand-50"
                                 onClick={() => handleEditMessage(msg.id, editingContent)}
                               >
-                                Save
+                                {t.common.save}
                               </Button>
                             </div>
                           </div>
                         ) : (
                           <>
-                            <p className="pr-4">{msg.content}</p>
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             {msg.senderId === user?.id && (
-                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all scale-75 origin-top-right">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <button className="p-0.5 hover:bg-white/20 rounded">
-                                      <MoreVertical size={12} className="text-white" />
+                                    <button className="p-1 hover:bg-white/20 rounded-lg">
+                                      <MoreVertical size={14} className="text-white" />
                                     </button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-32">
+                                  <DropdownMenuContent align="end" className="glass-premium border-none shadow-2xl">
                                     <DropdownMenuItem
+                                      className="font-bold text-xs"
                                       onClick={() => {
                                         setEditingMessageId(msg.id);
                                         setEditingContent(msg.content);
                                       }}
                                     >
-                                      <Edit2 size={14} className="mr-2" /> Edit
+                                      <Edit2 size={14} className="mr-2 text-brand-500" /> {t.common.edit}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      className="text-red-600"
+                                      className="text-red-500 font-bold text-xs"
                                       onClick={() => handleDeleteMessage(msg.id)}
                                     >
-                                      <Trash2 size={14} className="mr-2" /> Delete
+                                      <Trash2 size={14} className="mr-2" /> {t.common.delete}
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
@@ -550,51 +477,72 @@ export default function MessagingPanel() {
                           </>
                         )}
                       </div>
-                      <span className="text-xs text-slate-400">
-                        {new Date(msg.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      <div className="flex items-center gap-2 px-1">
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        {msg.senderId === user?.id && (
+                          <div className={`w-1.5 h-1.5 rounded-full ${msg.isRead ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"}`} />
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 ))
               )}
-              <div ref={scrollRef} />
+              <div ref={scrollRef} className="h-4" />
             </div>
 
             {/* Input */}
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={t.messaging.inputPlaceholder}
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder-slate-400"
-                  disabled={isSending}
-                />
+            <div className="p-6 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md border-t border-slate-200/50 dark:border-slate-700/50">
+              <form onSubmit={handleSendMessage} className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Input
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={t.messaging.inputPlaceholder}
+                    className="w-full bg-white dark:bg-slate-800/80 border-none rounded-2xl px-5 py-6 text-slate-900 dark:text-white shadow-inner focus:ring-2 focus:ring-brand-500 transition-all pr-12"
+                    disabled={isSending}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-green-500 shadow-lg shadow-green-500/50" v-if="isConnected" />
+                </div>
                 <LiveButton
                   type="submit"
                   disabled={isSending || !inputMessage.trim()}
                   loading={isSending}
-                  size="icon"
-                  className="w-12 h-12 rounded-xl p-0"
+                  className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-xl shadow-brand-500/20 active:scale-95 transition-all p-0"
                   icon={Send}
                 >
                   <span className="sr-only">Send</span>
                 </LiveButton>
               </form>
-              <p className="text-xs text-slate-400 mt-2 text-center">
-                {t.messaging.sendHint}
-              </p>
+              <div className="flex items-center justify-between mt-3 px-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  {t.messaging.sendHint}
+                </p>
+                {isConnected ? (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-green-500 flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    {t.common.connected}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500 flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    {t.common.disconnected}
+                  </span>
+                )}
+              </div>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
-            <div className="text-center">
-              <MessageCircle size={48} className="mx-auto mb-4 opacity-20" />
-              <p>{t.messaging.selectConversation}</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-12 text-center bg-gradient-to-b from-transparent to-slate-50/50 dark:to-slate-900/20">
+            <div className="w-24 h-24 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-8 shadow-inner">
+              <MessageCircle size={48} className="opacity-20 text-brand-500" />
             </div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">{t.messaging.title}</h3>
+            <p className="font-bold text-slate-500 max-w-xs">{t.messaging.selectConversation}</p>
           </div>
         )}
       </AnimatedCard>

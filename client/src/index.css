@@ -26,7 +26,7 @@
   --color-accent-700: #6d28d9;
   --color-accent-800: #5b21b6;
   --color-accent-900: #4c1d95;
-  
+
   --font-sans: 'Outfit', system-ui, sans-serif;
   --font-heading: 'Outfit', system-ui, sans-serif;
 }
@@ -36,61 +36,119 @@
   .glass {
     @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 shadow-sm transition-colors duration-300;
   }
-  
+
   .glass-card {
     @apply bg-white dark:bg-slate-800/50 backdrop-blur-lg border border-slate-200 dark:border-white/10 shadow-xl dark:shadow-black/20 transition-all duration-300;
+    @apply hover:border-brand-500/30 hover:shadow-brand-500/10;
+  }
+
+  .glass-premium {
+    @apply bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 shadow-2xl;
+  }
+
+  .bg-mesh {
+    background-color: transparent;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(210, 100%, 94%, 1) 0, transparent 50%),
+      radial-gradient(at 50% 0%, hsla(225, 100%, 94%, 1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(240, 100%, 94%, 1) 0, transparent 50%);
+    @apply dark:hidden;
+  }
+
+  .dark .bg-mesh {
+    background-image:
+      radial-gradient(at 0% 0%, hsla(210, 100%, 10%, 1) 0, transparent 50%),
+      radial-gradient(at 50% 0%, hsla(225, 100%, 15%, 1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(240, 100%, 10%, 1) 0, transparent 50%);
+    @apply block;
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-accent-600 dark:from-brand-400 dark:to-accent-400;
   }
-  
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
-  
+
   .animate-pulse-glow {
     animation: pulseGlow 3s infinite;
   }
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 15px rgba(59, 130, 246, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-150%); }
-  50% { transform: translateX(100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-150%);
+  }
+
+  50% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @layer utilities {
   .animate-shimmer {
     animation: shimmer 2.5s infinite;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.6s ease-out forwards;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.8s ease-out forwards;
   }
@@ -109,27 +167,38 @@ body {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 dark:bg-slate-700 rounded-full;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-400 dark:bg-slate-600;
 }
 
 @keyframes shine {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @layer utilities {
   .animate-shine {
     animation: shine 3s ease infinite;
   }
-  
+
   .bg-300\% {
     background-size: 300% 300%;
   }
@@ -139,12 +208,13 @@ body {
   body * {
     visibility: hidden;
   }
-  
+
   /* Ensure the dialog content is visible */
-  .printable-content, .printable-content * {
+  .printable-content,
+  .printable-content * {
     visibility: visible;
   }
-  
+
   .printable-content {
     position: absolute;
     left: 0;
@@ -163,12 +233,12 @@ body {
   .no-print {
     display: none !important;
   }
-  
+
   /* Reset background colors for print */
   .print-bg-white {
     background-color: white !important;
   }
-  
+
   /* Ensure decent spacing */
   .print-p-8 {
     padding: 2rem !important;

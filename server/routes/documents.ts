@@ -11,6 +11,7 @@ import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/st
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
+import { analyzeUploadedDocument } from "../lib/ai";
 
 const router = Router();
 
@@ -189,6 +190,14 @@ router.post(
     }, req);
 
     logger.info({ userId, documentId: document.id, fileName: uploadResult.fileName }, "Document uploaded");
+
+    // Trigger AI automated analysis in background
+    analyzeUploadedDocument(
+      document.id,
+      document.fileName,
+      document.documentType,
+      document.applicationId
+    ).catch(err => logger.error({ err, documentId: document.id }, "Background AI analysis trigger failed"));
 
     // Return a fresh presigned URL for the client
     try {

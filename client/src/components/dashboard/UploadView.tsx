@@ -11,7 +11,7 @@ import { createWorker } from "tesseract.js";
 
 export const UploadView = () => {
     interface UploadedFile {
-        id: string | number;
+        id: string;
         name: string;
         size: number;
         type: string;
@@ -29,7 +29,7 @@ export const UploadView = () => {
     const [dragActive, setDragActive] = useState(false);
     const [analyzingIds, setAnalyzingIds] = useState<Set<string | number>>(new Set());
     const [ocrResults, setOcrResults] = useState<Record<string | number, string>>({});
-    const [copiedId, setCopiedId] = useState<string | number | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -103,8 +103,8 @@ export const UploadView = () => {
                 const MAX_FILE_SIZE = 10 * 1024 * 1024;
                 if (file.size > MAX_FILE_SIZE) {
                     toast({
-                        title: 'File Too Large',
-                        description: `${file.name} exceeds 10MB limit`,
+                        title: t.upload.tooLarge,
+                        description: `${file.name} ${t.upload.sizeLimit}`,
                         className: "bg-orange-50 text-orange-900 border-orange-200",
                         variant: 'destructive'
                     });
@@ -136,9 +136,9 @@ export const UploadView = () => {
                     setFiles(prev => [newFile, ...prev]);
                     uploadedCount++;
                 } catch (fileError) {
-                    const errorMsg = fileError instanceof Error ? fileError.message : 'Upload failed';
+                    const errorMsg = fileError instanceof Error ? fileError.message : t.upload.error;
                     toast({
-                        title: 'Upload Error',
+                        title: t.upload.error,
                         description: `${file.name}: ${errorMsg}`,
                         className: "bg-red-50 text-red-900 border-red-200",
                         variant: 'destructive'
@@ -152,15 +152,15 @@ export const UploadView = () => {
             if (uploadedCount > 0) {
                 toast({
                     title: t.upload.uploadedSuccess,
-                    description: `${uploadedCount} of ${fileList.length} file(s) ${t.upload.uploadedDesc}`,
+                    description: `${uploadedCount} of ${fileList.length} ${t.upload.uploadedDesc}`,
                     className: "bg-green-50 text-green-900 border-green-200"
                 });
             }
         } catch (error) {
             clearInterval(progressInterval);
-            const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+            const errorMessage = error instanceof Error ? error.message : t.upload.error;
             toast({
-                title: 'Upload Error',
+                title: t.upload.error,
                 description: errorMessage,
                 className: "bg-red-50 text-red-900 border-red-200",
                 variant: 'destructive'
@@ -170,13 +170,13 @@ export const UploadView = () => {
         }
     };
 
-    const deleteFile = async (id: number) => {
+    const deleteFile = async (id: string) => {
         try {
             await apiRequest(`/documents/${id}`, { method: 'DELETE' });
             setFiles(prev => prev.filter(f => f.id !== id));
             toast({ title: t.upload.deleted, description: t.upload.deletedDesc });
         } catch (err: any) {
-            toast({ title: "Delete Failed", description: err.message || "Could not delete file", variant: "destructive" });
+            toast({ title: t.upload.deleteError, description: err.message || t.error.message, variant: "destructive" });
         }
     };
 
@@ -191,8 +191,8 @@ export const UploadView = () => {
     const handleAnalyze = async (file: UploadedFile) => {
         if (!file.type.startsWith('image/')) {
             toast({
-                title: "Unsupported File Type",
-                description: "OCR currently only supports image files (JPG, PNG).",
+                title: t.upload.unsupported,
+                description: t.upload.ocrDesc,
                 variant: "destructive"
             });
             return;
@@ -207,15 +207,15 @@ export const UploadView = () => {
             await worker.terminate();
 
             toast({
-                title: "Analysis Complete",
-                description: "Text extracted successfully.",
+                title: t.upload.ocrComplete,
+                description: t.upload.ocrSuccess,
                 className: "bg-green-50 text-green-900 border-green-200"
             });
         } catch (error) {
             console.error(error);
             toast({
-                title: "OCR Failed",
-                description: "Failed to extract text from image.",
+                title: t.upload.ocrFail,
+                description: t.upload.ocrError,
                 variant: "destructive"
             });
         } finally {
@@ -227,18 +227,22 @@ export const UploadView = () => {
         }
     };
 
-    const copyToClipboard = (text: string, id: string | number) => {
+    const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
-        toast({ title: "Copied", description: "Text copied to clipboard" });
+        toast({ title: t.upload.copied, description: t.upload.copiedDesc });
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-            <AnimatedCard>
-                <h3 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                    <FileUp className="text-brand-500" /> {t.upload.title}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8 max-w-5xl mx-auto pb-12">
+            <AnimatedCard className="glass-premium p-10 rounded-3xl border-none shadow-2xl overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-4 relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center shadow-xl shadow-brand-500/20">
+                        <FileUp className="text-white" size={24} />
+                    </div>
+                    {t.upload.title}
                 </h3>
 
                 <div
@@ -246,14 +250,23 @@ export const UploadView = () => {
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all ${dragActive
-                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                        : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50'
+                    className={`relative z-10 border-2 border-dashed rounded-3xl p-16 text-center transition-all duration-500 group ${dragActive
+                        ? 'border-brand-500 bg-brand-500/5 shadow-2xl'
+                        : 'border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30'
                         }`}
                 >
-                    <Upload className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-                    <h4 className="text-lg font-bold mb-2 text-slate-900 dark:text-white">{t.upload.dropFiles}</h4>
-                    <p className="text-slate-500 dark:text-slate-400 mb-4">{t.upload.supports}</p>
+                    <div className="mb-6 relative">
+                        <Upload className={`w-20 h-20 mx-auto transition-transform duration-500 ${dragActive ? 'scale-110 text-brand-600' : 'text-slate-300 group-hover:scale-105 group-hover:text-brand-400'}`} />
+                        {uploading && (
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-0 border-4 border-t-brand-600 border-transparent rounded-full"
+                            />
+                        )}
+                    </div>
+                    <h4 className="text-2xl font-black mb-3 text-slate-900 dark:text-white">{t.upload.dropFiles}</h4>
+                    <p className="text-slate-500 dark:text-slate-400 mb-8 font-medium text-lg italic">{t.upload.supports}</p>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -265,64 +278,79 @@ export const UploadView = () => {
                     />
                     <LiveButton
                         variant="primary"
-                        className="cursor-pointer"
+                        className="cursor-pointer px-10 py-5 rounded-2xl text-xl font-black shadow-xl shadow-brand-500/20 hover:scale-[1.05] active:scale-95 transition-all"
                         disabled={uploading}
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        {uploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
+                        {uploading ? <Loader2 className="animate-spin mr-3" size={24} /> : <Upload className="mr-3" size={24} />}
                         {uploading ? `${t.upload.uploading} ${uploadProgress}%` : t.upload.chooseFiles}
                     </LiveButton>
 
                     {uploading && (
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 mt-4 overflow-hidden">
-                            <div className="bg-brand-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                        <div className="w-full max-w-md mx-auto bg-slate-100 dark:bg-slate-800 rounded-full h-3 mt-8 overflow-hidden shadow-inner">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${uploadProgress}%` }}
+                                className="bg-brand-600 h-full rounded-full shadow-[0_0_15px_rgba(37,99,235,0.5)]"
+                            />
                         </div>
                     )}
                 </div>
             </AnimatedCard>
 
             {files.length > 0 && (
-                <AnimatedCard>
-                    <h3 className="font-bold text-xl mb-4 text-slate-900 dark:text-white">{t.upload.uploaded}</h3>
+                <div className="space-y-4">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white px-2 mb-4 flex items-center gap-3">
+                        <div className="w-2 h-8 bg-brand-600 rounded-full"></div>
+                        {t.upload.uploaded}
+                    </h3>
                     <div className="space-y-3">
                         {files.map((file) => (
-                            <div key={file.id} className="flex flex-col bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                                <div className="flex items-center justify-between p-4">
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <div className="w-12 h-12 rounded-lg bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center overflow-hidden">
+                            <motion.div
+                                layout
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                key={file.id}
+                                className="flex flex-col glass-premium rounded-3xl border-none shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group"
+                            >
+                                <div className="flex items-center justify-between p-6">
+                                    <div className="flex items-center gap-5 flex-1">
+                                        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden shadow-md group-hover:scale-105 transition-transform">
                                             {file.type.startsWith('image/') ? (
                                                 <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <FileText className="text-brand-600 dark:text-brand-400" size={20} />
+                                                <FileText className="text-brand-600 dark:text-brand-400" size={32} />
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="font-bold text-slate-900 dark:text-white">{file.name}</p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            <p className="text-lg font-black text-slate-900 dark:text-white mb-1">{file.name}</p>
+                                            <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">
                                                 {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
                                             </p>
                                         </div>
-                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+                                        <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
                                             {t.upload.analyzed}
                                         </span>
                                     </div>
-                                    <div className="flex gap-2 ml-4">
+                                    <div className="flex gap-3 ml-6">
                                         {file.type.startsWith('image/') && (
                                             <>
                                                 <LiveButton
                                                     variant="secondary"
-                                                    size="sm"
-                                                    icon={analyzingIds.has(file.id) ? Loader2 : Scan}
+                                                    className="px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-100 dark:bg-slate-800 hover:bg-slate-200"
                                                     disabled={analyzingIds.has(file.id)}
                                                     onClick={() => handleAnalyze(file)}
                                                 >
-                                                    {analyzingIds.has(file.id) ? "Scanning..." : "OCR"}
+                                                    {analyzingIds.has(file.id) ? (
+                                                        <><Loader2 className="animate-spin mr-2" size={14} /> {t.upload.scanning}</>
+                                                    ) : (
+                                                        <><Scan className="mr-2" size={14} /> {t.upload.ocr}</>
+                                                    )}
                                                 </LiveButton>
                                                 {ocrResults[file.id] && (
                                                     <LiveButton
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        icon={Sparkles}
+                                                        variant="primary"
+                                                        className="px-4 py-3 rounded-xl font-black text-xs uppercase tracking-widest text-white shadow-lg shadow-brand-500/10"
                                                         onClick={async () => {
                                                             try {
                                                                 const resp = await apiRequest<{ reply: string }>("/ai/chat", {
@@ -332,54 +360,73 @@ export const UploadView = () => {
                                                                     }),
                                                                 });
                                                                 toast({
-                                                                    title: "AI Summary",
+                                                                    title: t.analytics.summary,
                                                                     description: resp.reply,
                                                                     duration: 10000,
                                                                 });
                                                             } catch (e) {
-                                                                toast({ title: "Summary Failed", description: "Could not generate summary.", variant: "destructive" });
+                                                                toast({ title: t.upload.summaryFail, description: t.upload.summaryError, variant: "destructive" });
                                                             }
                                                         }}
                                                     >
-                                                        Summarize
+                                                        <Sparkles className="mr-2 text-yellow-300" size={14} /> {t.upload.summarize}
                                                     </LiveButton>
                                                 )}
                                             </>
                                         )}
-                                        <LiveButton variant="ghost" size="sm" icon={Eye} onClick={() => {
-                                            if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-                                                window.open(file.url, '_blank');
-                                            } else {
-                                                toast({ title: "Preview Unavailable", description: `Cannot preview ${file.type}`, variant: "destructive" });
-                                            }
-                                        }}>{t.upload.view}</LiveButton>
-                                        <LiveButton variant="ghost" size="sm" icon={Trash2} onClick={() => deleteFile(Number(file.id))}>{t.upload.delete}</LiveButton>
+                                        <LiveButton
+                                            variant="ghost"
+                                            className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-brand-50 hover:text-brand-600 transition-all shadow-sm border border-slate-100 dark:border-slate-800"
+                                            onClick={() => {
+                                                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+                                                    window.open(file.url, '_blank');
+                                                } else {
+                                                    toast({ title: t.upload.previewFail, description: t.upload.previewError, variant: "destructive" });
+                                                }
+                                            }}
+                                            title={t.upload.view}
+                                        >
+                                            <Eye size={20} />
+                                        </LiveButton>
+                                        <LiveButton
+                                            variant="ghost"
+                                            className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm border border-slate-100 dark:border-slate-800"
+                                            onClick={() => deleteFile(file.id)}
+                                            title={t.upload.delete}
+                                        >
+                                            <Trash2 size={20} />
+                                        </LiveButton>
                                     </div>
                                 </div>
 
                                 {ocrResults[file.id] && (
-                                    <div className="p-4 bg-slate-100 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h5 className="text-sm font-bold flex items-center gap-2">
-                                                <Scan size={14} className="text-brand-500" /> Extracted Text
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        className="p-8 bg-slate-50/50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800"
+                                    >
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h5 className="text-sm font-black flex items-center gap-3 uppercase tracking-widest text-slate-500">
+                                                <div className="w-1.5 h-4 bg-brand-500 rounded-full"></div>
+                                                {t.upload.extracted}
                                             </h5>
                                             <button
                                                 onClick={() => copyToClipboard(ocrResults[file.id], file.id)}
-                                                className="text-xs flex items-center gap-1 text-slate-500 hover:text-brand-600"
+                                                className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:text-brand-600 transition-colors"
                                             >
-                                                {copiedId === file.id ? <Check size={12} /> : <Copy size={12} />}
-                                                {copiedId === file.id ? "Copied!" : "Copy Text"}
+                                                {copiedId === file.id ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                                                {copiedId === file.id ? "Copied!" : t.upload.copyText}
                                             </button>
                                         </div>
-                                        <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 max-h-40 overflow-y-auto">
+                                        <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap bg-white dark:bg-slate-950/50 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 max-h-60 overflow-y-auto leading-relaxed shadow-inner italic font-medium">
                                             {ocrResults[file.id]}
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 )}
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
-                </AnimatedCard>
+                </div>
             )}
         </motion.div>
     );

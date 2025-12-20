@@ -154,7 +154,7 @@ router.put("/privacy-settings", authenticate, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const metadata = userResult[0].metadata || {};
+    const metadata = (userResult[0].metadata || {}) as any;
 
     // Update privacy settings in metadata
     const updatedMetadata = {
@@ -201,7 +201,7 @@ router.put("/notification-settings", authenticate, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const metadata = userResult[0].metadata || {};
+    const metadata = (userResult[0].metadata || {}) as any;
 
     // Update notification settings in metadata
     const updatedMetadata = {
@@ -248,7 +248,7 @@ router.put("/preferences", authenticate, async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const metadata = userResult[0].metadata || {};
+    const metadata = (userResult[0].metadata || {}) as any;
 
     // Update preferences in metadata
     const updatedMetadata = {
@@ -276,6 +276,49 @@ router.put("/preferences", authenticate, async (req, res) => {
   } catch (err) {
     logger.error({ err }, "Failed to update preferences");
     res.status(500).json({ error: "Failed to update preferences" });
+  }
+});
+
+// Update language (shorthand for PATCH /settings/language)
+router.patch("/language", authenticate, async (req, res) => {
+  try {
+    const { language } = req.body;
+    const userId = req.user!.userId;
+
+    if (!language) {
+      return res.status(400).json({ error: "Language required" });
+    }
+
+    // Get current metadata
+    const userResult = await db.db
+      .select({ metadata: users.metadata })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const metadata = (userResult[0].metadata || {}) as any;
+    const updatedMetadata = {
+      ...metadata,
+      preferences: {
+        ...(metadata.preferences || {}),
+        language,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.db
+      .update(users)
+      .set({ metadata: updatedMetadata })
+      .where(eq(users.id, userId));
+
+    res.json({ success: true, language });
+  } catch (err) {
+    logger.error({ err }, "Failed to update language");
+    res.status(500).json({ error: "Failed to update language" });
   }
 });
 

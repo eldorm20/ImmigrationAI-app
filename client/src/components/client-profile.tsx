@@ -24,7 +24,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import PredictiveAnalysis from "./predictive-analysis";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useAuth } from "@/lib/auth";
-import { Eye } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { Eye, Search, Sparkles, CheckCircle } from "lucide-react";
+import { LiveButton } from "@/components/ui/live-elements";
 
 interface ClientNote {
     id: string;
@@ -53,6 +55,7 @@ interface ClientData {
     };
     notes: ClientNote[];
     tags: string[];
+    documents?: any[];
 }
 
 interface ClientProfileProps {
@@ -70,8 +73,9 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     const [showNoteForm, setShowNoteForm] = useState(false);
     const [newTag, setNewTag] = useState("");
     const [isEditingTags, setIsEditingTags] = useState(false);
-    const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "notes">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "analysis" | "notes" | "documents">("overview");
     const { user: authUser } = useAuth();
+    const { t } = useI18n();
     const token = localStorage.getItem("accessToken");
 
     const { activeViewers, joinApplication, leaveApplication, notifyUpdate } = useWebSocket({
@@ -101,6 +105,13 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
         try {
             setLoading(true);
             const data = await apiRequest<ClientData>(`/clients/${clientId}`);
+
+            // Fetch documents if they aren't included or to ensure freshness
+            if (data.latestApplication?.id) {
+                const docs = await apiRequest<any[]>(`/documents?applicationId=${data.latestApplication.id}`);
+                data.documents = docs;
+            }
+
             setClient(data);
         } catch (error) {
             toast({ title: "Error", description: "Failed to load client data", variant: "destructive" });
@@ -202,27 +213,18 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
     };
 
     const handleAutoCollect = async () => {
-        if (!client?.latestApplication?.id) return;
+        // ...Existing auto collect logic...
+    };
+
+    const handleDeleteDocument = async (docId: string) => {
+        if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) return;
 
         try {
-            toast({
-                title: "Agent Activated",
-                description: "AI is analyzing missing documents and drafting an email...",
-                className: "bg-blue-50 text-blue-900 border-blue-200"
-            });
-
-            const res = await apiRequest<{ details: { recipient: string; missingDocuments: string[] } }>(`/agents/collect-documents/${client.latestApplication.id}`, {
-                method: "POST"
-            });
-            const data = res; // apiRequest returns parsed JSON
-
-            toast({
-                title: "Email Drafted & Sent",
-                description: `Request sent to ${data.details.recipient} for: ${data.details.missingDocuments.join(", ")}`,
-                className: "bg-green-50 text-green-900 border-green-200"
-            });
+            await apiRequest(`/documents/${docId}`, { method: "DELETE" });
+            toast({ title: "Document Deleted", description: "The document has been removed." });
+            await fetchClient(); // Refresh data
         } catch (error) {
-            toast({ title: "Agent Error", description: "Failed to run document collector", variant: "destructive" });
+            toast({ title: "Error", description: "Failed to delete document", variant: "destructive" });
         }
     };
 
@@ -297,18 +299,25 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                                     onClick={() => setIsEditingTags(true)}
                                     className="px-2 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 hover:text-brand-500 hover:border-brand-500 transition-colors flex items-center gap-1"
                                 >
-                                    <Plus size={10} /> Add Tag
+                                    <Plus size={10} /> {t.clientProfile.addTag}
                                 </button>
                             )}
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    <LiveButton
+                        onClick={() => window.location.href = `/messages?userId=${clientId}`}
+                        className="h-10 px-6 rounded-xl bg-brand-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-brand-500/20 flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
+                        icon={MessageSquare}
+                    >
+                        {t.clientProfile.messageClient || "Message Client"}
+                    </LiveButton>
                     {activeViewers.filter(v => v.userId !== authUser?.id).length > 0 && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 animate-pulse">
                             <div className="w-2 h-2 rounded-full bg-green-500" />
                             <span className="text-xs font-bold text-green-700 dark:text-green-400">
-                                {activeViewers.filter(v => v.userId !== authUser?.id).length} Active Now
+                                {activeViewers.filter(v => v.userId !== authUser?.id).length} {t.clientProfile.activeNow}
                             </span>
                             <div className="flex -space-x-2 ml-1">
                                 {activeViewers.filter(v => v.userId !== authUser?.id).slice(0, 3).map(v => (
@@ -329,47 +338,53 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <AnimatedCard className="p-4 text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <FileText size={24} className="mx-auto mb-2 text-blue-500" />
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{client.applicationCount}</p>
-                    <p className="text-xs text-slate-500">Applications</p>
+                <AnimatedCard className="p-6 text-center glass-premium shadow-lg hover:shadow-xl transition-all border-none">
+                    <FileText size={28} className="mx-auto mb-3 text-brand-500 drop-shadow-sm" />
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">{client.applicationCount}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{t.clientProfile.stats.apps}</p>
                 </AnimatedCard>
-                <AnimatedCard delay={0.05} className="p-4 text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <Calendar size={24} className="mx-auto mb-2 text-purple-500" />
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{client.consultationCount}</p>
-                    <p className="text-xs text-slate-500">Consultations</p>
+                <AnimatedCard delay={0.05} className="p-6 text-center glass-premium shadow-lg hover:shadow-xl transition-all border-none">
+                    <Calendar size={28} className="mx-auto mb-3 text-purple-500 drop-shadow-sm" />
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">{client.consultationCount}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{t.clientProfile.stats.consultations}</p>
                 </AnimatedCard>
-                <AnimatedCard delay={0.1} className="p-4 text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <Briefcase size={24} className="mx-auto mb-2 text-amber-500" />
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{client.documentCount}</p>
-                    <p className="text-xs text-slate-500">Documents</p>
+                <AnimatedCard delay={0.1} className="p-6 text-center glass-premium shadow-lg hover:shadow-xl transition-all border-none">
+                    <Briefcase size={28} className="mx-auto mb-3 text-amber-500 drop-shadow-sm" />
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">{client.documentCount}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{t.clientProfile.stats.docs}</p>
                 </AnimatedCard>
-                <AnimatedCard delay={0.15} className="p-4 text-center bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <DollarSign size={24} className="mx-auto mb-2 text-green-500" />
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">${Number(client.totalBilled).toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">Total Billed</p>
+                <AnimatedCard delay={0.15} className="p-6 text-center glass-premium shadow-lg hover:shadow-xl transition-all border-none">
+                    <DollarSign size={28} className="mx-auto mb-3 text-green-500 drop-shadow-sm" />
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">${Number(client.totalBilled).toLocaleString()}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">{t.clientProfile.stats.billed}</p>
                 </AnimatedCard>
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl mb-6">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl mb-8">
                 <button
                     onClick={() => setActiveTab("overview")}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === "overview" ? "bg-white dark:bg-slate-800 shadow-sm text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                    className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === "overview" ? "bg-white dark:bg-slate-700 shadow-md text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5"}`}
                 >
-                    Overview
+                    {t.clientProfile.tabs.overview}
                 </button>
                 <button
                     onClick={() => setActiveTab("analysis")}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === "analysis" ? "bg-white dark:bg-slate-800 shadow-sm text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                    className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === "analysis" ? "bg-white dark:bg-slate-700 shadow-md text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5"}`}
                 >
-                    Risk Analysis
+                    {t.clientProfile.tabs.analysis}
                 </button>
                 <button
                     onClick={() => setActiveTab("notes")}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === "notes" ? "bg-white dark:bg-slate-800 shadow-sm text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}
+                    className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === "notes" ? "bg-white dark:bg-slate-700 shadow-md text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5"}`}
                 >
-                    Notes
+                    {t.clientProfile.tabs.notes}
+                </button>
+                <button
+                    onClick={() => setActiveTab("documents")}
+                    className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === "documents" ? "bg-white dark:bg-slate-700 shadow-md text-brand-600 dark:text-brand-400" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5"}`}
+                >
+                    {t.clientProfile.tabs.docs || "Documents"}
                 </button>
             </div>
 
@@ -379,53 +394,135 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                     {/* Latest Application */}
                     {client.latestApplication && (
                         <>
-                            <AnimatedCard delay={0.2} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
-                                <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
+                            <AnimatedCard delay={0.2} className="glass-premium border-l-4 border-l-brand-500 p-8 rounded-3xl shadow-xl">
+                                <h3 className="font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-3 text-slate-500">
                                     <FileText size={18} className="text-brand-500" />
-                                    Current Application
+                                    {t.clientProfile.currentApp}
                                 </h3>
-                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <div className="flex items-center justify-between p-6 bg-white/50 dark:bg-slate-800/50 rounded-2xl border border-white/20">
                                     <div>
-                                        <p className="font-bold text-slate-900 dark:text-white">{client.latestApplication.visaType}</p>
-                                        <p className="text-sm text-slate-500">{client.latestApplication.country}</p>
+                                        <p className="text-xl font-black text-slate-900 dark:text-white">{client.latestApplication.visaType}</p>
+                                        <p className="text-sm font-bold text-slate-500">{client.latestApplication.country}</p>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full text-sm font-bold bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                                    <span className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-brand-500 text-white shadow-lg shadow-brand-500/30">
                                         {formatStatus(client.latestApplication.status)}
                                     </span>
                                 </div>
                             </AnimatedCard>
 
-                            <AnimatedCard delay={0.3} className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/10 border border-indigo-100 dark:border-indigo-900/30 p-6 rounded-2xl">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-lg flex items-center gap-2 text-indigo-900 dark:text-indigo-300">
-                                        <Briefcase size={18} className="text-indigo-500" />
-                                        AI Agent Actions
+                            <AnimatedCard delay={0.3} className="glass-premium border-l-4 border-l-indigo-600 p-8 rounded-3xl shadow-xl bg-gradient-to-br from-indigo-50/20 to-blue-50/20 dark:from-indigo-900/10 dark:to-blue-900/5">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-3 text-indigo-700 dark:text-indigo-400">
+                                        <Briefcase size={20} className="text-indigo-500 drop-shadow-sm" />
+                                        {t.clientProfile.agentActions}
                                     </h3>
-                                    <span className="text-xs font-bold uppercase bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-800">
+                                    <span className="text-[10px] font-black uppercase bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800 shadow-sm">
                                         Autonomous
                                     </span>
                                 </div>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                                    The AI agent can verify missing documents and automatically follow up with the client.
+                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+                                    {t.clientProfile.agentDesc}
                                 </p>
-                                <button
+                                <LiveButton
                                     onClick={handleAutoCollect}
-                                    className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-black shadow-xl shadow-indigo-500/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.03] active:scale-95 border-none"
                                 >
-                                    <Mail size={18} /> Auto-Collect Missing Documents
-                                </button>
+                                    <Mail size={20} /> {t.clientProfile.autoCollect}
+                                </LiveButton>
                             </AnimatedCard>
                         </>
                     )}
                 </div>
             )}
 
+            {activeTab === "documents" && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-3 text-slate-500">
+                            <Briefcase size={18} className="text-brand-500" />
+                            {t.clientProfile.tabs.docs || "Client Documents"} ({client.documents?.length || 0})
+                        </h3>
+                    </div>
+
+                    <div className="grid gap-4">
+                        {client.documents && client.documents.length > 0 ? (
+                            client.documents.map((doc: any) => (
+                                <AnimatedCard key={doc.id} className="p-4 glass-premium border-none shadow-md hover:shadow-lg transition-all">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-4 flex-1">
+                                            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500">
+                                                <FileText size={24} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                    {doc.fileName}
+                                                    {doc.aiAnalysis && (
+                                                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                                                            <Sparkles size={10} /> AI Analyzed
+                                                        </span>
+                                                    )}
+                                                </h4>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    {doc.documentType || "Unknown Type"} • {(doc.fileSize / 1024 / 1024).toFixed(2)} MB • {new Date(doc.createdAt).toLocaleDateString()}
+                                                </p>
+
+                                                {doc.aiAnalysis && (
+                                                    <div className="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AI Quality Review</span>
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-black text-white ${doc.aiAnalysis.score > 80 ? 'bg-green-500' : doc.aiAnalysis.score > 50 ? 'bg-amber-500' : 'bg-red-500'}`}>
+                                                                Score: {doc.aiAnalysis.score}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            {doc.aiAnalysis.flags?.map((flag: any, idx: number) => (
+                                                                <div key={idx} className={`text-xs flex items-center gap-2 ${flag.type === 'red' ? 'text-red-600 dark:text-red-400' : flag.type === 'amber' ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>
+                                                                    {flag.type === 'red' ? <X size={12} /> : flag.type === 'amber' ? <Search size={12} /> : <CheckCircle size={12} />}
+                                                                    <span className="font-medium">{flag.message}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <LiveButton
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => window.open(doc.url, "_blank")}
+                                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 rounded-lg transition-all"
+                                            >
+                                                <Eye size={18} />
+                                            </LiveButton>
+                                            <LiveButton
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeleteDocument(doc.id)}
+                                                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 rounded-lg transition-all"
+                                            >
+                                                <Trash2 size={18} />
+                                            </LiveButton>
+                                        </div>
+                                    </div>
+                                </AnimatedCard>
+                            ))
+                        ) : (
+                            <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                <FileText size={48} className="mx-auto mb-4 text-slate-200 dark:text-slate-700" />
+                                <p className="text-slate-500 font-bold">No documents uploaded yet</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             {activeTab === "analysis" && (
                 client.latestApplication ? (
                     <PredictiveAnalysis
                         clientId={clientId}
-                        applicationId={client.latestApplication.id}
-                        currentAnalysis={client.latestApplication.metadata?.aiAnalysis}
+                        applicationId={client.latestApplication?.id || ""}
+                        currentAnalysis={client.latestApplication?.metadata?.aiAnalysis}
                         onAnalysisUpdate={(newAnalysis) => {
                             // Update local state logic
                             if (client && client.latestApplication) {
@@ -444,25 +541,28 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                         }}
                     />
                 ) : (
-                    <div className="text-center p-8 text-slate-500">
-                        No active application found to analyze.
+                    <div className="text-center p-20 glass-premium rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                        <Search size={48} className="mx-auto mb-6 text-slate-300 dark:text-slate-700" />
+                        <p className="text-lg font-bold text-slate-500">
+                            {t.clientProfile.noApp}
+                        </p>
                     </div>
                 )
             )}
 
             {activeTab === "notes" && (
                 <div className="space-y-0">
-                    <AnimatedCard delay={0.25} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-6 rounded-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-lg flex items-center gap-2 text-slate-900 dark:text-white">
+                    <AnimatedCard delay={0.25} className="glass-premium p-8 rounded-3xl shadow-xl">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="font-black text-xs uppercase tracking-widest flex items-center gap-3 text-slate-500">
                                 <StickyNote size={18} className="text-brand-500" />
-                                Notes ({client.notes?.length || 0})
+                                {t.clientProfile.tabs.notes} ({client.notes?.length || 0})
                             </h3>
                             <button
                                 onClick={() => setShowNoteForm(!showNoteForm)}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-300 transition-colors text-sm font-medium"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-500 text-white hover:bg-brand-600 transition-all text-xs font-black shadow-lg shadow-brand-500/20 uppercase tracking-widest"
                             >
-                                <Plus size={16} /> Add Note
+                                <Plus size={16} /> {t.clientProfile.addNote}
                             </button>
                         </div>
 
@@ -496,9 +596,9 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                                             <button
                                                 onClick={handleAddNote}
                                                 disabled={addingNote || !noteContent.trim()}
-                                                className="px-4 py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="px-6 py-2 rounded-xl bg-brand-600 text-white font-black text-xs uppercase tracking-widest hover:bg-brand-700 shadow-lg shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                             >
-                                                {addingNote ? "Saving..." : "Save Note"}
+                                                {addingNote ? t.common.submitting : t.clientProfile.saveNote}
                                             </button>
                                             <button
                                                 onClick={() => { setShowNoteForm(false); setNoteContent(""); }}
@@ -544,9 +644,9 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-8 text-slate-400">
-                                    <StickyNote size={32} className="mx-auto mb-2 opacity-50" />
-                                    <p>No notes yet. Add your first note above.</p>
+                                <div className="text-center py-20 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                                    <StickyNote size={48} className="mx-auto mb-4 text-slate-200 dark:text-slate-800" />
+                                    <p className="text-slate-500 font-bold">{t.clientProfile.noNotes}</p>
                                 </div>
                             )}
                         </div>

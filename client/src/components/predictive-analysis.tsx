@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Shield, ShieldAlert, ShieldCheck, RefreshCw, Sparkles, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
+import { LiveButton } from "@/components/ui/live-elements";
 
 interface CaseAnalysis {
     riskScore: number;
@@ -29,21 +31,21 @@ export default function PredictiveAnalysis({
 }: PredictiveAnalysisProps) {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const { toast } = useToast();
+    const { t } = useI18n();
 
     const handleAnalyze = async () => {
         setIsAnalyzing(true);
         try {
-            const res = await apiRequest(`/api/predictive/cases/${applicationId}/analyze`, { method: "POST" });
-            const data = await res.json();
+            const data = await apiRequest<CaseAnalysis>(`/api/predictive/cases/${applicationId}/analyze`, { method: "POST" });
             onAnalysisUpdate(data);
             toast({
-                title: "Analysis Complete",
-                description: "AI has successfully analyzed the case.",
+                title: t.common.success,
+                description: t.analytics.analyzedAt || "AI has successfully analyzed the case.",
             });
         } catch (error) {
             toast({
-                title: "Analysis Failed",
-                description: "Could not generate analysis. Please try again.",
+                title: t.common.error,
+                description: t.error.message,
                 variant: "destructive",
             });
         } finally {
@@ -65,33 +67,34 @@ export default function PredictiveAnalysis({
 
     if (!currentAnalysis && !isAnalyzing) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
-                <Sparkles className="w-12 h-12 text-brand-500 mb-4" />
-                <h3 className="text-xl font-bold mb-2">AI Case Prediction</h3>
-                <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md">
-                    Generate an AI-powered risk assessment for this case. The AI will analyze the profile, documents, and application details to estimate success probability.
+            <div className="flex flex-col items-center justify-center p-12 text-center glass-premium border-2 border-dashed border-slate-300 dark:border-slate-700/50 rounded-3xl">
+                <Sparkles className="w-16 h-16 text-brand-500 mb-6 drop-shadow-glow" />
+                <h3 className="text-2xl font-black mb-3 text-slate-900 dark:text-white">{t.analytics.title}</h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-lg leading-relaxed">
+                    {t.analytics.desc}
                 </p>
-                <button
+                <LiveButton
                     onClick={handleAnalyze}
-                    className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-full font-bold transition-all"
+                    icon={Sparkles}
+                    className="bg-gradient-to-r from-brand-600 to-purple-600 px-10 py-4 scale-110"
                 >
-                    <Sparkles size={18} /> Generate Analysis
-                </button>
+                    {t.analytics.generate}
+                </LiveButton>
             </div>
         );
     }
 
     if (isAnalyzing) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="flex flex-col items-center justify-center p-20 text-center glass-premium rounded-3xl">
                 <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <RefreshCw className="w-12 h-12 text-brand-500 mb-4" />
+                    <RefreshCw className="w-16 h-16 text-brand-500 mb-6" />
                 </motion.div>
-                <h3 className="text-lg font-bold mb-2">Analyzing Case Data...</h3>
-                <p className="text-slate-500">Processing documents and application history</p>
+                <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{t.analytics.analyzing}</h3>
+                <p className="text-slate-500 dark:text-slate-400">{t.tools.typing}</p>
             </div>
         );
     }
@@ -101,13 +104,13 @@ export default function PredictiveAnalysis({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Score Card */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm col-span-1"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass-premium p-8 rounded-3xl shadow-xl col-span-1 border-t-4 border-t-brand-500"
                 >
-                    <div className="flex justify-between items-start mb-4">
-                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wider">Success Probability</h4>
-                        <Shield className="text-brand-500" size={20} />
+                    <div className="flex justify-between items-start mb-6">
+                        <h4 className="font-black text-slate-500 text-xs uppercase tracking-widest">{t.analytics.success}</h4>
+                        <Shield className="text-brand-500" size={24} />
                     </div>
                     <div className="flex items-end gap-2 mb-2">
                         <span className={`text-5xl font-extrabold ${getScoreColor(currentAnalysis!.riskScore)}`}>
@@ -133,13 +136,13 @@ export default function PredictiveAnalysis({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm col-span-1 md:col-span-2"
+                    className="glass-premium p-8 rounded-3xl shadow-xl col-span-1 md:col-span-2"
                 >
-                    <div className="flex justify-between items-start mb-4">
-                        <h4 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wider">AI Summary</h4>
-                        <div className="flex gap-2">
-                            <span className="text-xs text-slate-400">Last analyzed: {currentAnalysis?.analyzedAt ? new Date(currentAnalysis.analyzedAt).toLocaleDateString() : 'Just now'}</span>
-                            <button onClick={handleAnalyze} className="text-brand-600 hover:text-brand-700" title="Re-analyze">
+                    <div className="flex justify-between items-start mb-6">
+                        <h4 className="font-black text-slate-500 text-xs uppercase tracking-widest">{t.analytics.summary}</h4>
+                        <div className="flex gap-4 items-center">
+                            <span className="text-xs font-bold text-slate-400 capitalize">{t.common.date}: {currentAnalysis?.analyzedAt ? new Date(currentAnalysis.analyzedAt).toLocaleDateString() : t.common.view}</span>
+                            <button onClick={handleAnalyze} className="w-8 h-8 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 hover:rotate-180 transition-all duration-500" title="Re-analyze">
                                 <RefreshCw size={16} />
                             </button>
                         </div>
@@ -149,8 +152,8 @@ export default function PredictiveAnalysis({
                     </p>
 
                     {/* Recommendations */}
-                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                        <h5 className="font-bold text-sm mb-2 flex items-center gap-2"><TrendingUp size={16} className="text-blue-500" /> Recommendations</h5>
+                    <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+                        <h5 className="font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2"><TrendingUp size={16} className="text-brand-500" /> {t.analytics.recommendations}</h5>
                         <ul className="space-y-2">
                             {currentAnalysis!.recommendations.map((rec, i) => (
                                 <li key={i} className="text-sm text-slate-600 dark:text-slate-400 flex gap-2">
@@ -168,10 +171,10 @@ export default function PredictiveAnalysis({
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-red-50 dark:bg-red-900/10 p-6 rounded-2xl border border-red-100 dark:border-red-900/30"
+                    className="glass-premium p-8 rounded-3xl border-l-4 border-l-red-500"
                 >
-                    <h4 className="font-bold text-red-700 dark:text-red-400 mb-4 flex items-center gap-2">
-                        <AlertTriangle size={20} /> Risk Factors ({currentAnalysis!.redFlags.length})
+                    <h4 className="font-black text-red-600 dark:text-red-400 mb-6 flex items-center gap-3 text-sm uppercase tracking-widest">
+                        <AlertTriangle size={20} /> {t.analytics.risks} ({currentAnalysis!.redFlags.length})
                     </h4>
                     <ul className="space-y-3">
                         {currentAnalysis!.redFlags.map((item, i) => (
@@ -181,7 +184,7 @@ export default function PredictiveAnalysis({
                             </li>
                         ))}
                         {currentAnalysis!.redFlags.length === 0 && (
-                            <li className="text-slate-500 text-sm italic">No significant risks identified.</li>
+                            <li className="text-slate-500 text-sm italic">{t.analytics.noRisks}</li>
                         )}
                     </ul>
                 </motion.div>
@@ -191,10 +194,10 @@ export default function PredictiveAnalysis({
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-green-50 dark:bg-green-900/10 p-6 rounded-2xl border border-green-100 dark:border-green-900/30"
+                    className="glass-premium p-8 rounded-3xl border-l-4 border-l-green-500"
                 >
-                    <h4 className="font-bold text-green-700 dark:text-green-400 mb-4 flex items-center gap-2">
-                        <CheckCircle size={20} /> Strengths ({currentAnalysis!.greenFlags.length})
+                    <h4 className="font-black text-green-600 dark:text-green-400 mb-6 flex items-center gap-3 text-sm uppercase tracking-widest">
+                        <CheckCircle size={20} /> {t.analytics.strengths} ({currentAnalysis!.greenFlags.length})
                     </h4>
                     <ul className="space-y-3">
                         {currentAnalysis!.greenFlags.map((item, i) => (

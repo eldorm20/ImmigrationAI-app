@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
@@ -657,6 +657,13 @@ export default function LawyerDashboard() {
                                   >
                                     {t.common?.view || 'View'}
                                   </ActionButton>
+                                  <ActionButton
+                                    variant="ghost"
+                                    icon={MessageSquare}
+                                    onClick={() => setLocation(`/messages?select=${lead.userId}`)}
+                                  >
+                                    {t.lawyerDashboard?.messageClient || 'Message'}
+                                  </ActionButton>
                                   {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
                                     <ActionButton
                                       variant="success"
@@ -764,109 +771,109 @@ export default function LawyerDashboard() {
               <ClientProfile clientId={selectedLead.userId} onClose={() => setSelectedLead(null)} />
             </motion.div>
           </div>
-  )
-}
+        )
+        }
       </AnimatePresence >
 
-  {/* Performance Report Modal */ }
-  <AnimatePresence>
-{
-  showReport && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
-          <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-        </div>
+      {/* Performance Report Modal */}
+      <AnimatePresence>
+        {
+          showReport && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
+                  <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                </div>
 
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
-            <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
-                <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
-                <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
-                <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
-            <div className="space-y-2">
-              {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                const count = leads.filter(l => l.status === status).length;
-                const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
-                return (
-                  <div key={status} className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
-                    <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`h-full ${status === 'Approved' ? 'bg-green-500' :
-                          status === 'Reviewing' ? 'bg-yellow-500' :
-                            status === 'Rejected' ? 'bg-red-500' :
-                              'bg-blue-500'
-                          }`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
+                    <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
+                        <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
+                        <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
+                        <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
-                <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
-                <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
-              </div>
-            </div>
-          </div>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
+                    <div className="space-y-2">
+                      {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                        const count = leads.filter(l => l.status === status).length;
+                        const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
+                        return (
+                          <div key={status} className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
+                            <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full ${status === 'Approved' ? 'bg-green-500' :
+                                  status === 'Reviewing' ? 'bg-yellow-500' :
+                                    status === 'Rejected' ? 'bg-red-500' :
+                                      'bg-blue-500'
+                                  }`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          <div className="flex gap-3">
-            <ActionButton
-              className="flex-1 py-3"
-              variant="primary"
-              icon={Download}
-              onClick={() => {
-                toast({
-                  title: "Report Downloaded",
-                  description: "Performance report has been downloaded as PDF",
-                  className: "bg-green-50 text-green-900 border-green-200"
-                });
-              }}
-            >
-              Download as PDF
-            </ActionButton>
-            <ActionButton
-              className="flex-1 py-3"
-              variant="ghost"
-              onClick={() => setShowReport(false)}
-            >
-              Close
-            </ActionButton>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  )
-}
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="primary"
+                      icon={Download}
+                      onClick={() => {
+                        toast({
+                          title: "Report Downloaded",
+                          description: "Performance report has been downloaded as PDF",
+                          className: "bg-green-50 text-green-900 border-green-200"
+                        });
+                      }}
+                    >
+                      Download as PDF
+                    </ActionButton>
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="ghost"
+                      onClick={() => setShowReport(false)}
+                    >
+                      Close
+                    </ActionButton>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )
+        }
       </AnimatePresence >
     </div >
   );

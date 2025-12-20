@@ -81,12 +81,12 @@ export default function UserDash() {
         <nav className="flex-1 px-4 space-y-2">
           {[
             { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
-            { id: 'docs', icon: FileText, label: t.dash.docs }, // AIDocsView
-            { id: 'templates', icon: FolderOpen, label: 'Templates' },
-            { id: 'simulator', icon: FlaskConical, label: 'Simulator' },
-            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: 'Agency Team' }] : []),
-            { id: 'gov', icon: Shield, label: 'Gov Checks' },
-            { id: 'trainer', icon: BrainCircuit, label: 'Interview Prep' },
+            { id: 'docs', icon: FileText, label: t.dash.docs },
+            { id: 'templates', icon: FolderOpen, label: t.dash.templates },
+            { id: 'simulator', icon: FlaskConical, label: t.dash.simulator },
+            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: t.dash.agency }] : []),
+            { id: 'gov', icon: Shield, label: t.dash.gov },
+            { id: 'trainer', icon: BrainCircuit, label: t.dash.trainer },
             { id: 'upload', icon: Upload, label: t.dash.upload },
             // Applications removed
             { id: 'translate', icon: Globe, label: t.dash.translate },
@@ -163,9 +163,9 @@ export default function UserDash() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto relative">
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-mesh">
         {/* Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/50 to-transparent dark:from-brand-900/10 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/20 to-transparent dark:from-brand-900/5 pointer-events-none" />
 
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10 gap-4">
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>

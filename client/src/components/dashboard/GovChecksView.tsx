@@ -80,11 +80,11 @@ export function GovChecksView() {
                 }),
             });
             setResult({ type: 'rtw', data: res });
-            toast({ title: "RTW Check Successful", description: "Verification details retrieved." });
+            toast({ title: t.gov.successTitle, description: t.gov.successDesc });
         } catch (err: any) {
             toast({
-                title: "Check Failed",
-                description: err.message || "Could not verify Share Code. Check your details and try again.",
+                title: t.gov.failTitle,
+                description: err.message || t.gov.failDesc,
                 variant: "destructive"
             });
         } finally {
@@ -110,11 +110,11 @@ export function GovChecksView() {
                 }),
             });
             setResult({ type: 'immigration', data: res });
-            toast({ title: "Immigration Check Successful", description: "Status details retrieved." });
+            toast({ title: t.gov.successTitle, description: t.gov.successDesc });
         } catch (err: any) {
             toast({
-                title: "Check Failed",
-                description: err.message || "Could not verify immigration status.",
+                title: t.gov.failTitle,
+                description: err.message || t.gov.failDesc,
                 variant: "destructive"
             });
         } finally {
@@ -124,27 +124,33 @@ export function GovChecksView() {
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-                    <Shield className="text-brand-600" size={32} />
-                    {t.gov.title}
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400">
-                    {t.gov.desc}
-                </p>
+            <div className="flex flex-col gap-3 mb-12">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-3xl bg-brand-600 flex items-center justify-center shadow-xl shadow-brand-500/20">
+                        <Shield className="text-white" size={32} />
+                    </div>
+                    <div>
+                        <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                            {t.gov.title}
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
+                            {t.gov.desc}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
+            <div className="flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-slate-800 p-1.5 rounded-2xl w-fit shadow-lg mb-8">
                 <button
                     onClick={() => { setActiveCheck('rtw'); setResult(null); }}
-                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeCheck === 'rtw' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-500'}`}
+                    className={`px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all duration-300 ${activeCheck === 'rtw' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     {t.gov.rtw}
                 </button>
                 <button
                     onClick={() => { setActiveCheck('immigration'); setResult(null); }}
-                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeCheck === 'immigration' ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm' : 'text-slate-500'}`}
+                    className={`px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all duration-300 ${activeCheck === 'immigration' ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     {t.gov.immigration}
                 </button>
@@ -152,73 +158,73 @@ export function GovChecksView() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form Section */}
-                <AnimatedCard className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm p-8">
+                <AnimatedCard className="glass-premium p-8 rounded-3xl border-none shadow-2xl">
                     <form onSubmit={activeCheck === 'rtw' ? runRTWCheck : runImmigrationCheck} className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.gov.shareCode}</label>
+                        <div className="space-y-3">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500">{t.gov.shareCode}</label>
                             <input
                                 name="code"
                                 value={formData.code}
                                 onChange={handleInputChange}
                                 placeholder="e.g. W12 345 678"
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                                className="w-full px-6 py-4 bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/20 font-mono text-lg transition-all shadow-inner"
                                 required
                             />
-                            <p className="text-[10px] text-slate-400">{t.gov.shareCodeHint}</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight ml-1 italic">{t.gov.shareCodeHint}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.gov.forename}</label>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-500">{t.gov.forename}</label>
                                 <input
                                     name="forename"
                                     value={formData.forename}
                                     onChange={handleInputChange}
                                     placeholder={t.gov.forename}
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                    className="w-full px-6 py-4 bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/20 transition-all shadow-inner"
                                     required
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.gov.surname}</label>
+                            <div className="space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-500">{t.gov.surname}</label>
                                 <input
                                     name="surname"
                                     value={formData.surname}
                                     onChange={handleInputChange}
                                     placeholder={t.gov.surname}
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                    className="w-full px-6 py-4 bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/20 transition-all shadow-inner"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.gov.dob}</label>
+                        <div className="space-y-3">
+                            <label className="text-xs font-black uppercase tracking-widest text-slate-500">{t.gov.dob}</label>
                             <input
                                 name="dob"
                                 value={formData.dob}
                                 onChange={handleInputChange}
                                 placeholder="DD-MM-YYYY"
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                                className="w-full px-6 py-4 bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/20 font-mono text-lg transition-all shadow-inner"
                                 required
                             />
                         </div>
 
                         {activeCheck === 'immigration' && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.gov.reason}</label>
+                            <div className="space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-500">{t.gov.reason}</label>
                                 <select
                                     name="check_reason"
                                     value={formData.check_reason}
                                     onChange={handleInputChange}
-                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500"
+                                    className="w-full px-6 py-4 bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/20 transition-all appearance-none"
                                 >
-                                    <option value="PERSONAL_FINANCE">Personal Finance</option>
-                                    <option value="LOAN">Loan</option>
-                                    <option value="EDUCATION_OR_TRAINING">Education/Training</option>
-                                    <option value="TRAVEL">Travel</option>
-                                    <option value="HEALTH_INSURANCE_CARD">Health Insurance</option>
-                                    <option value="OTHER">Other</option>
+                                    <option value="PERSONAL_FINANCE">{t.gov.reasons.finance}</option>
+                                    <option value="LOAN">{t.gov.reasons.loan}</option>
+                                    <option value="EDUCATION_OR_TRAINING">{t.gov.reasons.edu}</option>
+                                    <option value="TRAVEL">{t.gov.reasons.travel}</option>
+                                    <option value="HEALTH_INSURANCE_CARD">{t.gov.reasons.health}</option>
+                                    <option value="OTHER">{t.gov.reasons.other}</option>
                                 </select>
                             </div>
                         )}
@@ -226,13 +232,13 @@ export function GovChecksView() {
                         <LiveButton
                             type="submit"
                             disabled={loading}
-                            className="w-full py-4 text-white font-extrabold text-lg"
+                            className="w-full py-5 text-white font-black text-xl rounded-2xl shadow-xl shadow-brand-500/20 hover:scale-[1.02] transition-transform active:scale-95"
                             variant="primary"
                         >
                             {loading ? (
-                                <><Loader2 className="animate-spin mr-2" size={20} /> {t.gov.processing}</>
+                                <><Loader2 className="animate-spin mr-3" size={24} /> {t.gov.processing}</>
                             ) : (
-                                <><Search className="mr-2" size={20} /> {t.gov.runCheck}</>
+                                <><Search className="mr-3" size={24} /> {t.gov.runCheck}</>
                             )}
                         </LiveButton>
                     </form>
@@ -249,10 +255,13 @@ export function GovChecksView() {
                     )}
 
                     {loading && (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-10">
-                            <Loader2 size={48} className="animate-spin text-brand-600 mb-4" />
-                            <h4 className="font-bold">{t.gov.contacting}</h4>
-                            <p className="text-sm text-slate-500">{t.gov.typicalWait}</p>
+                        <div className="h-full flex flex-col items-center justify-center text-center p-12 glass-premium rounded-3xl">
+                            <div className="relative mb-8">
+                                <Loader2 size={64} className="animate-spin text-brand-600" />
+                                <Shield className="absolute inset-0 m-auto text-brand-400 opacity-20" size={32} />
+                            </div>
+                            <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t.gov.contacting}</h4>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium">{t.gov.typicalWait}</p>
                         </div>
                     )}
 
@@ -263,16 +272,20 @@ export function GovChecksView() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden"
                             >
-                                <div className={`p-6 flex items-center gap-3 ${result.data.status === 'valid' || result.data.status === 'success' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                                <div className={`p-8 flex items-center gap-4 ${result.data.status === 'valid' || result.data.status === 'success' ? 'bg-green-500/10 border-b border-green-500/20' : 'bg-red-500/10 border-b border-red-500/20'}`}>
                                     {result.data.status === 'valid' || result.data.status === 'success' ? (
-                                        <CheckCircle2 className="text-green-500" size={28} />
+                                        <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
+                                            <CheckCircle2 className="text-white" size={32} />
+                                        </div>
                                     ) : (
-                                        <XCircle className="text-red-500" size={28} />
+                                        <div className="w-14 h-14 rounded-2xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                            <XCircle className="text-white" size={32} />
+                                        </div>
                                     )}
                                     <div>
-                                        <h4 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">{t.gov.result}</h4>
-                                        <p className={`text-xs font-bold uppercase ${result.data.status === 'valid' || result.data.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                                            {result.data.status || 'Status Unknown'}
+                                        <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t.gov.result}</h4>
+                                        <p className={`text-2xl font-black uppercase tracking-tight ${result.data.status === 'valid' || result.data.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {result.data.status || t.gov.statusUnknown}
                                         </p>
                                     </div>
                                 </div>
@@ -291,9 +304,9 @@ export function GovChecksView() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t.gov.rtw} Details</p>
-                                                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 text-sm leading-relaxed">
-                                                    {result.data.details || 'No additional details provided.'}
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t.gov.rtw} Details</p>
+                                                <div className="p-6 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 leading-relaxed font-medium shadow-inner">
+                                                    {result.data.details || t.gov.noDetails}
                                                 </div>
                                             </div>
                                             {result.data.expiry_date && (
