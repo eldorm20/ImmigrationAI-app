@@ -27,11 +27,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // Allow all origins in production to avoid CORS headaches with proxies
+      origin: true, // Use true to reflect origin - essential when credentials: true
       methods: ["GET", "POST"],
       credentials: true,
     },
-    transports: ["websocket"], // Force websocket to avoid issues with proxies/load balancers on Railway
+    transports: ["websocket", "polling"], // Prioritize websocket but allow polling as fallback
+    path: "/socket.io/", // Explicitly set default path
     pingInterval: 25000,
     pingTimeout: 20000,
   });

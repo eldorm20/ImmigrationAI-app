@@ -58,14 +58,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Determine server URL - prioritize environment variable, otherwise fallback to window origin
     // Removing /api suffix if present in VITE_API_URL as socket.io needs the base URL
     const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const serverUrl = apiUrl.replace(/\/api\/?$/, "").replace(/^http/, "ws"); // Explicitly use ws/wss protocol
+    const serverUrl = apiUrl.replace(/\/api\/?$/, ""); // Use standard http/https URL
+
+    // logInfo might not be defined in all contexts, use console.log
+    console.log(`[WS] Initializing Socket.IO connection to: ${serverUrl} (User: ${userId})`);
 
     const socket = io(serverUrl, {
       auth: {
         token: token, // Use passed token
         userId,
       },
-      transports: ["websocket"], // Force websocket to avoid issues with proxies/load balancers on Railway
+      transports: ["websocket", "polling"], // Prioritize websocket but allow polling fallback
+      path: "/socket.io/", // Ensure path matches server
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
