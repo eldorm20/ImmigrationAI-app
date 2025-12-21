@@ -534,6 +534,9 @@ router.post(
             if (parsed) {
               return res.json({ reply: parsed });
             }
+          } else {
+            const errorText = await response.text();
+            logger.error({ status: response.status, statusText: response.statusText, errorText, url: chatUrl, model: process.env.OLLAMA_MODEL }, "Ollama chat request failed");
           }
         } catch (ollamaErr) {
           logger.warn({ err: ollamaErr }, "Ollama chat endpoint failed, falling back to generate");
