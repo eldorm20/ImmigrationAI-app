@@ -582,13 +582,15 @@ Return valid JSON only: { "riskScore": number, "successProbability": string, "re
 export async function simulateVoiceConversation(
   lastUserMessage: string,
   conversationHistory: { role: string; content: string }[],
-  visaType: string
+  visaType: string,
+  language: string = "en"
 ): Promise<string> {
   try {
     const prompt = `You are an immigration officer conducting a visa interview for a ${visaType} visa.
     The applicant just said: "${lastUserMessage}".
     
-    Respond naturally as an officer would. Be professional but conversational. 
+    Respond naturally as an officer would in the language: ${language}.
+    Be professional but conversational. 
     Keep your response relatively short (1-3 sentences) so it flows well in a spoken conversation. 
     Ask a relevant follow-up question or comment on their answer.
     
@@ -599,7 +601,7 @@ export async function simulateVoiceConversation(
     const response = await agentsManager.processRequest(
       "immigration-law",
       "handleUserQuery", // Using handleUserQuery as a generic conversation handler for now
-      [prompt, { context: "voice interview" }]
+      [prompt, { context: "voice interview", language }]
     );
 
     if (!response.success) {
@@ -626,9 +628,9 @@ export async function generateDocumentRequestMessage(
     They are applying for a ${visaType} and are missing the following mandatory documents:
     ${missingDocuments.map(d => `- ${d}`).join("\n")}
     
-    Write a short email (Subject + Body) reminding them to upload these specific files to their portal to avoid delays.
+    Write a short email(Subject + Body) reminding them to upload these specific files to their portal to avoid delays.
     Emphasize that the AI cannot verify their eligibility without these proofs.
-    Tone: Helpful, Professional, Encouraging.
+      Tone: Helpful, Professional, Encouraging.
     `;
 
     const response = await agentsManager.processRequest(
@@ -663,20 +665,20 @@ export async function reviewDocument(
   try {
     const prompt = `You are an expert immigration document auditor. 
     Analyze the following content from a ${docType} for a ${visaType} visa application.
-    
-    Content:
+
+      Content:
     "${content.substring(0, 5000)}"
-    
+
     Tasks:
     1. Score the document's compliance/quality from 0-100.
     2. Identify specific strengths and weaknesses.
-    3. List "Red Flags" (missing info, inconsistencies) and "Green Flags" (strong points).
+    3. List "Red Flags"(missing info, inconsistencies) and "Green Flags"(strong points).
     
-    Response format (JSON):
+    Response format(JSON):
     {
       "score": number,
-      "feedback": ["point 1", "point 2"],
-      "flags": [{"type": "red", "message": "..."}, {"type": "green", "message": "..."}]
+        "feedback": ["point 1", "point 2"],
+          "flags": [{ "type": "red", "message": "..." }, { "type": "green", "message": "..." }]
     }
     `;
 
@@ -735,7 +737,7 @@ export async function analyzeUploadedDocument(
       if (app) visaType = app.visaType;
     }
 
-    let extractedText = `Document: ${fileName}\nType: ${documentType || 'Unknown'}\nContext: ${visaType} Visa Application.`;
+    let extractedText = `Document: ${fileName} \nType: ${documentType || 'Unknown'} \nContext: ${visaType} Visa Application.`;
 
     // Perform OCR if it's an image
     const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
@@ -744,7 +746,7 @@ export async function analyzeUploadedDocument(
         logger.info({ documentId, url: doc.url }, "Starting OCR analysis");
         const { data: { text } } = await Tesseract.recognize(doc.url, 'eng+uzb+rus');
         if (text && text.trim().length > 10) {
-          extractedText += `\n\nExtracted Text Content:\n${text}`;
+          extractedText += `\n\nExtracted Text Content: \n${text} `;
           logger.info({ documentId }, "OCR extraction successful");
         }
       } catch (ocrError) {
@@ -774,26 +776,26 @@ export async function analyzeScenario(
   data: any
 ): Promise<{ score: number; likelihood: string; tips: string[]; processingTime: string }> {
   try {
-    const prompt = `You are an expert visa consultant. Analyze this hypothetical scenario:
+    const prompt = `You are an expert visa consultant.Analyze this hypothetical scenario:
     Country: ${data.destinationCountry}
     Visa: ${data.visaType}
     Education: ${data.education}
     Experience: ${data.experience}
     Language: ${data.language}
     Salary: ${data.salary}
-    
+
     Tasks:
-    1. Calculate a realistic success score (0-100).
-    2. Determine success likelihood (Low/Medium/High).
-    3. Provide 3-4 specific improvement tips.
+    1. Calculate a realistic success score(0 - 100).
+    2. Determine success likelihood(Low / Medium / High).
+    3. Provide 3 - 4 specific improvement tips.
     4. Estimate processing time.
     
-    Response format (JSON):
+    Response format(JSON):
     {
       "score": number,
-      "likelihood": "High" | "Medium" | "Low",
-      "tips": ["tip 1", "tip 2"],
-      "processingTime": "3-8 weeks"
+        "likelihood": "High" | "Medium" | "Low",
+          "tips": ["tip 1", "tip 2"],
+            "processingTime": "3-8 weeks"
     }
     `;
 

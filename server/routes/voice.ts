@@ -16,7 +16,8 @@ const voiceInteractSchema = z.object({
         role: z.string(),
         content: z.string()
     })).default([]),
-    visaType: z.string().default("General")
+    visaType: z.string().default("General"),
+    language: z.string().optional().default("en")
 });
 
 router.post(
@@ -29,7 +30,7 @@ router.post(
         // Increment AI usage
         await incrementUsage(userId, 'aiMonthlyRequests', 1);
 
-        const response = await simulateVoiceConversation(message, history, visaType);
+        const response = await simulateVoiceConversation(message, history, visaType, (req.body as any).language || 'en');
 
         res.json({ response });
     })

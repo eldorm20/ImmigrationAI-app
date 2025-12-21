@@ -29,7 +29,7 @@ import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerVie
 
 export default function UserDash() {
   const { user, logout } = useAuth();
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -178,7 +178,17 @@ export default function UserDash() {
             </p>
           </motion.div>
           <div className="flex items-center gap-4">
-            <div className="hidden md:block"><ThemeToggle /></div>
+            <div className="hidden md:flex items-center gap-2 mr-4">
+              <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
+                {(['en', 'uz', 'ru'] as const).map((l) => (
+                  <button key={l} onClick={() => setLang(l)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all uppercase ${lang === l ? 'bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
