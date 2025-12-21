@@ -35,7 +35,7 @@ export function Navbar() {
         : "glass py-2"
         }`}
     >
-      <div className="container mx-auto px-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
           <motion.div
