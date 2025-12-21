@@ -61,10 +61,29 @@ router.get(
       offset: parseInt(offset, 10),
     });
 
-    // If no articles found in DB, return a comprehensive fallback set from the mock data
-    // This allows the Research Library to remain functional even without a populated database
-    if ((!articles || articles.length === 0) && (!search && category === "all")) {
-      const fallback = getFallbackResearchItems();
+    // If no articles found in DB, return filtered fallback data from the mock set
+    // This ensures the Research Library is never empty and fully functional (search/tabs) for new deployments
+    if (!articles || articles.length === 0) {
+      console.log(`[Research] DB empty, serving fallback data for: cat=${category} search=${search}`);
+      let fallback = getFallbackResearchItems();
+
+      // 1. Filter by Category
+      if (category && category !== "all") {
+        fallback = fallback.filter(item => item.category === category);
+      }
+
+      // 2. Filter by Search
+      if (search) {
+        const term = search.toLowerCase();
+        fallback = fallback.filter(item =>
+          item.title.toLowerCase().includes(term) ||
+          item.summary.toLowerCase().includes(term) ||
+          item.tags.some((t: string) => t.toLowerCase().includes(term))
+        );
+      }
+
+      // 3. Ignore Language for fallback (always show English content instead of nothing)
+
       return res.json({ items: fallback });
     }
 
