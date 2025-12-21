@@ -71,8 +71,8 @@ interface AnimatedCardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, className = "", delay = 0, onClick, hoverEffect = true, ...props }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-50px" }}
+    animate={{ opacity: 1, y: 0 }}
+    // viewport={{ once: true, margin: "0px" }} // Disabled for mobile reliability
     whileHover={hoverEffect ? { y: -5, boxShadow: "0 20px 40px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" } : undefined}
     transition={{ duration: 0.5, delay, ease: "easeOut" }}
     onClick={onClick}
