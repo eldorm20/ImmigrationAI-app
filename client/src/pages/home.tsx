@@ -68,7 +68,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="pt-32 pb-12 md:pb-20 px-4 md:px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10">
+      <div className="min-h-[90dvh] pt-32 pb-12 md:pb-20 px-4 md:px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10 flex flex-col lg:grid">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -82,7 +82,7 @@ export default function Home() {
             AI-Powered Visa Assistant V2.0 (Production Live)
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-[length:var(--text-fluid-h1)] font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
             {t.hero.title} <br />
             <span className="text-gradient">
               AI Powered.
@@ -247,7 +247,7 @@ export default function Home() {
       <div className="py-24 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Latest Immigration Insights</h2>
+            <h2 className="text-[length:var(--text-fluid-h2)] font-bold mb-4 text-slate-900 dark:text-white">Latest Immigration Insights</h2>
             <p className="text-slate-600 dark:text-slate-400">Read guides, tips, and success stories from our community</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -294,7 +294,7 @@ export default function Home() {
             <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Get your visa assessment in minutes, not weeks</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: "1", title: "Answer 5 Questions", desc: "Tell us about your background, education, and visa destination. Takes 2 minutes." },
               { step: "2", title: "Get AI Assessment", desc: "Our AI analyzes your profile against 10k+ successful cases and shows your approval chance." },
@@ -330,10 +330,10 @@ export default function Home() {
       <div className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose ImmigrationAI?</h2>
+            <h2 className="text-[length:var(--text-fluid-h2)] font-bold mb-4 text-slate-900 dark:text-white">Why Choose ImmigrationAI?</h2>
             <p className="text-slate-500 dark:text-slate-400">We combine legal expertise with artificial intelligence to provide the fastest, most accurate immigration guidance available.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: Globe, title: "Global Access", desc: "Expert guidance for UK, Germany, and Poland visas from anywhere.", plan: "CORE" },
               { icon: Shield, title: "AI Verified", desc: "Smart eligibility checks significantly reduce refusal risks before you apply.*", plan: "PREMIUM" },
@@ -382,7 +382,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Trusted by Thousands</h2>
             <p className="text-slate-500 dark:text-slate-400">See what our users say about ImmigrationAI</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {[
               {
                 name: "Davron Mirzaev",

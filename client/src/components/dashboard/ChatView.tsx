@@ -124,8 +124,8 @@ export const ChatView = () => {
     };
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-[calc(100vh-200px)] flex flex-col max-w-5xl mx-auto w-full">
-            <AnimatedCard className="flex-1 flex flex-col p-0 overflow-hidden glass-premium border-none shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-[2.5rem]">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col max-w-5xl mx-auto w-full min-h-0">
+            <AnimatedCard className="flex-1 flex flex-col p-0 overflow-hidden glass-premium border-none shadow-none md:shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:md:shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-none md:rounded-[2.5rem]">
                 {/* Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-20">
                     <div className="flex items-center gap-4">
@@ -160,7 +160,7 @@ export const ChatView = () => {
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
-                                <div className={`flex items-end gap-3 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                <div className={`flex items-end gap-3 max-w-[95%] md:max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md ${m.role === 'ai' ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400' : 'bg-brand-600 text-white shadow-brand-500/20'}`}>
                                         {m.role === 'ai' ? <Sparkles size={18} /> : <User size={18} />}
                                     </div>
@@ -197,7 +197,7 @@ export const ChatView = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 md:p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 space-y-6">
+                <div className="p-4 md:p-8 pb-safe md:pb-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 space-y-6">
                     <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide no-scrollbar">
                         {t.chat.tags?.map((tag: string) => (
                             <motion.button

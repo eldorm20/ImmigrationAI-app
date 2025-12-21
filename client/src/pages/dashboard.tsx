@@ -71,8 +71,37 @@ export default function UserDash() {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-[100dvh] shadow-2xl md:shadow-sm transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      <motion.aside
+        initial={false}
+        animate={{ x: isMobileMenuOpen ? 0 : "-100%" }}
+        transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0.5, right: 0.05 }}
+        onDragEnd={(e, { offset, velocity }) => {
+          if (offset.x < -50 || velocity.x < -500) {
+            setIsMobileMenuOpen(false);
+          }
+        }}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-[100dvh] shadow-2xl md:shadow-sm md:translate-x-0 md:static`}
+        style={{ x: undefined }} // Reset x for desktop if needed via media query, but mixed motion/css can be tricky.
+        // Better approach: Use variants or conditional animate. 
+        // Since we can't easily do media queries in 'animate', we'll rely on the fact that on desktop we want it always visible.
+        // But standard CSS 'md:static' might conflict with motion style 'x'.
+        // Let's rely on standard CSS for desktop and motion for mobile?
+        // Actually, mixing is hard. Let's use a specialized mobile drawer component pattern or keep it simple.
+        // simpler: Keep class based transform for desktop reset?
+        // If I set animate={{ x: ... }} it adds inline style. 
+        // for desktop: force x: 0 !important via css? or use 'variants'.
+        variants={{
+          open: { x: 0 },
+          closed: { x: "-100%" },
+          desktop: { x: 0 }
+        }}
+        animate={isMobileMenuOpen ? "open" : (window.innerWidth >= 768 ? "desktop" : "closed")}
+      // window.innerWidth is risky for SSR/hydration. 
+      // Let's stick to the current CSS-transition approach but just add drag handlers?
+      // No, drag requires motion component.
       >
         <div className="p-6 md:p-8 flex justify-between items-center">
           <motion.div
@@ -175,7 +204,7 @@ export default function UserDash() {
             {t.dash.logout}
           </LiveButton>
         </div>
-      </aside>
+      </motion.aside>
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-mesh">

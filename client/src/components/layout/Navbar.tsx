@@ -11,13 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Globe, Menu, Plane, User, X } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const { t, setLang, lang } = useI18n();
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -140,66 +140,127 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Toggle */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <div>
-              <LiveButton variant={isTransparent ? "glass" : "ghost"} size="icon" className={`md:hidden ${isTransparent ? "bg-white/10 border-white/20 text-white" : ""}`}>
-                <Menu className="w-6 h-6" />
-              </LiveButton>
-            </div>
-          </SheetTrigger>
-          <SheetContent className="glass-card border-none w-[300px]">
-            <div className="flex flex-col gap-4 mt-8">
-              <div className="flex flex-wrap gap-2 mb-6 p-2 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl">
+        <div className="md:hidden z-50">
+          <LiveButton
+            variant={isTransparent ? "glass" : "ghost"}
+            size="icon"
+            className={`relative z-50 ${isTransparent ? "bg-white/10 border-white/20 text-white" : ""}`}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </LiveButton>
+        </div>
+      </div>
+
+      {/* Premium Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-40 bg-white/60 dark:bg-slate-900/80 pt-24 px-6 flex flex-col md:hidden"
+          >
+            <div className="flex flex-col gap-6">
+              {/* Language Switcher */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="flex p-1 bg-white/50 dark:bg-slate-800/50 rounded-2xl border border-white/20"
+              >
                 {['en', 'uz', 'ru'].map((l) => (
                   <button
                     key={l}
                     onClick={() => setLang(l as any)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg uppercase transition-all ${lang === l ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}
+                    className={`flex-1 py-3 text-sm font-bold rounded-xl uppercase transition-all ${lang === l ? 'bg-white shadow-sm text-brand-600 scale-100' : 'text-slate-500 scale-95'}`}
                   >
                     {t.langNames?.[l as any] || l}
                   </button>
                 ))}
-              </div>
+              </motion.div>
 
-              <Link href="/features">
-                <LiveButton variant="ghost" className="w-full justify-start">Features</LiveButton>
-              </Link>
-              <Link href="/pricing">
-                <LiveButton variant="ghost" className="w-full justify-start">Pricing</LiveButton>
-              </Link>
-              <Link href="/help">
-                <LiveButton variant="ghost" className="w-full justify-start">{t.nav?.help || 'Help & Support'}</LiveButton>
-              </Link>
+              {/* Navigation Links */}
+              <nav className="flex flex-col gap-2">
+                {[
+                  { href: "/features", label: "Features" },
+                  { href: "/pricing", label: "Pricing" },
+                  { href: "/help", label: t.nav?.help || 'Help & Support' }
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.href}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 + (i * 0.1) }}
+                  >
+                    <Link href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+                      <div className="p-4 rounded-2xl bg-white/40 dark:bg-slate-800/40 border border-white/20 active:scale-[0.98] transition-all flex justify-between items-center group">
+                        <span className="font-bold text-lg text-slate-900 dark:text-white">{item.label}</span>
+                        <div className="w-8 h-8 rounded-full bg-white/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-brand-600">→</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </nav>
 
-              <div className="h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
+              <div className="h-px bg-slate-200 dark:bg-white/10 my-2"></div>
 
-              {user ? (
-                <>
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-2">
-                    <p className="font-bold text-slate-900 dark:text-white">{user.name}</p>
-                    <p className="text-sm text-slate-500">{user.email}</p>
+              {/* User Actions */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                {user ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        {user.name[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg text-slate-900 dark:text-white">{user.name}</p>
+                        <p className="text-sm text-slate-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <LiveButton
+                      variant="primary"
+                      size="lg"
+                      className="w-full text-lg shadow-xl shadow-brand-500/20"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        window.location.href = user.role === 'lawyer' || user.role === 'admin' ? '/lawyer' : '/dashboard';
+                      }}
+                    >
+                      {t.dash?.welcome || 'Open Dashboard'}
+                    </LiveButton>
+                    <LiveButton
+                      variant="ghost"
+                      size="lg"
+                      className="w-full text-red-500"
+                      onClick={() => { setIsMobileMenuOpen(false); logout(); }}
+                    >
+                      {t.dash.logout}
+                    </LiveButton>
                   </div>
-                  <LiveButton variant="primary" className="w-full" onClick={() => window.location.href = user.role === 'lawyer' || user.role === 'admin' ? '/lawyer' : '/dashboard'}>
-                    Dashboard
-                  </LiveButton>
-                  <LiveButton variant="ghost" className="w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={logout}>{t.dash.logout}</LiveButton>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth">
-                    <LiveButton variant="secondary" className="w-full">{t.nav.login}</LiveButton>
-                  </Link>
-                  <Link href="/auth">
-                    <LiveButton variant="primary" className="w-full">{t.nav.start}</LiveButton>
-                  </Link>
-                </>
-              )}
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                      <LiveButton variant="primary" size="lg" className="w-full text-lg shadow-xl shadow-brand-500/20">{t.nav.start}</LiveButton>
+                    </Link>
+                    <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                      <LiveButton variant="secondary" size="lg" className="w-full text-lg">{t.nav.login}</LiveButton>
+                    </Link>
+                  </div>
+                )}
+              </motion.div>
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+    </nav >
   );
 }

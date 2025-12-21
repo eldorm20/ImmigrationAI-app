@@ -29,12 +29,24 @@
 
   --font-sans: 'Outfit', system-ui, sans-serif;
   --font-heading: 'Outfit', system-ui, sans-serif;
+
+  /* Fluid Typography */
+  --text-fluid-h1: clamp(2.5rem, 5vw + 1rem, 4.5rem);
+  --text-fluid-h2: clamp(2rem, 4vw + 1rem, 3.5rem);
+  --text-fluid-h3: clamp(1.5rem, 3vw + 1rem, 2.5rem);
+  --text-fluid-body: clamp(1rem, 1vw + 0.8rem, 1.125rem);
+
+  /* Safe Area Variables */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
 }
 
 /* Custom Animations & Utilities */
 @layer utilities {
   .glass {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/10 shadow-sm transition-colors duration-300;
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl backdrop-saturate-150 border-b border-white/20 dark:border-white/10 shadow-sm transition-colors duration-300;
   }
 
   .glass-card {
@@ -43,7 +55,15 @@
   }
 
   .glass-premium {
-    @apply bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/5 shadow-2xl;
+    @apply bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl backdrop-saturate-150 border border-white/20 dark:border-white/5 shadow-2xl;
+  }
+
+  .hover-elevate {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  .active-elevate-2 {
+    @apply active:translate-y-0 active:shadow-sm active:scale-95;
   }
 
   .bg-mesh {
@@ -61,6 +81,46 @@
       radial-gradient(at 50% 0%, hsla(225, 100%, 15%, 1) 0, transparent 50%),
       radial-gradient(at 100% 0%, hsla(240, 100%, 10%, 1) 0, transparent 50%);
     @apply block;
+  }
+
+  /* Safe Area Utilities */
+  .pt-safe {
+    padding-top: var(--sat);
+  }
+
+  .pb-safe {
+    padding-bottom: var(--sab);
+  }
+
+  .pl-safe {
+    padding-left: var(--sal);
+  }
+
+  .pr-safe {
+    padding-right: var(--sar);
+  }
+
+  .min-h-safe {
+    min-height: calc(100vh - var(--sat) - var(--sab));
+  }
+
+  .h-safe-screen {
+    height: calc(100vh - var(--sat) - var(--sab));
+  }
+
+  /* Mobile Touch Optimization */
+  .touch-feedback {
+    @apply active:scale-95 transition-transform duration-100;
+  }
+
+  /* Hide scrollbar for clean UI but keep functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   .text-gradient {

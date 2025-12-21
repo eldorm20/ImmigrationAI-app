@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { StaggerContainer } from "@/components/ui/stagger-container";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Plane } from "lucide-react";
@@ -206,9 +207,9 @@ export default function Research() {
 
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-extrabold mb-4 text-slate-900 dark:text-white">{t.research.title}</h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400">
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-[length:var(--text-fluid-h1)] font-extrabold mb-4 text-slate-900 dark:text-white">{t.research.title}</h1>
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400">
             {t.research.subtitle}
           </p>
         </div>
@@ -239,12 +240,12 @@ export default function Research() {
             </div>
           )}
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar md:flex-wrap md:mx-0 md:px-0 md:pb-0">
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
                   ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
                   }`}
@@ -353,7 +354,7 @@ export default function Research() {
         </div>
 
         {/* Resources Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-safe">
           {loading && (
             <div className="text-center py-20 text-slate-400">
               Loading research library...
@@ -420,7 +421,7 @@ export default function Research() {
               </p>
             </AnimatedCard>
           ))}
-        </div>
+        </StaggerContainer>
 
         {filteredResources.length === 0 && (
           <div className="text-center py-20">
@@ -430,7 +431,7 @@ export default function Research() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

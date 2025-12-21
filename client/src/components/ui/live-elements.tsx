@@ -20,7 +20,7 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   secondary: "bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800",
   ghost: "text-slate-600 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50",
   outline: "border-2 border-brand-500 text-brand-600 hover:bg-brand-50",
-  glass: "bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 text-white hover:bg-white/60 transition-all shadow-xl",
+  glass: "bg-white/40 dark:bg-black/40 backdrop-blur-xl backdrop-saturate-150 border border-white/20 text-white hover:bg-white/60 transition-all shadow-xl",
   neon: "bg-slate-900 border border-brand-500 text-brand-400 shadow-[0_0_10px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.6)] hover:bg-slate-800",
   success: "bg-green-600 text-white shadow-lg shadow-green-500/20 hover:bg-green-700 border-transparent",
   danger: "bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-700 border-transparent",
