@@ -10,7 +10,12 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
         ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
         ...messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }))
       ],
-      stream: false
+      stream: false,
+      options: {
+        temperature: 0.7,
+        repeat_penalty: 1.1,
+        num_predict: 512
+      }
     };
     return body;
   }
@@ -18,7 +23,12 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
   // Fallback to prompt-based format
   const body: any = {
     prompt: `${systemPrompt || ""}\n\n${prompt}`.trim(),
-    stream: false
+    stream: false,
+    options: {
+      temperature: 0.7,
+      repeat_penalty: 1.1,
+      num_predict: 512
+    }
   };
   if (model) body.model = model;
   return body;

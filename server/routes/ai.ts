@@ -492,7 +492,7 @@ router.post(
 
       // Use improved chat function that properly handles conversation history
       const language = (parsed.language as string) || 'en';
-      const systemPrompt = `You are an expert immigration and visa assistant. Answer questions in ${language === 'uz' ? 'Uzbek' : language === 'ru' ? 'Russian' : 'English'}. Provide accurate, helpful information about visas, immigration processes, document requirements, and related topics. Be concise but thorough.`;
+      const systemPrompt = `You are an expert immigration and visa assistant. You must answer in the same language as the user's question (Uzbek, Russian, or English), but default to ${language === 'uz' ? 'Uzbek' : language === 'ru' ? 'Russian' : 'English'} if unsure. Provide accurate, helpful information about visas, immigration processes, document requirements, and related topics. Be concise but thorough.`;
 
       // Build full conversation with history for context
       const allMessages = [
