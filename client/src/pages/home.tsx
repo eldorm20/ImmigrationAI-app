@@ -123,7 +123,7 @@ export default function Home() {
             initial={{ rotateY: 5, opacity: 0 }}
             animate={{ rotateY: 0, opacity: 1 }}
             transition={{ duration: 1, type: "spring" }}
-            className="glass-card p-8 md:p-10 rounded-[2rem] border-t border-white/60 dark:border-white/10 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-800/80 dark:to-slate-900/40 relative overflow-hidden z-10"
+            className="glass-card p-6 md:p-10 rounded-[2rem] border-t border-white/60 dark:border-white/10 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-800/80 dark:to-slate-900/40 relative overflow-hidden z-10"
           >
             {/* Floating Badge */}
             <motion.div
@@ -215,7 +215,7 @@ export default function Home() {
         </div>
       </div>
       {/* Quick Assessment Section - Moved here for better conversion */}
-      <div className="py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <div className="py-12 md:py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-100 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-6">
@@ -226,7 +226,7 @@ export default function Home() {
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
               <EligibilityQuiz compact={true} />
             </div>
           </div>

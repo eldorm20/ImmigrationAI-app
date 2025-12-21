@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Send, Loader2, MessageCircle, User, X, MoreVertical, Trash2, Edit2 } from "lucide-react";
+import { Send, Loader2, MessageCircle, User, X, MoreVertical, Trash2, Edit2, ArrowLeft } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -294,10 +294,10 @@ export default function MessagingPanel() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex gap-4"
+      className="h-full flex gap-4 relative"
     >
       {/* Participants List */}
-      <AnimatedCard className="w-72 flex flex-col glass-premium border-none shadow-xl">
+      <AnimatedCard className={`flex flex-col glass-premium border-none shadow-xl w-full md:w-72 ${selectedParticipant ? 'hidden md:flex' : 'flex'}`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest text-slate-500">
             <MessageCircle size={18} className="text-brand-500" />
@@ -355,17 +355,23 @@ export default function MessagingPanel() {
       </AnimatedCard>
 
       {/* Chat Area */}
-      <AnimatedCard className="flex-1 flex flex-col glass-premium border-none shadow-xl overflow-hidden">
+      <AnimatedCard className={`flex-1 flex-col glass-premium border-none shadow-xl overflow-hidden ${selectedParticipant ? 'flex' : 'hidden md:flex'}`}>
         {selectedParticipant ? (
           <>
             {/* Chat Header */}
-            <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
+            <div className="p-4 md:p-6 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-lg">
-                  <User size={24} />
+                <button
+                  onClick={() => setSelectedParticipant(null)}
+                  className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white shadow-lg">
+                  <User size={20} className="md:w-6 md:h-6" />
                 </div>
                 <div>
-                  <p className="font-black text-slate-900 dark:text-white text-lg leading-none">
+                  <p className="font-black text-slate-900 dark:text-white text-base md:text-lg leading-none">
                     {selectedParticipantObj?.name || t.messaging.participant}
                   </p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-brand-500 mt-1">

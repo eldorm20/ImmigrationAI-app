@@ -20,27 +20,77 @@ export async function refreshImmigrationNews(): Promise<{ count: number }> {
 
         // Mock/Sample news sources (In a real app, use a News API or RSS feed)
         // For this implementation, we simulate fetching from a few reputable sources
+        // Real data populated by AI Agent - Dec 2025
         const rawNews: RawNewsItem[] = [
+            // UK News
             {
-                title: "UK Government Announces New Skilled Worker Salary Thresholds",
-                link: "https://www.gov.uk/government/news/new-skilled-worker-salary-thresholds",
+                title: "UK Increases Skilled Worker Visa Salary Threshold to £38,700",
+                link: "https://www.gov.uk/skilled-worker-visa",
                 pubDate: new Date().toISOString(),
-                description: "The UK government has detailed the new salary requirements for the Skilled Worker visa route, effective from April.",
+                description: "The UK Home Office has implemented a significant increase in the minimum salary threshold for Skilled Worker visas, rising to £38,700 from April 2024. This measure aims to reduce net migration and encourages businesses to invest in the local workforce.",
                 source: "UK Home Office"
             },
             {
-                title: "Germany Launches New 'Chancenkarte' (Opportunity Card) for Job Seekers",
+                title: "Care Worker Visa Route Closed to New Dependents",
+                link: "https://www.gov.uk/health-care-worker-visa",
+                pubDate: new Date().toISOString(),
+                description: "As part of tighter immigration controls, the UK has restricted Care Workers from bringing dependents. This rule applies to new applicants and aims to curb the high numbers of family members accompanying workers on this route.",
+                source: "UK Visas & Immigration"
+            },
+            {
+                title: "Immigration Health Surcharge (IHS) Increases to £1,035",
+                link: "https://www.gov.uk/healthcare-immigration-application/how-much-pay",
+                pubDate: new Date().toISOString(),
+                description: "The Immigration Health Surcharge has been raised to £1,035 per year for most visa applicants, a substantial increase intended to better cover the costs of NHS services used by migrants.",
+                source: "UK Government"
+            },
+
+            // Germany News
+            {
+                title: "Germany Launches 'Chancenkarte' (Opportunity Card) for Job Seekers",
                 link: "https://www.make-it-in-germany.com/en/visa-residence/types/chancenkarte",
                 pubDate: new Date().toISOString(),
-                description: "Germany is introducing a points-based system for non-EU citizens to enter the country to search for work.",
+                description: "Germany's new Opportunity Card allows non-EU skilled workers to enter Germany to look for work for up to a year. It uses a points-based system considering language skills, experience, and age.",
                 source: "Federal Republic of Germany"
             },
             {
-                title: "Upcoming Changes to UK Student Visa Dependent Rules",
-                link: "https://www.gov.uk/government/publications/student-visa-changes",
+                title: "Germany Eases Naturalization Rules: Citizenship in 5 Years",
+                link: "https://www.bmi.bund.de/EN/topics/migration/nationality-law/nationality-law-node.html",
                 pubDate: new Date().toISOString(),
-                description: "Strict new measures for student visa dependents have been announced to reduce net migration numbers.",
-                source: "BBC News"
+                description: "Germany has modernized its citizenship laws, allowing naturalization after just 5 years of residence (down from 8), and even 3 years in cases of 'special integration achievements'. Dual citizenship is also now generally permitted.",
+                source: "Federal Ministry of the Interior"
+            },
+
+            // Canada News
+            {
+                title: "Canada Announces Cap on International Student Permits",
+                link: "https://www.canada.ca/en/immigration-refugees-citizenship/news.html",
+                pubDate: new Date().toISOString(),
+                description: "IRCC has introduced a cap on the number of international student permits for 2025 to ensure the sustainability of the program and alleviate housing pressures.",
+                source: "IRCC Canada"
+            },
+            {
+                title: "Canada Prioritizes Francophone Immigration Outside Quebec",
+                link: "https://www.canada.ca/en/immigration-refugees-citizenship/campaigns/francophone-immigration.html",
+                pubDate: new Date().toISOString(),
+                description: "New targets have been set to increase the proportion of French-speaking permanent resident admissions outside Quebec, offering streamlined pathways for Francophone candidates.",
+                source: "IRCC Canada"
+            },
+
+            // US News
+            {
+                title: "US H-1B Visa Modernization and Stricter Vetting",
+                link: "https://www.uscis.gov/working-in-united-states/h-1b-specialty-occupations",
+                pubDate: new Date().toISOString(),
+                description: "The US has proposed rules to modernize the H-1B lottery system to prevent fraud, alongside stricter vetting processes including social media screening for certain applicants.",
+                source: "USCIS"
+            },
+            {
+                title: "US Asylum Processing Changes and Fee Updates",
+                link: "https://www.uscis.gov/humanitarian/refugees-and-asylum/asylum",
+                pubDate: new Date().toISOString(),
+                description: "New policies affect asylum processing timelines and introduce updated fee structures for varying humanitarian applications.",
+                source: "USCIS"
             }
         ];
 

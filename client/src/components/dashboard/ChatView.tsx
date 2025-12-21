@@ -151,7 +151,7 @@ export const ChatView = () => {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/30 dark:bg-slate-950/30 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50/30 dark:bg-slate-950/30 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                     <AnimatePresence initial={false}>
                         {messages.map((m, i) => (
                             <motion.div
@@ -197,7 +197,7 @@ export const ChatView = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 space-y-6">
+                <div className="p-4 md:p-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 space-y-6">
                     <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide no-scrollbar">
                         {t.chat.tags?.map((tag: string) => (
                             <motion.button
