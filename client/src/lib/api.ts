@@ -42,7 +42,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const {
     skipErrorToast = false,
-    timeout = 30000,
+    timeout = 300000,
     ...fetchOptions
   } = options;
 
