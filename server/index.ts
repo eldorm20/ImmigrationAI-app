@@ -25,7 +25,7 @@ const httpServer = createServer(app);
 
 // Startup Log to verify deployment version
 console.log("-----------------------------------------");
-console.log("STARTING DEPLOYMENT VERSION: f475180 (Sprint 2 Fixes)");
+console.log(`STARTING DEPLOYMENT VERSION: ${process.env.RAILWAY_GIT_COMMIT_SHA || "Unknown (Development/Latest)"}`);
 console.log("-----------------------------------------");
 
 declare module "http" {
