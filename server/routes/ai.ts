@@ -536,25 +536,68 @@ Answer specifically in English, clearly and concisely. Avoid repetition.`;
           }
           const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'mistral', allMessages);
 
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
+          // Log payload for debugging (truncated if too long)
+          logger.info({
+            payloadMeta: {
+              model: payload.model,
+              messagesCount: payload.messages?.length,
+              options: payload.options
+            }
+          }, "Sending chat request to Ollama");
 
-          const response = await fetch(chatUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            signal: controller.signal,
-          });
+          let response;
+          let attempts = 0;
+          const maxRetries = 3;
 
-          clearTimeout(timeoutId);
+          while (attempts < maxRetries) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
 
-          if (response.ok) {
+              response = await fetch(chatUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+
+              if (response.ok) {
+                break; // Success!
+              }
+
+              // If 500 or 503, retry
+              if (response.status >= 500) {
+                const errText = await response.text();
+                logger.warn({ status: response.status, attempt: attempts + 1, errText }, "Ollama returned server error, retrying...");
+                if (attempts === maxRetries - 1) {
+                  // Throw on last attempt to let outer catch handle it
+                  throw new Error(`Ollama failed with status ${response.status}: ${errText}`);
+                }
+              } else {
+                // 4xx errors should not be retried
+                break;
+              }
+
+            } catch (netErr) {
+              logger.warn({ err: netErr, attempt: attempts + 1 }, "Network error communicating with Ollama");
+              if (attempts === maxRetries - 1) throw netErr;
+            }
+
+            attempts++;
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
+          }
+
+
+          if (response && response.ok) {
             const json = await response.json();
             const parsed = parseOllamaResponse(json);
             if (parsed) {
               return res.json({ reply: parsed });
             }
-          } else {
+          } else if (response) {
             const errorText = await response.text();
             logger.error({ status: response.status, statusText: response.statusText, errorText, url: chatUrl, model: process.env.OLLAMA_MODEL }, "Ollama chat request failed");
           }
