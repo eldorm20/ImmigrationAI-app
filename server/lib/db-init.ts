@@ -82,3 +82,23 @@ export async function ensureErpTablesExist() {
     // Don't throw, let the app try to start anyway
   }
 }
+
+import { researchArticles } from "@shared/schema";
+import { refreshImmigrationNews } from "./news";
+
+export async function ensureResearchDataExists() {
+  try {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(researchArticles);
+    const count = Number(result[0]?.count || 0);
+
+    if (count === 0) {
+      logger.info("[Auto-Seed] Research library empty. Triggering initial news fetch...");
+      // Run in background to not block startup
+      refreshImmigrationNews().catch(err => logger.error({ err }, "Auto-seed failed"));
+    } else {
+      logger.info(`[Auto-Seed] Research library has ${count} items. Skipping seed.`);
+    }
+  } catch (error) {
+    logger.warn({ error }, "Failed to check research library status");
+  }
+}

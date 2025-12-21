@@ -282,14 +282,83 @@ export function getFallbackResearchItems(): any[] {
 }
 
 /**
+ * Fetches real news from Google News RSS
+ */
+async function fetchRealNews(topic: string = "immigration"): Promise<RawNewsItem[]> {
+    try {
+        const url = `https://news.google.com/rss/search?q=${encodeURIComponent(topic)}+law&hl=en-GB&gl=GB&ceid=GB:en`;
+        const response = await fetch(url);
+        const xml = await response.text();
+
+        // Simple regex XML parsing to avoid new dependencies
+        const items: RawNewsItem[] = [];
+        const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+        let match;
+
+        while ((match = itemRegex.exec(xml)) !== null) {
+            const content = match[1];
+            const titleMatch = content.match(/<title>([\s\S]*?)<\/title>/);
+            const linkMatch = content.match(/<link>([\s\S]*?)<\/link>/);
+            const dateMatch = content.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+            const sourceMatch = content.match(/<source[^>]*>([\s\S]*?)<\/source>/);
+            const descMatch = content.match(/<description>([\s\S]*?)<\/description>/); // Often contains HTML
+
+            if (titleMatch && linkMatch) {
+                // Clean up description (remove HTML tags)
+                let cleanDesc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '') : '';
+                cleanDesc = cleanDesc.replace(/&nbsp;/g, ' ').slice(0, 300) + (cleanDesc.length > 300 ? '...' : '');
+
+                items.push({
+                    title: titleMatch[1].replace(' - ' + (sourceMatch ? sourceMatch[1] : ''), ''), // Remove source suffix from title
+                    link: linkMatch[1],
+                    pubDate: dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString(),
+                    description: cleanDesc || "Latest update on immigration policy and regulations.",
+                    source: sourceMatch ? sourceMatch[1] : "News Source"
+                });
+            }
+            if (items.length >= 10) break; // Limit to 10 real items per topic
+        }
+        return items;
+    } catch (e) {
+        logger.error({ e }, "Failed to fetch real news RSS");
+        return [];
+    }
+}
+
+/**
  * Fetches and processes immigration-related news
  */
 export async function refreshImmigrationNews(): Promise<{ count: number }> {
     try {
         logger.info("Starting immigration news refresh");
 
+        // 1. Fetch Real News from multiple topics
+        const [ukNews, usNews, generalNews] = await Promise.all([
+            fetchRealNews("UK immigration visa"),
+            fetchRealNews("US h1b green card"),
+            fetchRealNews("Canada immigration permit")
+        ]);
+
+        const realNews = [...ukNews, ...usNews, ...generalNews];
+        logger.info({ count: realNews.length }, "Fetched real news items via RSS");
+
+        // 2. Combine with Mock Data (prioritize Real News, but keep Mock for robustness)
+        // We use a Map to deduct duplicates by title
+        const newsMap = new Map<string, RawNewsItem>();
+
+        // Add Mock Data first
+        rawNews.forEach(item => newsMap.set(item.title, item));
+
+        // Add Real Data (overwriting mock if title matches, though unlikely)
+        realNews.forEach(item => newsMap.set(item.title, item));
+
+        const combinedNews = Array.from(newsMap.values());
+
         let count = 0;
-        for (const item of rawNews) {
+        // Process only last 50 items to save AI tokens if running frequently
+        const itemsToProcess = combinedNews.slice(0, 50);
+
+        for (const item of itemsToProcess) {
             try {
                 // Use AI to generate a professional summary and extract tags
                 const prompt = `Analyze this immigration news item:

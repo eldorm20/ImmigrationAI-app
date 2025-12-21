@@ -175,6 +175,7 @@ app.get("/health", async (_req, res) => {
     try {
       await runMigrationsIfNeeded();
       await ensureErpTablesExist();
+      await ensureResearchDataExists(); // Auto-seed research/news data
     } catch (err) {
       logger.error({ err }, "Auto-run migrations failed");
       // continue startup; migrations failure might be transient but we want the app to start for debugging
