@@ -47,7 +47,7 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, margin: "0px" }}
             custom={delay}
             className={className}
         >
