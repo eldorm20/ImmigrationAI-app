@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { EligibilityQuiz } from "@/components/EligibilityQuiz";
+import { Navbar } from "@/components/layout/Navbar";
 // Background handled via CSS gradients - no image asset needed
 
 export default function Home() {
@@ -58,43 +59,7 @@ export default function Home() {
     <div className="min-h-screen relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
 
       {/* Navigation Header */}
-      <nav className="fixed w-full top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-extrabold text-2xl tracking-tight cursor-pointer" onClick={() => setLocation("/")}>
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
-              <Globe size={18} />
-            </div>
-            <span className="text-slate-900 dark:text-white">{t.brand.name}</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/features"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Features</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/pricing"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Pricing</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/help"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Help</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/blog"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Blog</a>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <div className="hidden md:flex items-center gap-3">
-              <button
-                onClick={() => goLogin('applicant')}
-                className="text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 font-bold text-sm px-4 py-2"
-              >
-                Sign In
-              </button>
-              <LiveButton
-                onClick={() => goLogin('applicant')}
-                size="sm"
-                variant="primary"
-                className="shadow-lg shadow-brand-500/20"
-              >
-                Get Started
-              </LiveButton>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Modern Geometric Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -103,13 +68,13 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      <div className="pt-32 pb-12 md:pb-20 px-4 md:px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-xs md:text-sm font-bold mb-6 md:mb-8">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
@@ -117,14 +82,14 @@ export default function Home() {
             AI-Powered Visa Assistant V2.0 (Production Live)
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold mb-6 leading-tight tracking-tight text-slate-900 dark:text-white">
             {t.hero.title} <br />
             <span className="text-gradient">
               AI Powered.
             </span>
           </h1>
 
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-lg leading-relaxed font-medium">
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-8 md:mb-10 max-w-lg leading-relaxed font-medium">
             {t.hero.sub} We simplify the complex legal journey into a clear, guided path using advanced AI.
             <br /><span className="text-sm mt-2 block opacity-80">Trusted by {stats.usersCount}+ applicants.</span>
           </p>

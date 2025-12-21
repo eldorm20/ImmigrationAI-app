@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit, Menu, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -34,6 +34,7 @@ export default function UserDash() {
   const [, setLocation] = useLocation();
 
   const [activeTab, setActiveTab] = useState('roadmap');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -56,13 +57,24 @@ export default function UserDash() {
   return (
     <div className="flex flex-col md:flex-row overflow-hidden transition-colors duration-300 h-[calc(100vh)]">
 
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -50, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="w-full md:w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen sticky top-0 z-20 shadow-sm"
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen shadow-2xl md:shadow-sm transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="p-8 flex justify-between items-center">
+        <div className="p-6 md:p-8 flex justify-between items-center">
           <motion.div
             className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
             whileHover={{ scale: 1.05 }}
@@ -71,11 +83,14 @@ export default function UserDash() {
             <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
               <Globe size={20} />
             </div>
-            <span className="text-slate-900 dark:text-white hidden md:inline">{t.brand.name}</span>
+            <span className="text-slate-900 dark:text-white">ImmigrationAI</span>
           </motion.div>
-          <div className="md:hidden">
-            <ThemeToggle />
-          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+          >
+            <X size={24} />
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
@@ -160,22 +175,33 @@ export default function UserDash() {
             {t.dash.logout}
           </LiveButton>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-mesh">
         {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/20 to-transparent dark:from-brand-900/5 pointer-events-none" />
 
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10 gap-4">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
-              {t.dash.welcome} {user.name}
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              {t.dashStatus?.label || 'Immigration Status:'} <span className="text-brand-600 dark:text-brand-400 font-bold">{t.dashStatus?.active || 'Active'}</span>
-            </p>
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 relative z-10 gap-4 pt-4 md:pt-0">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 w-full md:w-auto">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+            <div className="flex-1 md:flex-none">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400">
+                {t.dash.welcome} {user.name}
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2 text-sm md:text-base">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                {t.dashStatus?.label || 'Immigration Status:'} <span className="text-brand-600 dark:text-brand-400 font-bold">{t.dashStatus?.active || 'Active'}</span>
+              </p>
+            </div>
+            <div className="md:hidden">
+              <ThemeToggle />
+            </div>
           </motion.div>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-2 mr-4">
