@@ -92,7 +92,7 @@ export function Navbar() {
             </LiveButton>
           </Link>
           <Link href="/partner">
-            <LiveButton variant={isTransparent ? "glass" : "ghost"} size="sm" className={isTransparent ? "bg-transparent border-transparent hover:bg-white/10" : ""}>
+            <LiveButton variant={isTransparent ? "glass" : "ghost"} size="sm" className={isTransparent ? "bg-transparent border-transparent hover:bg-white/10" : ""} onClick={() => window.open('/partner', '_blank')}>
               Partner
             </LiveButton>
           </Link>

@@ -471,8 +471,10 @@ async function generateTextWithProvider(
     try {
       // Use Ollama adapter helpers when available
       const { buildOllamaPayload, parseOllamaResponse } = await import("./ollama");
+      const model = process.env.OLLAMA_MODEL || 'mistral'; // Default to mistral if not set
+      logger.info({ model, provider: "ollama" }, "Generating text using local AI provider");
 
-      const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
+      const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, model);
 
       // FIX: Ensure URL ends with /api/generate only if it doesn't already have a path component
       let fetchUrl = localAIUrl as string;

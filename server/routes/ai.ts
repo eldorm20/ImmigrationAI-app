@@ -499,7 +499,7 @@ router.post(
 1. Immigratsiya va vizalar bo'yicha aniq maslahat berish.
 2. Platformadan foydalanish bo'yicha texnik yordam ko'rsatish (akkaunt, to'lovlar, hujjatlar).
 3. Foydalanuvchi muammolarini hal qilish.
-Javoblarni faqat O'zbek tilida, aniq va qisqa bering. Takrorlashdan saqlaning. Agar savolga javob berolmasangiz, qo'llab-quvvatlash xizmatiga murojaat qilishni tavsiya eting.`;
+Javoblarni asosan O'zbek tilida bering. AGAR savolga o'zbek tilida aniq javob berish qiyin bo'lsa yoki atamalar murakkab bo'lsa, tushuntirish uchun RUS tilidan foydalanishingiz mumkin. Maqsad - foydalanuvchiga eng to'g'ri ma'lumotni yetkazish.`;
       } else if (language === 'ru') {
         systemPrompt = `Вы "AI Yordamchi" - официальный помощник платформы ImmigrationAI. Ваша задача:
 1. Давать точные советы по иммиграции и визам.
