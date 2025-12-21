@@ -12,7 +12,7 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
       ],
       stream: false,
       options: {
-        temperature: 0.7,
+        temperature: 0.5,
         repeat_penalty: 1.1,
         num_predict: 512
       }
@@ -25,7 +25,7 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
     prompt: `${systemPrompt || ""}\n\n${prompt}`.trim(),
     stream: false,
     options: {
-      temperature: 0.7,
+      temperature: 0.5,
       repeat_penalty: 1.1,
       num_predict: 512
     }
