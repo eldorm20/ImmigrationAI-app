@@ -403,7 +403,7 @@ router.post(
           }
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
 
           const response = await fetch(fetchUrl, {
             method: "POST",
@@ -517,7 +517,7 @@ router.post(
           const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
 
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
 
           const response = await fetch(chatUrl, {
             method: "POST",
