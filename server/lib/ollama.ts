@@ -5,7 +5,7 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
   // Use messages format if conversation history is provided for better context
   if (messages && messages.length > 0) {
     const body: any = {
-      model: model || "phi3:mini",
+      model: model || "mistral",
       messages: [
         ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
         ...messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }))

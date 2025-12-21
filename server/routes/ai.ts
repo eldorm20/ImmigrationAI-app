@@ -394,7 +394,7 @@ router.post(
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
           const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
-          const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'phi3:mini');
+          const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'mistral');
 
           // Construct correct URL
           let fetchUrl = localAIUrl;
@@ -514,7 +514,7 @@ router.post(
           } else if (!chatUrl.includes("/api/") && !chatUrl.includes("/v1/")) {
             chatUrl = chatUrl.replace(/\/+$/, "") + "/api/chat";
           }
-          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'phi3:mini', allMessages);
+          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'mistral', allMessages);
 
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
