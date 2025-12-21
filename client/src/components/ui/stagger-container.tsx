@@ -46,8 +46,8 @@ export const StaggerContainer: React.FC<StaggerContainerProps> = ({
         <motion.div
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "0px" }}
+            animate="visible"
+            // viewport={{ once: true, margin: "0px" }} // Disabled scroll trigger for reliability on mobile
             custom={delay}
             className={className}
         >
