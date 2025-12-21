@@ -73,7 +73,6 @@ export default function UserDash() {
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ x: isMobileMenuOpen ? 0 : "-100%" }}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
@@ -96,12 +95,9 @@ export default function UserDash() {
         variants={{
           open: { x: 0 },
           closed: { x: "-100%" },
-          desktop: { x: 0 }
         }}
-        animate={isMobileMenuOpen ? "open" : (window.innerWidth >= 768 ? "desktop" : "closed")}
-      // window.innerWidth is risky for SSR/hydration. 
-      // Let's stick to the current CSS-transition approach but just add drag handlers?
-      // No, drag requires motion component.
+        initial="closed"
+        animate={isMobileMenuOpen ? "open" : (window.innerWidth >= 768 ? { x: 0 } : "closed")}
       >
         <div className="p-6 md:p-8 flex justify-between items-center">
           <motion.div
