@@ -1,5 +1,6 @@
 FROM python:3.10-slim
 
+# Railway build cache invalidation - 2025-12-23
 WORKDIR /app
 
 # Install system dependencies
