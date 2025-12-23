@@ -10,7 +10,8 @@ import {
   jsonb,
   pgEnum,
   index,
-  customType
+  customType,
+  vector
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -111,6 +112,8 @@ export const applications = pgTable("applications", {
   status: applicationStatusEnum("status").notNull().default("new"),
   fee: decimal("fee", { precision: 10, scale: 2 }).default("0"),
   notes: text("notes"),
+  encryptedPassportNumber: text("encrypted_passport"), // Encrypted PII
+  encryptedDateOfBirth: text("encrypted_dob"), // Encrypted PII
   metadata: jsonb("metadata"), // Store additional flexible data
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -281,6 +284,7 @@ export const researchArticles = pgTable("research_articles", {
   updatedByUserId: varchar("updated_by_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  embedding: vector("embedding", { dimensions: 1536 }),
 }, (table) => ({
   slugIdx: index("research_slug_idx").on(table.slug),
   categoryIdx: index("research_category_idx").on(table.category),
@@ -563,6 +567,29 @@ export const insertEmployerVerificationSchema = createInsertSchema(employerVerif
   metadata: true,
 });
 
+// Document Packs table
+export const documentPacks = pgTable("document_packs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "cascade" }),
+  packName: varchar("pack_name", { length: 255 }).notNull(),
+  documentIds: jsonb("document_ids").notNull(), // Array of document IDs
+  status: varchar("status", { length: 50 }).default("ready"), // ready, shared, archived
+  downloadUrl: text("download_url"),
+  sharedWithLawyerId: varchar("shared_with_lawyer_id", { length: 255 }).references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentPackSchema = createInsertSchema(documentPacks).pick({
+  userId: true,
+  applicationId: true,
+  packName: true,
+  documentIds: true,
+  status: true,
+  sharedWithLawyerId: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -591,6 +618,8 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
+export type InsertDocumentPack = z.infer<typeof insertDocumentPackSchema>;
+export type DocumentPack = typeof documentPacks.$inferSelect;
 
 // File Blobs table (for database storage of files)
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({

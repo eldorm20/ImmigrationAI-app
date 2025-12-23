@@ -2,8 +2,8 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { db } from "../db";
-import { documents, applications, users } from "@shared/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { documents, applications, users, documentPacks, insertDocumentPackSchema } from "../../shared/schema";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { uploadLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
@@ -334,6 +334,127 @@ router.get(
     }
 
     res.json(document);
+  })
+);
+
+// Document Packs endpoints
+router.get(
+  "/packs",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { applicationId } = req.query;
+
+    let packs;
+    if (applicationId) {
+      packs = await db.query.documentPacks.findMany({
+        where: and(
+          eq(documentPacks.userId, userId),
+          eq(documentPacks.applicationId, applicationId as string)
+        ),
+        orderBy: [desc(documentPacks.createdAt)],
+      });
+    } else {
+      packs = await db.query.documentPacks.findMany({
+        where: eq(documentPacks.userId, userId),
+        orderBy: [desc(documentPacks.createdAt)],
+      });
+    }
+
+    res.json(packs);
+  })
+);
+
+router.post(
+  "/packs",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const body = insertDocumentPackSchema.parse({
+      ...req.body,
+      userId
+    });
+
+    const [pack] = await db
+      .insert(documentPacks)
+      .values(body)
+      .returning();
+
+    await auditLog(userId, "document_pack.create", "document_pack", pack.id, {
+      packName: pack.packName,
+      documentCount: (pack.documentIds as string[]).length
+    }, req);
+
+    res.status(201).json(pack);
+  })
+);
+
+router.post(
+  "/packs/:id/share",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const { lawyerId } = z.object({ lawyerId: z.string().uuid() }).parse(req.body);
+
+    const pack = await db.query.documentPacks.findFirst({
+      where: and(
+        eq(documentPacks.id, id),
+        eq(documentPacks.userId, userId)
+      ),
+    });
+
+    if (!pack) {
+      throw new AppError(404, "Document pack not found");
+    }
+
+    const [updated] = await db
+      .update(documentPacks)
+      .set({
+        status: "shared",
+        sharedWithLawyerId: lawyerId,
+        updatedAt: new Date()
+      })
+      .where(eq(documentPacks.id, id))
+      .returning();
+
+    await auditLog(userId, "document_pack.share", "document_pack", id, {
+      lawyerId
+    }, req);
+
+    res.json(updated);
+  })
+);
+
+router.get(
+  "/packs/:id/download",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const pack = await db.query.documentPacks.findFirst({
+      where: and(
+        eq(documentPacks.id, id),
+        eq(documentPacks.userId, userId)
+      ),
+    });
+
+    if (!pack) {
+      throw new AppError(404, "Document pack not found");
+    }
+
+    // In a real implementation, this would generate a ZIP of S3 files
+    // For now, we return a success status and the document list
+    const docs = await db.query.documents.findMany({
+      where: and(
+        eq(documents.userId, userId),
+        // Simple mock check for document inclusion
+        sql`${documents.id} = ANY(${pack.documentIds}::varchar[])`
+      )
+    });
+
+    res.json({
+      message: "Ready for download",
+      packName: pack.packName,
+      documents: docs
+    });
   })
 );
 

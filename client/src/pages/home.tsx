@@ -620,6 +620,13 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
+
+      <footer className="py-8 px-6 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+          &copy; 2025 ImmigrationAI. All rights reserved. <br />
+          <strong>Legal Disclaimer:</strong> ImmigrationAI is an AI-powered informational assistant. We do not provide legal advice. All interactions are for guidance purposes only. Consult a licensed lawyer for official legal decisions.
+        </p>
+      </footer>
     </div>
   );
 }

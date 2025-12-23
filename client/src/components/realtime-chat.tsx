@@ -438,6 +438,9 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
       </ScrollArea>
 
       <CardContent className="border-t p-4 space-y-2">
+        <p className="text-[10px] text-gray-400 italic mb-2 text-center">
+          Note: This chat is for informational purposes only and does not constitute legal advice.
+        </p>
         <div className="flex gap-2">
           <Input
             type="text"

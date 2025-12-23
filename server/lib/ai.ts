@@ -1,5 +1,6 @@
 import { logger } from "./logger";
 import { agentsManager, AIAgentsManager } from "./agents";
+import { RagClient } from "./rag-client";
 import Tesseract from "tesseract.js";
 
 // Re-export agents manager for use across the application
@@ -415,28 +416,8 @@ export async function generateDocument(
   language = "en"
 ): Promise<string> {
   try {
-    const userQuery = `Generate a professional ${template} document with the following information:\n${Object.entries(
-      data
-    )
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(
-        "\n"
-      )}\n\nLanguage: ${language}\n\nGenerate only the document text without meta-commentary or JSON formatting.`;
-
-    const response = await agentsManager.processRequest(
-      "customer-service",
-      "handleUserQuery",
-      [userQuery, { context: "document generation", template }]
-    );
-
-    if (!response.success) {
-      logger.warn({ error: response.error }, "Document generation failed");
-      return `${template}\n\n${Object.entries(data)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join("\n")}`;
-    }
-
-    return response.data || "";
+    const { generateLegalDocument } = await import("./document-generator");
+    return await generateLegalDocument(template, data, language);
   } catch (error) {
     logger.error({ error, template }, "Failed to generate document");
     throw new Error("Failed to generate document");
@@ -580,22 +561,39 @@ Return valid JSON only: { "riskScore": number, "successProbability": string, "re
 
 // Voice Interview Simulator
 export async function simulateVoiceConversation(
-  lastUserMessage: string,
-  conversationHistory: { role: string; content: string }[],
+  message: string,
+  history: { role: string; content: string }[],
   visaType: string,
   language: string = "en"
 ): Promise<string> {
   try {
-    const prompt = `You are an immigration officer conducting a visa interview for a ${visaType} visa.
-    The applicant just said: "${lastUserMessage}".
+    // RAG Integration: Fetch specific interview facts/policies for this visa
+    let interviewContext = "";
+    try {
+      const ragRes = await RagClient.search(`Interview questions and officer guidance for ${visaType} visa`, language === 'uz' ? 'UK' : 'UK');
+      if (ragRes.length > 0) {
+        interviewContext = "\nOfficial Interview Guidance and Facts:\n" + ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for voice interview");
+    }
+
+    const prompt = `You are a professional immigration consultant conducting a friendly voice interview for a ${visaType} visa.
+    Target Language: ${language}.
     
-    Respond naturally as an officer would in the language: ${language}.
-    Be professional but conversational. 
-    Keep your response relatively short (1-3 sentences) so it flows well in a spoken conversation. 
-    Ask a relevant follow-up question or comment on their answer.
+    ${interviewContext}
     
-    Current conversation context:
-    ${conversationHistory.map(m => `${m.role}: ${m.content}`).join("\n")}
+    CRITICAL INSTRUCTIONS:
+    1. Respond naturally and conversationally.
+    2. Keep responses brief (under 30 words) for voice synthesis.
+    3. Use the above official guidance to ask factual questions or verify user answers.
+    4. If speaking Uzbek (uz), use common, modern phrasing.
+    5. Always conclude with a single, clear question to keep the flow.
+    
+    Conversation History:
+    ${history.map(h => `${h.role}: ${h.content}`).join("\n")}
+    
+    User Input: "${message}"
     `;
 
     const response = await agentsManager.processRequest(
@@ -776,7 +774,21 @@ export async function analyzeScenario(
   data: any
 ): Promise<{ score: number; likelihood: string; tips: string[]; processingTime: string }> {
   try {
-    const prompt = `You are an expert visa consultant.Analyze this hypothetical scenario:
+    // RAG Integration: Fetch authoritative criteria for the specific visa/country
+    let authoritativeRules = "";
+    try {
+      const jurisdiction = data.destinationCountry === "UK" ? "UK" : "USA";
+      const ragRes = await RagClient.getAnswer(`Detailed eligibility criteria for ${data.visaType} visa in ${data.destinationCountry}`, jurisdiction);
+      authoritativeRules = `\nAuthoritative Eligibility Rules:\n${ragRes.answer}`;
+    } catch (err) {
+      logger.warn({ err }, "RAG query failed for visa simulator");
+    }
+
+    const prompt = `You are an expert visa consultant. Analyze this hypothetical scenario based on current immigration laws.
+    
+    ${authoritativeRules}
+    
+    Applicant Profile:
     Country: ${data.destinationCountry}
     Visa: ${data.visaType}
     Education: ${data.education}

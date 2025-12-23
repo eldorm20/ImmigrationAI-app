@@ -7,7 +7,8 @@ import { apiRequest } from "@/lib/api";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
-  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit
+  Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit,
+  ArrowUpRight, Zap, Brain, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
@@ -127,6 +128,10 @@ export default function LawyerDashboard() {
   const [totalPages, setTotalPages] = useState(1);
   const [showReport, setShowReport] = useState(false);
   const [stats, setStats] = useState<any>(null);
+  const [aiBrief, setAiBrief] = useState<string | null>(null);
+  const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
+  const [policyUpdates, setPolicyUpdates] = useState<string | null>(null);
+  const [showAiBriefModal, setShowAiBriefModal] = useState(false);
   const pageSize = 10;
 
   // Show loading while auth resolves
@@ -205,7 +210,43 @@ export default function LawyerDashboard() {
       }
     };
     fetchStats();
+
+    const fetchPolicyUpdates = async () => {
+      try {
+        const res = await apiRequest<{ updates: string }>('/lawyer/automation/policy-updates');
+        setPolicyUpdates(res.updates);
+      } catch (err) {
+        console.error("Failed to fetch policy updates:", err);
+      }
+    };
+    fetchPolicyUpdates();
   }, []);
+
+  const handleGenerateBrief = async (applicationId: string) => {
+    try {
+      setIsGeneratingBrief(true);
+      setAiBrief(null); // Clear previous brief
+      setShowAiBriefModal(true); // Open modal immediately
+      const res = await apiRequest<{ brief: string }>(`/lawyer/automation/brief/${applicationId}`, {
+        method: "POST"
+      });
+      setAiBrief(res.brief);
+      toast({
+        title: "AI Brief Generated",
+        description: "Review the automated analysis below.",
+        className: "bg-blue-50 text-blue-900 border-blue-200"
+      });
+    } catch (err) {
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate AI brief. Please try again.",
+        variant: "destructive"
+      });
+      setShowAiBriefModal(false); // Close modal on error
+    } finally {
+      setIsGeneratingBrief(false);
+    }
+  };
 
   const handleStatusChange = async (id: string | number, newStatus: string) => {
     try {
@@ -467,6 +508,24 @@ export default function LawyerDashboard() {
               <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
             </div>
 
+            {/* AI Policy Watcher (New Featured Section) */}
+            <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 p-6 rounded-3xl border border-indigo-500/30 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                <BrainCircuit size={120} />
+              </div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-400/30">
+                    <Zap className="text-indigo-400" size={20} />
+                  </div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">AI Policy Watcher <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live Integration</span></h3>
+                </div>
+                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                  {policyUpdates || "Searching for immigration policy updates from official RAG databases..."}
+                </div>
+              </div>
+            </div>
+
             {/* Practice Management Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -669,6 +728,14 @@ export default function LawyerDashboard() {
                               </td>
                               <td className="px-6 py-4 text-right">
                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ActionButton
+                                    variant="ghost"
+                                    icon={Brain}
+                                    onClick={() => handleGenerateBrief(String(lead.id))}
+                                    disabled={isGeneratingBrief}
+                                  >
+                                    AI Brief
+                                  </ActionButton>
                                   <ActionButton
                                     variant="ghost"
                                     icon={Eye}
@@ -902,7 +969,40 @@ export default function LawyerDashboard() {
             </div>
           )
         }
-      </AnimatePresence >
-    </div >
+        {showAiBriefModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAiBriefModal(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl relative z-10 shadow-2xl border border-white/10 max-h-[85vh] flex flex-col p-8 overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-brand-500 p-2 rounded-xl text-white">
+                    <Brain size={24} />
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Authoritative Case Brief</h3>
+                </div>
+                <button onClick={() => setShowAiBriefModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+              </div>
+
+              {!aiBrief && isGeneratingBrief ? (
+                <div className="py-20 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
+                  <p className="text-slate-400 animate-pulse font-medium">ImmigrationAI is analyzing legal databases & application context...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 font-sans leading-relaxed">
+                    {aiBrief}
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 font-bold">
+                    <ActionButton variant="primary" icon={Download} onClick={() => alert('PDF Export coming soon')}>Export PDF</ActionButton>
+                    <ActionButton variant="ghost" onClick={() => setShowAiBriefModal(false)}>Close</ActionButton>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

@@ -7,6 +7,8 @@ import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
 import { refreshImmigrationNews, getFallbackResearchItems } from "../lib/news";
+import { RagClient } from "../lib/rag-client";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -61,9 +63,38 @@ router.get(
       offset: parseInt(offset, 10),
     });
 
-    // If no articles found in DB, return filtered fallback data from the mock set
-    // This ensures the Research Library is never empty and fully functional (search/tabs) for new deployments
-    if (!articles || articles.length === 0) {
+    // RAG Integration: If search query is provided, augment results from authoritative RAG service
+    let items = [...articles];
+    if (search && articles.length < 5) {
+      try {
+        const jurisdiction = (req.query.jurisdiction as string) || "UK";
+        const ragResults = await RagClient.search(search, jurisdiction);
+        const ragItems = ragResults.map(r => ({
+          id: `rag-${Math.random().toString(36).substr(2, 9)}`,
+          title: r.metadata.title || "Official Guidance",
+          summary: r.content.substring(0, 300) + "...",
+          category: "official",
+          type: "guide",
+          tags: [r.metadata.jurisdiction],
+          source: "Authoritative RAG",
+          sourceUrl: r.metadata.url,
+          publishedAt: new Date(r.metadata.last_verified)
+        }));
+
+        // Merge results, avoiding duplicates by title
+        const seenTitles = new Set(items.map(i => i.title.toLowerCase()));
+        for (const r of ragItems) {
+          if (!seenTitles.has(r.title.toLowerCase())) {
+            items.push(r as any);
+          }
+        }
+      } catch (err) {
+        logger.warn({ err }, "RAG search failed in research library");
+      }
+    }
+
+    // If no articles found in DB OR RAG, return filtered fallback data from the mock set
+    if (items.length === 0) {
       console.log(`[Research] DB empty, serving fallback data for: cat=${category} search=${search}`);
       let fallback = getFallbackResearchItems();
 
@@ -82,12 +113,10 @@ router.get(
         );
       }
 
-      // 3. Ignore Language for fallback (always show English content instead of nothing)
-
       return res.json({ items: fallback });
     }
 
-    res.json({ items: articles });
+    res.json({ items });
   }),
 );
 

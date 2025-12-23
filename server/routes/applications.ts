@@ -10,6 +10,7 @@ import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { emailQueue } from "../lib/queue";
 import { generateApplicationStatusEmail } from "../lib/email";
+import { encryptSensitiveData, decryptSensitiveData } from "../lib/security";
 
 const router = Router();
 
@@ -59,6 +60,8 @@ const createApplicationSchema = z.object({
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
   lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 const updateApplicationSchema = z.object({
@@ -77,6 +80,8 @@ const updateApplicationSchema = z.object({
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
   lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 // Get all applications (with filters)
@@ -181,6 +186,8 @@ router.get(
         ...a,
         userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
         userEmail: userMap[a.userId]?.email,
+        passportNumber: a.encryptedPassportNumber ? decryptSensitiveData(a.encryptedPassportNumber) : undefined,
+        dateOfBirth: a.encryptedDateOfBirth ? decryptSensitiveData(a.encryptedDateOfBirth) : undefined,
         priorityScore: score,
         priorityLevel: priorityLevel
       };
@@ -217,7 +224,11 @@ router.get(
       throw new AppError(403, "Access denied");
     }
 
-    res.json(application);
+    res.json({
+      ...application,
+      passportNumber: application.encryptedPassportNumber ? decryptSensitiveData(application.encryptedPassportNumber) : undefined,
+      dateOfBirth: application.encryptedDateOfBirth ? decryptSensitiveData(application.encryptedDateOfBirth) : undefined,
+    });
   })
 );
 
@@ -245,6 +256,8 @@ router.post(
       country: body.country.toUpperCase(),
       fee: body.fee || "0",
       notes: body.notes ? sanitizeInput(body.notes) : null,
+      encryptedPassportNumber: body.passportNumber ? encryptSensitiveData(body.passportNumber) : null,
+      encryptedDateOfBirth: body.dateOfBirth ? encryptSensitiveData(body.dateOfBirth) : null,
     };
 
     // Only allow assigning lawyer if the current user is a lawyer or admin and provided a lawyerId
@@ -330,6 +343,9 @@ router.patch(
       }
       updateData.lawyerId = body.lawyerId;
     }
+
+    if (body.passportNumber) updateData.encryptedPassportNumber = encryptSensitiveData(body.passportNumber);
+    if (body.dateOfBirth) updateData.encryptedDateOfBirth = encryptSensitiveData(body.dateOfBirth);
 
     const [updated] = await db
       .update(applications)

@@ -111,3 +111,30 @@ export async function probeOllamaEndpoint(url: string, model?: string, timeoutMs
     return { reachable: false, reason: err?.message || String(err) };
   }
 }
+
+export async function generateOllamaEmbedding(text: string, url: string, model?: string): Promise<number[] | null> {
+  try {
+    let embedUrl = url;
+    if (!embedUrl.includes("/api/") && !embedUrl.includes("/v1/")) {
+      embedUrl = embedUrl.replace(/\/+$/, "") + "/api/embeddings";
+    }
+
+    const res = await fetch(embedUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model || "mistral",
+        prompt: text
+      })
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return json.embedding;
+    }
+    return null;
+  } catch (err) {
+    logger.error({ err }, "Failed to generate Ollama embedding");
+    return null;
+  }
+}

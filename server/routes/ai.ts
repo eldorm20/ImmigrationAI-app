@@ -490,6 +490,25 @@ router.post(
         messageText = parsed.message;
       }
 
+      // Use specialized immigration agent with RAG for relevant queries
+      const keywords = ["viza", "visa", "qonun", "law", "registration", "registratsiya", "uzbekistan", "o'zbekiston", "zru", "pkm", "uzb"];
+      if (keywords.some(k => messageText.toLowerCase().includes(k))) {
+        try {
+          const { agentsManager } = await import("../lib/agents");
+          const agentResponse = await agentsManager.processRequest(
+            "immigration-law",
+            "handleUserQuery",
+            [messageText, { language: parsed.language || 'en' }]
+          );
+
+          if (agentResponse.success) {
+            return res.json({ response: agentResponse.data });
+          }
+        } catch (agentErr) {
+          logger.warn({ agentErr }, "Specialized agent failed, falling back to general chat");
+        }
+      }
+
       // Use improved chat function that properly handles conversation history
       const language = (parsed.language as string) || 'en';
 

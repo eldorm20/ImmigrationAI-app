@@ -28,6 +28,9 @@ import clientsRoutes from "./routes/clients";
 import predictiveRoutes from "./routes/predictive";
 import voiceRoutes from "./routes/voice";
 import agentsRoutes from "./routes/agents";
+import paymentsUzRoutes from "./routes/payments-uz";
+import govCheckRoutes from "./routes/gov-check";
+import lawyerAutomationRoutes from "./routes/lawyer-automation";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -64,4 +67,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/predictive", predictiveRoutes);
   app.use("/api/voice", voiceRoutes);
   app.use("/api/agents", agentsRoutes);
+  app.use("/api/payments-uz", paymentsUzRoutes);
+  app.use("/api/gov-check", govCheckRoutes);
+  app.use("/api/lawyer/automation", lawyerAutomationRoutes);
 }

@@ -153,6 +153,9 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiScore, setAiScore] = useState<number | null>(null);
+  const [aiTips, setAiTips] = useState<string[]>([]);
   const [_, navigate] = useLocation();
 
   const calculateApprovalScore = (finalAnswers: Record<string, string>): number => {
@@ -169,18 +172,44 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
     return Math.round((totalScore / totalWeight) * 100);
   };
 
-  const handleSelect = (questionId: string, value: string) => {
+  const handleSelect = async (questionId: string, value: string) => {
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
 
     if (currentStep < QUIZ_QUESTIONS.length - 1) {
       setTimeout(() => setCurrentStep(currentStep + 1), 300);
     } else {
-      setTimeout(() => setShowResults(true), 300);
+      setIsAnalyzing(true);
+      setShowResults(true);
+
+      try {
+        const result = await apiRequest<any>("/ai/simulator/analyze", {
+          method: "POST",
+          body: JSON.stringify({
+            destinationCountry: newAnswers.country,
+            visaType: "Skilled Worker", // Default or derived
+            education: newAnswers.education,
+            experience: newAnswers.experience,
+            language: newAnswers.language,
+            salary: newAnswers.salary,
+            age: newAnswers.age,
+            occupation: newAnswers.occupation
+          })
+        });
+
+        setAiScore(result.score);
+        setAiTips(result.tips || []);
+      } catch (err) {
+        console.error("AI Analysis failed", err);
+        // Fallback to static score if AI fails
+        setAiScore(calculateApprovalScore(newAnswers));
+      } finally {
+        setIsAnalyzing(false);
+      }
     }
   };
 
-  const approvalScore = calculateApprovalScore(answers);
+  const approvalScore = aiScore !== null ? aiScore : calculateApprovalScore(answers);
   const isComplete = Object.keys(answers).length === QUIZ_QUESTIONS.length;
 
   const getApprovalMessage = (score: number) => {
@@ -369,10 +398,24 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
                     transition={{ delay: 0.8 }}
                     className="text-center"
                   >
-                    <div className="text-4xl font-extrabold text-slate-900 dark:text-white">
-                      {approvalScore}%
-                    </div>
-                    <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">Approval Score</div>
+                    {isAnalyzing ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        >
+                          <Sparkles className="text-brand-500" size={24} />
+                        </motion.div>
+                        <div className="text-xs font-bold text-slate-500">AI ANALYZING...</div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-4xl font-extrabold text-slate-900 dark:text-white">
+                          {approvalScore}%
+                        </div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">Approval Score</div>
+                      </>
+                    )}
                   </motion.div>
                 </div>
               </motion.div>
@@ -384,17 +427,36 @@ export function EligibilityQuiz({ onComplete, compact = false }: EligibilityQuiz
                 className="space-y-2"
               >
                 <h2 className={`text-3xl font-bold ${getMessage.color}`}>
-                  {getMessage.text}
+                  {isAnalyzing ? "Processing Profile..." : getMessage.text}
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
-                  {approvalScore >= 85
-                    ? "You're an excellent candidate for immigration. Our AI has identified you as highly likely to succeed."
-                    : approvalScore >= 70
-                      ? "You have good potential for immigration. Let's work on strengthening your application."
-                      : approvalScore >= 55
-                        ? "There's a possible path forward. An expert consultation can help identify opportunities."
-                        : "We recommend consulting with an immigration expert to explore your options."}
+                  {isAnalyzing
+                    ? "Our AI is cross-referencing your profile with current immigration requirements and case precedents."
+                    : (approvalScore >= 85
+                      ? "You're an excellent candidate for immigration. Our AI has identified you as highly likely to succeed."
+                      : approvalScore >= 70
+                        ? "You have good potential for immigration. Let's work on strengthening your application."
+                        : approvalScore >= 55
+                          ? "There's a possible path forward. An expert consultation can help identify opportunities."
+                          : "We recommend consulting with an immigration expert to explore your options.")}
                 </p>
+
+                {aiTips.length > 0 && !isAnalyzing && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-4 p-4 bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-xl text-left"
+                  >
+                    <h4 className="text-sm font-bold text-brand-700 dark:text-brand-300 mb-2 flex items-center gap-2">
+                      <Sparkles size={14} /> AI Improvement Tips:
+                    </h4>
+                    <ul className="space-y-1">
+                      {aiTips.map((tip, i) => (
+                        <li key={i} className="text-xs text-brand-600 dark:text-brand-400">• {tip}</li>
+                      ))}
+                    </ul>
+                  </motion.div>
+                )}
               </motion.div>
             </div>
 

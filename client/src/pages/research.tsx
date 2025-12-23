@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft } from "lucide-react";
+import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { StaggerContainer } from "@/components/ui/stagger-container";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -212,6 +212,19 @@ export default function Research() {
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400">
             {t.research.subtitle}
           </p>
+        </div>
+
+        {/* Legal Disclaimer Banner */}
+        <div className="mb-12 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 flex items-start gap-4">
+          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 mt-1">
+            <Shield size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm uppercase tracking-wider mb-1">Legal Disclaimer</h4>
+            <p className="text-sm leading-relaxed">
+              ImmigrationAI is an informational assistant powered by AI. We are not a law firm and do not provide legal advice. All information, including summaries of Uzbekistan laws (Lex.uz), should be verified with official government sources or a qualified immigration lawyer.
+            </p>
+          </div>
         </div>
 
         {/* Search and Filters */}
