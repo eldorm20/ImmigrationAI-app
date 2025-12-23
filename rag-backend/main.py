@@ -1,3 +1,7 @@
+"""
+RAG Backend - FastAPI Microservice for Retrieval-Augmented Generation
+Deployed on Railway - Last updated: 2025-12-23
+"""
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import List, Optional
@@ -49,6 +53,7 @@ async def ingest_doc(request: IngestRequest, background_tasks: BackgroundTasks):
     for i, chunk in enumerate(chunks):
         doc_id = f"{request.jurisdiction}_{request.section_title}_{i}".lower().replace(" ", "_")
         collection.add(
+
             documents=[chunk],
             metadatas=[{
                 "url": request.url,
