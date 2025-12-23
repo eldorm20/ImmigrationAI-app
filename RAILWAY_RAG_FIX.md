@@ -1,20 +1,56 @@
 # Railway Deployment Guide for RAG Microservice
 
 Since we've introduced a Python/FastAPI microservice alongside the Node.js application, you need to configure Railway to handle both.
+# Railway RAG Backend Fix - RESOLVED ✅
 
-## 1. Deploy the RAG Backend as a New Service
-1.  **Create a New Service**: In your Railway Project, click `+ New` -> `GitHub Repo` -> Select `ImmigrationAI-app`.
-2.  **Rename Service**: Name it `rag-backend`.
-3.  **Update Root Directory**: 
-    - Go to **Settings** -> **General**.
-    - Set the **Root Directory** to `/rag-backend`.
-4.  **Service-Specific Config**: Ensure there is a `railway.json` inside the `/rag-backend` directory to prevent it from using the root Node.js configuration. I have created this for you.
-5.  **Builder**: Railway will automatically detect the `Dockerfile` inside the `/rag-backend` folder.
+## Issue
+Railway build was failing for the `rag-backend` service with the error:
+```
+Build Failed: failed to solve: failed to compute cache key:
+"/scripts/init-ollama.sh": not found
+```
+
+## Root Cause
+The root `Dockerfile` (line 53) attempts to copy scripts:
+```dockerfile
+COPY scripts/entrypoint.sh scripts/init-ollama.sh ./scripts/
+```
+
+Railway was building from the `rag-backend` subdirectory context (as shown by `root_dir=rag-backend` in the build logs). When building from this context, the Dockerfile couldn't find the scripts because they only existed in the parent directory's `scripts/` folder.
+
+## Solution Applied
+Created a `scripts/` directory inside `rag-backend/` and copied the required scripts:
+- ✅ Created `rag-backend/scripts/` directory
+- ✅ Copied `entrypoint.sh` from `scripts/` to `rag-backend/scripts/`
+- ✅ Copied `init-ollama.sh` from `scripts/` to `rag-backend/scripts/`
+
+## Changes Committed
+```
+Commit: a584a7d
+Message: "Fix: Add missing scripts to rag-backend for Railway build"
+Files: 2 files changed, 142 insertions(+)
+  - rag-backend/scripts/entrypoint.sh
+  - rag-backend/scripts/init-ollama.sh
+```
+
+## Status
+- ✅ Fix implemented
+- ✅ Changes committed and pushed to GitHub
+- 🔄 Railway rebuild should trigger automatically
+- ⏳ Waiting for Railway deployment verification
+
+## Next Steps
+Monitor the Railway deployment logs to confirm the build succeeds.
+
+## Timeline
+- Started: Dec 23, 2025 4:40 PM
+- Fixed: Dec 23, 2025 4:47 PM
+- Duration: ~7 minutes`Dockerfile` inside the `/rag-backend` folder.
 
 
 ## 2. Persist ChromaDB Data (CRITICAL)
 Railway's file system is ephemeral. To prevent losing your indexed laws and scraped data:
-1.  **Add a Volume**: 
+1.  **Add a Volume**:
     - In the `rag-backend` service, go to **Settings** -> **Volumes**.
     - Create a volume and mount it to `/app/chroma_db`.
     - This ensures `ChromaDB` data survives deployments and resets.
