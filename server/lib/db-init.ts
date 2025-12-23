@@ -6,9 +6,18 @@ export async function ensureErpTablesExist() {
   try {
     logger.info("Ensuring ERP tables and enums exist...");
 
+    // 0. Enable pgvector if available
+    try {
+      await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector;`);
+      logger.info("✅ pgvector extension ensured");
+    } catch (err) {
+      logger.warn({ err }, "Notice: Could not enable pgvector extension (might already exist or not supported)");
+    }
+
     // 1. Create Enums if they don't exist
     logger.info("Checking/Creating task_status enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_status') THEN CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'archived'); END IF; END $$;`);
+
 
     logger.info("Checking/Creating task_priority enum...");
     await db.execute(sql`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high'); END IF; END $$;`);

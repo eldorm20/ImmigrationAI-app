@@ -16,7 +16,7 @@ import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
 import { probeOllamaEndpoint } from "./lib/ollama";
 import { isStripeAvailable } from "./lib/subscription";
-import { ensureErpTablesExist } from "./lib/db-init";
+import { ensureErpTablesExist, ensureResearchDataExists } from "./lib/db-init";
 
 import "dotenv/config";
 

@@ -138,30 +138,75 @@ class ImmigrationLawAgent extends Agent {
     income: number;
     familyStatus: string;
   }): Promise<AgentResponse> {
+    // RAG Integration: Fetch authoritative options for the specific nationality/jurisdiction
+    let authoritativeOptions = "";
+    try {
+      const jurisdiction = "UK"; // Default context
+      const ragRes = await RagClient.search(`Visa options for ${applicantData.nationality} with ${applicantData.qualifications.join(", ")}`, jurisdiction);
+      if (ragRes.length > 0) {
+        authoritativeOptions = "\nAuthoritative Visa Options & Policy:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for analyzeVisaOptions");
+    }
+
     const prompt = `Based on the following profile, what are the best visa options?
 - Nationality: ${applicantData.nationality}
 - Qualifications: ${applicantData.qualifications.join(", ")}
 - Annual Income: €${applicantData.income}
 - Family Status: ${applicantData.familyStatus}
 
+${authoritativeOptions}
+
 Provide specific visa categories with success probability and required steps.`;
+
 
     return this.process(prompt);
   }
 
   async checkDocumentRequirements(visaType: string): Promise<AgentResponse> {
-    const prompt = `List all required documents for ${visaType} visa application in the EU. Include:
+    // RAG Integration: Fetch official document checklist
+    let officialChecklist = "";
+    try {
+      const ragRes = await RagClient.search(`Document requirements for ${visaType} visa`, "UK");
+      if (ragRes.length > 0) {
+        officialChecklist = "\nOfficial UK Government Requirements:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for checkDocumentRequirements");
+    }
+
+    const prompt = `List all required documents for ${visaType} visa application. Include:
 1. Personal documents
 2. Financial documents
 3. Health documents
 4. Employment documents (if applicable)
-For each, mention if it needs notarization or translation.`;
+For each, mention if it needs notarization or translation.
+
+${officialChecklist}`;
+
 
     return this.process(prompt);
   }
 
   async generateInterviewQuestions(visaType: string, country: string): Promise<AgentResponse> {
+    // RAG Integration: Fetch real officer guidance or common refusal reasons for interview context
+    let officerGuidance = "";
+    try {
+      const ragRes = await RagClient.search(`Immigration officer interview guidance for ${visaType} in ${country}`, country);
+      if (ragRes.length > 0) {
+        officerGuidance = "\nAuthoritative Interview Context & Guidance:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for generateInterviewQuestions");
+    }
+
     const prompt = `Generate 5 realistic interview questions for a ${visaType} for the country ${country}.
+${officerGuidance}
+
 Return the response ONLY as a JSON array of objects with the following structure:
 [
   {
@@ -171,6 +216,7 @@ Return the response ONLY as a JSON array of objects with the following structure
   }
 ]
 Do not include any other text or explanations before or after the JSON.`;
+
 
     return this.process(prompt);
   }

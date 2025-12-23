@@ -26,6 +26,23 @@ router.post(
 );
 
 /**
+ * GET /lawyer/brief/:applicationId/download
+ * Downloads the brief as a text file (mocking PDF for now)
+ */
+router.get(
+    "/brief/:applicationId/download",
+    asyncHandler(async (req, res) => {
+        const { applicationId } = req.params;
+        const brief = await LawyerAutomationService.generateCaseBrief(applicationId);
+
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename=case-brief-${applicationId}.txt`);
+        res.send(brief);
+    })
+);
+
+
+/**
  * POST /lawyer/compliance/:packId
  * Scans a document pack for compliance using RAG
  */

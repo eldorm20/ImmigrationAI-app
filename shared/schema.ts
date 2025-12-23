@@ -635,3 +635,66 @@ export const fileBlobs = pgTable("file_blobs", {
   mimeType: varchar("mime_type", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Relations
+import { relations } from "drizzle-orm";
+
+export const usersRelations = relations(users, ({ many }) => ({
+  applications: many(applications, { relationName: "applicant" }),
+  managedApplications: many(applications, { relationName: "lawyer" }),
+  documents: many(documents),
+  sentMessages: many(messages),
+  receivedMessages: many(messages),
+  consultations: many(consultations),
+  payments: many(payments),
+  tasks: many(tasks),
+  invoices: many(invoices),
+  employerVerifications: many(employerVerifications),
+  documentPacks: many(documentPacks),
+}));
+
+export const applicationsRelations = relations(applications, ({ one, many }) => ({
+  user: one(users, {
+    fields: [applications.userId],
+    references: [users.id],
+    relationName: "applicant",
+  }),
+  lawyer: one(users, {
+    fields: [applications.lawyerId],
+    references: [users.id],
+    relationName: "lawyer",
+  }),
+
+  documents: many(documents),
+  messages: many(messages),
+  consultations: many(consultations),
+  payments: many(payments),
+  tasks: many(tasks),
+  invoices: many(invoices),
+  roadmapItems: many(roadmapItems),
+  employerVerifications: many(employerVerifications),
+  documentPacks: many(documentPacks),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  application: one(applications, {
+    fields: [documents.applicationId],
+    references: [applications.id],
+  }),
+  user: one(users, {
+    fields: [documents.userId],
+    references: [users.id],
+  }),
+}));
+
+export const researchArticlesRelations = relations(researchArticles, ({ one }) => ({
+  creator: one(users, {
+    fields: [researchArticles.createdByUserId],
+    references: [users.id],
+  }),
+  updater: one(users, {
+    fields: [researchArticles.updatedByUserId],
+    references: [users.id],
+  }),
+}));
+

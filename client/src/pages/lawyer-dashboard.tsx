@@ -8,8 +8,9 @@ import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
   Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit,
-  ArrowUpRight, Zap, Brain, Lock
+  ArrowUpRight, Zap, Brain, Lock, Printer
 } from "lucide-react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import LawyerConsultations from "@/components/lawyer-consultations";
 import PracticeTasks from "@/components/practice-tasks";
@@ -132,6 +133,7 @@ export default function LawyerDashboard() {
   const [isGeneratingBrief, setIsGeneratingBrief] = useState(false);
   const [policyUpdates, setPolicyUpdates] = useState<string | null>(null);
   const [showAiBriefModal, setShowAiBriefModal] = useState(false);
+  const [selectedBriefId, setSelectedBriefId] = useState<string | null>(null);
   const pageSize = 10;
 
   // Show loading while auth resolves
@@ -226,10 +228,12 @@ export default function LawyerDashboard() {
     try {
       setIsGeneratingBrief(true);
       setAiBrief(null); // Clear previous brief
+      setSelectedBriefId(applicationId);
       setShowAiBriefModal(true); // Open modal immediately
-      const res = await apiRequest<{ brief: string }>(`/lawyer/automation/brief/${applicationId}`, {
+      const res = await apiRequest<{ brief: string }>(`/api/lawyer/automation/brief/${applicationId}`, {
         method: "POST"
       });
+
       setAiBrief(res.brief);
       toast({
         title: "AI Brief Generated",
@@ -990,13 +994,22 @@ export default function LawyerDashboard() {
                 </div>
               ) : (
                 <>
-                  <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 font-sans leading-relaxed">
+                  <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 font-sans leading-relaxed printable-content">
                     {aiBrief}
                   </div>
-                  <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 font-bold">
-                    <ActionButton variant="primary" icon={Download} onClick={() => alert('PDF Export coming soon')}>Export PDF</ActionButton>
+                  <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 font-bold no-print">
+                    <ActionButton
+                      variant="primary"
+                      icon={Download}
+                      onClick={() => window.open(`/api/lawyer/automation/brief/${selectedBriefId}/download`, '_blank')}
+                    >
+                      Download (.txt)
+                    </ActionButton>
+                    <ActionButton variant="ghost" icon={Printer} onClick={() => window.print()}>Print</ActionButton>
                     <ActionButton variant="ghost" onClick={() => setShowAiBriefModal(false)}>Close</ActionButton>
                   </div>
+
+
                 </>
               )}
             </motion.div>

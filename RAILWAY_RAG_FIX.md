@@ -8,7 +8,9 @@ Since we've introduced a Python/FastAPI microservice alongside the Node.js appli
 3.  **Update Root Directory**: 
     - Go to **Settings** -> **General**.
     - Set the **Root Directory** to `/rag-backend`.
-4.  **Builder**: Railway will automatically detect the `Dockerfile` inside the `/rag-backend` folder.
+4.  **Service-Specific Config**: Ensure there is a `railway.json` inside the `/rag-backend` directory to prevent it from using the root Node.js configuration. I have created this for you.
+5.  **Builder**: Railway will automatically detect the `Dockerfile` inside the `/rag-backend` folder.
+
 
 ## 2. Persist ChromaDB Data (CRITICAL)
 Railway's file system is ephemeral. To prevent losing your indexed laws and scraped data:

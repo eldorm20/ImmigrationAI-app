@@ -32,11 +32,7 @@ router.post(
         // specific lawyer check? For now any lawyer can analyze any case they have access to?
         // application has lawyerId.
         const application = await db.query.applications.findFirst({
-            where: eq(applications.id, applicationId),
-            with: {
-                // We'll need user details
-                // Relationships not defined in schema? We can fetch manually.
-            }
+            where: eq(applications.id, applicationId)
         });
 
         if (!application) {
