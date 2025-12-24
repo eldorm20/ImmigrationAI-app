@@ -21,6 +21,11 @@ app = FastAPI(title="ImmigrationAI RAG Backend")
 client = chromadb.PersistentClient(path="./vector_store")
 collection = client.get_or_create_collection(name="immigration_docs")
 
+@app.get("/")
+async def root():
+    return {"message": "ImmigrationAI RAG Backend is running", "status": "healthy"}
+
+
 # Initialize LLM for Answer Generation
 # Note: Using a small model for CPU-only inference
 device = -1 # CPU
