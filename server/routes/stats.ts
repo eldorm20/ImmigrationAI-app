@@ -40,8 +40,8 @@ router.get(
         totalFees,
       });
     } else {
-      // Admin/Lawyer stats
-      const where = role === "lawyer" ? eq(applications.lawyerId, userId) : undefined;
+      // Admin/Lawyer stats: show all applications for overall dashboard consistency
+      const where = undefined; // Show global stats for practice management
       const allApps = await db.query.applications.findMany({ where });
       const allPayments = await db.query.payments.findMany({
         where: eq(payments.status, "completed"),

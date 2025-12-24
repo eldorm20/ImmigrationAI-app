@@ -71,6 +71,27 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
         category: "legal",
         description: "Letter from current employer confirming employment and leave.",
         requiredFields: ["employerName", "employeeName", "jobTitle", "salary", "leaveDates"]
+    },
+    {
+        id: "business_plan_exec",
+        name: "Business Visa Plan (Executive Summary)",
+        category: "submission",
+        description: "Executive summary for Innovator or Expansion Worker visa business plans.",
+        requiredFields: ["businessName", "sector", "innovationPoint", "investmentAmount", "jobCreation"]
+    },
+    {
+        id: "global_talent_cv",
+        name: "Global Talent Tech Nation CV",
+        category: "submission",
+        description: "Specialized CV for Global Talent tech endorsements.",
+        requiredFields: ["fullName", "techExpertise", "impactSummary", "awards", "publications"]
+    },
+    {
+        id: "refusal_appeal_letter",
+        name: "Refusal Appeal / Administrative Review",
+        category: "legal",
+        description: "Formal letter appealing a visa refusal or requesting review.",
+        requiredFields: ["refusalReference", "groundsForAppeal", "evidenceProvided", "rebuttalPoints"]
     }
 ];
 

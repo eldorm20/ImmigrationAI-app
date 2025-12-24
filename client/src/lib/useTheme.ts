@@ -1,33 +1,27 @@
 import { useEffect, useState } from 'react';
 
 export function useTheme() {
-  const [isDark, setIsDark] = useState<boolean | null>(null);
-
-  // Initialize theme from localStorage or system preference
-  useEffect(() => {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    // Check localStorage and system preference synchronously on init
+    if (typeof window === 'undefined') return true; // Default to dark on server if SSR (though Vite is client-side mostly)
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    const shouldBeDark = savedTheme ? savedTheme === 'dark' : prefersDark;
-    setIsDark(shouldBeDark);
-    applyTheme(shouldBeDark);
-  }, []);
+    return savedTheme ? savedTheme === 'dark' : prefersDark;
+  });
 
-  const applyTheme = (dark: boolean) => {
+  // Apply theme class when isDark changes
+  useEffect(() => {
     const html = document.documentElement;
-    if (dark) {
+    if (isDark) {
       html.classList.add('dark');
     } else {
       html.classList.remove('dark');
     }
-    localStorage.setItem('theme', dark ? 'dark' : 'light');
-  };
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const toggleTheme = () => {
-    if (isDark === null) return;
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    applyTheme(newTheme);
+    setIsDark(prev => !prev);
   };
 
   return { isDark, toggleTheme };

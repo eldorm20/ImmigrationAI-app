@@ -598,7 +598,7 @@ export async function simulateVoiceConversation(
 
     const response = await agentsManager.processRequest(
       "immigration-law",
-      "handleUserQuery", // Using handleUserQuery as a generic conversation handler for now
+      "handleVoiceInterview",
       [prompt, { context: "voice interview", language }]
     );
 

@@ -69,14 +69,11 @@ export function GovChecksView() {
         setLoading(true);
         setResult(null);
         try {
-            const res = await apiRequest("/ukrtwchecker/rtw", {
+            const res = await apiRequest("/gov-check/right-to-work", {
                 method: "POST",
                 body: JSON.stringify({
-                    code: formData.code,
-                    dob: formData.dob,
-                    forename: formData.forename,
-                    surname: formData.surname,
-                    company_name: formData.company_name,
+                    shareCode: formData.code,
+                    dateOfBirth: formData.dob,
                 }),
             });
             setResult({ type: 'rtw', data: res });
@@ -97,16 +94,11 @@ export function GovChecksView() {
         setLoading(true);
         setResult(null);
         try {
-            const res = await apiRequest("/ukrtwchecker/immigration", {
+            const res = await apiRequest("/gov-check/immigration-status", {
                 method: "POST",
                 body: JSON.stringify({
-                    code: formData.code,
-                    dob: formData.dob,
-                    forename: formData.forename,
-                    surname: formData.surname,
-                    company_name: formData.company_name,
-                    checker_job_title: formData.checker_job_title,
-                    check_reason: formData.check_reason,
+                    shareCode: formData.code,
+                    dateOfBirth: formData.dob,
                 }),
             });
             setResult({ type: 'immigration', data: res });

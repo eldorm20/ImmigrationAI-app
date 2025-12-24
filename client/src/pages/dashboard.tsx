@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
   Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit, Menu, X, Building
@@ -26,8 +27,6 @@ import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import CompanySearch from "@/pages/lawyer/company-check";
 
-
-
 export default function UserDash() {
   const { user, logout } = useAuth();
   const { t, lang, setLang } = useI18n();
@@ -36,6 +35,48 @@ export default function UserDash() {
 
   const [activeTab, setActiveTab] = useState('roadmap');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchApps = async () => {
+      try {
+        const apps = await apiRequest<any[]>("/api/applications");
+        setApplications(apps);
+      } catch (err) {
+        console.error("Failed to fetch applications", err);
+      }
+    };
+    fetchApps();
+  }, []);
+
+  const handleSubmitToLawyer = async () => {
+    const activeApp = applications.find(a => a.status === 'new' || a.status === 'in_progress');
+    if (!activeApp) {
+      toast({ title: t.dash?.noActiveApp || "No active application", description: "Start an application first", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiRequest(`/api/applications/${activeApp.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: 'submitted' })
+      });
+      toast({
+        title: t.dash?.submittedSuccess || "Application Submitted",
+        description: "Your application has been sent to our legal team.",
+        className: "bg-green-50 text-green-900 border-green-200"
+      });
+      // Refresh apps
+      const updated = await apiRequest<any[]>("/api/applications");
+      setApplications(updated);
+    } catch (err) {
+      toast({ title: "Submission Failed", description: "Could not submit application", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -51,9 +92,28 @@ export default function UserDash() {
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [activeTab, toast]);
+  }, [activeTab, toast, t.dash]);
 
   if (!user) return null;
+
+  const activeApp = applications.find(a => a.status === 'new' || a.status === 'in_progress');
+
+  const navItems = [
+    { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
+    { id: 'docs', icon: FileText, label: t.dash.docs },
+    { id: 'templates', icon: FolderOpen, label: t.dash.templates },
+    { id: 'simulator', icon: FlaskConical, label: t.dash.simulator },
+    ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: t.dash.agency }] : []),
+    { id: 'gov', icon: Shield, label: t.dash.gov },
+    { id: 'trainer', icon: BrainCircuit, label: t.dash.trainer },
+    { id: 'upload', icon: Upload, label: t.dash.upload },
+    { id: 'translate', icon: Globe, label: t.dash.translate },
+    { id: 'chat', icon: MessageSquare, label: t.dash.chat },
+    { id: 'messages', icon: Send, label: t.dash.messages },
+    { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
+    { id: 'research', icon: Book, label: t.dash.research },
+    { id: 'companies', icon: Building, label: "Companies" }
+  ];
 
   return (
     <div className="flex flex-col md:flex-row overflow-hidden transition-colors duration-300 h-[calc(100vh)]">
@@ -73,31 +133,13 @@ export default function UserDash() {
 
       {/* Sidebar */}
       <motion.aside
-        transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0.5, right: 0.05 }}
-        onDragEnd={(e, { offset, velocity }) => {
-          if (offset.x < -50 || velocity.x < -500) {
-            setIsMobileMenuOpen(false);
-          }
-        }}
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-[100dvh] shadow-2xl md:shadow-sm md:translate-x-0 md:static`}
-        style={{ x: undefined }} // Reset x for desktop if needed via media query, but mixed motion/css can be tricky.
-        // Better approach: Use variants or conditional animate. 
-        // Since we can't easily do media queries in 'animate', we'll rely on the fact that on desktop we want it always visible.
-        // But standard CSS 'md:static' might conflict with motion style 'x'.
-        // Let's rely on standard CSS for desktop and motion for mobile?
-        // Actually, mixing is hard. Let's use a specialized mobile drawer component pattern or keep it simple.
-        // simpler: Keep class based transform for desktop reset?
-        // If I set animate={{ x: ... }} it adds inline style. 
-        // for desktop: force x: 0 !important via css? or use 'variants'.
         variants={{
           open: { x: 0 },
           closed: { x: "-100%" },
         }}
         initial="closed"
-        animate={isMobileMenuOpen ? "open" : (window.innerWidth >= 768 ? { x: 0 } : "closed")}
+        animate={isMobileMenuOpen ? "open" : (typeof window !== 'undefined' && window.innerWidth >= 768 ? "open" : "closed")}
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 flex flex-col h-[100dvh] shadow-2xl md:shadow-sm md:translate-x-0 md:static`}
       >
         <div className="p-6 md:p-8 flex justify-between items-center">
           <motion.div
@@ -118,28 +160,11 @@ export default function UserDash() {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
-          {[
-            { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
-            { id: 'docs', icon: FileText, label: t.dash.docs },
-            { id: 'templates', icon: FolderOpen, label: t.dash.templates },
-            { id: 'simulator', icon: FlaskConical, label: t.dash.simulator },
-            ...(user.role === 'lawyer' || user.role === 'admin' ? [{ id: 'agency', icon: Users, label: t.dash.agency }] : []),
-            { id: 'gov', icon: Shield, label: t.dash.gov },
-            { id: 'trainer', icon: BrainCircuit, label: t.dash.trainer },
-            { id: 'upload', icon: Upload, label: t.dash.upload },
-            // Applications removed
-            { id: 'translate', icon: Globe, label: t.dash.translate },
-            { id: 'chat', icon: MessageSquare, label: t.dash.chat },
-            { id: 'messages', icon: Send, label: t.dash.messages },
-            { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
-            { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
-            { id: 'research', icon: Book, label: t.dash.research },
-            { id: 'companies', icon: Building, label: "Companies" }
-          ].map(item => (
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+          {navItems.map(item => (
             <motion.button
               key={item.id}
-              onClick={() => { if (item.id === 'applications') setLocation('/applications'); else setActiveTab(item.id); }}
+              onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
               whileHover={{ x: 5 }}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
@@ -161,7 +186,7 @@ export default function UserDash() {
           <div className="flex items-center gap-4 mb-6 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-brand-500 to-purple-500 p-[2px]">
               <div className="w-full h-full bg-white dark:bg-slate-900 rounded-full flex items-center justify-center font-bold text-xs text-slate-900 dark:text-white">
-                {user.name[0]}
+                {user.name?.[0] || 'U'}
               </div>
             </div>
             <div className="overflow-hidden flex-1">
@@ -171,31 +196,15 @@ export default function UserDash() {
           </div>
           <LiveButton
             variant="shine"
-            className="w-full justify-start text-white hover:text-white"
+            className="w-full justify-start text-white hover:text-white text-xs py-3"
             onClick={() => setLocation("/subscription")}
             icon={CreditCard}
           >
-            {t.subscription?.manage || "Upgrade Subscription"}
+            {t.subscription?.manage || "Upgrade"}
           </LiveButton>
           <LiveButton
             variant="ghost"
-            className="w-full justify-start text-purple-600 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/20"
-            onClick={() => setLocation("/notifications")}
-            icon={Bell}
-          >
-            {t.settings?.notificationPreferences || "Notifications"}
-          </LiveButton>
-          <LiveButton
-            variant="ghost"
-            className="w-full justify-start text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-            onClick={() => setLocation("/settings")}
-            icon={Settings}
-          >
-            {t.settings?.title || "Settings"}
-          </LiveButton>
-          <LiveButton
-            variant="ghost"
-            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+            className="w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 text-xs py-3"
             onClick={logout}
             icon={LogOut}
           >
@@ -206,7 +215,6 @@ export default function UserDash() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-mesh">
-        {/* Background Elements */}
         <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-brand-50/20 to-transparent dark:from-brand-900/5 pointer-events-none" />
 
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 relative z-10 gap-4 pt-4 md:pt-0">
@@ -223,7 +231,7 @@ export default function UserDash() {
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2 text-sm md:text-base">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                {t.dashStatus?.label || 'Immigration Status:'} <span className="text-brand-600 dark:text-brand-400 font-bold">{t.dashStatus?.active || 'Active'}</span>
+                {t.dashStatus?.label || 'Immigration Status:'} <span className="text-brand-600 dark:text-brand-400 font-bold">{activeApp ? activeApp.status : (t.dashStatus?.active || 'Active')}</span>
               </p>
             </div>
             <div className="md:hidden">
@@ -231,6 +239,17 @@ export default function UserDash() {
             </div>
           </motion.div>
           <div className="flex items-center gap-4">
+            {activeApp && activeApp.status !== 'submitted' && (
+              <LiveButton
+                variant="primary"
+                onClick={handleSubmitToLawyer}
+                loading={isSubmitting}
+                icon={Send}
+                className="shadow-xl shadow-brand-500/20"
+              >
+                {t.dash?.submitToLawyer || "Submit to Lawyer"}
+              </LiveButton>
+            )}
             <div className="hidden md:flex items-center gap-2 mr-4">
               <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex border border-slate-200 dark:border-slate-700">
                 {(['en', 'uz', 'ru'] as const).map((l) => (
@@ -258,17 +277,16 @@ export default function UserDash() {
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
           {activeTab === 'agency' && <AgencyView key="agency" />}
+          {activeTab === 'companies' && <CompanySearch />}
           {activeTab === 'research' && (
             <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
               <AnimatedCard className="max-w-md mx-auto">
                 <Book className="w-16 h-16 mx-auto mb-4 text-brand-500" />
                 <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">{t.research.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                <p className="text-slate-600 dark:text-slate-400 mb-6 font-medium">
                   {t.research.subtitle}
                 </p>
-                <LiveButton onClick={() => {
-                  setLocation('/research');
-                }} icon={Book}>
+                <LiveButton onClick={() => setLocation('/research')} icon={Book}>
                   {t.research.title}
                 </LiveButton>
               </AnimatedCard>
@@ -276,6 +294,6 @@ export default function UserDash() {
           )}
         </AnimatePresence>
       </main>
-    </div >
+    </div>
   );
 }

@@ -58,10 +58,9 @@ router.get(
           pending: sql<number>`SUM(CASE WHEN status = 'pending' OR status = 'pending_documents' THEN 1 ELSE 0 END)`,
           approved: sql<number>`SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)`,
           rejected: sql<number>`SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END)`,
-          inProgress: sql<number>`SUM(CASE WHEN status = 'under_review' OR status = 'in_progress' THEN 1 ELSE 0 END)`,
+          inProgress: sql<number>`SUM(CASE WHEN status = 'under_review' OR status = 'in_progress' OR status = 'submitted' THEN 1 ELSE 0 END)`,
         })
-        .from(applications)
-        .where(eq(applications.lawyerId, lawyerId));
+        .from(applications);
 
       // Get consultation stats
       const consultationStats = await db
@@ -71,8 +70,7 @@ router.get(
           completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
           cancelled: sql<number>`SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END)`,
         })
-        .from(consultations)
-        .where(eq(consultations.lawyerId, lawyerId));
+        .from(consultations);
 
       // Get task stats
       const taskStats = await db
@@ -82,8 +80,7 @@ router.get(
           inProgress: sql<number>`SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)`,
           completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
         })
-        .from(tasks)
-        .where(eq(tasks.lawyerId, lawyerId));
+        .from(tasks);
 
       // Get invoice/revenue stats
       const invoiceStats = await db
@@ -94,8 +91,7 @@ router.get(
           outstanding: sql<number>`COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount::numeric ELSE 0 END), 0)`,
           drafts: sql<number>`SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END)`,
         })
-        .from(invoices)
-        .where(eq(invoices.lawyerId, lawyerId));
+        .from(invoices);
 
       // Get upcoming consultations (next 7 days)
       const now = new Date();
@@ -189,7 +185,7 @@ router.get(
       }
 
       if (period === "monthly" || !period) {
-        const data = await getRevenueAnalytics(lawyerId);
+        const data = await getRevenueAnalytics(); // No ID = Global for Practice
         return res.json({
           period: "monthly",
           startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),

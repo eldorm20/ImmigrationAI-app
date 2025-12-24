@@ -315,9 +315,11 @@ router.patch(
       throw new AppError(403, "Access denied");
     }
 
-    // Only lawyers and admins can change status
+    // Only lawyers and admins can change status, except for applicants submitting
     if (body.status && role === "applicant") {
-      throw new AppError(403, "Cannot change application status");
+      if (body.status !== "submitted") {
+        throw new AppError(403, "Cannot change application status to " + body.status);
+      }
     }
 
     const updateData: any = {};
@@ -355,6 +357,42 @@ router.patch(
       })
       .where(eq(applications.id, id))
       .returning();
+
+    // Automated Invoicing logic: Create an invoice if status moves to 'submitted'
+    if (body.status === "submitted" && application.status !== "submitted") {
+      try {
+        // If no lawyer assigned, assign the first available lawyer
+        let lawyerId = updated.lawyerId;
+        if (!lawyerId) {
+          const firstLawyer = await db.query.users.findFirst({
+            where: eq(users.role, "lawyer"),
+          });
+          if (firstLawyer) {
+            lawyerId = firstLawyer.id;
+            await db.update(applications).set({ lawyerId }).where(eq(applications.id, id));
+          }
+        }
+
+        if (lawyerId) {
+          const { invoices: invoicesTable } = await import("@shared/schema");
+          await db.insert(invoicesTable).values({
+            lawyerId,
+            applicantId: updated.userId,
+            applicationId: updated.id,
+            amount: "499.00",
+            currency: "USD",
+            status: "draft",
+            items: [
+              { description: `${updated.visaType} Legal Review Fee`, amount: "499.00" }
+            ],
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          logger.info({ applicationId: id, lawyerId }, "Automated invoice draft created");
+        }
+      } catch (billingError) {
+        logger.error({ error: billingError, applicationId: id }, "Failed automated invoice");
+      }
+    }
 
     // Send email notification if status changed
     if (body.status && body.status !== application.status) {

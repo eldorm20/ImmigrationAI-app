@@ -237,9 +237,10 @@ router.get(
         orderBy: (documents, { desc }) => [desc(documents.createdAt)],
       });
     } else {
-      // Get user's documents
+      // Get user's documents (Lawyers/Admins can specify userId via query)
+      const targetUserId = (role === "lawyer" || role === "admin") && req.query.userId ? req.query.userId as string : userId;
       docs = await db.query.documents.findMany({
-        where: eq(documents.userId, userId),
+        where: eq(documents.userId, targetUserId),
         orderBy: (documents, { desc }) => [desc(documents.createdAt)],
       });
     }

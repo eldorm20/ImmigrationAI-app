@@ -221,6 +221,12 @@ Do not include any other text or explanations before or after the JSON.`;
     return this.process(prompt);
   }
 
+  async handleVoiceInterview(prompt: string, context?: any): Promise<AgentResponse> {
+    // For voice, we want speed. Skip RAG if the prompt already contains context or if it's a follow-up.
+    // The prompt passed from simulateVoiceConversation already has interviewContext.
+    return this.process(prompt);
+  }
+
   async handleUserQuery(query: string, context?: any): Promise<AgentResponse> {
     // 1. Primary Source: Authoritative RAG Microservice
     let authoritativeContext = "";

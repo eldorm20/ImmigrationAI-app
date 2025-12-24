@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
   Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit,
-  ArrowUpRight, Zap, Brain, Lock, Printer, Building
+  ArrowUpRight, Zap, Brain, Lock, Printer, Building, RefreshCw, Loader2
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,7 @@ import ClientProfile from "@/components/client-profile";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import CompanySearch from "@/pages/lawyer/company-check";
@@ -118,9 +119,10 @@ export default function LawyerDashboard() {
   const [_, setLocation] = useLocation();
   const { t } = useI18n();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics' | 'trainer' | 'company-check'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics' | 'company-check'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -520,14 +522,46 @@ export default function LawyerDashboard() {
                   <BrainCircuit size={120} />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-400/30">
-                      <Zap className="text-indigo-400" size={20} />
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-400/30">
+                        <Zap className="text-indigo-400" size={20} />
+                      </div>
+                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        AI Policy Watcher
+                        <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live Integration</span>
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">AI Policy Watcher <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live Integration</span></h3>
+                    <LiveButton
+                      variant="ghost"
+                      size="sm"
+                      className="text-white/60 hover:text-white"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/lawyer/automation/policy-updates"] })}
+                    >
+                      <RefreshCw size={14} className="mr-2" /> Refresh
+                    </LiveButton>
                   </div>
-                  <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-                    {policyUpdates || "Searching for immigration policy updates from official RAG databases..."}
+                  <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-slate-300 text-sm leading-relaxed max-h-64 overflow-y-auto custom-scrollbar">
+                    {policyUpdates ? (
+                      <div className="space-y-4">
+                        <div className="whitespace-pre-wrap italic">
+                          {policyUpdates}
+                        </div>
+                        <div className="pt-4 border-t border-white/5 flex gap-3">
+                          <LiveButton variant="primary" size="sm" className="bg-indigo-600 hover:bg-indigo-500 border-none text-xs">
+                            <Briefcase size={12} className="mr-1.5" /> Analyze Impact on My Cases
+                          </LiveButton>
+                          <LiveButton variant="ghost" size="sm" className="text-indigo-300 hover:text-indigo-200 text-xs">
+                            <FileText size={12} className="mr-1.5" /> View Official Source
+                          </LiveButton>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Loader2 className="animate-spin text-indigo-400 mb-3" size={32} />
+                        <p className="animate-pulse">Analyzing global immigration policy feeds...</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

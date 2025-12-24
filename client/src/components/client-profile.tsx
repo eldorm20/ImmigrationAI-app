@@ -116,11 +116,9 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
             setLoading(true);
             const data = await apiRequest<ClientData>(`/clients/${clientId}`);
 
-            // Fetch documents if they aren't included or to ensure freshness
-            if (data.latestApplication?.id) {
-                const docs = await apiRequest<any[]>(`/documents?applicationId=${data.latestApplication.id}`);
-                data.documents = docs;
-            }
+            // Fetch ALL documents for this client
+            const docs = await apiRequest<any[]>(`/documents?userId=${clientId}`);
+            data.documents = docs;
 
             setClient(data);
         } catch (error) {

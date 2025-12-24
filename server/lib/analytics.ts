@@ -159,21 +159,36 @@ async function getLawyerEarnings(lawyerId: string): Promise<number> {
   return Number(earningsResult[0]?.total) || 0;
 }
 
-export async function getRevenueAnalytics(lawyerId: string) {
+export async function getRevenueAnalytics(lawyerId?: string) {
   try {
     // Get last 6 months revenue
-    const revenueQuery = sql`
-      SELECT 
-        TO_CHAR(created_at, 'Mon') as name,
-        TO_CHAR(created_at, 'YYYY-MM') as sort_date,
-        COALESCE(SUM(amount), 0) as value
-      FROM invoices 
-      WHERE lawyer_id = ${lawyerId} 
-      AND status = 'paid'
-      AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
-      GROUP BY 1, 2
-      ORDER BY 2 ASC
-    `;
+    let revenueQuery;
+    if (lawyerId) {
+      revenueQuery = sql`
+        SELECT 
+          TO_CHAR(created_at, 'Mon') as name,
+          TO_CHAR(created_at, 'YYYY-MM') as sort_date,
+          COALESCE(SUM(amount::numeric), 0) as value
+        FROM invoices 
+        WHERE lawyer_id = ${lawyerId} 
+        AND status = 'paid'
+        AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
+        GROUP BY 1, 2
+        ORDER BY 2 ASC
+      `;
+    } else {
+      revenueQuery = sql`
+        SELECT 
+          TO_CHAR(created_at, 'Mon') as name,
+          TO_CHAR(created_at, 'YYYY-MM') as sort_date,
+          COALESCE(SUM(amount::numeric), 0) as value
+        FROM invoices 
+        WHERE status = 'paid'
+        AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
+        GROUP BY 1, 2
+        ORDER BY 2 ASC
+      `;
+    }
 
     const result = await db.execute(revenueQuery);
 

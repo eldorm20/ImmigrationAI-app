@@ -378,11 +378,8 @@ export const UploadView = () => {
                                             variant="ghost"
                                             className="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 hover:bg-brand-50 hover:text-brand-600 transition-all shadow-sm border border-slate-100 dark:border-slate-800"
                                             onClick={() => {
-                                                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-                                                    window.open(file.url, '_blank');
-                                                } else {
-                                                    toast({ title: t.upload.previewFail, description: t.upload.previewError, variant: "destructive" });
-                                                }
+                                                const url = file.url.startsWith('http') ? file.url : window.location.origin + file.url;
+                                                window.open(url, '_blank', 'noreferrer');
                                             }}
                                             title={t.upload.view}
                                         >
