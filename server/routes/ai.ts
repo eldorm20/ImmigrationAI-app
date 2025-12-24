@@ -10,7 +10,9 @@ import {
   analyzeDocument,
   generateInterviewQuestions,
   evaluateInterviewAnswer,
+  analyzeScenario,
   generateDocument,
+  reviewDocument,
   translateText,
   chatRespond,
 } from "../lib/ai";
@@ -108,14 +110,19 @@ router.post(
 );
 
 // Generate interview questions
-const interviewQuestionsSchema = z.object({ visaType: z.string().min(1), country: z.string().length(2) });
+const interviewQuestionsSchema = z.object({
+  visaType: z.string().min(1),
+  country: z.string().min(1).max(25), // More flexible length
+  language: z.string().optional() // Allow language field
+});
 
 router.post(
   "/interview/questions",
   aiLimiter,
   validateBody(interviewQuestionsSchema),
   asyncHandler(async (req, res) => {
-    const { visaType, country } = req.parsedBody as { visaType: string; country: string };
+    console.log('[AI Interview Questions] Request body:', req.body);
+    const { visaType, country, language } = req.parsedBody as { visaType: string; country: string; language?: string };
 
     const userId = req.user!.userId;
     try {
@@ -124,7 +131,7 @@ router.post(
       return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
     }
 
-    const questions = await generateInterviewQuestions(visaType, country);
+    const questions = await generateInterviewQuestions(visaType, country, language || 'en');
     res.json({ questions });
   })
 );
@@ -148,7 +155,7 @@ router.post(
       return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({ message: (err as any).message || 'AI quota exceeded' });
     }
 
-    const feedback = await evaluateInterviewAnswer(question, answer);
+    const feedback = await evaluateInterviewAnswer(question, answer, (req.body as any).language || 'en');
     res.json(feedback);
   })
 );
@@ -316,47 +323,74 @@ Generated on ${new Date().toLocaleDateString()}`;
   })
 );
 
+// Review document for compliance
+router.post(
+  "/documents/review",
+  aiLimiter,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(403).json({ message: 'AI quota exceeded' });
+    }
+
+    const { content, docType, visaType } = z
+      .object({
+        content: z.string().min(10),
+        docType: z.string().min(1),
+        visaType: z.string().optional()
+      })
+      .parse(req.body);
+
+    const check = await reviewDocument(content, docType, visaType);
+    res.json(check);
+  })
+);
+
+// Analyze hypothetical scenario
+router.post(
+  "/simulator/analyze",
+  aiLimiter,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    try {
+      await incrementUsage(userId, 'aiMonthlyRequests', 1);
+    } catch (err) {
+      return res.status(403).json({ message: 'AI quota exceeded' });
+    }
+
+    const result = await analyzeScenario(req.body);
+    res.json(result);
+  })
+);
+
+import { DOCUMENT_TEMPLATES } from "../lib/document-generator";
+
 // Return available templates and sample data for previewing
 router.get(
   "/documents/templates",
   asyncHandler(async (_req, res) => {
-    const templates = [
-      {
-        id: 'Motivation Letter',
-        description: 'Formal motivation / cover letter for immigration or job application',
-        sampleData: {
-          name: 'Jane Applicant',
-          role: 'Research Scientist',
-          company: 'Institute of Advanced Studies',
-          experience: '6',
-          education: "Master's in Molecular Biology",
-          skills: 'Research, Project Management, English C1',
-          achievements: 'Published 3 papers in peer-reviewed journals'
-        }
-      },
-      {
-        id: 'CV Enhancement',
-        description: 'Enhanced CV / professional summary optimized for visa/job applications',
-        sampleData: {
-          name: 'Olga Ivanova',
-          role: 'Data Analyst',
-          company: 'Analytics Co',
-          experience: '4',
-          education: "Bachelor's in Statistics",
-          skills: 'Python, SQL, DataViz'
-        }
-      },
-      {
-        id: 'Reference Letter',
-        description: 'Professional reference letter template',
-        sampleData: {
-          name: 'Tim Johnson',
-          role: 'Project Manager',
-          recommender: 'Anna Smith',
-          achievements: 'Led product launches across EU'
-        }
+    // Map the internal templates to the format expected by the frontend
+    const templates = DOCUMENT_TEMPLATES.map(t => ({
+      id: t.name, // The UI uses the name as ID currently
+      id_internal: t.id,
+      description: t.description,
+      category: t.category,
+      sampleData: {
+        name: 'Jane Applicant',
+        visaType: 'Skilled Worker',
+        experience: '5',
+        education: "Master's Degree",
+        reasonForChoice: 'Career growth and research opportunities',
+        // Generic fields for fallback
+        fullName: 'Jane Applicant',
+        passportNo: 'AB1234567',
+        address: '123 Main St, London',
+        stayDuration: '3 years'
       }
-    ];
+    }));
 
     res.json({ templates });
   })
@@ -499,14 +533,33 @@ router.post(
       if (localAIUrl) {
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
+<<<<<<< HEAD
           const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations.`;
           const payload = buildOllamaPayload(`Translate: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat');
 
           const response = await fetch(localAIUrl, {
+=======
+          const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
+          const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'mistral');
+
+          // Construct correct URL
+          let fetchUrl = localAIUrl;
+          if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
+            fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
+          }
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
+
+          const response = await fetch(fetchUrl, {
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
 
           if (response.ok) {
             const json = await response.json();
@@ -597,9 +650,48 @@ router.post(
         messageText = parsed.message;
       }
 
+      // Use specialized immigration agent with RAG for relevant queries
+      const keywords = ["viza", "visa", "qonun", "law", "registration", "registratsiya", "uzbekistan", "o'zbekiston", "zru", "pkm", "uzb"];
+      if (keywords.some(k => messageText.toLowerCase().includes(k))) {
+        try {
+          const { agentsManager } = await import("../lib/agents");
+          const agentResponse = await agentsManager.processRequest(
+            "immigration-law",
+            "handleUserQuery",
+            [messageText, { language: parsed.language || 'en' }]
+          );
+
+          if (agentResponse.success) {
+            return res.json({ response: agentResponse.data });
+          }
+        } catch (agentErr) {
+          logger.warn({ agentErr }, "Specialized agent failed, falling back to general chat");
+        }
+      }
+
       // Use improved chat function that properly handles conversation history
       const language = (parsed.language as string) || 'en';
-      const systemPrompt = `You are an expert immigration and visa assistant. Answer questions in ${language === 'uz' ? 'Uzbek' : language === 'ru' ? 'Russian' : 'English'}. Provide accurate, helpful information about visas, immigration processes, document requirements, and related topics. Be concise but thorough.`;
+
+      let systemPrompt = "";
+      if (language === 'uz') {
+        systemPrompt = `Siz "AI Yordamchi"siz - ImmigrationAI platformasining rasmiy yordamchisi. Sizning vazifangiz:
+1. Immigratsiya va vizalar bo'yicha aniq maslahat berish.
+2. Platformadan foydalanish bo'yicha texnik yordam ko'rsatish (akkaunt, to'lovlar, hujjatlar).
+3. Foydalanuvchi muammolarini hal qilish.
+Javoblarni asosan O'zbek tilida bering. AGAR savolga o'zbek tilida aniq javob berish qiyin bo'lsa yoki atamalar murakkab bo'lsa, tushuntirish uchun RUS tilidan foydalanishingiz mumkin. Maqsad - foydalanuvchiga eng to'g'ri ma'lumotni yetkazish.`;
+      } else if (language === 'ru') {
+        systemPrompt = `Вы "AI Yordamchi" - официальный помощник платформы ImmigrationAI. Ваша задача:
+1. Давать точные советы по иммиграции и визам.
+2. Оказывать техническую поддержку по платформе (аккаунт, оплата, документы).
+3. Решать проблемы пользователей.
+Отвечайте только на Русском языке, четко и кратко. Избегайте повторений.`;
+      } else {
+        systemPrompt = `You are "AI Yordamchi" - the official support assistant for the ImmigrationAI platform. Your role is to:
+1. Provide accurate advice on immigration and visas.
+2. Provide technical support for the platform (account, billing, documents).
+3. Solve user issues.
+Answer specifically in English, clearly and concisely. Avoid repetition.`;
+      }
 
       // Build full conversation with history for context
       const allMessages = [
@@ -614,21 +706,84 @@ router.post(
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
 
           // Use /api/chat endpoint if available (better for conversation)
+<<<<<<< HEAD
           const chatUrl = localAIUrl.replace('/api/generate', '/api/chat');
           const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
+=======
+          // Construct correct URL for chat
+          let chatUrl = localAIUrl;
+          if (chatUrl.includes("/api/generate")) {
+            chatUrl = chatUrl.replace('/api/generate', '/api/chat');
+          } else if (!chatUrl.includes("/api/") && !chatUrl.includes("/v1/")) {
+            chatUrl = chatUrl.replace(/\/+$/, "") + "/api/chat";
+          }
+          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'mistral', allMessages);
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
-          const response = await fetch(chatUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+          // Log payload for debugging (truncated if too long)
+          logger.info({
+            payloadMeta: {
+              model: payload.model,
+              messagesCount: payload.messages?.length,
+              options: payload.options
+            }
+          }, "Sending chat request to Ollama");
 
-          if (response.ok) {
+          let response;
+          let attempts = 0;
+          const maxRetries = 3;
+
+          while (attempts < maxRetries) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
+
+              response = await fetch(chatUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+
+              if (response.ok) {
+                break; // Success!
+              }
+
+              // If 500 or 503, retry
+              if (response.status >= 500) {
+                const errText = await response.text();
+                logger.warn({ status: response.status, attempt: attempts + 1, errText }, "Ollama returned server error, retrying...");
+                if (attempts === maxRetries - 1) {
+                  // Throw on last attempt to let outer catch handle it
+                  throw new Error(`Ollama failed with status ${response.status}: ${errText}`);
+                }
+              } else {
+                // 4xx errors should not be retried
+                break;
+              }
+
+            } catch (netErr) {
+              logger.warn({ err: netErr, attempt: attempts + 1 }, "Network error communicating with Ollama");
+              if (attempts === maxRetries - 1) throw netErr;
+            }
+
+            attempts++;
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
+          }
+
+
+          if (response && response.ok) {
             const json = await response.json();
             const parsed = parseOllamaResponse(json);
             if (parsed) {
               return res.json({ reply: parsed });
             }
+          } else if (response) {
+            const errorText = await response.text();
+            logger.error({ status: response.status, statusText: response.statusText, errorText, url: chatUrl, model: process.env.OLLAMA_MODEL }, "Ollama chat request failed");
           }
         } catch (ollamaErr) {
           logger.warn({ err: ollamaErr }, "Ollama chat endpoint failed, falling back to generate");
@@ -656,6 +811,7 @@ router.post(
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.warn({ err: errorMsg }, "AI chat failed, using intelligent fallback responses");
 
+<<<<<<< HEAD
       // Intelligent fallback responses for common immigration questions
       const lowerMessage = messageText.toLowerCase();
       let fallbackReply = "";
@@ -861,6 +1017,30 @@ Try asking a more specific question like:
       }
 
       return res.json({ reply: fallbackReply, fallback: true });
+=======
+      // Check if it's a configuration issue
+      const isConfigError = !process.env.OPENAI_API_KEY && !process.env.LOCAL_AI_URL && !process.env.HUGGINGFACE_API_TOKEN;
+
+      if (isConfigError) {
+        return res.status(503).json({
+          error: "AI Service Not Configured",
+          message: "Please configure OPENAI_API_KEY or LOCAL_AI_URL in environment variables."
+        });
+      }
+
+      // Return 503 if AI provider unavailable, 500 for other errors
+      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider") || errorMsg.includes("ECONNREFUSED")) {
+        return res.status(503).json({
+          error: "Chat service unavailable",
+          message: "AI provider is currently unreachable. If using Local AI, ensure it is running."
+        });
+      }
+
+      res.status(500).json({
+        error: "Chat response failed",
+        message: "An unexpected error occurred while processing your request."
+      });
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     }
   })
 );

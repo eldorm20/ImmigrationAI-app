@@ -1,146 +1,126 @@
-import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
-import { UserPlus, Mail, Trash2, Shield, MoreVertical } from "lucide-react";
+import { UserPlus, Users, Building2, Lock, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
-
-interface TeamMember {
-    id: string;
-    name: string;
-    email: string;
-    role: "admin" | "member" | "viewer";
-    status: "active" | "pending";
-    avatar?: string;
-}
+import { useAuth } from "@/lib/auth";
 
 export function AgencyView() {
-    const { toast } = useToast();
-    const [inviteEmail, setInviteEmail] = useState("");
-    const [members, setMembers] = useState<TeamMember[]>([
-        { id: "1", name: "You", email: "lawyer@example.com", role: "admin", status: "active" },
-        { id: "2", name: "Sarah Associate", email: "sarah@firm.com", role: "member", status: "active" },
-        { id: "3", name: "John Paralegal", email: "john@firm.com", role: "viewer", status: "pending" },
-    ]);
-
-    const handleInvite = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!inviteEmail) return;
-
-        // Mock invite
-        toast({
-            title: "Invitation Sent",
-            description: `Invited ${inviteEmail} to join your agency team.`,
-            className: "bg-green-50 text-green-900 border-green-200"
-        });
-
-        setMembers([
-            ...members,
-            {
-                id: Math.random().toString(),
-                name: inviteEmail.split("@")[0],
-                email: inviteEmail,
-                role: "member",
-                status: "pending"
-            }
-        ]);
-        setInviteEmail("");
-    };
+    const { user } = useAuth();
+    const { t } = useI18n();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Agency Team</h2>
-                    <p className="text-slate-500 dark:text-slate-400">Manage your law firm's team members and permissions.</p>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto space-y-10 pb-12"
+        >
+            {/* Header */}
+            <div className="text-center space-y-4">
+                <div className="w-24 h-24 mx-auto mb-6 rounded-[2rem] bg-gradient-to-br from-brand-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-brand-500/30 rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <Building2 size={44} className="text-white" />
                 </div>
-                <LiveButton icon={UserPlus} onClick={() => document.getElementById('invite-input')?.focus()}>
-                    Invite Member
-                </LiveButton>
+                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{t.agency.title}</h2>
+                <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium italic">
+                    {t.agency.desc}
+                </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-                <AnimatedCard className="md:col-span-2">
-                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                        <Shield size={20} className="text-brand-500" />
-                        Team Members
-                    </h3>
+            {/* Coming Soon Card */}
+            <AnimatedCard className="glass-premium p-12 rounded-[3rem] border-none shadow-2xl relative overflow-hidden text-center">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
 
-                    <div className="space-y-4">
-                        {members.map((member) => (
-                            <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                                        {member.name[0].toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                            {member.name}
-                                            {member.id === "1" && <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">You</span>}
-                                        </div>
-                                        <div className="text-sm text-slate-500 dark:text-slate-400">{member.email}</div>
-                                    </div>
-                                </div>
+                <div className="w-20 h-20 mx-auto mb-8 rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-xl shadow-amber-500/20">
+                    <Sparkles size={36} className="text-white" />
+                </div>
 
-                                <div className="flex items-center gap-4">
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${member.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                                        }`}>
-                                        {member.status}
-                                    </span>
-                                    <div className="text-sm font-medium text-slate-600 dark:text-slate-300 capitalize">
-                                        {member.role}
-                                    </div>
-                                    {member.id !== "1" && (
-                                        <button className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                <h3 className="text-3xl font-black mb-4 text-slate-900 dark:text-white">{t.agency.comingSoon}</h3>
+                <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-12 font-medium">
+                    {t.agency.comingSoonDesc}
+                </p>
+
+                <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto text-left relative z-10">
+                    <motion.div whileHover={{ y: -5 }} className="flex items-start gap-4 p-6 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 border border-white/20 shadow-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-500/10 flex items-center justify-center shrink-0">
+                            <UserPlus size={24} className="text-brand-500" />
+                        </div>
+                        <div>
+                            <h4 className="font-black text-slate-900 dark:text-white mb-1">{t.agency.invite.title}</h4>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight">{t.agency.invite.desc}</p>
+                        </div>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -5 }} className="flex items-start gap-4 p-6 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 border border-white/20 shadow-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                            <Users size={24} className="text-indigo-500" />
+                        </div>
+                        <div>
+                            <h4 className="font-black text-slate-900 dark:text-white mb-1">{t.agency.roles.title}</h4>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight">{t.agency.roles.desc}</p>
+                        </div>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -5 }} className="flex items-start gap-4 p-6 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 border border-white/20 shadow-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0">
+                            <Building2 size={24} className="text-purple-500" />
+                        </div>
+                        <div>
+                            <h4 className="font-black text-slate-900 dark:text-white mb-1">{t.agency.assignment.title}</h4>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight">{t.agency.assignment.desc}</p>
+                        </div>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -5 }} className="flex items-start gap-4 p-6 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 border border-white/20 shadow-sm">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                            <Lock size={24} className="text-emerald-500" />
+                        </div>
+                        <div>
+                            <h4 className="font-black text-slate-900 dark:text-white mb-1">{t.agency.collab.title}</h4>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight">{t.agency.collab.desc}</p>
+                        </div>
+                    </motion.div>
+                </div>
+            </AnimatedCard>
+
+            {/* Current User Info */}
+            <AnimatedCard delay={0.1} className="glass-premium p-8 rounded-[2.5rem] border-none shadow-xl">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                    {t.agency.account}
+                </h3>
+                <div className="flex items-center gap-6 p-6 bg-white/30 dark:bg-slate-900/30 rounded-[2rem] border border-white/10">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-brand-500/20">
+                        {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                     </div>
-                </AnimatedCard>
-
-                <div className="space-y-6">
-                    <AnimatedCard delay={0.1}>
-                        <h3 className="font-bold text-lg mb-4">Invite New Member</h3>
-                        <form onSubmit={handleInvite} className="space-y-4">
-                            <div>
-                                <label className="text-sm font-bold text-slate-500 uppercase mb-1 block">Email Address</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input
-                                        id="invite-input"
-                                        type="email"
-                                        value={inviteEmail}
-                                        onChange={(e) => setInviteEmail(e.target.value)}
-                                        placeholder="colleague@firm.com"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-brand-500 outline-none"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-sm font-bold text-slate-500 uppercase mb-1 block">Role</label>
-                                <select className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 outline-none">
-                                    <option value="member">Associate (Member)</option>
-                                    <option value="admin">Partner (Admin)</option>
-                                    <option value="viewer">Paralegal (Viewer)</option>
-                                </select>
-                            </div>
-                            <LiveButton type="submit" className="w-full">
-                                Send Invitation
-                            </LiveButton>
-                        </form>
-                    </AnimatedCard>
-
-                    <div className="bg-brand-50 dark:bg-brand-900/20 rounded-2xl p-6 border border-brand-100 dark:border-brand-800">
-                        <h4 className="font-bold text-brand-800 dark:text-brand-300 mb-2">Pro Tip</h4>
-                        <p className="text-sm text-brand-700 dark:text-brand-400">
-                            Agency plans include 3 seats. Upgrade to Enterprise for unlimited team members and advanced permission controls.
-                        </p>
+                    <div>
+                        <div className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            {user?.firstName} {user?.lastName}
+                        </div>
+                        <div className="text-sm text-slate-500 font-bold">{user?.email}</div>
+                    </div>
+                    <div className="ml-auto">
+                        <span className="px-5 py-2 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black text-[10px] uppercase tracking-widest border border-brand-500/20">
+                            {user?.role || "Member"}
+                        </span>
                     </div>
                 </div>
-            </div>
-        </div>
+            </AnimatedCard>
+
+            {/* Pricing Hint */}
+            <motion.div
+                whileHover={{ scale: 1.01 }}
+                className="bg-gradient-to-r from-brand-600 to-indigo-600 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-brand-500/20 relative overflow-hidden"
+            >
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="relative z-10">
+                    <h4 className="text-2xl font-black mb-3 italic">{t.agency.enterprise}</h4>
+                    <p className="text-brand-100 font-medium leading-relaxed max-w-2xl text-lg">
+                        {t.agency.enterpriseDesc}
+                    </p>
+                    <LiveButton variant="shine" className="mt-8 bg-white text-brand-600 font-black px-8 py-3 rounded-xl hover:bg-brand-50 border-none h-auto">
+                        Contact Sales
+                    </LiveButton>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 }

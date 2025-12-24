@@ -27,11 +27,12 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "*", // Allow all origins in production to avoid CORS headaches with proxies
+      origin: true, // Use true to reflect origin - essential when credentials: true
       methods: ["GET", "POST"],
       credentials: true,
     },
-    transports: ["polling", "websocket"], // Standard fallback order: polling first, then upgrade
+    transports: ["websocket", "polling"], // Prioritize websocket but allow polling as fallback
+    path: "/socket.io/", // Explicitly set default path
     pingInterval: 25000,
     pingTimeout: 20000,
   });
@@ -115,14 +116,28 @@ export function setupSocketIO(httpServer: HTTPServer) {
     socket.emit('online_users', currentOnline);
 
     // Handle incoming messages (support both server and frontend event names)
+<<<<<<< HEAD
     const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
       try {
         const { content, applicationId } = payload;
         // Handle field mismatch: client sends recipientId, server expects receiverId
         const receiverId = payload.receiverId || (payload as any).recipientId;
+=======
+    const handleIncomingMessage = async (payload: any, ack?: (res: any) => void) => {
+      // Require authenticated user for sending messages
+      if (!user || !user.id) {
+        logger.warn({ socketId: socket.id }, "Unauthorized message attempt");
+        return ack?.({ success: false, error: "Authentication required to send messages" });
+      }
+      try {
+        // Support both receiverId (older backend) and recipientId (frontend hook)
+        const recipientId = payload.recipientId || payload.receiverId;
+        const { content, applicationId } = payload;
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
-        if (!content || !receiverId) {
-          return ack?.({ success: false, error: "Missing content or receiverId" });
+        if (!content || !recipientId) {
+          logger.warn({ payload, userId }, "Message missing content or recipientId");
+          return ack?.({ success: false, error: "Missing content or recipientId" });
         }
 
         // Persist message to database
@@ -130,14 +145,14 @@ export function setupSocketIO(httpServer: HTTPServer) {
           .insert(messages)
           .values({
             senderId: userId,
-            receiverId,
+            receiverId: recipientId,
             applicationId: applicationId || null,
             content,
             isRead: false,
           })
           .returning();
 
-        logger.info({ messageId: savedMessage.id, senderId: userId, receiverId }, "Message persisted");
+        logger.info({ messageId: savedMessage.id, senderId: userId, recipientId }, "Message persisted");
 
         // Ensure timestamp is a valid ISO string
         const createdAt = savedMessage.createdAt instanceof Date
@@ -148,16 +163,29 @@ export function setupSocketIO(httpServer: HTTPServer) {
           id: savedMessage.id,
           content,
           senderId: userId,
+<<<<<<< HEAD
           senderName: userEmail || 'User',
           receiverId,
+=======
+          senderName: user.email,
+          recipientId,
+          receiverId: recipientId, // alias for compatibility
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
           applicationId,
           timestamp: createdAt,
           isRead: false,
         };
 
-        // Emit to receiver's connected sockets (if they're online) using both event names
-        io.to(`user:${receiverId}`).emit('new_message', payloadOut);
-        io.to(`user:${receiverId}`).emit('message:received', payloadOut);
+        // Emit to receiver's connected sockets (if they're online) using multiple event names
+        const receiverRoom = `user:${recipientId}`;
+        logger.info({ receiverRoom, recipientId, senderId: userId }, "Emitting to receiver room");
+        io.to(receiverRoom).emit('new_message', payloadOut);
+        io.to(receiverRoom).emit('message:received', payloadOut);
+
+        // Also emit to all of SENDER's other sockets (so it appears on all their devices)
+        logger.info({ senderRoom: `user:${userId}`, userId }, "Emitting to sender room (other sessions)");
+        socket.to(`user:${userId}`).emit('new_message', payloadOut);
+        socket.to(`user:${userId}`).emit('message_sent', payloadOut);
 
         // Acknowledge back to sender with message_sent
         socket.emit('message_sent', payloadOut);
@@ -208,6 +236,62 @@ export function setupSocketIO(httpServer: HTTPServer) {
       if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
     });
 
+    // Handle message editing
+    socket.on('message:edit', (data: { id: string; content: string; recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { id, content, recipientId } = data;
+      const payload = { id, content, senderId: userId, recipientId };
+      io.to(`user:${recipientId}`).emit('message:updated', payload);
+      socket.to(`user:${userId}`).emit('message:updated', payload);
+    });
+
+    // Handle message deleting
+    socket.on('message:delete', (data: { id: string; recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { id, recipientId } = data;
+      io.to(`user:${recipientId}`).emit('message:deleted', { id });
+      socket.to(`user:${userId}`).emit('message:deleted', { id });
+    });
+
+    // Live Collaboration: Join Application Room
+    socket.on('join_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.join(room);
+
+      // Update presence
+      const meta = userMeta.get(userId) || { userName: "User", role: "guest" };
+      io.to(room).emit('presence_update', {
+        userId,
+        userName: (meta as any).userName,
+        role: (meta as any).role,
+        action: 'viewing'
+      });
+
+      logger.info({ userId, applicationId }, "Joined application room");
+    });
+
+    socket.on('leave_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.leave(room);
+
+      io.to(room).emit('presence_update', {
+        userId,
+        action: 'left'
+      });
+
+      logger.info({ userId, applicationId }, "Left application room");
+    });
+
+    // Handle conversation clearing
+    socket.on('conversation:clear', (data: { recipientId: string }) => {
+      if (!user || !user.id) return;
+      const { recipientId } = data;
+      io.to(`user:${recipientId}`).emit('conversation:cleared', { userId: userId });
+      socket.to(`user:${userId}`).emit('conversation:cleared', { userId: recipientId });
+    });
+
     // Handle client presence update (client may emit user_online with more metadata)
     socket.on('user_online', (meta: any) => {
       try {
@@ -226,6 +310,13 @@ export function setupSocketIO(httpServer: HTTPServer) {
       } catch (err) {
         logger.error({ err, meta }, 'Failed to update user presence');
       }
+    });
+
+    socket.on('update_application', (data: { applicationId: string }) => {
+      const { applicationId } = data;
+      const room = `application:${applicationId}`;
+      socket.to(room).emit('application_refetch', { applicationId });
+      logger.info({ userId, applicationId }, "Broadcasted application update refetch");
     });
 
     // Clean up on disconnect

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { applications, users } from "@shared/schema";
+import { applications, users, documents } from "@shared/schema";
 import { eq, and, desc, asc, like, or } from "drizzle-orm";
 import { authenticate, requireRole } from "../middleware/auth";
 import { isValidCountryCode, isValidVisaType, sanitizeInput } from "../middleware/security";
@@ -10,11 +10,49 @@ import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { emailQueue } from "../lib/queue";
 import { generateApplicationStatusEmail } from "../lib/email";
+import { encryptSensitiveData, decryptSensitiveData } from "../lib/security";
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+// Get unique clients (applicants) for the lawyer (needed for invoicing)
+router.get(
+  "/clients/list",
+  requireRole("lawyer", "admin"),
+  asyncHandler(async (req, res) => {
+    const lawyerId = req.user!.userId;
+    const role = req.user!.role;
+
+    // 1. Get user IDs from applications assigned to this lawyer
+    const myApps = await db.query.applications.findMany({
+      where: role === "lawyer" ? eq(applications.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    // 2. Get user IDs from consultations booked with this lawyer
+    const { consultations: consultationsTable } = await import("@shared/schema");
+    const myConsults = await db.query.consultations.findMany({
+      where: role === "lawyer" ? eq(consultationsTable.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    const userIds = Array.from(new Set([
+      ...myApps.map(a => a.userId),
+      ...myConsults.map(c => c.userId)
+    ]));
+
+    if (!userIds.length) return res.json([]);
+
+    const clientList = await db.query.users.findMany({
+      where: or(...userIds.map(id => eq(users.id, id))),
+      columns: { id: true, firstName: true, lastName: true, email: true }
+    });
+
+    res.json(clientList);
+  })
+);
 
 const createApplicationSchema = z.object({
   visaType: z.string().min(1).max(100),
@@ -22,6 +60,8 @@ const createApplicationSchema = z.object({
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
   lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 const updateApplicationSchema = z.object({
@@ -40,6 +80,8 @@ const updateApplicationSchema = z.object({
   fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   notes: z.string().max(5000).optional(),
   lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
 });
 
 // Get all applications (with filters)
@@ -117,10 +159,49 @@ router.get(
     const userMap: Record<string, any> = {};
     usersList.forEach((u) => (userMap[u.id] = u));
 
-    const enriched = paginated.map((a) => ({
-      ...a,
-      userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
-      userEmail: userMap[a.userId]?.email,
+    const enriched = await Promise.all(paginated.map(async (a) => {
+      try {
+        // Calculate Priority Score (0-100)
+        let score = 0;
+        const feeNum = parseFloat(String(a.fee || "0"));
+        if (feeNum >= 2000) score += 40;
+        else if (feeNum >= 1000) score += 20;
+
+        // Check document count safely
+        const docCount = await db.query.documents.findMany({
+          where: eq(documents.applicationId, a.id),
+        }).catch(() => []);
+
+        if (docCount.length >= 5) score += 30;
+        else if (docCount.length >= 2) score += 15;
+
+        // Age bonus (newer is higher priority for response)
+        const daysOld = a.createdAt ? (new Date().getTime() - new Date(a.createdAt).getTime()) / (1000 * 3600 * 24) : 99;
+        if (daysOld < 3) score += 30;
+        else if (daysOld < 7) score += 15;
+
+        let priorityLevel: "High" | "Medium" | "Low" = "Low";
+        if (score >= 70) priorityLevel = "High";
+        else if (score >= 40) priorityLevel = "Medium";
+
+        return {
+          ...a,
+          userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : "Unknown User",
+          userEmail: userMap[a.userId]?.email,
+          passportNumber: a.encryptedPassportNumber ? decryptSensitiveData(a.encryptedPassportNumber) : undefined,
+          dateOfBirth: a.encryptedDateOfBirth ? decryptSensitiveData(a.encryptedDateOfBirth) : undefined,
+          priorityScore: score,
+          priorityLevel: priorityLevel
+        };
+      } catch (err) {
+        logger.error({ err, applicationId: a.id }, "Enrichment failed for application");
+        return {
+          ...a,
+          userName: "Error Loading User",
+          priorityScore: 0,
+          priorityLevel: "Low" as const
+        };
+      }
     }));
 
     res.json({
@@ -154,7 +235,11 @@ router.get(
       throw new AppError(403, "Access denied");
     }
 
-    res.json(application);
+    res.json({
+      ...application,
+      passportNumber: application.encryptedPassportNumber ? decryptSensitiveData(application.encryptedPassportNumber) : undefined,
+      dateOfBirth: application.encryptedDateOfBirth ? decryptSensitiveData(application.encryptedDateOfBirth) : undefined,
+    });
   })
 );
 
@@ -182,6 +267,8 @@ router.post(
       country: body.country.toUpperCase(),
       fee: body.fee || "0",
       notes: body.notes ? sanitizeInput(body.notes) : null,
+      encryptedPassportNumber: body.passportNumber ? encryptSensitiveData(body.passportNumber) : null,
+      encryptedDateOfBirth: body.dateOfBirth ? encryptSensitiveData(body.dateOfBirth) : null,
     };
 
     // Only allow assigning lawyer if the current user is a lawyer or admin and provided a lawyerId
@@ -239,9 +326,11 @@ router.patch(
       throw new AppError(403, "Access denied");
     }
 
-    // Only lawyers and admins can change status
+    // Only lawyers and admins can change status, except for applicants submitting
     if (body.status && role === "applicant") {
-      throw new AppError(403, "Cannot change application status");
+      if (body.status !== "submitted") {
+        throw new AppError(403, "Cannot change application status to " + body.status);
+      }
     }
 
     const updateData: any = {};
@@ -268,8 +357,13 @@ router.patch(
       updateData.lawyerId = body.lawyerId;
     }
 
+<<<<<<< HEAD
     // Log the update operation
     logger.info({ userId, applicationId: id, updates: updateData }, "Updating application");
+=======
+    if (body.passportNumber) updateData.encryptedPassportNumber = encryptSensitiveData(body.passportNumber);
+    if (body.dateOfBirth) updateData.encryptedDateOfBirth = encryptSensitiveData(body.dateOfBirth);
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
     const [updated] = await db
       .update(applications)
@@ -280,12 +374,51 @@ router.patch(
       .where(eq(applications.id, id))
       .returning();
 
+<<<<<<< HEAD
     if (!updated) {
       throw new AppError(500, "Failed to update application");
     }
 
     logger.info({ userId, applicationId: id, newStatus: updated.status }, "Application updated successfully");
 
+=======
+    // Automated Invoicing logic: Create an invoice if status moves to 'submitted'
+    if (body.status === "submitted" && application.status !== "submitted") {
+      try {
+        // If no lawyer assigned, assign the first available lawyer
+        let lawyerId = updated.lawyerId;
+        if (!lawyerId) {
+          const firstLawyer = await db.query.users.findFirst({
+            where: eq(users.role, "lawyer"),
+          });
+          if (firstLawyer) {
+            lawyerId = firstLawyer.id;
+            await db.update(applications).set({ lawyerId }).where(eq(applications.id, id));
+          }
+        }
+
+        if (lawyerId) {
+          const { invoices: invoicesTable } = await import("@shared/schema");
+          await db.insert(invoicesTable).values({
+            lawyerId,
+            applicantId: updated.userId,
+            applicationId: updated.id,
+            amount: "499.00",
+            currency: "USD",
+            status: "draft",
+            items: [
+              { description: `${updated.visaType} Legal Review Fee`, amount: "499.00" }
+            ],
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          logger.info({ applicationId: id, lawyerId }, "Automated invoice draft created");
+        }
+      } catch (billingError) {
+        logger.error({ error: billingError, applicationId: id }, "Failed automated invoice");
+      }
+    }
+
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     // Send email notification if status changed
     if (body.status && body.status !== application.status) {
       try {

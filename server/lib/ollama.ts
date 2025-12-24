@@ -5,18 +5,31 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
   // Use messages format if conversation history is provided for better context
   if (messages && messages.length > 0) {
     const body: any = {
-      model: model || "neural-chat",
+      model: model || "mistral",
       messages: [
         ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
         ...messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }))
       ],
-      stream: false
+      stream: false,
+      options: {
+        temperature: 0.5,
+        repeat_penalty: 1.1,
+        num_predict: 512
+      }
     };
     return body;
   }
 
   // Fallback to prompt-based format
-  const body: any = { prompt: `${systemPrompt || ""}\n\n${prompt}`.trim() };
+  const body: any = {
+    prompt: `${systemPrompt || ""}\n\n${prompt}`.trim(),
+    stream: false,
+    options: {
+      temperature: 0.5,
+      repeat_penalty: 1.1,
+      num_predict: 512
+    }
+  };
   if (model) body.model = model;
   return body;
 }
@@ -24,6 +37,12 @@ export function buildOllamaPayload(prompt: string, systemPrompt?: string, model?
 export function parseOllamaResponse(json: any): string | null {
   try {
     if (!json) return null;
+
+    // Official Ollama /api/generate format
+    if (typeof json.response === "string") return json.response;
+
+    // Official Ollama /api/chat format
+    if (json.message && typeof json.message.content === "string") return json.message.content;
 
     // Ollama often returns { output: [{ type: 'message', content: '...' }], metadata: {...} }
     if (json.output && Array.isArray(json.output)) {
@@ -90,5 +109,32 @@ export async function probeOllamaEndpoint(url: string, model?: string, timeoutMs
     }
   } catch (err: any) {
     return { reachable: false, reason: err?.message || String(err) };
+  }
+}
+
+export async function generateOllamaEmbedding(text: string, url: string, model?: string): Promise<number[] | null> {
+  try {
+    let embedUrl = url;
+    if (!embedUrl.includes("/api/") && !embedUrl.includes("/v1/")) {
+      embedUrl = embedUrl.replace(/\/+$/, "") + "/api/embeddings";
+    }
+
+    const res = await fetch(embedUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model || "mistral",
+        prompt: text
+      })
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      return json.embedding;
+    }
+    return null;
+  } catch (err) {
+    logger.error({ err }, "Failed to generate Ollama embedding");
+    return null;
   }
 }

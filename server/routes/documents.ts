@@ -2,8 +2,8 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 import { db } from "../db";
-import { documents, applications, users } from "@shared/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { documents, applications, users, documentPacks, insertDocumentPackSchema } from "../../shared/schema";
+import { eq, and, gte, desc, sql } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { uploadLimiter } from "../middleware/security";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
@@ -11,8 +11,12 @@ import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/st
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
+<<<<<<< HEAD
 import { extractTextFromBuffer, parseTextToJSON } from "../lib/ocr";
 import { analyzeDocument } from "../lib/ai";
+=======
+import { analyzeUploadedDocument } from "../lib/ai";
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 const router = Router();
 
@@ -23,6 +27,29 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
+
+// Serve Postgres-stored blobs (if USE_PG_STORAGE was used)
+// Note: This is placed BEFORE authenticate middleware to allow viewing via window.open
+router.get(
+  "/blob/:key",
+  asyncHandler(async (req, res) => {
+    const { Pool } = await import('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const client = await pool.connect();
+    try {
+      const key = decodeURIComponent(req.params.key);
+      const r = await client.query('SELECT file_data, file_name, mime_type FROM file_blobs WHERE key = $1', [key]);
+      if (!r || r.rowCount === 0) return res.status(404).json({ message: 'File not found' });
+      const row = r.rows[0];
+      res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${row.file_name}"`);
+      res.send(row.file_data);
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  })
+);
 
 // All routes require authentication
 router.use(authenticate);
@@ -116,6 +143,7 @@ router.post(
       throw new AppError(500, msg.includes("size") ? "File is too large. Maximum 10MB allowed." : msg);
     }
 
+<<<<<<< HEAD
     // AI Analysis & OCR (Auto-Review)
     let aiAnalysisResult = null;
     let ocrData = null;
@@ -142,6 +170,11 @@ router.post(
       }
     } catch (analysisErr) {
       logger.warn({ analysisErr }, "AI Analysis failed during upload (non-blocking)");
+=======
+    // Verify upload success before DB insertion
+    if (!uploadResult || !uploadResult.key) {
+      throw new AppError(500, "File upload failed to verify. Please try again.");
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     }
 
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
@@ -196,6 +229,14 @@ router.post(
 
     logger.info({ userId, documentId: document.id, fileName: uploadResult.fileName }, "Document uploaded");
 
+    // Trigger AI automated analysis in background
+    analyzeUploadedDocument(
+      document.id,
+      document.fileName,
+      document.documentType,
+      document.applicationId
+    ).catch(err => logger.error({ err, documentId: document.id }, "Background AI analysis trigger failed"));
+
     // Return a fresh presigned URL for the client
     try {
       const presigned = await getPresignedUrl(uploadResult.key);
@@ -245,9 +286,10 @@ router.get(
         orderBy: (documents, { desc }) => [desc(documents.createdAt)],
       });
     } else {
-      // Get user's documents
+      // Get user's documents (Lawyers/Admins can specify userId via query)
+      const targetUserId = (role === "lawyer" || role === "admin") && req.query.userId ? req.query.userId as string : userId;
       docs = await db.query.documents.findMany({
-        where: eq(documents.userId, userId),
+        where: eq(documents.userId, targetUserId),
         orderBy: (documents, { desc }) => [desc(documents.createdAt)],
       });
     }
@@ -345,6 +387,127 @@ router.get(
   })
 );
 
+// Document Packs endpoints
+router.get(
+  "/packs",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { applicationId } = req.query;
+
+    let packs;
+    if (applicationId) {
+      packs = await db.query.documentPacks.findMany({
+        where: and(
+          eq(documentPacks.userId, userId),
+          eq(documentPacks.applicationId, applicationId as string)
+        ),
+        orderBy: [desc(documentPacks.createdAt)],
+      });
+    } else {
+      packs = await db.query.documentPacks.findMany({
+        where: eq(documentPacks.userId, userId),
+        orderBy: [desc(documentPacks.createdAt)],
+      });
+    }
+
+    res.json(packs);
+  })
+);
+
+router.post(
+  "/packs",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const body = insertDocumentPackSchema.parse({
+      ...req.body,
+      userId
+    });
+
+    const [pack] = await db
+      .insert(documentPacks)
+      .values(body)
+      .returning();
+
+    await auditLog(userId, "document_pack.create", "document_pack", pack.id, {
+      packName: pack.packName,
+      documentCount: (pack.documentIds as string[]).length
+    }, req);
+
+    res.status(201).json(pack);
+  })
+);
+
+router.post(
+  "/packs/:id/share",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const { lawyerId } = z.object({ lawyerId: z.string().uuid() }).parse(req.body);
+
+    const pack = await db.query.documentPacks.findFirst({
+      where: and(
+        eq(documentPacks.id, id),
+        eq(documentPacks.userId, userId)
+      ),
+    });
+
+    if (!pack) {
+      throw new AppError(404, "Document pack not found");
+    }
+
+    const [updated] = await db
+      .update(documentPacks)
+      .set({
+        status: "shared",
+        sharedWithLawyerId: lawyerId,
+        updatedAt: new Date()
+      })
+      .where(eq(documentPacks.id, id))
+      .returning();
+
+    await auditLog(userId, "document_pack.share", "document_pack", id, {
+      lawyerId
+    }, req);
+
+    res.json(updated);
+  })
+);
+
+router.get(
+  "/packs/:id/download",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const pack = await db.query.documentPacks.findFirst({
+      where: and(
+        eq(documentPacks.id, id),
+        eq(documentPacks.userId, userId)
+      ),
+    });
+
+    if (!pack) {
+      throw new AppError(404, "Document pack not found");
+    }
+
+    // In a real implementation, this would generate a ZIP of S3 files
+    // For now, we return a success status and the document list
+    const docs = await db.query.documents.findMany({
+      where: and(
+        eq(documents.userId, userId),
+        // Simple mock check for document inclusion
+        sql`${documents.id} = ANY(${pack.documentIds}::varchar[])`
+      )
+    });
+
+    res.json({
+      message: "Ready for download",
+      packName: pack.packName,
+      documents: docs
+    });
+  })
+);
+
 // Delete document
 router.delete(
   "/:id",
@@ -399,6 +562,7 @@ router.delete(
   })
 );
 
+<<<<<<< HEAD
 // Serve Postgres-stored blobs (if USE_PG_STORAGE was used)
 router.get(
   "/blob/:key(*)",
@@ -435,6 +599,10 @@ router.get(
     }
   })
 );
+=======
+export default router;
+
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 export default router;
 

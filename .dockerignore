@@ -28,3 +28,15 @@ coverage
 
 
 
+
+# Source code clutter
+attached_assets
+docs
+tests
+playwright-report
+test-results
+*.md
+!README.md
+*.log
+*.sh
+*.ps1

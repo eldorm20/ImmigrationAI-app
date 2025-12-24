@@ -6,17 +6,21 @@ import path from "path";
 import { logger } from "./logger";
 
 // Initialize S3 client (works with Railway storage or AWS S3)
+const BUCKET_NAME = (process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "").trim();
+const REGION = (process.env.AWS_REGION || "us-east-1").trim();
+
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
-  endpoint: process.env.S3_ENDPOINT, // Railway storage endpoint
-  credentials: process.env.AWS_ACCESS_KEY_ID
-    ? {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-    }
-    : undefined,
+  region: REGION,
+  credentials:
+    process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+      ? {
+        accessKeyId: (process.env.AWS_ACCESS_KEY_ID || "").trim(),
+        secretAccessKey: (process.env.AWS_SECRET_ACCESS_KEY || "").trim(),
+      }
+      : undefined,
   forcePathStyle: true, // Required for Railway storage
 });
+<<<<<<< HEAD
 
 const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
 
@@ -40,6 +44,10 @@ function validateBucketName(bucketName: string): { valid: boolean; error?: strin
   }
 
   return { valid: true };
+=======
+if (!BUCKET_NAME) {
+  logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 }
 
 // Validate and log S3 configuration status
@@ -216,7 +224,6 @@ export async function uploadFile(
       )`;
       const client = await pool.connect();
       try {
-        await client.query(createSql);
         await client.query('INSERT INTO file_blobs(key, file_data, file_name, mime_type, file_size) VALUES($1,$2,$3,$4,$5) ON CONFLICT (key) DO NOTHING', [key, file.buffer, file.originalname, file.mimetype, file.size]);
         // Use a relative URL for the blob endpoint
         const url = `/api/documents/blob/${encodeURIComponent(key)}`;
@@ -374,7 +381,28 @@ export async function uploadFile(
 // Get presigned URL for file access
 export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
   try {
-    // If using local filesystem fallback, return a direct URL path
+    // 1. If DATABASE_URL is set, prioritize checking if it's a blob stored in Postgres
+    if (process.env.DATABASE_URL) {
+      try {
+        const { Pool } = await import('pg');
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+        const client = await pool.connect();
+        try {
+          const r = await client.query('SELECT key FROM file_blobs WHERE key = $1', [key]);
+          if (r && r.rowCount && r.rowCount > 0) {
+            // It's in the database, return the blob endpoint URL
+            return `/api/documents/blob/${encodeURIComponent(key)}`;
+          }
+        } finally {
+          client.release();
+          await pool.end();
+        }
+      } catch (err) {
+        logger.warn({ err, key }, "Failed to check database for file blob");
+      }
+    }
+
+    // 2. If using local filesystem fallback, return a direct URL path
     if (!BUCKET_NAME) {
       logger.warn("S3 not configured, using PostgreSQL endpoint for file access");
       return `/api/documents/file/${encodeURIComponent(key)}`;
@@ -388,6 +416,7 @@ export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<st
       return `/api/documents/file/${encodeURIComponent(key)}`;
     }
 
+    // 3. Otherwise use S3
     return await retryWithBackoff(
       async () => {
         const command = new GetObjectCommand({

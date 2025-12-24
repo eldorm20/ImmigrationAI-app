@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { EligibilityQuiz } from "@/components/EligibilityQuiz";
+import { Navbar } from "@/components/layout/Navbar";
 // Background handled via CSS gradients - no image asset needed
 
 export default function Home() {
@@ -58,43 +59,7 @@ export default function Home() {
     <div className="min-h-screen relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
 
       {/* Navigation Header */}
-      <nav className="fixed w-full top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-extrabold text-2xl tracking-tight cursor-pointer" onClick={() => setLocation("/")}>
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-600 rounded-lg flex items-center justify-center text-white">
-              <Globe size={18} />
-            </div>
-            <span className="text-slate-900 dark:text-white">{t.brand.name}</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/features"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Features</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/pricing"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Pricing</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/help"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Help</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); setLocation("/blog"); }} className="hover:text-brand-600 dark:hover:text-brand-400 transition-colors">Blog</a>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <div className="hidden md:flex items-center gap-3">
-              <button
-                onClick={() => goLogin('applicant')}
-                className="text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 font-bold text-sm px-4 py-2"
-              >
-                Sign In
-              </button>
-              <LiveButton
-                onClick={() => goLogin('applicant')}
-                size="sm"
-                variant="primary"
-                className="shadow-lg shadow-brand-500/20"
-              >
-                Get Started
-              </LiveButton>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Modern Geometric Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -103,13 +68,13 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      <div className="min-h-[90dvh] pt-32 pb-12 md:pb-20 px-4 md:px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center relative z-10 flex flex-col lg:grid">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-xs md:text-sm font-bold mb-6 md:mb-8">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
@@ -117,14 +82,14 @@ export default function Home() {
             AI-Powered Visa Assistant V2.0 (Production Live)
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-[length:var(--text-fluid-h1)] font-extrabold mb-6 leading-[1.1] tracking-tight text-slate-900 dark:text-white">
             {t.hero.title} <br />
             <span className="text-gradient">
               AI Powered.
             </span>
           </h1>
 
-          <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-lg leading-relaxed font-medium">
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-8 md:mb-10 max-w-lg leading-relaxed font-medium">
             {t.hero.sub} We simplify the complex legal journey into a clear, guided path using advanced AI.
             <br /><span className="text-sm mt-2 block opacity-80">Trusted by {stats.usersCount}+ applicants.</span>
           </p>
@@ -158,7 +123,7 @@ export default function Home() {
             initial={{ rotateY: 5, opacity: 0 }}
             animate={{ rotateY: 0, opacity: 1 }}
             transition={{ duration: 1, type: "spring" }}
-            className="glass-card p-8 md:p-10 rounded-[2rem] border-t border-white/60 dark:border-white/10 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-800/80 dark:to-slate-900/40 relative overflow-hidden z-10"
+            className="glass-card p-6 md:p-10 rounded-[2rem] border-t border-white/60 dark:border-white/10 bg-gradient-to-br from-white/80 to-white/40 dark:from-slate-800/80 dark:to-slate-900/40 relative overflow-hidden z-10"
           >
             {/* Floating Badge */}
             <motion.div
@@ -250,7 +215,7 @@ export default function Home() {
         </div>
       </div>
       {/* Quick Assessment Section - Moved here for better conversion */}
-      <div className="py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <div className="py-12 md:py-24 px-6 bg-gradient-to-b from-brand-50 to-white dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-100 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 text-sm font-bold mb-6">
@@ -261,7 +226,7 @@ export default function Home() {
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-xl">
               <EligibilityQuiz compact={true} />
             </div>
           </div>
@@ -282,7 +247,7 @@ export default function Home() {
       <div className="py-24 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Latest Immigration Insights</h2>
+            <h2 className="text-[length:var(--text-fluid-h2)] font-bold mb-4 text-slate-900 dark:text-white">Latest Immigration Insights</h2>
             <p className="text-slate-600 dark:text-slate-400">Read guides, tips, and success stories from our community</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
@@ -329,7 +294,7 @@ export default function Home() {
             <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Get your visa assessment in minutes, not weeks</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: "1", title: "Answer 5 Questions", desc: "Tell us about your background, education, and visa destination. Takes 2 minutes." },
               { step: "2", title: "Get AI Assessment", desc: "Our AI analyzes your profile against 10k+ successful cases and shows your approval chance." },
@@ -365,10 +330,10 @@ export default function Home() {
       <div className="py-24 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Why Choose ImmigrationAI?</h2>
+            <h2 className="text-[length:var(--text-fluid-h2)] font-bold mb-4 text-slate-900 dark:text-white">Why Choose ImmigrationAI?</h2>
             <p className="text-slate-500 dark:text-slate-400">We combine legal expertise with artificial intelligence to provide the fastest, most accurate immigration guidance available.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: Globe, title: "Global Access", desc: "Expert guidance for UK, Germany, and Poland visas from anywhere.", plan: "CORE" },
               { icon: Shield, title: "AI Verified", desc: "Smart eligibility checks significantly reduce refusal risks before you apply.*", plan: "PREMIUM" },
@@ -417,7 +382,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Trusted by Thousands</h2>
             <p className="text-slate-500 dark:text-slate-400">See what our users say about ImmigrationAI</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {[
               {
                 name: "Davron Mirzaev",
@@ -655,6 +620,13 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
+
+      <footer className="py-8 px-6 bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
+          &copy; 2025 ImmigrationAI. All rights reserved. <br />
+          <strong>Legal Disclaimer:</strong> ImmigrationAI is an AI-powered informational assistant. We do not provide legal advice. All interactions are for guidance purposes only. Consult a licensed lawyer for official legal decisions.
+        </p>
+      </footer>
     </div>
   );
 }

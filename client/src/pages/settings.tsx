@@ -298,31 +298,31 @@ export default function SettingsPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Services Status Panel */}
-        <div className="lg:col-span-4">
-          <div className="mb-6 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold">Service Status</div>
-              <div className="text-xs text-slate-500 mt-1">AI & payment provider connectivity</div>
-              <div className="flex items-center gap-4 mt-3">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${aiStatus ? (aiStatus.local?.enabled || aiStatus.openai?.enabled || aiStatus.huggingface?.enabled ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
-                  <div className="text-sm">AI: {aiStatus ? (aiStatus.local?.enabled ? 'Local' : aiStatus.huggingface?.enabled ? `HF: ${aiStatus.huggingface.model}` : aiStatus.openai?.enabled ? 'OpenAI' : 'None configured') : 'Unknown'}</div>
-                </div>
+          {/* Services Status Panel */}
+          <div className="lg:col-span-4">
+            <div className="mb-6 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">Service Status</div>
+                <div className="text-xs text-slate-500 mt-1">AI & payment provider connectivity</div>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${aiStatus ? (aiStatus.local?.enabled || aiStatus.openai?.enabled || aiStatus.huggingface?.enabled ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                    <div className="text-sm">AI: {aiStatus ? (aiStatus.local?.enabled ? 'Local' : aiStatus.huggingface?.enabled ? `HF: ${aiStatus.huggingface.model}` : aiStatus.openai?.enabled ? 'OpenAI' : 'None configured') : 'Unknown'}</div>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${stripeStatus ? (stripeStatus.ok ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
-                  <div className="text-sm">Stripe: {stripeStatus ? (stripeStatus.ok ? 'Connected' : `Error: ${stripeStatus.reason || 'invalid'}`) : 'Unknown'}</div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${stripeStatus ? (stripeStatus.ok ? 'bg-green-600' : 'bg-amber-500') : 'bg-gray-400'}`} />
+                    <div className="text-sm">Stripe: {stripeStatus ? (stripeStatus.ok ? 'Connected' : `Error: ${stripeStatus.reason || 'invalid'}`) : 'Unknown'}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div>
-              <button onClick={checkServices} disabled={checkingServices} className="px-3 py-2 bg-brand-600 text-white rounded-md">
-                {checkingServices ? 'Checking...' : 'Check Services'}
-              </button>
+              <div>
+                <button onClick={checkServices} disabled={checkingServices} className="px-3 py-2 bg-brand-600 text-white rounded-md">
+                  {checkingServices ? 'Checking...' : 'Check Services'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
           {/* Sidebar */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
@@ -334,11 +334,10 @@ export default function SettingsPage() {
                 key={section.id}
                 whileHover={{ x: 4 }}
                 onClick={() => setActiveSection(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all ${
-                  activeSection === section.id
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all ${activeSection === section.id
                     ? "bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
+                  }`}
               >
                 <section.icon size={18} />
                 {section.label}
@@ -418,9 +417,9 @@ export default function SettingsPage() {
                     </div>
 
                     {editing && (
-                      <LiveButton 
-                        variant="primary" 
-                        onClick={handleSaveProfile} 
+                      <LiveButton
+                        variant="primary"
+                        onClick={handleSaveProfile}
                         icon={loading ? Loader : Save}
                         disabled={loading}
                       >
@@ -461,8 +460,8 @@ export default function SettingsPage() {
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                       />
                     </div>
-                    <LiveButton 
-                      variant="primary" 
+                    <LiveButton
+                      variant="primary"
                       onClick={handleChangePassword}
                       icon={loading ? Loader : Lock}
                       disabled={loading}
@@ -497,8 +496,8 @@ export default function SettingsPage() {
                       />
                     </div>
                   ))}
-                  <LiveButton 
-                    variant="primary" 
+                  <LiveButton
+                    variant="primary"
                     onClick={handleSavePrivacy}
                     icon={loading ? Loader : Save}
                     disabled={loading}
@@ -532,8 +531,8 @@ export default function SettingsPage() {
                       />
                     </div>
                   ))}
-                  <LiveButton 
-                    variant="primary" 
+                  <LiveButton
+                    variant="primary"
                     onClick={handleSaveNotifications}
                     icon={loading ? Loader : Save}
                     disabled={loading}
@@ -549,21 +548,7 @@ export default function SettingsPage() {
               <AnimatedCard>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8">{t.settings.preferences}</h2>
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">{t.settings.language}</label>
-                    <select
-                      value={lang}
-                      onChange={(e) => setLang(e.target.value as any)}
-                      className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                    >
-                      <option value="en">English</option>
-                      <option value="uz">Uzbek</option>
-                      <option value="ru">Russian</option>
-                      <option value="de">German</option>
-                      <option value="fr">French</option>
-                      <option value="es">Spanish</option>
-                    </select>
-                  </div>
+
 
                   <div>
                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Font Size</label>
@@ -572,11 +557,10 @@ export default function SettingsPage() {
                         <button
                           key={size}
                           onClick={() => setPreferences({ ...preferences, fontSize: size })}
-                          className={`px-4 py-2 rounded-lg font-bold capitalize transition-all ${
-                            preferences.fontSize === size
+                          className={`px-4 py-2 rounded-lg font-bold capitalize transition-all ${preferences.fontSize === size
                               ? 'bg-brand-600 text-white'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
-                          }`}
+                            }`}
                         >
                           {size}
                         </button>
@@ -584,8 +568,8 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <LiveButton 
-                    variant="primary" 
+                  <LiveButton
+                    variant="primary"
                     onClick={handleSavePreferences}
                     icon={loading ? Loader : Save}
                     disabled={loading}

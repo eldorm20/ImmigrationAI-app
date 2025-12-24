@@ -4,8 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft } from "lucide-react";
+import { Search, Book, FileText, Globe, Calendar, Filter, Download, ExternalLink, ArrowLeft, Shield } from "lucide-react";
 import { motion } from "framer-motion";
+import { StaggerContainer } from "@/components/ui/stagger-container";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Plane } from "lucide-react";
@@ -48,6 +49,7 @@ export default function Research() {
     sourceUrl: "",
     tags: "",
   });
+  const [refreshing, setRefreshing] = useState(false);
 
   // Articles & Community Interaction State
   const [selectedArticle, setSelectedArticle] = useState<ResearchItem | null>(null);
@@ -212,6 +214,31 @@ export default function Research() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await apiRequest("/research/refresh", { method: "POST" });
+      toast({
+        title: "Library Refreshed",
+        description: "New immigration news and articles have been added to the library.",
+        className: "bg-green-50 text-green-900 border-green-200",
+      });
+      // Trigger a reload
+      const res = await apiRequest<{ items: ResearchItem[] }>(
+        `/research?search=${encodeURIComponent(searchQuery)}&category=${selectedCategory}&language=${lang}`,
+      );
+      setItems(res.items || []);
+    } catch (e: unknown) {
+      toast({
+        title: "Refresh failed",
+        description: e instanceof Error ? e.message : "Failed to refresh library",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Navigation */}
@@ -245,11 +272,24 @@ export default function Research() {
 
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-extrabold mb-4 text-slate-900 dark:text-white">{t.research.title}</h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400">
+        <div className="mb-8 md:mb-12">
+          <h1 className="text-[length:var(--text-fluid-h1)] font-extrabold mb-4 text-slate-900 dark:text-white">{t.research.title}</h1>
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400">
             {t.research.subtitle}
           </p>
+        </div>
+
+        {/* Legal Disclaimer Banner */}
+        <div className="mb-12 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 flex items-start gap-4">
+          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 mt-1">
+            <Shield size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm uppercase tracking-wider mb-1">Legal Disclaimer</h4>
+            <p className="text-sm leading-relaxed">
+              ImmigrationAI is an informational assistant powered by AI. We are not a law firm and do not provide legal advice. All information, including summaries of Uzbekistan laws (Lex.uz), should be verified with official government sources or a qualified immigration lawyer.
+            </p>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -265,15 +305,34 @@ export default function Research() {
             />
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          {(user?.role === "lawyer" || user?.role === "admin") && (
+            <div className="flex justify-end">
+              <LiveButton
+                variant="success"
+                onClick={handleRefresh}
+                loading={refreshing}
+                icon={Globe}
+              >
+                Refresh Library (AI News)
+              </LiveButton>
+            </div>
+          )}
+
+          <div className="flex gap-2 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar md:flex-wrap md:mx-0 md:px-0 md:pb-0">
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
+<<<<<<< HEAD
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
 
                     ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
+=======
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
+                  ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
                   }`}
               >
                 {cat.name} ({cat.count})
@@ -470,7 +529,7 @@ export default function Research() {
         )}
 
         {/* Resources Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-safe">
           {loading && (
             <div className="text-center py-20 text-slate-400">
               Loading research library...
@@ -547,7 +606,7 @@ export default function Research() {
               </p>
             </AnimatedCard>
           ))}
-        </div>
+        </StaggerContainer>
 
         {filteredResources.length === 0 && (
           <div className="text-center py-20">
@@ -557,7 +616,7 @@ export default function Research() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

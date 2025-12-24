@@ -166,6 +166,7 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       logger.warn({ checkErr }, "Could not verify s3_key column existence in documents table");
     }
 
+<<<<<<< HEAD
     // ==========================================
     // MANUAL FIX FOR NEW FEATURES (Employer, Referrals, Audit, Signatures)
     // ==========================================
@@ -346,6 +347,35 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     } catch (manualFixErr) {
       logger.error({ manualFixErr }, "Failed to apply manual schema updates");
     }
+=======
+    // Verify research_articles.embedding column exists and create if missing
+    try {
+      // First ensure extension
+      await pool.query("CREATE EXTENSION IF NOT EXISTS vector");
+
+      const embeddingCheck = await pool.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'research_articles' AND column_name = 'embedding'
+        )
+      `);
+
+      if (embeddingCheck.rows[0]?.exists) {
+        logger.info("✓ embedding column verified in research_articles table");
+      } else {
+        logger.warn("⚠ embedding column not found in research_articles table - attempting manual creation");
+        try {
+          await pool.query("ALTER TABLE research_articles ADD COLUMN IF NOT EXISTS embedding vector(1536)");
+          logger.info("✓ embedding column manually added to research_articles table");
+        } catch (manualErr: any) {
+          logger.warn({ manualErr }, "Could not add embedding column to research_articles table");
+        }
+      }
+    } catch (checkErr) {
+      logger.warn({ checkErr }, "Could not verify embedding column existence in research_articles table");
+    }
+
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   } catch (err) {
     logger.error(
       { err, stack: (err as any)?.stack },

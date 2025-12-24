@@ -10,10 +10,11 @@ interface RequestOptions extends RequestInit {
 export class APIError extends Error {
   constructor(
     public statusCode: number,
-    public data: unknown,
+    public data: any,
     message?: string
   ) {
-    super(message || `API Error: ${statusCode}`);
+    const serverMessage = data?.message || data?.error;
+    super(message || serverMessage || `API Error: ${statusCode}`);
   }
 }
 
@@ -41,7 +42,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const {
     skipErrorToast = false,
-    timeout = 30000,
+    timeout = 300000,
     ...fetchOptions
   } = options;
 

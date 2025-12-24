@@ -10,6 +10,7 @@ import {
   generateTokens,
   verifyRefreshToken,
   revokeRefreshToken,
+  revokeAllUserRefreshTokens,
   isValidRefreshToken,
   generateEmailVerificationToken,
   generatePasswordResetToken,
@@ -192,9 +193,9 @@ router.post(
       });
     } catch (err) {
       logger.error(
-        { 
+        {
           message: (err as any)?.message,
-          stack: (err as any)?.stack, 
+          stack: (err as any)?.stack,
           body: req.body,
           errorType: (err as any)?.constructor?.name,
         },
@@ -238,12 +239,23 @@ router.post(
   "/logout",
   authenticate,
   asyncHandler(async (req, res) => {
-    const refreshToken = req.body.refreshToken;
-    if (refreshToken) {
-      await revokeRefreshToken(refreshToken);
-    }
+    const userId = req.user!.userId;
+    const { refreshToken, logoutAll = false } = req.body;
 
-    await auditLog(req.user!.userId, "user.logout", "user", req.user!.userId, {}, req);
+    if (logoutAll) {
+      // Revoke ALL refresh tokens for this user (logout from all devices)
+      await revokeAllUserRefreshTokens(userId);
+      await auditLog(userId, "user.logout_all", "user", userId, {}, req);
+      logger.info({ userId }, "User logged out from all devices");
+    } else if (refreshToken) {
+      // Revoke just the provided refresh token
+      await revokeRefreshToken(refreshToken);
+      await auditLog(userId, "user.logout", "user", userId, {}, req);
+    } else {
+      // If no refresh token provided, revoke all tokens for safety
+      await revokeAllUserRefreshTokens(userId);
+      await auditLog(userId, "user.logout", "user", userId, {}, req);
+    }
 
     res.json({ message: "Logged out successfully" });
   })
@@ -389,6 +401,69 @@ router.post(
     await auditLog(user.id, "user.password_reset", "user", user.id, {}, req);
 
     res.json({ message: "Password reset successfully" });
+  })
+);
+
+// --- New Authentication Methods (Placeholders) ---
+
+// Google Login Placeholder
+router.post(
+  "/google",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { idToken } = z.object({ idToken: z.string() }).parse(req.body);
+
+    logger.info({ idToken: idToken.substring(0, 10) + "..." }, "Google login attempt (placeholder)");
+
+    // In a real implementation:
+    // 1. Verify idToken with Google API
+    // 2. Find or create user
+    // 3. Generate tokens
+
+    res.status(501).json({
+      message: "Google sign-in is not yet fully configured. Please use email/password."
+    });
+  })
+);
+
+// OTP Send Placeholder
+router.post(
+  "/otp/send",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { phone } = z.object({ phone: z.string().regex(/^\+?[1-9]\d{1,14}$/) }).parse(req.body);
+
+    logger.info({ phone }, "OTP send requested (placeholder)");
+
+    // In a real implementation:
+    // 1. Generate OTP
+    // 2. Send via SMS (Twilio/AWS SNS)
+    // 3. Store in Redis/DB with expiry
+
+    res.json({ message: "OTP sent successfully (Simulated)" });
+  })
+);
+
+// OTP Verify Placeholder
+router.post(
+  "/otp/verify",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { phone, otp } = z.object({
+      phone: z.string(),
+      otp: z.string().length(6)
+    }).parse(req.body);
+
+    logger.info({ phone }, "OTP verification attempt (placeholder)");
+
+    // In a real implementation:
+    // 1. Verify OTP against stored value
+    // 2. Find or create user
+    // 3. Generate tokens
+
+    res.status(501).json({
+      message: "Phone verification is in development. Please use email/password."
+    });
   })
 );
 

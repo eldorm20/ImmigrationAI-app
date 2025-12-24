@@ -11,7 +11,11 @@ import {
   pgEnum,
   index,
   customType,
+<<<<<<< HEAD
   uuid
+=======
+  vector
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -33,7 +37,9 @@ export const consultationStatusEnum = pgEnum("consultation_status", [
   "scheduled",
   "completed",
   "cancelled",
-  "no_show"
+  "no_show",
+  "accepted",
+  "pending",
 ]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "incomplete",
@@ -56,6 +62,10 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "payme",
   "click"
 ]);
+
+export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed", "archived"]);
+export const taskPriorityEnum = pgEnum("task_priority", ["low", "medium", "high"]);
+export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "sent", "paid", "void", "overdue"]);
 
 export const researchCategoryEnum = pgEnum("research_category", [
   "visa",
@@ -108,6 +118,8 @@ export const applications = pgTable("applications", {
   status: applicationStatusEnum("status").notNull().default("new"),
   fee: decimal("fee", { precision: 10, scale: 2 }).default("0"),
   notes: text("notes"),
+  encryptedPassportNumber: text("encrypted_passport"), // Encrypted PII
+  encryptedDateOfBirth: text("encrypted_dob"), // Encrypted PII
   metadata: jsonb("metadata"), // Store additional flexible data
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -192,6 +204,43 @@ export const messages = pgTable("messages", {
   createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
 }));
 
+// Internal Tasks table for lawyers
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: taskStatusEnum("status").notNull().default("pending"),
+  priority: taskPriorityEnum("priority").notNull().default("medium"),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  lawyerIdIdx: index("tasks_lawyer_id_idx").on(table.lawyerId),
+  applicationIdIdx: index("tasks_application_id_idx").on(table.applicationId),
+  statusIdx: index("tasks_status_idx").on(table.status),
+}));
+
+// Invoices table for lawyer billing
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicantId: varchar("applicant_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  status: invoiceStatusEnum("status").notNull().default("draft"),
+  dueDate: timestamp("due_date"),
+  items: jsonb("items"), // Array of { description, amount }
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  lawyerIdIdx: index("invoices_lawyer_id_idx").on(table.lawyerId),
+  applicantIdIdx: index("invoices_applicant_id_idx").on(table.applicantId),
+  statusIdx: index("invoices_status_idx").on(table.status),
+}));
+
 // Audit logs table
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -241,6 +290,7 @@ export const researchArticles = pgTable("research_articles", {
   updatedByUserId: varchar("updated_by_user_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  embedding: vector("embedding", { dimensions: 1536 }),
 }, (table) => ({
   slugIdx: index("research_slug_idx").on(table.slug),
   categoryIdx: index("research_category_idx").on(table.category),
@@ -409,6 +459,40 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
   metadata: true,
 });
 
+export const insertTaskSchema = createInsertSchema(tasks, {
+  title: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  status: z.enum(["pending", "in_progress", "completed", "archived"]),
+  priority: z.enum(["low", "medium", "high"]),
+  dueDate: z.string().datetime().optional().nullable().or(z.null()).transform(val => val ? new Date(val) : null),
+}).pick({
+  applicationId: true,
+  title: true,
+  description: true,
+  status: true,
+  priority: true,
+  dueDate: true,
+}).extend({
+  lawyerId: z.string().optional(),
+  applicationId: z.string().optional().nullable(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices, {
+  amount: z.string().regex(/^\d+(\.\d{1,2})?$/),
+  status: z.enum(["draft", "sent", "paid", "void", "overdue"]),
+  dueDate: z.string().datetime().optional().nullable().or(z.null()).transform(val => val ? new Date(val) : null),
+}).pick({
+  applicantId: true,
+  amount: true,
+  currency: true,
+  status: true,
+  dueDate: true,
+  items: true,
+}).extend({
+  lawyerId: z.string().optional(),
+  applicationId: z.string().optional().nullable(),
+});
+
 // Employer verification table
 export const employerVerifications = pgTable("employer_verifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -490,6 +574,29 @@ export const insertEmployerVerificationSchema = createInsertSchema(employerVerif
   metadata: true,
 });
 
+// Document Packs table
+export const documentPacks = pgTable("document_packs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "cascade" }),
+  packName: varchar("pack_name", { length: 255 }).notNull(),
+  documentIds: jsonb("document_ids").notNull(), // Array of document IDs
+  status: varchar("status", { length: 50 }).default("ready"), // ready, shared, archived
+  downloadUrl: text("download_url"),
+  sharedWithLawyerId: varchar("shared_with_lawyer_id", { length: 255 }).references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentPackSchema = createInsertSchema(documentPacks).pick({
+  userId: true,
+  applicationId: true,
+  packName: true,
+  documentIds: true,
+  status: true,
+  sharedWithLawyerId: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -514,6 +621,12 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertEmployerVerification = z.infer<typeof insertEmployerVerificationSchema>;
 export type EmployerVerification = typeof employerVerifications.$inferSelect;
 export type EmployerDirectory = typeof employerDirectory.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertDocumentPack = z.infer<typeof insertDocumentPackSchema>;
+export type DocumentPack = typeof documentPacks.$inferSelect;
 
 // File Blobs table (for database storage of files)
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -530,6 +643,7 @@ export const fileBlobs = pgTable("file_blobs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+<<<<<<< HEAD
 // Community / Research Comments
 export const articleComments = pgTable("article_comments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -946,10 +1060,35 @@ export const applicationsRelations = relations(applications, ({ one }) => ({
   user: one(users, {
     fields: [applications.userId],
     references: [users.id],
+=======
+// Relations
+import { relations } from "drizzle-orm";
+
+export const usersRelations = relations(users, ({ many }) => ({
+  applications: many(applications, { relationName: "applicant" }),
+  managedApplications: many(applications, { relationName: "lawyer" }),
+  documents: many(documents),
+  sentMessages: many(messages),
+  receivedMessages: many(messages),
+  consultations: many(consultations),
+  payments: many(payments),
+  tasks: many(tasks),
+  invoices: many(invoices),
+  employerVerifications: many(employerVerifications),
+  documentPacks: many(documentPacks),
+}));
+
+export const applicationsRelations = relations(applications, ({ one, many }) => ({
+  user: one(users, {
+    fields: [applications.userId],
+    references: [users.id],
+    relationName: "applicant",
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   }),
   lawyer: one(users, {
     fields: [applications.lawyerId],
     references: [users.id],
+<<<<<<< HEAD
   }),
 }));
 
@@ -980,3 +1119,41 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
     references: [applications.id],
   }),
 }));
+=======
+    relationName: "lawyer",
+  }),
+
+  documents: many(documents),
+  messages: many(messages),
+  consultations: many(consultations),
+  payments: many(payments),
+  tasks: many(tasks),
+  invoices: many(invoices),
+  roadmapItems: many(roadmapItems),
+  employerVerifications: many(employerVerifications),
+  documentPacks: many(documentPacks),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  application: one(applications, {
+    fields: [documents.applicationId],
+    references: [applications.id],
+  }),
+  user: one(users, {
+    fields: [documents.userId],
+    references: [users.id],
+  }),
+}));
+
+export const researchArticlesRelations = relations(researchArticles, ({ one }) => ({
+  creator: one(users, {
+    fields: [researchArticles.createdByUserId],
+    references: [users.id],
+  }),
+  updater: one(users, {
+    fields: [researchArticles.updatedByUserId],
+    references: [users.id],
+  }),
+}));
+
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720

@@ -25,9 +25,13 @@ const createConsultationSchema = z.object({
 });
 
 const updateConsultationSchema = z.object({
+<<<<<<< HEAD
   status: z.enum(["pending", "scheduled", "completed", "cancelled", "no_show"]).optional(),
+=======
+  status: z.enum(["scheduled", "completed", "cancelled", "no_show", "accepted", "pending"]).optional(),
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   notes: z.string().max(2000).optional(),
-  meetingLink: z.string().url().optional(),
+  meetingLink: z.string().url().or(z.string().length(0)).optional().nullable(),
 });
 
 // Create consultation request (Applicant requests lawyer)
@@ -202,6 +206,27 @@ router.get(
         });
       }
 
+      // Enrich with user details for lawyers
+      if (user.role === "lawyer" && results && results.length > 0) {
+        const enriched = await Promise.all(
+          results.map(async (consultation) => {
+            try {
+              const applicant = await db.query.users.findFirst({
+                where: eq(users.id, consultation.userId),
+                columns: { id: true, firstName: true, lastName: true, email: true, phone: true }
+              });
+              return {
+                ...consultation,
+                applicant: applicant || null
+              };
+            } catch {
+              return { ...consultation, applicant: null };
+            }
+          })
+        );
+        return res.json(enriched);
+      }
+
       res.json(results || []);
     } catch (err: any) {
       logger.error({ err, userId: user.userId }, "Failed to fetch consultations");
@@ -230,7 +255,6 @@ router.get(
 // Get consultation by ID
 router.get(
   "/:id",
-  authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = req.user!;
@@ -255,19 +279,23 @@ router.get(
 // Update consultation (lawyer accepts/rejects, sets meeting link, marks complete)
 router.patch(
   "/:id",
-  authenticate,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = req.user!;
     const body = updateConsultationSchema.parse(req.body);
+
+    logger.info({ id, userId: user.userId }, "Attempting to update consultation");
 
     const consultation = await db.query.consultations.findFirst({
       where: eq(consultations.id, id),
     });
 
     if (!consultation) {
+      logger.warn({ id }, "Consultation not found for update");
       throw new AppError(404, "Consultation not found");
     }
+
+    logger.info({ id, currentStatus: consultation.status, lawyerId: consultation.lawyerId }, "Found consultation");
 
     // Only lawyer or applicant can update
     if (consultation.lawyerId !== user.userId && consultation.userId !== user.userId) {
@@ -275,18 +303,37 @@ router.patch(
     }
 
     // Update consultation
-    const [updated] = await db
-      .update(consultations)
-      .set({
-        status: body.status || consultation.status,
-        notes: body.notes !== undefined ? body.notes : consultation.notes,
-        meetingLink: body.meetingLink || consultation.meetingLink,
-      })
-      .where(eq(consultations.id, id))
-      .returning();
+    let updated;
+    try {
+      const [result] = await db
+        .update(consultations)
+        .set({
+          status: body.status || consultation.status,
+          notes: body.notes !== undefined ? body.notes : consultation.notes,
+          meetingLink: body.meetingLink || consultation.meetingLink,
+          updatedAt: new Date(),
+        })
+        .where(eq(consultations.id, id))
+        .returning();
+      updated = result;
+    } catch (dbErr: any) {
+      logger.error({
+        dbErr: dbErr.message,
+        stack: dbErr.stack,
+        id,
+        status: body.status,
+        userId: user.userId
+      }, "Database update failed in consultation PATCH");
+      throw new AppError(500, `Database update failed: ${dbErr.message}`);
+    }
+
+    if (!updated) {
+      throw new AppError(500, "Update failed - no record returned");
+    }
 
     // Notify parties of status change
     if (body.status && body.status !== consultation.status) {
+      logger.info({ id, newStatus: body.status }, "Consultation status changed, notifying parties");
       const otherUserId = user.userId === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
       const otherUser = await db.query.users.findFirst({
         where: eq(users.id, otherUserId),
@@ -315,6 +362,10 @@ router.patch(
 
       if (otherUser) {
         try {
+          const timeStr = consultation.scheduledTime instanceof Date
+            ? consultation.scheduledTime.toLocaleString()
+            : new Date(consultation.scheduledTime).toLocaleString();
+
           await emailQueue.add({
             to: otherUser.email,
             subject: `Consultation Status Update: ${body.status}`,
@@ -322,19 +373,45 @@ router.patch(
               <html>
                 <body style="font-family: Arial, sans-serif;">
                   <h2>Consultation Status Changed</h2>
-                  <p>Your consultation scheduled for ${new Date(consultation.scheduledTime).toLocaleString()} has been ${body.status}.</p>
+                  <p>Your consultation scheduled for ${timeStr} has been ${body.status}.</p>
                   ${body.meetingLink ? `<p><a href="${body.meetingLink}">Join Meeting</a></p>` : ""}
                 </body>
               </html>
             `,
           });
-        } catch (error) {
-          logger.error({ error }, "Failed to send status update email");
+          logger.info({ id, otherUserEmail: otherUser.email }, "Status update email queued");
+        } catch (error: any) {
+          logger.error({ error: error.message, id }, "Failed to send status update email");
         }
+      } else {
+        logger.warn({ id, otherUserId }, "Other user not found for notification");
       }
     }
 
     res.json(updated);
+  })
+);
+
+// Clear history (delete completed and cancelled consultations for the user)
+router.delete(
+  "/history",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const user = req.user!;
+
+    await db.delete(consultations).where(
+      and(
+        user.role === "lawyer"
+          ? eq(consultations.lawyerId, user.userId)
+          : eq(consultations.userId, user.userId),
+        or(
+          eq(consultations.status, "completed"),
+          eq(consultations.status, "cancelled")
+        )
+      )
+    );
+
+    res.json({ message: "Consultation history cleared" });
   })
 );
 
@@ -359,14 +436,7 @@ router.delete(
       throw new AppError(403, "Access denied");
     }
 
-    // Update status to cancelled
-    const [cancelled] = await db
-      .update(consultations)
-      .set({ status: "cancelled" })
-      .where(eq(consultations.id, id))
-      .returning();
-
-    // Notify other party
+    // Notify other party before deletion
     const otherUserId = user.userId === consultation.lawyerId ? consultation.userId : consultation.lawyerId;
     const otherUser = await db.query.users.findFirst({
       where: eq(users.id, otherUserId),
@@ -391,7 +461,10 @@ router.delete(
       }
     }
 
-    res.json(cancelled);
+    // Hard delete
+    await db.delete(consultations).where(eq(consultations.id, id));
+
+    res.json({ message: "Consultation deleted" });
   })
 );
 

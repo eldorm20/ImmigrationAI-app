@@ -169,20 +169,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (refreshToken) {
-        await apiRequest("/auth/logout", {
-          method: "POST",
-          body: JSON.stringify({ refreshToken }),
-          skipErrorToast: true,
-        });
-      }
+      const refreshToken = getRefreshToken();
+      // Always call logout API to revoke tokens on server
+      await apiRequest("/auth/logout", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken, logoutAll: true }),
+        skipErrorToast: true,
+      });
     } catch (err) {
-      // Ignore errors on logout
+      // Ignore errors on logout - we'll clear local state anyway
+      console.warn("Logout API call failed:", err);
     } finally {
+      // Clear ALL local storage related to the app
       clearTokens();
+      localStorage.removeItem("iai_user");
+      localStorage.removeItem("ai_chat_history");
+      localStorage.removeItem("language");
+
+      // Clear session storage completely
+      sessionStorage.clear();
+
       setUser(null);
-      setLocation("/");
+      setLocation("/login");
     }
   };
 

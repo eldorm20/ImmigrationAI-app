@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
-import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft } from "lucide-react";
+import { Loader2, Calendar, Clock, User, MessageSquare, CheckCircle, X, Plus, ArrowLeft, Trash2 } from "lucide-react";
 import { error as logError } from "@/lib/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import { RealtimeChat } from "./realtime-chat";
@@ -229,9 +229,29 @@ export default function ConsultationPanel() {
     );
   }
 
+  const handleClearHistory = async () => {
+    if (!confirm(t.consultation?.confirmClearHistory || "Are you sure you want to clear your consultation history? This will remove all completed and cancelled consultations.")) return;
+    try {
+      await apiRequest("/consultations/history", { method: "DELETE" });
+      setConsultations(prev => prev.filter(c => c.status !== "completed" && c.status !== "cancelled"));
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation?.historyCleared || "Consultation history cleared",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || "Failed to clear history",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
+<<<<<<< HEAD
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <User className="w-6 h-6 text-brand-600 dark:text-brand-400" />
@@ -245,6 +265,23 @@ export default function ConsultationPanel() {
         )}
         <LiveButton
           variant="primary"
+=======
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleClearHistory}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-medium border border-red-100 dark:border-red-800"
+          >
+            <Trash2 size={16} />
+            {t.consultation?.clearHistory || "Clear History"}
+          </motion.button>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
         >

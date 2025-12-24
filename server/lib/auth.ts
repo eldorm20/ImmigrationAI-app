@@ -121,6 +121,19 @@ export async function revokeRefreshToken(token: string): Promise<void> {
   }
 }
 
+// Revoke ALL refresh tokens for a user (complete logout from all devices)
+export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+  try {
+    await db
+      .update(refreshTokens)
+      .set({ revoked: true })
+      .where(eq(refreshTokens.userId, userId));
+    logger.info({ userId }, "All refresh tokens revoked for user");
+  } catch (err) {
+    logger.warn({ err }, "Failed to revoke all user refresh tokens (table may be missing)");
+  }
+}
+
 // Check if refresh token is valid
 export async function isValidRefreshToken(token: string): Promise<boolean> {
   try {

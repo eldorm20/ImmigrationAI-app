@@ -38,6 +38,7 @@ import CommunityForum from "@/pages/forum";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
+<<<<<<< HEAD
 import EmployerVerificationPage from "@/pages/employer-verification";
 import EmployerDashboard from "@/pages/employer-dashboard";
 import AuditLogsPage from "@/pages/admin/audit-logs";
@@ -45,6 +46,10 @@ import SignaturesPage from "@/pages/signatures";
 import VideoCallPage from "@/pages/video-call";
 import AdminAnalyticsPage from "@/pages/admin/analytics";
 import InterviewPage from "@/pages/interview";
+=======
+import Partner from "@/pages/partner";
+import CompanyCheck from "@/pages/lawyer/company-check";
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' | 'employer' }) {
   const { user, isLoading } = useAuth();
@@ -145,9 +150,13 @@ function Router() {
             <ProtectedRoute component={AnalyticsDashboard} role="applicant" />
           </Route>
 
+<<<<<<< HEAD
           <Route path="/visa-comparison">
             <VisaComparison />
           </Route>
+=======
+
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
           <Route path="/employer-verification">
             <ProtectedRoute component={EmployerVerificationPage} role="applicant" />
@@ -165,6 +174,7 @@ function Router() {
             <CommunityForum />
           </Route>
 
+<<<<<<< HEAD
           <Route path="/admin">
             <ProtectedRoute component={AdminDashboard} role="admin" />
           </Route>
@@ -199,6 +209,15 @@ function Router() {
         </Switch>
       </Layout>
     </TenantProvider>
+=======
+        <Route path="/lawyer/company-check">
+          <ProtectedRoute component={CompanyCheck} role="lawyer" />
+        </Route>
+
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   );
 }
 

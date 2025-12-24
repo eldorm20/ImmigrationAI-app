@@ -43,9 +43,15 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
   },
   pro: {
     tier: "pro",
+<<<<<<< HEAD
     name: "Professional",
     monthlyPrice: 29,  // Correct price as per user requirement
     stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_29",
+=======
+    name: "Pro",
+    monthlyPrice: 29,
+    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_default",
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     features: {
       documentUploadLimit: 100,
       aiDocumentGenerations: 50,

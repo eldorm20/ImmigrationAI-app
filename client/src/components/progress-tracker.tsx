@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Check, AlertCircle, Calendar, Zap } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { Check, AlertCircle, Calendar, Zap, Loader2 } from "lucide-react";
 
 interface Milestone {
   id: string;
@@ -13,47 +14,151 @@ interface Milestone {
   progress: number;
 }
 
+interface ApplicationData {
+  id: string;
+  status: string;
+  visaType: string;
+  country: string;
+  createdAt: string;
+}
+
+interface DocumentStats {
+  total: number;
+  required: number;
+}
+
+interface ConsultationStats {
+  total: number;
+  completed: number;
+}
+
 export default function ProgressTracker() {
   const { user } = useAuth();
   const { t } = useI18n();
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    {
-      id: "1",
-      title: "Upload Documents",
-      description: "Upload all required documents for your application",
-      completed: true,
-      completedDate: new Date("2025-11-15"),
-      progress: 100,
-    },
-    {
-      id: "2",
-      title: "Schedule Consultation",
-      description: "Book a consultation with an immigration lawyer",
-      completed: false,
-      dueDate: new Date("2025-12-15"),
-      progress: 0,
-    },
-    {
-      id: "3",
-      title: "Prepare Application",
-      description: "Complete and review your visa application",
-      completed: false,
-      dueDate: new Date("2026-01-15"),
-      progress: 45,
-    },
-    {
-      id: "4",
-      title: "Submit Application",
-      description: "Submit your visa application to the government",
-      completed: false,
-      dueDate: new Date("2026-02-15"),
-      progress: 0,
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
 
-  const overallProgress = Math.round(
-    milestones.reduce((sum, m) => sum + m.progress, 0) / milestones.length
-  );
+  useEffect(() => {
+    fetchProgressData();
+  }, [user]);
+
+  const fetchProgressData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch user's applications, documents, and consultations
+      const [applications, documents, consultations] = await Promise.all([
+        apiRequest<ApplicationData[]>("/applications", { skipErrorToast: true }).catch(() => []),
+        apiRequest<any[]>("/documents", { skipErrorToast: true }).catch(() => []),
+        apiRequest<any[]>("/consultations", { skipErrorToast: true }).catch(() => []),
+      ]);
+
+      // Build milestones based on actual user data
+      const dynamicMilestones: Milestone[] = [];
+
+      // Milestone 1: Create Profile (always first)
+      dynamicMilestones.push({
+        id: "profile",
+        title: "Create Your Profile",
+        description: "Complete your account registration and basic information",
+        completed: true,
+        completedDate: user?.createdAt ? new Date(user.createdAt) : new Date(),
+        progress: 100,
+      });
+
+      // Milestone 2: Upload Documents
+      const docCount = documents.length;
+      const requiredDocs = 4; // passport, photo, proof_of_address, financial
+      const docProgress = Math.min(Math.round((docCount / requiredDocs) * 100), 100);
+      dynamicMilestones.push({
+        id: "documents",
+        title: "Upload Documents",
+        description: `Upload required documents for your application (${docCount}/${requiredDocs})`,
+        completed: docProgress >= 100,
+        completedDate: docProgress >= 100 ? new Date() : undefined,
+        progress: docProgress,
+      });
+
+      // Milestone 3: Schedule Consultation
+      const hasConsultation = consultations.length > 0;
+      const completedConsultations = consultations.filter((c: any) => c.status === 'completed').length;
+      dynamicMilestones.push({
+        id: "consultation",
+        title: "Schedule Consultation",
+        description: hasConsultation
+          ? `${completedConsultations} consultation(s) completed`
+          : "Book a consultation with an immigration lawyer",
+        completed: completedConsultations > 0,
+        completedDate: completedConsultations > 0 ? new Date() : undefined,
+        dueDate: !hasConsultation ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : undefined,
+        progress: hasConsultation ? (completedConsultations > 0 ? 100 : 50) : 0,
+      });
+
+      // Milestone 4: Prepare Application
+      const hasApplication = applications.length > 0;
+      const latestApp = applications[0];
+      const appProgress = hasApplication
+        ? getApplicationProgress(latestApp?.status)
+        : 0;
+      dynamicMilestones.push({
+        id: "application",
+        title: "Prepare Application",
+        description: hasApplication
+          ? `${latestApp?.visaType} for ${latestApp?.country} - ${formatStatus(latestApp?.status)}`
+          : "Start your visa application",
+        completed: latestApp?.status === 'approved',
+        progress: appProgress,
+        dueDate: !hasApplication ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined,
+      });
+
+      // Milestone 5: Submit Application
+      const isSubmitted = latestApp?.status && !['draft', 'pending_documents'].includes(latestApp.status);
+      dynamicMilestones.push({
+        id: "submit",
+        title: "Submit Application",
+        description: isSubmitted
+          ? "Your application has been submitted for review"
+          : "Submit your completed application",
+        completed: isSubmitted,
+        completedDate: isSubmitted && latestApp?.createdAt ? new Date(latestApp.createdAt) : undefined,
+        progress: isSubmitted ? 100 : 0,
+      });
+
+      setMilestones(dynamicMilestones);
+    } catch (error) {
+      console.error("Failed to fetch progress data:", error);
+      // Set default milestones on error
+      setMilestones([
+        { id: "1", title: "Create Profile", description: "Complete registration", completed: true, progress: 100 },
+        { id: "2", title: "Upload Documents", description: "Upload required documents", completed: false, progress: 0 },
+        { id: "3", title: "Schedule Consultation", description: "Book a lawyer consultation", completed: false, progress: 0 },
+        { id: "4", title: "Prepare Application", description: "Complete your application", completed: false, progress: 0 },
+        { id: "5", title: "Submit Application", description: "Submit for review", completed: false, progress: 0 },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getApplicationProgress = (status?: string): number => {
+    switch (status) {
+      case 'approved': return 100;
+      case 'under_review': return 80;
+      case 'pending': return 60;
+      case 'pending_documents': return 40;
+      case 'draft': return 20;
+      default: return 0;
+    }
+  };
+
+  const formatStatus = (status?: string): string => {
+    if (!status) return 'Not started';
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const overallProgress = milestones.length > 0
+    ? Math.round(milestones.reduce((sum, m) => sum + m.progress, 0) / milestones.length)
+    : 0;
 
   const daysRemaining = milestones
     .filter((m) => !m.completed && m.dueDate)
@@ -64,6 +169,17 @@ export default function ProgressTracker() {
     .filter((days) => days > 0);
 
   const nextDueDate = daysRemaining.length > 0 ? Math.min(...daysRemaining) : null;
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-4xl mx-auto p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-brand-500 mb-2" />
+          <p className="text-slate-500">Loading your progress...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6">
@@ -101,8 +217,8 @@ export default function ProgressTracker() {
             </div>
           )}
           <div className="text-center">
-            <p className="text-sm text-slate-600 dark:text-slate-400">Est. Completion</p>
-            <p className="text-2xl font-bold">Feb 2026</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Status</p>
+            <p className="text-2xl font-bold">{overallProgress >= 100 ? "Complete!" : "In Progress"}</p>
           </div>
         </div>
       </div>
@@ -118,19 +234,17 @@ export default function ProgressTracker() {
               {/* Timeline Connector */}
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
-                    milestone.completed
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${milestone.completed
                       ? "bg-green-600 text-white"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
-                  }`}
+                    }`}
                 >
                   {milestone.completed ? <Check size={20} /> : index + 1}
                 </div>
                 {index < milestones.length - 1 && (
                   <div
-                    className={`w-0.5 h-16 my-2 ${
-                      milestone.completed ? "bg-green-600" : "bg-slate-200 dark:bg-slate-700"
-                    }`}
+                    className={`w-0.5 h-16 my-2 ${milestone.completed ? "bg-green-600" : "bg-slate-200 dark:bg-slate-700"
+                      }`}
                   />
                 )}
               </div>

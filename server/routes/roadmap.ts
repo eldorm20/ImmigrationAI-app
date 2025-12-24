@@ -71,6 +71,18 @@ router.get(
       orderBy: (items, { asc }) => asc(items.order),
     });
 
+    // If no roadmap items exist, create default stages based on visa type
+    if (items.length === 0) {
+      const { createDefaultRoadmap } = await import("../lib/roadmap");
+      await createDefaultRoadmap(applicationId, application.visaType);
+
+      // Re-fetch after creation
+      items = await db.query.roadmapItems.findMany({
+        where: eq(roadmapItems.applicationId, applicationId),
+        orderBy: (items, { asc }) => asc(items.order),
+      });
+    }
+
     // Update progress logic now centralized
     await updateRoadmapProgress(applicationId);
 
@@ -80,11 +92,18 @@ router.get(
       orderBy: (items, { asc }) => asc(items.order),
     });
 
-    // Helper functions
+    // Calculate progress stats
     const total = finalItems.length;
     const completed = finalItems.filter(item => item.status === "completed").length;
     const currentItem = finalItems.find(item => item.status === "current");
     const percentComplete = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    // Calculate estimated completion date
+    const remainingDays = finalItems
+      .filter(item => item.status !== "completed")
+      .reduce((sum, item) => sum + ((item as any).estimatedDays || 7), 0);
+    const estimatedCompletion = new Date();
+    estimatedCompletion.setDate(estimatedCompletion.getDate() + remainingDays);
 
     res.json({
       total,
@@ -92,6 +111,7 @@ router.get(
       percentComplete,
       currentItem,
       items: finalItems,
+      estimatedCompletion: estimatedCompletion.toISOString(),
     });
 
   })

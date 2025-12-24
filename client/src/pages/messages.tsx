@@ -28,6 +28,15 @@ export default function Messages() {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
+    // Handle initial selection from query param (e.g., from lawyer dashboard)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get("userId");
+        if (userId) {
+            setSelectedUserId(userId);
+        }
+    }, []);
+
     // Fetch recent conversations (users who we have chatted with)
     const { data: response, isLoading } = useQuery<{ conversations: ConversationUser[] }>({
         queryKey: ["/messages"],

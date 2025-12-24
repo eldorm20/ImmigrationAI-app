@@ -9,6 +9,7 @@ interface UseWebSocketOptions {
   userRole?: string;
   autoConnect?: boolean;
   token?: string | null; // Pass token explicitly
+  onApplicationUpdate?: (applicationId: string) => void;
 }
 
 interface MessageEvent {
@@ -37,6 +38,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
+  const [activeViewers, setActiveViewers] = useState<UserPresence[]>([]);
   const [messages, setMessages] = useState<MessageEvent[]>([]);
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingEvent>>(new Map());
   const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -55,12 +57,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Wait for token before connecting to ensure authentication
     if (!autoConnect || !userId || !token) return;
 
-    const serverUrl = window.location.origin;
+    // Determine server URL - prioritize environment variable, otherwise fallback to window origin
+    // Removing /api suffix if present in VITE_API_URL as socket.io needs the base URL
+    const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const serverUrl = apiUrl.replace(/\/api\/?$/, ""); // Use standard http/https URL
+
+    // logInfo might not be defined in all contexts, use console.log
+    console.log(`[WS] Initializing Socket.IO connection to: ${serverUrl} (User: ${userId})`);
+
     const socket = io(serverUrl, {
       auth: {
         token: token, // Use passed token
         userId,
       },
+      transports: ["websocket", "polling"], // Prioritize websocket but allow polling fallback
+      path: "/socket.io/", // Ensure path matches server
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -122,6 +133,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // Message events
     socket.on('new_message', (message: MessageEvent) => {
+      console.log('[useWebSocket] Received new_message:', message);
       setMessages((prev) => [...prev, message]);
     });
 
@@ -150,6 +162,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     socket.on('message_error', (error) => {
       logError('Message error:', error?.message || error);
+    });
+
+    socket.on('message:updated', (data: { id: string; content: string }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.id ? { ...m, content: data.content } : m))
+      );
+    });
+
+    socket.on('message:deleted', (data: { id: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.id));
+    });
+
+    socket.on('conversation:cleared', (data: { userId: string }) => {
+      // Clear messages only if it relates to our current conversation participant
+      // Or just clear all if we want to be safe, but let's filter by participant if possible
+      // In this hook we don't know the current selected participant, so we clear all for now
+      // and the component will handle the logic if needed.
+      setMessages([]);
     });
 
     // Typing indicators
@@ -183,6 +213,23 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       const timeout = typingTimeoutRef.current.get(data.senderId);
       if (timeout) clearTimeout(timeout);
       typingTimeoutRef.current.delete(data.senderId);
+    });
+
+    socket.on('presence_update', (data: { userId: string; userName?: string; role?: string; action: 'viewing' | 'left' }) => {
+      if (data.action === 'viewing') {
+        setActiveViewers(prev => [
+          ...prev.filter(v => v.userId !== data.userId),
+          { userId: data.userId, userName: data.userName || 'Unknown', role: data.role || 'guest' }
+        ]);
+      } else {
+        setActiveViewers(prev => prev.filter(v => v.userId !== data.userId));
+      }
+    });
+
+    socket.on('application_refetch', (data: { applicationId: string }) => {
+      if (options.onApplicationUpdate) {
+        options.onApplicationUpdate(data.applicationId);
+      }
     });
 
     return () => {
@@ -244,15 +291,57 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socketRef.current.emit('user_stop_typing', { recipientId });
   }, []);
 
+  // Edit message
+  const editMessage = useCallback((recipientId: string, messageId: string, content: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('message:edit', { id: messageId, content, recipientId });
+  }, []);
+
+  // Delete message
+  const deleteMessage = useCallback((recipientId: string, messageId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('message:delete', { id: messageId, recipientId });
+  }, []);
+
+  // Clear conversation
+  const clearConversation = useCallback((recipientId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('conversation:clear', { recipientId });
+  }, []);
+
+  // Application Presence
+  const joinApplication = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('join_application', { applicationId });
+  }, []);
+
+  const leaveApplication = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('leave_application', { applicationId });
+    setActiveViewers([]); // Clear local state when leaving
+  }, []);
+
+  const notifyUpdate = useCallback((applicationId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('update_application', { applicationId });
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
     onlineUsers,
+    activeViewers,
     messages,
     typingUsers,
     sendMessage,
     markMessageRead,
     emitTyping,
     emitStopTyping,
+    editMessage,
+    deleteMessage,
+    clearConversation,
+    joinApplication,
+    leaveApplication,
+    notifyUpdate
   };
 }

@@ -40,8 +40,8 @@ router.get(
         totalFees,
       });
     } else {
-      // Admin/Lawyer stats
-      const where = role === "lawyer" ? eq(applications.lawyerId, userId) : undefined;
+      // Admin/Lawyer stats: show all applications for overall dashboard consistency
+      const where = undefined; // Show global stats for practice management
       const allApps = await db.query.applications.findMany({ where });
       let totalRevenue = 0;
       if (role === "lawyer") {
@@ -61,6 +61,7 @@ router.get(
       const newThisWeek = allApps.filter((app) => new Date(app.createdAt) > oneWeekAgo).length;
       const totalFees = allApps.reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
 
+<<<<<<< HEAD
       // Calculate monthly revenue for chart (last 6 months)
       const revenueChart = [];
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -77,6 +78,24 @@ router.get(
         const monthRevenue = monthApps.reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
         revenueChart.push({ name: monthName, value: monthRevenue });
       }
+=======
+      // Monthly Revenue for Charts
+      const monthlyRevenue = allPayments.reduce((acc, p) => {
+        const month = new Date(p.createdAt).toLocaleString('default', { month: 'short' });
+        const amount = parseFloat(p.amount || "0");
+        const existing = acc.find(m => m.name === month);
+        if (existing) {
+          existing.value += amount;
+        } else {
+          acc.push({ name: month, value: amount });
+        }
+        return acc;
+      }, [] as { name: string; value: number }[]);
+
+      // Sort by month (simple approch for now)
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      monthlyRevenue.sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
       res.json({
         totalRevenue,
@@ -86,7 +105,11 @@ router.get(
         successRate,
         newThisWeek,
         totalFees,
+<<<<<<< HEAD
         revenueChart,
+=======
+        monthlyRevenue
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
       });
     }
   })

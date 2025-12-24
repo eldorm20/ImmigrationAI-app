@@ -5,6 +5,12 @@
  */
 
 import { logger } from "./logger";
+import { db } from "../db";
+import { researchArticles, users, applications, roadmapItems, documentPacks } from "../../shared/schema";
+import { eq, or, ilike, sql, cosineDistance, desc } from "drizzle-orm";
+import { OpenAI } from "openai";
+import { getQueryEmbedding } from "./agents-utils.ts";
+import { RagClient } from "./rag-client";
 
 export interface AgentResponse {
   success: boolean;
@@ -143,26 +149,170 @@ If the user asks about something unrelated (e.g., cooking recipes), politely dec
     income: number;
     familyStatus: string;
   }): Promise<AgentResponse> {
+    // RAG Integration: Fetch authoritative options for the specific nationality/jurisdiction
+    let authoritativeOptions = "";
+    try {
+      const jurisdiction = "UK"; // Default context
+      const ragRes = await RagClient.search(`Visa options for ${applicantData.nationality} with ${applicantData.qualifications.join(", ")}`, jurisdiction);
+      if (ragRes.length > 0) {
+        authoritativeOptions = "\nAuthoritative Visa Options & Policy:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for analyzeVisaOptions");
+    }
+
     const prompt = `Based on the following profile, what are the best visa options?
 - Nationality: ${applicantData.nationality}
 - Qualifications: ${applicantData.qualifications.join(", ")}
 - Annual Income: €${applicantData.income}
 - Family Status: ${applicantData.familyStatus}
 
+${authoritativeOptions}
+
 Provide specific visa categories with success probability and required steps.`;
+
 
     return this.process(prompt);
   }
 
   async checkDocumentRequirements(visaType: string): Promise<AgentResponse> {
-    const prompt = `List all required documents for ${visaType} visa application in the EU. Include:
+    // RAG Integration: Fetch official document checklist
+    let officialChecklist = "";
+    try {
+      const ragRes = await RagClient.search(`Document requirements for ${visaType} visa`, "UK");
+      if (ragRes.length > 0) {
+        officialChecklist = "\nOfficial UK Government Requirements:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for checkDocumentRequirements");
+    }
+
+    const prompt = `List all required documents for ${visaType} visa application. Include:
 1. Personal documents
 2. Financial documents
 3. Health documents
 4. Employment documents (if applicable)
-For each, mention if it needs notarization or translation.`;
+For each, mention if it needs notarization or translation.
+
+${officialChecklist}`;
+
 
     return this.process(prompt);
+  }
+
+  async generateInterviewQuestions(visaType: string, country: string): Promise<AgentResponse> {
+    // RAG Integration: Fetch real officer guidance or common refusal reasons for interview context
+    let officerGuidance = "";
+    try {
+      const ragRes = await RagClient.search(`Immigration officer interview guidance for ${visaType} in ${country}`, country);
+      if (ragRes.length > 0) {
+        officerGuidance = "\nAuthoritative Interview Context & Guidance:\n" +
+          ragRes.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed for generateInterviewQuestions");
+    }
+
+    const prompt = `Generate 5 realistic interview questions for a ${visaType} for the country ${country}.
+${officerGuidance}
+
+Return the response ONLY as a JSON array of objects with the following structure:
+[
+  {
+    "text": "The question itself",
+    "category": "e.g., Personal, Financial, Professional",
+    "expectedAnswer": "Brief summary of what a good answer should include"
+  }
+]
+Do not include any other text or explanations before or after the JSON.`;
+
+
+    return this.process(prompt);
+  }
+
+  async handleVoiceInterview(prompt: string, context?: any): Promise<AgentResponse> {
+    // For voice, we want speed. Skip RAG if the prompt already contains context or if it's a follow-up.
+    // The prompt passed from simulateVoiceConversation already has interviewContext.
+    return this.process(prompt);
+  }
+
+  async handleUserQuery(query: string, context?: any): Promise<AgentResponse> {
+    // 1. Primary Source: Authoritative RAG Microservice
+    let authoritativeContext = "";
+    let citations: any[] = [];
+
+    try {
+      const jurisdiction = context?.jurisdiction || "UK";
+      const ragResponse = await RagClient.getAnswer(query, jurisdiction);
+      authoritativeContext = ragResponse.answer;
+      citations = ragResponse.citations;
+    } catch (err) {
+      logger.warn({ err }, "RagClient failed, falling back to local DB index");
+    }
+
+    // 2. Secondary/Fallback Source: Local Database RAG (for UZ specifically)
+    let localContext = "";
+    try {
+      const embedding = await getQueryEmbedding(query);
+      let relevantDocs: any[] = [];
+
+      if (embedding) {
+        relevantDocs = await db.select({
+          id: researchArticles.id,
+          title: researchArticles.title,
+          summary: researchArticles.summary,
+          sourceUrl: researchArticles.sourceUrl,
+          similarity: sql<number>`1 - (${cosineDistance(researchArticles.embedding, embedding)})`
+        })
+          .from(researchArticles)
+          .orderBy((t) => desc(sql`1 - (${cosineDistance(researchArticles.embedding, embedding)})`))
+          .limit(2);
+      }
+
+      if (relevantDocs.length > 0) {
+        localContext = "\nAdditional Local Legal Context:\n" +
+          relevantDocs.map(doc => `Document: ${doc.title}\nContent: ${doc.summary}\nSource: ${doc.sourceUrl}`).join("\n\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "Local RAG retrieval failed");
+    }
+
+    const lang = context?.language || "en";
+    const prompt = `
+Authoritative Immigration Information:
+${authoritativeContext}
+
+${localContext}
+
+User Question: "${query}"
+
+Instructions: 
+1. Respond in ${lang}. 
+2. Synthesize a helpful answer using the provided authoritative and local context.
+3. If authoritative context includes numbers like [1], [2], preserve them.
+4. Conclude with a list of citations found in context (Source URLs, Titles).
+5. Maintain a professional and expert tone.
+`;
+
+    return this.process(prompt);
+  }
+
+  async analyzeScenario(prompt: string, options?: any): Promise<AgentResponse> {
+    const result = await this.process(prompt);
+    if (!result.success) return result;
+
+    try {
+      let rawData = result.data;
+      if (typeof rawData === "string") {
+        rawData = rawData.replace(/```json\n?/, "").replace(/```\s*$/, "").trim();
+        result.data = JSON.parse(rawData);
+      }
+    } catch (e) {
+      logger.warn({ error: e }, "Failed to parse scenario analysis JSON");
+    }
+    return result;
   }
 }
 
@@ -249,17 +399,32 @@ class DocumentAnalysisAgent extends Agent {
 
   async analyzeDocument(
     documentType: string,
-    extractedData: Record<string, any>
+    extractedData: Record<string, any>,
+    visaType?: string
   ): Promise<AgentResponse> {
-    const prompt = `Analyze the following ${documentType} document data:
-${JSON.stringify(extractedData, null, 2)}
+    // RAG Implementation: Find official requirements for this document type
+    let complianceChecklist = "";
+    try {
+      const jurisdiction = "UK"; // Default to UK context
+      const searchResults = await RagClient.search(`Requirements for ${documentType} in ${visaType || 'general'} application`, jurisdiction);
+      if (searchResults.length > 0) {
+        complianceChecklist = "\nOfficial Compliance Requirements:\n" +
+          searchResults.map(r => r.content).join("\n");
+      }
+    } catch (err) {
+      logger.warn({ err }, "RAG search failed in DocumentAnalysisAgent");
+    }
 
-Provide:
-1. Completeness score (0-100)
-2. Missing required fields
-3. Data consistency issues
-4. Format compliance
-5. Recommendations`;
+    const prompt = `Analyze the extracted data from a ${documentType} for a ${visaType || 'visa'}.
+    
+    Extracted Data: ${JSON.stringify(extractedData)}
+    
+    ${complianceChecklist}
+    
+    Verify if the extracted data meets the official requirements.
+    Identify missing fields, validity issues, or potential red flags.
+    
+    Return JSON: { "completenessScore": number, "isValid": boolean, "missingFields": [], "redFlags": [], "summary": "string" }`;
 
     return this.process(prompt);
   }
@@ -468,8 +633,10 @@ async function generateTextWithProvider(
     try {
       // Use Ollama adapter helpers when available
       const { buildOllamaPayload, parseOllamaResponse } = await import("./ollama");
+      const model = process.env.OLLAMA_MODEL || 'mistral'; // Default to mistral if not set
+      logger.info({ model, provider: "ollama" }, "Generating text using local AI provider");
 
-      const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, process.env.OLLAMA_MODEL);
+      const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, model);
 
       // FIX: Ensure URL ends with /api/generate only if it doesn't already have a path component
       let fetchUrl = localAIUrl as string;
@@ -480,17 +647,23 @@ async function generateTextWithProvider(
         // Adapt payload if needed, or assume the user configured it correctly
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       const res = await fetch(fetchUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(bodyPayload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(`Local AI error: ${res.status} ${text}`);
+        logger.error({ status: res.status, text, fetchUrl }, "Local AI provider failed");
+        throw new Error(`Local AI provider returned ${res.status}: ${text}`);
       }
 
       // Try parse JSON, prefer specialized Ollama parsing
@@ -524,7 +697,6 @@ async function generateTextWithProvider(
   // OpenAI fallback (if key is configured)
   if (process.env.OPENAI_API_KEY) {
     try {
-      // Basic OpenAI implementation without heavy SDK
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -553,14 +725,13 @@ async function generateTextWithProvider(
 
   if (hasHuggingFace) {
     try {
-      return await generateWithHuggingFace(
-        `${systemPrompt}\n\n${prompt}`
-      );
+      return await generateWithHuggingFace(`${systemPrompt}\n\n${prompt}`);
     } catch (err) {
       logger.warn({ err }, "Hugging Face provider failed");
     }
   }
 
+<<<<<<< HEAD
 
   // Try free HuggingFace models that don't require authentication
   const freeModels = [
@@ -592,6 +763,15 @@ async function generateTextWithProvider(
 
 
   throw new Error(`AI Provider configured but failed to respond. Local: ${hasLocalAI}, OpenAI: ${hasOpenAI}, HF: ${hasHuggingFace}`);
+=======
+  if (!hasLocalAI && !hasOpenAI && !hasHuggingFace) {
+    const errorMsg = "No AI Provider available. Please install Ollama or set OPENAI_API_KEY.";
+    logger.error(errorMsg);
+    return "AI Configuration Error: No active AI provider found.";
+  }
+
+  throw new Error(`AI Provider configured but failed to respond.`);
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 }
 
 /**
@@ -604,43 +784,8 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
 
   const url = customUrl || `https://api-inference.huggingface.co/models/${model}`;
 
-  // Try the standard HF Inference API first
   try {
     const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 512,
-          temperature: 0.7,
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`HF Inference failed: ${res.status} ${await res.text().catch(() => "")}`);
-    }
-
-    const json = await res.json();
-    // HF Inference may return an array of generations or object with generated_text
-    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
-    if ((json as any).generated_text) return (json as any).generated_text;
-    // Some model endpoints return [{generated_text}] or { generated_text }
-    if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
-    // Fallback to stringified response
-    return JSON.stringify(json);
-  } catch (err) {
-    logger.warn({ err }, "HF Inference API failed, trying TGI-style /generate endpoint");
-  }
-
-  // If HF Inference failed, try Text-Generation-Inference (TGI) compatible /generate
-  try {
-    const tgiUrl = url.endsWith("/") ? `${url}generate` : `${url}/generate`;
-    const res2 = await fetch(tgiUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -652,21 +797,17 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
       }),
     });
 
-    if (!res2.ok) {
-      throw new Error(`TGI /generate failed: ${res2.status} ${await res2.text().catch(() => "")}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (Array.isArray(json) && json[0]?.generated_text) return json[0].generated_text;
+      if (json.generated_text) return json.generated_text;
+      return JSON.stringify(json);
     }
-
-    const j2 = await res2.json();
-    // TGI often returns { generated_text } or { results: [{ text }] }
-    if ((j2 as any).generated_text) return (j2 as any).generated_text;
-    if (Array.isArray(j2?.results) && j2.results[0]?.text) return j2.results[0].text;
-    if (Array.isArray(j2) && j2[0]?.generated_text) return j2[0].generated_text;
-    if (j2?.data && Array.isArray(j2.data) && j2.data[0]?.generated_text) return j2.data[0].generated_text;
-    return JSON.stringify(j2);
   } catch (err) {
-    logger.warn({ err }, "TGI-style generation failed");
-    throw new Error(`Hugging Face generation failed: ${err instanceof Error ? err.message : String(err)}`);
+    logger.warn({ err }, "HF Inference API failed");
   }
+
+  throw new Error("Hugging Face generation failed");
 }
 
 // Export singleton instance

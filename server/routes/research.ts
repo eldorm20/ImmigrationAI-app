@@ -6,9 +6,15 @@ import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
+<<<<<<< HEAD
 import { rssService, type RSSItem } from "../lib/rss-service";
 import { logger } from "../lib/logger";
 import { getCache, setCache, deleteCachePattern } from "../lib/redis";
+=======
+import { refreshImmigrationNews, getFallbackResearchItems } from "../lib/news";
+import { RagClient } from "../lib/rag-client";
+import { logger } from "../lib/logger";
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 const router = Router();
 
@@ -59,6 +65,7 @@ router.get(
       );
     }
 
+<<<<<<< HEAD
     const cacheKey = `research:list:${search}:${category}:${language}:${limit}:${offset}:${includeRss}`;
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -138,15 +145,81 @@ router.get(
           type: 'case_study',
           tags: ['Poland', 'Family'],
           source: 'ImmigrationAI Research'
+=======
+    let articles: any[] = [];
+    try {
+      articles = await db.query.researchArticles.findMany({
+        where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
+        orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+      });
+    } catch (dbErr) {
+      logger.error({ err: dbErr }, "Failed to fetch research articles from DB, using fallback");
+      articles = []; // Fallback will handle this
+    }
+
+    // RAG Integration: If search query is provided, augment results from authoritative RAG service
+    let items = [...articles];
+    if (search && articles.length < 5) {
+      try {
+        const jurisdiction = (req.query.jurisdiction as string) || "UK";
+        const ragResults = await RagClient.search(search, jurisdiction);
+        const ragItems = ragResults.map(r => ({
+          id: `rag-${Math.random().toString(36).substr(2, 9)}`,
+          title: r.metadata.title || "Official Guidance",
+          summary: r.content.substring(0, 300) + "...",
+          category: "official",
+          type: "guide",
+          tags: [r.metadata.jurisdiction],
+          source: "Authoritative RAG",
+          sourceUrl: r.metadata.url,
+          publishedAt: new Date(r.metadata.last_verified)
+        }));
+
+        // Merge results, avoiding duplicates by title
+        const seenTitles = new Set(items.map(i => i.title.toLowerCase()));
+        for (const r of ragItems) {
+          if (!seenTitles.has(r.title.toLowerCase())) {
+            items.push(r as any);
+          }
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
         }
-      ];
+      } catch (err) {
+        logger.warn({ err }, "RAG search failed in research library");
+      }
+    }
+
+    // If no articles found in DB OR RAG, return filtered fallback data from the mock set
+    if (items.length === 0) {
+      console.log(`[Research] DB empty, serving fallback data for: cat=${category} search=${search}`);
+      let fallback = getFallbackResearchItems();
+
+      // 1. Filter by Category
+      if (category && category !== "all") {
+        fallback = fallback.filter(item => item.category === category);
+      }
+
+      // 2. Filter by Search
+      if (search) {
+        const term = search.toLowerCase();
+        fallback = fallback.filter(item =>
+          item.title.toLowerCase().includes(term) ||
+          item.summary.toLowerCase().includes(term) ||
+          item.tags.some((t: string) => t.toLowerCase().includes(term))
+        );
+      }
 
       return res.json({ items: fallback });
     }
 
+<<<<<<< HEAD
     const response = { items: allItems, fromRss: rssItems.length };
     await setCache(cacheKey, response, 300); // Cache for 5 minutes
     res.json(response);
+=======
+    res.json({ items });
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   }),
 );
 
@@ -241,6 +314,7 @@ router.delete(
   }),
 );
 
+<<<<<<< HEAD
 // Comments & Reactions logic
 
 // Get comments for an article
@@ -396,6 +470,17 @@ router.get(
 
     res.json({ counts, total: reactions.length });
   })
+=======
+// Trigger news refresh - lawyer or admin
+router.post(
+  "/refresh",
+  authenticate,
+  requireRole("admin", "lawyer"),
+  asyncHandler(async (req, res) => {
+    const result = await refreshImmigrationNews();
+    res.json({ message: "News library updated", ...result });
+  }),
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 );
 
 export default router;

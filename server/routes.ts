@@ -18,11 +18,11 @@ import settingsRoutes from "./routes/settings";
 import adminRoutes from "./routes/admin";
 import visaRoutes from "./routes/visa";
 import analyticsRoutes from "./routes/analytics";
-import employersRoutes from "./routes/employers";
 import debugRoutes from "./routes/debug";
 import translateRoutes from "./routes/translate"; // New import
 import canadaRoutes from "./routes/canada"; // NEW: Canada Express Entry routes
 import publicStatsRouter from "./routes/public-stats";
+<<<<<<< HEAD
 import predictRoutes from "./routes/predict";
 import deadlinesRoutes from "./routes/deadlines";
 import videoRoutes from "./routes/video";
@@ -36,6 +36,19 @@ import datasetRoutes from "./routes/dataset";
 import filesRoutes from "./routes/files";
 import financialsRoutes from "./routes/financials";
 import practiceRoutes from "./routes/practice";
+=======
+import ukRtwRoutes from "./routes/ukrtwchecker";
+import tasksRoutes from "./routes/tasks";
+import invoicesRoutes from "./routes/invoices";
+import clientsRoutes from "./routes/clients";
+import predictiveRoutes from "./routes/predictive";
+import voiceRoutes from "./routes/voice";
+import agentsRoutes from "./routes/agents";
+import paymentsUzRoutes from "./routes/payments-uz";
+import govCheckRoutes from "./routes/gov-check";
+import lawyerAutomationRoutes from "./routes/lawyer-automation";
+import { companyRouter } from "./routes/companies";
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -59,10 +72,12 @@ export async function registerRoutes(app: Express) {
   app.use("/api/reports", reportsRoutes);
   app.use("/api/subscription", subscriptionsRoutes);
   app.use("/api/messages", messagesRoutes);
-  app.use("/api", settingsRoutes);
+  app.use("/api/translate", translateRoutes);
+  app.use("/api/users", settingsRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/visa", visaRoutes);
   app.use("/api/analytics", analyticsRoutes);
+<<<<<<< HEAD
   app.use("/api/employers", employersRoutes);
   app.use("/api/dataset", datasetRoutes);
   app.use("/api/debug", debugRoutes);
@@ -72,3 +87,18 @@ export async function registerRoutes(app: Express) {
   app.use("/api", financialsRoutes); // Invoices & Time Entries: /api/invoices, /api/time-entries
   app.use("/api", practiceRoutes); // Tasks & Templates: /api/tasks, /api/templates
 }
+=======
+  app.use("/api/debug", debugRoutes);
+  app.use("/api/ukrtwchecker", ukRtwRoutes);
+  app.use("/api/tasks", tasksRoutes);
+  app.use("/api/invoices", invoicesRoutes);
+  app.use("/api/clients", clientsRoutes);
+  app.use("/api/predictive", predictiveRoutes);
+  app.use("/api/voice", voiceRoutes);
+  app.use("/api/agents", agentsRoutes);
+  app.use("/api/payments-uz", paymentsUzRoutes);
+  app.use("/api/gov-check", govCheckRoutes);
+  app.use("/api/lawyer/automation", lawyerAutomationRoutes);
+  app.use("/api/companies", companyRouter);
+}
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720

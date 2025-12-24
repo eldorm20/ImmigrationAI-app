@@ -14,6 +14,7 @@ import {
   Mail,
   Menu,
   Video,
+  Trash2,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VideoCall from "./video-call";
@@ -29,11 +30,22 @@ interface Consultation {
   applicationId?: string;
   scheduledTime: string;
   duration: number;
+<<<<<<< HEAD
   status: "pending" | "scheduled" | "completed" | "cancelled" | "no_show";
+=======
+  status: "scheduled" | "completed" | "cancelled" | "no_show" | "accepted";
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   notes?: string;
   meetingLink?: string;
   createdAt: string;
   updatedAt: string;
+  applicant?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    phone?: string;
+  } | null;
 }
 
 interface User {
@@ -49,7 +61,6 @@ export default function LawyerConsultations() {
   const { toast } = useToast();
   const { t } = useI18n();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [userDetails, setUserDetails] = useState<Record<string, User>>({});
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("pending");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -66,8 +77,11 @@ export default function LawyerConsultations() {
         setLoading(true);
         const data = await apiRequest<Consultation[]>("/consultations");
         setConsultations(data || []);
+<<<<<<< HEAD
 
         // ... user fetching code
+=======
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
       } catch (error: unknown) {
         // ... error handling
       } finally {
@@ -85,7 +99,7 @@ export default function LawyerConsultations() {
         {
           method: "PATCH",
           body: JSON.stringify({
-            status: "scheduled",
+            status: "accepted",
             meetingLink: meetingLink || undefined,
             notes: notes || undefined,
           }),
@@ -193,6 +207,8 @@ export default function LawyerConsultations() {
       pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
       scheduled:
         "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
+      accepted:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       completed:
         "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       cancelled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
@@ -222,11 +238,65 @@ export default function LawyerConsultations() {
     );
   };
 
+<<<<<<< HEAD
   // ...
 
   return (
     <div className="space-y-6">
       {/* ... Header ... */}
+=======
+  const filteredConsultations = consultations.filter((c) =>
+    filterStatus === "all" ? true : c.status === filterStatus
+  );
+
+  const handleClearHistory = async () => {
+    if (!confirm(t.consultation?.confirmClearHistory || "Are you sure you want to clear your consultation history? This will remove all completed and cancelled consultations.")) return;
+    try {
+      await apiRequest("/consultations/history", { method: "DELETE" });
+      setConsultations(prev => prev.filter(c => c.status !== "completed" && c.status !== "cancelled"));
+      toast({
+        title: t.common.success || "Success",
+        description: t.consultation?.historyCleared || "Consultation history cleared",
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      toast({
+        title: t.common.error || "Error",
+        description: msg || "Failed to clear history",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">{t.consultation.title || "Consultations"}</h2>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleClearHistory}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-medium border border-red-100 dark:border-red-800"
+          >
+            <Trash2 size={16} />
+            {t.consultation?.clearHistory || "Clear History"}
+          </motion.button>
+        </div>
+        <div className="text-sm text-slate-600 dark:text-slate-400">
+          {filteredConsultations.length} {t.lawyerDashboard?.consultations || t.lawyer?.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
+        </div>
+      </div>
+>>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
       {/* Status Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
@@ -289,7 +359,7 @@ export default function LawyerConsultations() {
                           {new Date(c.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div className="truncate font-medium text-slate-900 dark:text-slate-200">
-                          {userDetails[c.userId]?.firstName || 'Client'} {userDetails[c.userId]?.lastName}
+                          {c.applicant?.firstName || 'Client'} {c.applicant?.lastName || ''}
                         </div>
                         <div className={`mt-2 text-[10px] uppercase font-bold tracking-wider ${c.status === 'scheduled' || c.status === 'completed' ? 'text-green-500' : 'text-slate-400'}`}>
                           {c.status}
@@ -320,7 +390,7 @@ export default function LawyerConsultations() {
               </div>
             ) : (
               filteredConsultations.map((consultation) => {
-                const applicant = userDetails[consultation.userId];
+                const applicant = consultation.applicant;
                 const isEditing = editingId === consultation.id;
 
                 return (

@@ -21,6 +21,8 @@ RUN npm install --legacy-peer-deps
 
 COPY . .
 RUN npm run build   # uses your updated package.json to build server + client
+# Prune dev dependencies to reduce image size
+RUN npm prune --production
 
 # Production stage
 
