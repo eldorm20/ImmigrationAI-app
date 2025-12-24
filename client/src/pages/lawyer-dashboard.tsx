@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
   Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Plus, MessageSquare, BrainCircuit,
-  ArrowUpRight, Zap, Brain, Lock, Printer
+  ArrowUpRight, Zap, Brain, Lock, Printer, Building
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
+import CompanySearch from "@/pages/lawyer/company-check";
 
 // --- Types & Components ---
 
@@ -119,7 +120,7 @@ export default function LawyerDashboard() {
   const { toast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics' | 'trainer'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'consultations' | 'tasks' | 'billing' | 'analytics' | 'trainer' | 'company-check'>('applications');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date_desc');
@@ -499,6 +500,18 @@ export default function LawyerDashboard() {
             <BrainCircuit size={18} />
             {t.dash.trainer}
           </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('company-check')}
+            className={`px-4 py-3 font-medium transition-colors flex items-center gap-2 ${activeTab === 'company-check'
+              ? 'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+          >
+            <Building size={18} />
+            Check Companies
+          </motion.button>
         </div>
 
         {/* Applications Tab Content */}
@@ -858,6 +871,13 @@ export default function LawyerDashboard() {
         {/* Interview Prep Tab Content */}
         {activeTab === 'trainer' && (
           <InterviewTrainerView />
+        )}
+
+        {/* Company Check Tab Content */}
+        {activeTab === 'company-check' && (
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+            <CompanySearch />
+          </div>
         )}
       </main>
 

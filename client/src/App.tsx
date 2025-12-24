@@ -39,6 +39,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
 import Partner from "@/pages/partner";
+import CompanyCheck from "@/pages/lawyer/company-check";
 
 function ProtectedRoute({ component: Component, role }: { component: React.ComponentType, role?: 'lawyer' | 'applicant' | 'admin' }) {
   const { user, isLoading } = useAuth();
@@ -157,6 +158,10 @@ function Router() {
         {/* Legacy/alternate path for compatibility */}
         <Route path="/lawyer-dashboard">
           <ProtectedRoute component={LawyerDashboard} role="lawyer" />
+        </Route>
+
+        <Route path="/lawyer/company-check">
+          <ProtectedRoute component={CompanyCheck} role="lawyer" />
         </Route>
 
         <Route component={NotFound} />

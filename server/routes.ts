@@ -31,6 +31,7 @@ import agentsRoutes from "./routes/agents";
 import paymentsUzRoutes from "./routes/payments-uz";
 import govCheckRoutes from "./routes/gov-check";
 import lawyerAutomationRoutes from "./routes/lawyer-automation";
+import { companyRouter } from "./routes/companies";
 
 export async function registerRoutes(app: Express) {
   // Webhooks must be registered BEFORE JSON parsing middleware
@@ -70,4 +71,5 @@ export async function registerRoutes(app: Express) {
   app.use("/api/payments-uz", paymentsUzRoutes);
   app.use("/api/gov-check", govCheckRoutes);
   app.use("/api/lawyer/automation", lawyerAutomationRoutes);
+  app.use("/api/companies", companyRouter);
 }
