@@ -261,47 +261,31 @@ router.post(
   })
 );
 
+import { DOCUMENT_TEMPLATES } from "../lib/document-generator";
+
 // Return available templates and sample data for previewing
 router.get(
   "/documents/templates",
   asyncHandler(async (_req, res) => {
-    const templates = [
-      {
-        id: 'Motivation Letter',
-        description: 'Formal motivation / cover letter for immigration or job application',
-        sampleData: {
-          name: 'Jane Applicant',
-          role: 'Research Scientist',
-          company: 'Institute of Advanced Studies',
-          experience: '6',
-          education: "Master's in Molecular Biology",
-          skills: 'Research, Project Management, English C1',
-          achievements: 'Published 3 papers in peer-reviewed journals'
-        }
-      },
-      {
-        id: 'CV Enhancement',
-        description: 'Enhanced CV / professional summary optimized for visa/job applications',
-        sampleData: {
-          name: 'Olga Ivanova',
-          role: 'Data Analyst',
-          company: 'Analytics Co',
-          experience: '4',
-          education: "Bachelor's in Statistics",
-          skills: 'Python, SQL, DataViz'
-        }
-      },
-      {
-        id: 'Reference Letter',
-        description: 'Professional reference letter template',
-        sampleData: {
-          name: 'Tim Johnson',
-          role: 'Project Manager',
-          recommender: 'Anna Smith',
-          achievements: 'Led product launches across EU'
-        }
+    // Map the internal templates to the format expected by the frontend
+    const templates = DOCUMENT_TEMPLATES.map(t => ({
+      id: t.name, // The UI uses the name as ID currently
+      id_internal: t.id,
+      description: t.description,
+      category: t.category,
+      sampleData: {
+        name: 'Jane Applicant',
+        visaType: 'Skilled Worker',
+        experience: '5',
+        education: "Master's Degree",
+        reasonForChoice: 'Career growth and research opportunities',
+        // Generic fields for fallback
+        fullName: 'Jane Applicant',
+        passportNo: 'AB1234567',
+        address: '123 Main St, London',
+        stayDuration: '3 years'
       }
-    ];
+    }));
 
     res.json({ templates });
   })

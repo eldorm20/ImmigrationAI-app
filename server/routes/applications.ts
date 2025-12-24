@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { applications, users } from "@shared/schema";
+import { applications, users, documents } from "@shared/schema";
 import { eq, and, desc, asc, like, or } from "drizzle-orm";
 import { authenticate, requireRole } from "../middleware/auth";
 import { isValidCountryCode, isValidVisaType, sanitizeInput } from "../middleware/security";
@@ -160,37 +160,48 @@ router.get(
     usersList.forEach((u) => (userMap[u.id] = u));
 
     const enriched = await Promise.all(paginated.map(async (a) => {
-      // Calculate Priority Score (0-100)
-      let score = 0;
-      const feeNum = parseFloat(a.fee || "0");
-      if (feeNum >= 2000) score += 40;
-      else if (feeNum >= 1000) score += 20;
+      try {
+        // Calculate Priority Score (0-100)
+        let score = 0;
+        const feeNum = parseFloat(String(a.fee || "0"));
+        if (feeNum >= 2000) score += 40;
+        else if (feeNum >= 1000) score += 20;
 
-      // Check document count
-      const docCount = await db.query.documents.findMany({
-        where: (docs, { eq }) => eq(docs.applicationId, a.id),
-      });
-      if (docCount.length >= 5) score += 30;
-      else if (docCount.length >= 2) score += 15;
+        // Check document count safely
+        const docCount = await db.query.documents.findMany({
+          where: eq(documents.applicationId, a.id),
+        }).catch(() => []);
 
-      // Age bonus (newer is higher priority for response)
-      const daysOld = (new Date().getTime() - new Date(a.createdAt).getTime()) / (1000 * 3600 * 24);
-      if (daysOld < 3) score += 30;
-      else if (daysOld < 7) score += 15;
+        if (docCount.length >= 5) score += 30;
+        else if (docCount.length >= 2) score += 15;
 
-      let priorityLevel: "High" | "Medium" | "Low" = "Low";
-      if (score >= 70) priorityLevel = "High";
-      else if (score >= 40) priorityLevel = "Medium";
+        // Age bonus (newer is higher priority for response)
+        const daysOld = a.createdAt ? (new Date().getTime() - new Date(a.createdAt).getTime()) / (1000 * 3600 * 24) : 99;
+        if (daysOld < 3) score += 30;
+        else if (daysOld < 7) score += 15;
 
-      return {
-        ...a,
-        userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : undefined,
-        userEmail: userMap[a.userId]?.email,
-        passportNumber: a.encryptedPassportNumber ? decryptSensitiveData(a.encryptedPassportNumber) : undefined,
-        dateOfBirth: a.encryptedDateOfBirth ? decryptSensitiveData(a.encryptedDateOfBirth) : undefined,
-        priorityScore: score,
-        priorityLevel: priorityLevel
-      };
+        let priorityLevel: "High" | "Medium" | "Low" = "Low";
+        if (score >= 70) priorityLevel = "High";
+        else if (score >= 40) priorityLevel = "Medium";
+
+        return {
+          ...a,
+          userName: userMap[a.userId]?.firstName ? `${userMap[a.userId].firstName} ${userMap[a.userId].lastName || ''}`.trim() : "Unknown User",
+          userEmail: userMap[a.userId]?.email,
+          passportNumber: a.encryptedPassportNumber ? decryptSensitiveData(a.encryptedPassportNumber) : undefined,
+          dateOfBirth: a.encryptedDateOfBirth ? decryptSensitiveData(a.encryptedDateOfBirth) : undefined,
+          priorityScore: score,
+          priorityLevel: priorityLevel
+        };
+      } catch (err) {
+        logger.error({ err, applicationId: a.id }, "Enrichment failed for application");
+        return {
+          ...a,
+          userName: "Error Loading User",
+          priorityScore: 0,
+          priorityLevel: "Low" as const
+        };
+      }
     }));
 
     res.json({

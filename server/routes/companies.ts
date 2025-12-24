@@ -18,6 +18,20 @@ const MOCK_COMPANIES = [
         company_status: "active",
         address_snippet: "456 Tech Park, Manchester, UK",
         date_of_creation: "2019-05-15"
+    },
+    {
+        company_number: "00000001",
+        title: "APPLE RETAIL UK LIMITED",
+        company_status: "active",
+        address_snippet: "1 Hanover Street, London, W1S 1YZ",
+        date_of_creation: "2003-09-15"
+    },
+    {
+        company_number: "00000002",
+        title: "GOOGLE UK LIMITED",
+        company_status: "active",
+        address_snippet: "6 Pancras Square, London, N1C 4AG",
+        date_of_creation: "2003-09-17"
     }
 ];
 

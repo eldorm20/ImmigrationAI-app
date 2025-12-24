@@ -55,10 +55,10 @@ router.get(
       const applicationStats = await db
         .select({
           total: count(),
-          pending: sql<number>`SUM(CASE WHEN status = 'pending' OR status = 'pending_documents' THEN 1 ELSE 0 END)`,
-          approved: sql<number>`SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)`,
-          rejected: sql<number>`SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END)`,
-          inProgress: sql<number>`SUM(CASE WHEN status = 'under_review' OR status = 'in_progress' OR status = 'submitted' THEN 1 ELSE 0 END)`,
+          pending: sql<number>`CAST(SUM(CASE WHEN status = 'pending' OR status = 'pending_documents' THEN 1 ELSE 0 END) AS integer)`,
+          approved: sql<number>`CAST(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS integer)`,
+          rejected: sql<number>`CAST(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS integer)`,
+          inProgress: sql<number>`CAST(SUM(CASE WHEN status = 'under_review' OR status = 'in_progress' OR status = 'submitted' THEN 1 ELSE 0 END) AS integer)`,
         })
         .from(applications);
 
@@ -66,9 +66,9 @@ router.get(
       const consultationStats = await db
         .select({
           total: count(),
-          scheduled: sql<number>`SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END)`,
-          completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
-          cancelled: sql<number>`SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END)`,
+          scheduled: sql<number>`CAST(SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) AS integer)`,
+          completed: sql<number>`CAST(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS integer)`,
+          cancelled: sql<number>`CAST(SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 1 END) AS integer)`,
         })
         .from(consultations);
 
@@ -76,9 +76,9 @@ router.get(
       const taskStats = await db
         .select({
           total: count(),
-          pending: sql<number>`SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END)`,
-          inProgress: sql<number>`SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)`,
-          completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
+          pending: sql<number>`CAST(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS integer)`,
+          inProgress: sql<number>`CAST(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS integer)`,
+          completed: sql<number>`CAST(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS integer)`,
         })
         .from(tasks);
 
@@ -86,10 +86,10 @@ router.get(
       const invoiceStats = await db
         .select({
           total: count(),
-          totalAmount: sql<number>`COALESCE(SUM(amount::numeric), 0)`,
-          paid: sql<number>`COALESCE(SUM(CASE WHEN status = 'paid' THEN amount::numeric ELSE 0 END), 0)`,
-          outstanding: sql<number>`COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount::numeric ELSE 0 END), 0)`,
-          drafts: sql<number>`SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END)`,
+          totalAmount: sql<number>`CAST(COALESCE(SUM(amount), 0) AS float)`,
+          paid: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS float)`,
+          outstanding: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount ELSE 0 END), 0) AS float)`,
+          drafts: sql<number>`CAST(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS integer)`,
         })
         .from(invoices);
 

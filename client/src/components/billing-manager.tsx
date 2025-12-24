@@ -79,7 +79,7 @@ export default function BillingManager() {
                 method: "POST",
                 body: JSON.stringify({
                     ...newInvoice,
-                    amount: total.toString(),
+                    amount: total.toFixed(2),
                     status: "draft",
                     dueDate: newInvoice.dueDate ? new Date(newInvoice.dueDate).toISOString() : null
                 })

@@ -97,7 +97,7 @@ export class RagClient {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
             const response = await fetch(`${RAG_SERVICE_URL}/search`, {
                 method: "POST",

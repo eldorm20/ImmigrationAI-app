@@ -9,7 +9,7 @@ import { db } from "../db";
 import { researchArticles, users, applications, roadmapItems, documentPacks } from "../../shared/schema";
 import { eq, or, ilike, sql, cosineDistance, desc } from "drizzle-orm";
 import { OpenAI } from "openai";
-import { getQueryEmbedding } from "./agents-utils";
+import { getQueryEmbedding } from "./agents-utils.ts";
 import { RagClient } from "./rag-client";
 
 export interface AgentResponse {
@@ -636,7 +636,7 @@ async function generateTextWithProvider(
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 300s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
       const res = await fetch(fetchUrl, {
         method: "POST",
