@@ -56,12 +56,18 @@ router.get(
       );
     }
 
-    const articles = await db.query.researchArticles.findMany({
-      where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
-      orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
-    });
+    let articles: any[] = [];
+    try {
+      articles = await db.query.researchArticles.findMany({
+        where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
+        orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10),
+      });
+    } catch (dbErr) {
+      logger.error({ err: dbErr }, "Failed to fetch research articles from DB, using fallback");
+      articles = []; // Fallback will handle this
+    }
 
     // RAG Integration: If search query is provided, augment results from authoritative RAG service
     let items = [...articles];
