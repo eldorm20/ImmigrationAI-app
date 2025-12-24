@@ -501,541 +501,540 @@ export default function LawyerDashboard() {
             Check Companies
           </motion.button>
         </div>
-    </div>
 
-        {/* Applications Tab Content */ }
-  {
-    activeTab === 'applications' && (
-      <>
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={stats?.totalLeads ?? leads.length} icon={Users} color="blue" trend="+12%" />
-          <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${(stats?.totalRevenue ?? totalRevenue).toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
-          <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={stats?.pendingLeads ?? leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
-          <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
-        </div>
-
-        {/* AI Policy Watcher (New Featured Section) */}
-        <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 p-6 rounded-3xl border border-indigo-500/30 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-            <BrainCircuit size={120} />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-400/30">
-                <Zap className="text-indigo-400" size={20} />
-              </div>
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">AI Policy Watcher <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live Integration</span></h3>
-            </div>
-            <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-              {policyUpdates || "Searching for immigration policy updates from official RAG databases..."}
-            </div>
-          </div>
-        </div>
-
-        {/* Practice Management Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <h4 className="font-bold mb-2">Practice Management</h4>
-            <p className="text-sm text-slate-500 mb-4">Manage your internal workflow and client CRM</p>
-            <div className="flex flex-col gap-2">
-              <ActionButton variant="primary" icon={Plus} onClick={() => setActiveTab('tasks')}>Create New Task</ActionButton>
-              <ActionButton variant="ghost" icon={Users} onClick={() => {
-                setFilterStatus('All');
-                setAssignedOnly(true);
-              }}>My Assigned Cases</ActionButton>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <h4 className="font-bold mb-2">Financial Control</h4>
-            <p className="text-sm text-slate-500 mb-4">Professional billing and payment tracking</p>
-            <div className="flex flex-col gap-2">
-              <ActionButton variant="success" icon={CreditCard} onClick={() => setActiveTab('billing')}>Generate New Invoice</ActionButton>
-              <ActionButton variant="ghost" onClick={() => {
-                setLocation('/messages');
-              }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <StatCard title={t.lawyerDashboard?.newThisWeek || 'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
-          <StatCard title={t.lawyerDashboard?.totalFees || 'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-            <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> {t.lawyerDashboard?.revenueAnalytics || 'Revenue Analytics'}</h3>
-            <ResponsiveContainer width="100%" height="85%">
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.2} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff' }} />
-                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-brand-600 dark:bg-brand-700 p-6 rounded-2xl shadow-xl shadow-brand-500/30 text-white relative overflow-hidden flex flex-col justify-center items-center text-center">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-            <div className="relative z-10">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
-                <Briefcase size={32} className="text-white" />
-              </div>
-              <h3 className="text-2xl font-extrabold mb-2">{t.lawyerDashboard?.topPerformer || 'Top Performer'}</h3>
-              <p className="text-brand-100 mb-6">You are in the top 5% of partners this month.</p>
-              <button
-                onClick={() => setShowReport(true)}
-                className="bg-white text-brand-600 px-6 py-3 rounded-xl font-bold hover:bg-brand-50 transition-colors shadow-lg"
-              >
-                {t.lawyerDashboard?.viewReport || 'View Report'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Leads Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}</h3>
-                <div className="flex gap-2">
-                  {['All', 'New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                    const statusLabels: Record<string, string> = {
-                      'All': 'All',
-                      'New': t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending',
-                      'Reviewing': 'Reviewing',
-                      'Approved': t.lawyerDashboard?.approved || t.lawyer?.approved || 'Approved',
-                      'Rejected': 'Rejected'
-                    };
-                    return (
-                      <button
-                        key={status}
-                        onClick={() => { setFilterStatus(status); setPage(1); }}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${filterStatus === status ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                      >
-                        {statusLabels[status] || status}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <div className="relative w-full md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                    placeholder={t.lawyerDashboard?.searchPlaceholder || t.lawyer?.searchPlaceholder || ''}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-900 dark:text-white"
-                  />
-                </div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                >
-                  <option value="date_desc">{t.common?.date || 'Date'} â†“</option>
-                  <option value="date_asc">{t.common?.date || 'Date'} â†‘</option>
-                  <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†“</option>
-                  <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†‘</option>
-                </select>
-                <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
-                  {assignedOnly ? 'Assigned to me' : 'All'}
-                </button>
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, filteredLeads.length)} of {filteredLeads.length} applications
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="p-12 text-center text-slate-400">Loading...</div>
-          ) : (
+        {/* Applications Tab Content */}
+        {
+          activeTab === 'applications' && (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider">
-                    <tr>
-                      <th className="px-6 py-4">{t.lawyer?.clientInfo || 'Applicant'}</th>
-                      <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
-                      <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
-                      <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
-                      <th className="px-6 py-4">Priority</th>
-                      <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
-                      <th className="px-6 py-4">Assigned</th>
-                      <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {pageData.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                          {t.research?.noResults?.replace('resources', 'applications') || 'No applications found'}
-                        </td>
-                      </tr>
-                    ) : (
-                      pageData.map((lead) => (
-                        <tr key={lead.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
-                                {(lead.name || "?")[0]}
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-900 dark:text-white">{lead.name}</p>
-                                <p className="text-xs text-slate-400">{lead.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-slate-700 dark:text-slate-300">{lead.visa}</span>
-                              <span className="text-xs text-slate-500 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> {lead.country}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-bold font-mono text-slate-600 dark:text-slate-300">
-                            ${lead.fee?.toLocaleString() || 0}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lead.status === 'Approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400' :
-                              lead.status === 'New' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' :
-                                lead.status === 'Reviewing' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400' :
-                                  lead.status === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' :
-                                    'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
-                              }`}>
-                              {lead.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${lead.priorityLevel === 'High' ? 'bg-red-500 text-white' : lead.priorityLevel === 'Medium' ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                              {lead.priorityLevel || 'Low'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
-                            {new Date(lead.date || lead.createdAt || 0).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-slate-600">
-                              {lead.lawyerId ? (lead.lawyerId === user?.id ? 'You' : `Lawyer ${lead.lawyerId.slice(0, 8)}`) : 'Unassigned'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <ActionButton
-                                variant="ghost"
-                                icon={Brain}
-                                onClick={() => handleGenerateBrief(String(lead.id))}
-                                disabled={isGeneratingBrief}
-                              >
-                                AI Brief
-                              </ActionButton>
-                              <ActionButton
-                                variant="ghost"
-                                icon={Eye}
-                                onClick={() => {
-                                  setSelectedLead(lead);
-                                  // Scroll to top to see modal
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                              >
-                                {t.common?.view || 'View'}
-                              </ActionButton>
-                              <ActionButton
-                                variant="ghost"
-                                icon={MessageSquare}
-                                onClick={() => setLocation(`/messages?select=${lead.userId}`)}
-                              >
-                                {t.lawyerDashboard?.messageClient || 'Message'}
-                              </ActionButton>
-                              {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
-                                <ActionButton
-                                  variant="success"
-                                  icon={CheckCircle}
-                                  onClick={() => {
-                                    if (confirm(`${t.success?.message || 'Approve'} ${lead.name}?`)) {
-                                      handleStatusChange(lead.id, 'Approved');
-                                    }
-                                  }}
-                                >
-                                  {t.lawyer?.approveApplication || 'Approve'}
-                                </ActionButton>
-                              )}
-                              {lead.status === 'New' && (
-                                <ActionButton
-                                  variant="danger"
-                                  icon={XCircle}
-                                  onClick={() => {
-                                    if (confirm(`${t.error?.message || 'Reject'} ${lead.name}?`)) {
-                                      handleStatusChange(lead.id, 'Rejected');
-                                    }
-                                  }}
-                                >
-                                  {t.lawyer?.rejectApplication || 'Reject'}
-                                </ActionButton>
-                              )}
-                              {lead.status === 'New' && (
-                                <ActionButton
-                                  variant="ghost"
-                                  icon={Clock}
-                                  onClick={() => handleStatusChange(lead.id, 'Reviewing')}
-                                >
-                                  {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
-                                </ActionButton>
-                              )}
-                              {(!lead.lawyerId || lead.lawyerId !== user?.id) && (
-                                <ActionButton variant="primary" icon={Users} onClick={() => handleAssignToMe(lead.id)}>
-                                  Assign to me
-                                </ActionButton>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title={t.lawyerDashboard?.active || t.lawyer?.active || "Active"} value={stats?.totalLeads ?? leads.length} icon={Users} color="blue" trend="+12%" />
+                <StatCard title={t.lawyerDashboard?.rev || t.lawyer?.rev || "Revenue"} value={`$${(stats?.totalRevenue ?? totalRevenue).toLocaleString()}`} icon={DollarSign} color="green" trend="+8%" />
+                <StatCard title={t.lawyerDashboard?.pending || t.lawyer?.pending || "Pending"} value={stats?.pendingLeads ?? leads.filter(l => l.status === 'New').length} icon={Clock} color="orange" />
+                <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
               </div>
-              {totalPages > 1 && (
-                <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    {t.common?.page || 'Page'} {page} {t.common?.of || 'of'} {totalPages}
-                  </div>
-                  <div className="flex gap-2">
-                    <ActionButton
-                      variant="ghost"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      {t.common?.previous || 'Previous'}
-                    </ActionButton>
-                    <ActionButton
-                      variant="ghost"
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      {t.common?.next || 'Next'}
-                    </ActionButton>
-                  </div>
+
+              {/* AI Policy Watcher (New Featured Section) */}
+              <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 p-6 rounded-3xl border border-indigo-500/30 shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                  <BrainCircuit size={120} />
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </>
-    )
-  }
-
-  {/* Consultations Tab Content */ }
-  {
-    activeTab === 'consultations' && (
-      <LawyerConsultations />
-    )
-  }
-
-  {/* Practice (Tasks) Tab Content */ }
-  {
-    activeTab === 'tasks' && (
-      <PracticeTasks />
-    )
-  }
-
-  {/* Financials (Billing) Tab Content */ }
-  {
-    activeTab === 'billing' && (
-      <BillingManager />
-    )
-  }
-
-  {/* Analytics Tab Content */ }
-  {
-    activeTab === 'analytics' && (
-      <LawyerAnalytics />
-    )
-  }
-
-
-
-  {/* Company Check Tab Content */ }
-  {
-    activeTab === 'company-check' && (
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
-        <CompanySearch />
-      </div>
-    )
-  }
-      </main >
-
-    {/* Client Detail Modal */ }
-    <AnimatePresence>
-  {
-    selectedLead && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] flex flex-col p-4 md:p-8">
-          <ClientProfile clientId={selectedLead.userId} onClose={() => setSelectedLead(null)} />
-        </motion.div>
-      </div>
-    )
-  }
-      </AnimatePresence >
-
-    {/* Performance Report Modal */ }
-    <AnimatePresence>
-  {
-    showReport && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
-            <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
-              <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
-                  <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
-                  <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
-                  <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
-              <div className="space-y-2">
-                {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
-                  const count = leads.filter(l => l.status === status).length;
-                  const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
-                  return (
-                    <div key={status} className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
-                      <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full ${status === 'Approved' ? 'bg-green-500' :
-                            status === 'Reviewing' ? 'bg-yellow-500' :
-                              status === 'Rejected' ? 'bg-red-500' :
-                                'bg-blue-500'
-                            }`}
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-400/30">
+                      <Zap className="text-indigo-400" size={20} />
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
-                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
-                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">AI Policy Watcher <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">Live Integration</span></h3>
+                  </div>
+                  <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {policyUpdates || "Searching for immigration policy updates from official RAG databases..."}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <ActionButton
-                className="flex-1 py-3"
-                variant="primary"
-                icon={Download}
-                onClick={() => {
-                  toast({
-                    title: "Report Downloaded",
-                    description: "Performance report has been downloaded as PDF",
-                    className: "bg-green-50 text-green-900 border-green-200"
-                  });
-                }}
-              >
-                Download as PDF
-              </ActionButton>
-              <ActionButton
-                className="flex-1 py-3"
-                variant="ghost"
-                onClick={() => setShowReport(false)}
-              >
-                Close
-              </ActionButton>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    )
-  }
-  {
-    showAiBriefModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAiBriefModal(false)} />
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl relative z-10 shadow-2xl border border-white/10 max-h-[85vh] flex flex-col p-8 overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-brand-500 p-2 rounded-xl text-white">
-                <Brain size={24} />
-              </div>
-              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Authoritative Case Brief</h3>
-            </div>
-            <button onClick={() => setShowAiBriefModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
-          </div>
+              {/* Practice Management Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-bold mb-2">Practice Management</h4>
+                  <p className="text-sm text-slate-500 mb-4">Manage your internal workflow and client CRM</p>
+                  <div className="flex flex-col gap-2">
+                    <ActionButton variant="primary" icon={Plus} onClick={() => setActiveTab('tasks')}>Create New Task</ActionButton>
+                    <ActionButton variant="ghost" icon={Users} onClick={() => {
+                      setFilterStatus('All');
+                      setAssignedOnly(true);
+                    }}>My Assigned Cases</ActionButton>
+                  </div>
+                </div>
 
-          {!aiBrief && isGeneratingBrief ? (
-            <div className="py-20 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
-              <p className="text-slate-400 animate-pulse font-medium">ImmigrationAI is analyzing legal databases & application context...</p>
-            </div>
-          ) : (
-            <>
-              <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 font-sans leading-relaxed printable-content">
-                {aiBrief}
-              </div>
-              <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 font-bold no-print">
-                <ActionButton
-                  variant="primary"
-                  icon={Download}
-                  onClick={() => window.open(`/api/lawyer/automation/brief/${selectedBriefId}/download`, '_blank')}
-                >
-                  Download (.txt)
-                </ActionButton>
-                <ActionButton variant="ghost" icon={Printer} onClick={() => window.print()}>Print</ActionButton>
-                <ActionButton variant="ghost" onClick={() => setShowAiBriefModal(false)}>Close</ActionButton>
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <h4 className="font-bold mb-2">Financial Control</h4>
+                  <p className="text-sm text-slate-500 mb-4">Professional billing and payment tracking</p>
+                  <div className="flex flex-col gap-2">
+                    <ActionButton variant="success" icon={CreditCard} onClick={() => setActiveTab('billing')}>Generate New Invoice</ActionButton>
+                    <ActionButton variant="ghost" onClick={() => {
+                      setLocation('/messages');
+                    }}>{t.lawyerDashboard?.messageClient || 'Message Client'}</ActionButton>
+                  </div>
+                </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatCard title={t.lawyerDashboard?.newThisWeek || 'New This Week'} value={stats?.newThisWeek ?? 0} icon={Calendar} color="blue" />
+                <StatCard title={t.lawyerDashboard?.totalFees || 'Total Fees'} value={`$${(stats?.totalFees ?? 0).toLocaleString()}`} icon={CreditCard} color="green" />
+              </div>
 
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-80">
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                  <h3 className="font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white"><TrendingUp size={18} className="text-green-500" /> {t.lawyerDashboard?.revenueAnalytics || 'Revenue Analytics'}</h3>
+                  <ResponsiveContainer width="100%" height="85%">
+                    <AreaChart data={revenueData}>
+                      <defs>
+                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.2} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(val) => `$${val}`} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', backgroundColor: '#fff' }} />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="bg-brand-600 dark:bg-brand-700 p-6 rounded-2xl shadow-xl shadow-brand-500/30 text-white relative overflow-hidden flex flex-col justify-center items-center text-center">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                  <div className="relative z-10">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Briefcase size={32} className="text-white" />
+                    </div>
+                    <h3 className="text-2xl font-extrabold mb-2">{t.lawyerDashboard?.topPerformer || 'Top Performer'}</h3>
+                    <p className="text-brand-100 mb-6">You are in the top 5% of partners this month.</p>
+                    <button
+                      onClick={() => setShowReport(true)}
+                      className="bg-white text-brand-600 px-6 py-3 rounded-xl font-bold hover:bg-brand-50 transition-colors shadow-lg"
+                    >
+                      {t.lawyerDashboard?.viewReport || 'View Report'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Leads Table */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <h3 className="font-bold text-lg text-slate-900 dark:text-white">{t.lawyerDashboard?.applications || t.lawyer?.applications || 'Applications'}</h3>
+                      <div className="flex gap-2">
+                        {['All', 'New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                          const statusLabels: Record<string, string> = {
+                            'All': 'All',
+                            'New': t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending',
+                            'Reviewing': 'Reviewing',
+                            'Approved': t.lawyerDashboard?.approved || t.lawyer?.approved || 'Approved',
+                            'Rejected': 'Rejected'
+                          };
+                          return (
+                            <button
+                              key={status}
+                              onClick={() => { setFilterStatus(status); setPage(1); }}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${filterStatus === status ? 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                            >
+                              {statusLabels[status] || status}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                          value={searchQuery}
+                          onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                          placeholder={t.lawyerDashboard?.searchPlaceholder || t.lawyer?.searchPlaceholder || ''}
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-900 dark:text-white"
+                        />
+                      </div>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                      >
+                        <option value="date_desc">{t.common?.date || 'Date'} â†“</option>
+                        <option value="date_asc">{t.common?.date || 'Date'} â†‘</option>
+                        <option value="fee_desc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†“</option>
+                        <option value="fee_asc">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'} â†‘</option>
+                      </select>
+                      <button onClick={() => { setAssignedOnly(!assignedOnly); setPage(1); }} className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${assignedOnly ? 'bg-brand-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                        {assignedOnly ? 'Assigned to me' : 'All'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, filteredLeads.length)} of {filteredLeads.length} applications
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="p-12 text-center text-slate-400">Loading...</div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-xs font-bold tracking-wider">
+                          <tr>
+                            <th className="px-6 py-4">{t.lawyer?.clientInfo || 'Applicant'}</th>
+                            <th className="px-6 py-4">{t.lawyer?.visaType || 'Visa Details'}</th>
+                            <th className="px-6 py-4">{t.lawyerDashboard?.rev || t.lawyer?.rev || 'Fee'}</th>
+                            <th className="px-6 py-4">{t.lawyerDashboard?.status || t.lawyer?.status || 'Status'}</th>
+                            <th className="px-6 py-4">Priority</th>
+                            <th className="px-6 py-4">{t.common?.date || 'Date'}</th>
+                            <th className="px-6 py-4">Assigned</th>
+                            <th className="px-6 py-4 text-right">{t.common?.actions || 'Actions'}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {pageData.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                                {t.research?.noResults?.replace('resources', 'applications') || 'No applications found'}
+                              </td>
+                            </tr>
+                          ) : (
+                            pageData.map((lead) => (
+                              <tr key={lead.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
+                                      {(lead.name || "?")[0]}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900 dark:text-white">{lead.name}</p>
+                                      <p className="text-xs text-slate-400">{lead.email}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">{lead.visa}</span>
+                                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> {lead.country}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 font-bold font-mono text-slate-600 dark:text-slate-300">
+                                  ${lead.fee?.toLocaleString() || 0}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lead.status === 'Approved' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400' :
+                                    lead.status === 'New' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' :
+                                      lead.status === 'Reviewing' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400' :
+                                        lead.status === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400' :
+                                          'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                                    }`}>
+                                    {lead.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${lead.priorityLevel === 'High' ? 'bg-red-500 text-white' : lead.priorityLevel === 'Medium' ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                                    {lead.priorityLevel || 'Low'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
+                                  {new Date(lead.date || lead.createdAt || 0).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="text-sm text-slate-600">
+                                    {lead.lawyerId ? (lead.lawyerId === user?.id ? 'You' : `Lawyer ${lead.lawyerId.slice(0, 8)}`) : 'Unassigned'}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ActionButton
+                                      variant="ghost"
+                                      icon={Brain}
+                                      onClick={() => handleGenerateBrief(String(lead.id))}
+                                      disabled={isGeneratingBrief}
+                                    >
+                                      AI Brief
+                                    </ActionButton>
+                                    <ActionButton
+                                      variant="ghost"
+                                      icon={Eye}
+                                      onClick={() => {
+                                        setSelectedLead(lead);
+                                        // Scroll to top to see modal
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                      }}
+                                    >
+                                      {t.common?.view || 'View'}
+                                    </ActionButton>
+                                    <ActionButton
+                                      variant="ghost"
+                                      icon={MessageSquare}
+                                      onClick={() => setLocation(`/messages?select=${lead.userId}`)}
+                                    >
+                                      {t.lawyerDashboard?.messageClient || 'Message'}
+                                    </ActionButton>
+                                    {lead.status !== 'Approved' && lead.status !== 'Rejected' && (
+                                      <ActionButton
+                                        variant="success"
+                                        icon={CheckCircle}
+                                        onClick={() => {
+                                          if (confirm(`${t.success?.message || 'Approve'} ${lead.name}?`)) {
+                                            handleStatusChange(lead.id, 'Approved');
+                                          }
+                                        }}
+                                      >
+                                        {t.lawyer?.approveApplication || 'Approve'}
+                                      </ActionButton>
+                                    )}
+                                    {lead.status === 'New' && (
+                                      <ActionButton
+                                        variant="danger"
+                                        icon={XCircle}
+                                        onClick={() => {
+                                          if (confirm(`${t.error?.message || 'Reject'} ${lead.name}?`)) {
+                                            handleStatusChange(lead.id, 'Rejected');
+                                          }
+                                        }}
+                                      >
+                                        {t.lawyer?.rejectApplication || 'Reject'}
+                                      </ActionButton>
+                                    )}
+                                    {lead.status === 'New' && (
+                                      <ActionButton
+                                        variant="ghost"
+                                        icon={Clock}
+                                        onClick={() => handleStatusChange(lead.id, 'Reviewing')}
+                                      >
+                                        {t.lawyerDashboard?.pending || t.lawyer?.pending || 'Pending'}
+                                      </ActionButton>
+                                    )}
+                                    {(!lead.lawyerId || lead.lawyerId !== user?.id) && (
+                                      <ActionButton variant="primary" icon={Users} onClick={() => handleAssignToMe(lead.id)}>
+                                        Assign to me
+                                      </ActionButton>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          {t.common?.page || 'Page'} {page} {t.common?.of || 'of'} {totalPages}
+                        </div>
+                        <div className="flex gap-2">
+                          <ActionButton
+                            variant="ghost"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                          >
+                            {t.common?.previous || 'Previous'}
+                          </ActionButton>
+                          <ActionButton
+                            variant="ghost"
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                          >
+                            {t.common?.next || 'Next'}
+                          </ActionButton>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </>
-          )}
-        </motion.div>
-      </div>
-    )
-  }
+          )
+        }
+
+        {/* Consultations Tab Content */}
+        {
+          activeTab === 'consultations' && (
+            <LawyerConsultations />
+          )
+        }
+
+        {/* Practice (Tasks) Tab Content */}
+        {
+          activeTab === 'tasks' && (
+            <PracticeTasks />
+          )
+        }
+
+        {/* Financials (Billing) Tab Content */}
+        {
+          activeTab === 'billing' && (
+            <BillingManager />
+          )
+        }
+
+        {/* Analytics Tab Content */}
+        {
+          activeTab === 'analytics' && (
+            <LawyerAnalytics />
+          )
+        }
+
+
+
+        {/* Company Check Tab Content */}
+        {
+          activeTab === 'company-check' && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+              <CompanySearch />
+            </div>
+          )
+        }
+      </main>
+
+      {/* Client Detail Modal */}
+      <AnimatePresence>
+        {
+          selectedLead && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-4xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] flex flex-col p-4 md:p-8">
+                <ClientProfile clientId={selectedLead.userId} onClose={() => setSelectedLead(null)} />
+              </motion.div>
+            </div>
+          )
+        }
+      </AnimatePresence>
+
+      {/* Performance Report Modal */}
+      <AnimatePresence>
+        {
+          showReport && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowReport(false)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 p-8 rounded-3xl w-full max-w-2xl relative z-10 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Performance Report</h3>
+                  <button onClick={() => setShowReport(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-900/10 p-6 rounded-2xl border border-brand-200 dark:border-brand-800">
+                    <h4 className="font-bold text-lg text-brand-900 dark:text-brand-100 mb-2">Monthly Overview</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Total Applications</p>
+                        <p className="text-2xl font-extrabold text-brand-900 dark:text-white">{leads.length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approved</p>
+                        <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{leads.filter(l => l.status === 'Approved').length}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-brand-700 dark:text-brand-300 uppercase mb-1">Approval Rate</p>
+                        <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{leads.length > 0 ? Math.round((leads.filter(l => l.status === 'Approved').length / leads.length) * 100) : 0}%</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Status Breakdown</h4>
+                    <div className="space-y-2">
+                      {['New', 'Reviewing', 'Approved', 'Rejected'].map(status => {
+                        const count = leads.filter(l => l.status === status).length;
+                        const percentage = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
+                        return (
+                          <div key={status} className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 w-24">{status}</span>
+                            <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full ${status === 'Approved' ? 'bg-green-500' :
+                                  status === 'Reviewing' ? 'bg-yellow-500' :
+                                    status === 'Rejected' ? 'bg-red-500' :
+                                      'bg-blue-500'
+                                  }`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm font-bold text-slate-600 dark:text-slate-400 w-12 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Revenue Summary</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Total Fees Collected</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.reduce((sum, l) => sum + (l.fee || 0), 0).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Average Fee</p>
+                        <p className="text-2xl font-extrabold text-slate-900 dark:text-white">${leads.length > 0 ? Math.round(leads.reduce((sum, l) => sum + (l.fee || 0), 0) / leads.length) : 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="primary"
+                      icon={Download}
+                      onClick={() => {
+                        toast({
+                          title: "Report Downloaded",
+                          description: "Performance report has been downloaded as PDF",
+                          className: "bg-green-50 text-green-900 border-green-200"
+                        });
+                      }}
+                    >
+                      Download as PDF
+                    </ActionButton>
+                    <ActionButton
+                      className="flex-1 py-3"
+                      variant="ghost"
+                      onClick={() => setShowReport(false)}
+                    >
+                      Close
+                    </ActionButton>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )
+        }
+        {
+          showAiBriefModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAiBriefModal(false)} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-3xl relative z-10 shadow-2xl border border-white/10 max-h-[85vh] flex flex-col p-8 overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-brand-500 p-2 rounded-xl text-white">
+                      <Brain size={24} />
+                    </div>
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">Authoritative Case Brief</h3>
+                  </div>
+                  <button onClick={() => setShowAiBriefModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={20} /></button>
+                </div>
+
+                {!aiBrief && isGeneratingBrief ? (
+                  <div className="py-20 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mx-auto mb-4"></div>
+                    <p className="text-slate-400 animate-pulse font-medium">ImmigrationAI is analyzing legal databases & application context...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap text-slate-700 dark:text-slate-300 font-sans leading-relaxed printable-content">
+                      {aiBrief}
+                    </div>
+                    <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 font-bold no-print">
+                      <ActionButton
+                        variant="primary"
+                        icon={Download}
+                        onClick={() => window.open(`/api/lawyer/automation/brief/${selectedBriefId}/download`, '_blank')}
+                      >
+                        Download (.txt)
+                      </ActionButton>
+                      <ActionButton variant="ghost" icon={Printer} onClick={() => window.print()}>Print</ActionButton>
+                      <ActionButton variant="ghost" onClick={() => setShowAiBriefModal(false)}>Close</ActionButton>
+                    </div>
+
+
+                  </>
+                )}
+              </motion.div>
+            </div>
+          )
+        }
       </AnimatePresence >
     </div >
   );
