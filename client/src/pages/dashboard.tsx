@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit, Menu, X
+  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit, Menu, X, Building
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
@@ -24,6 +24,7 @@ import { GovChecksView } from "@/components/dashboard/GovChecksView";
 import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
+import CompanySearch from "@/pages/lawyer/company-check";
 
 
 
@@ -72,7 +73,6 @@ export default function UserDash() {
 
       {/* Sidebar */}
       <motion.aside
-        initial={false}
         transition={{ type: "spring", bounce: 0, duration: 0.3 }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
@@ -133,7 +133,9 @@ export default function UserDash() {
             { id: 'chat', icon: MessageSquare, label: t.dash.chat },
             { id: 'messages', icon: Send, label: t.dash.messages },
             { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
-            { id: 'research', icon: Book, label: t.dash.research }
+            { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
+            { id: 'research', icon: Book, label: t.dash.research },
+            { id: 'companies', icon: Building, label: "Companies" }
           ].map(item => (
             <motion.button
               key={item.id}

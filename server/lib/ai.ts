@@ -661,14 +661,25 @@ export async function reviewDocument(
   flags: { type: 'red' | 'green' | 'amber'; message: string }[]
 }> {
   try {
+    // RAG Integration: Fetch authoritative criteria for this document/visa type
+    let complianceRules = "";
+    try {
+      const ragRes = await RagClient.getAnswer(`compliance checklist and requirements for ${docType} for ${visaType} visa`, "UK");
+      complianceRules = `\nOfficial Compliance Rules & Checklist:\n${ragRes.answer}`;
+    } catch (err) {
+      logger.warn({ err }, "RAG context retrieval failed for document review");
+    }
+
     const prompt = `You are an expert immigration document auditor. 
     Analyze the following content from a ${docType} for a ${visaType} visa application.
+
+    ${complianceRules}
 
       Content:
     "${content.substring(0, 5000)}"
 
     Tasks:
-    1. Score the document's compliance/quality from 0-100.
+    1. Score the document's compliance/quality from 0-100 based on the Official Rules above.
     2. Identify specific strengths and weaknesses.
     3. List "Red Flags"(missing info, inconsistencies) and "Green Flags"(strong points).
     

@@ -43,6 +43,34 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
         category: "submission",
         description: "Detailed draft content to copy into official government forms.",
         requiredFields: ["fullName", "passportNo", "address", "stayDuration"]
+    },
+    {
+        id: "student_personal_statement",
+        name: "Student Visa Personal Statement",
+        category: "submission",
+        description: "Statement of purpose for Student Visa (CAS) application.",
+        requiredFields: ["fullName", "university", "course", "futurePlans", "fundingSource"]
+    },
+    {
+        id: "family_relationship_proof",
+        name: "Family Relationship Letter",
+        category: "personal",
+        description: "Letter explaining relationship history for Family/Spouse Visa.",
+        requiredFields: ["applicantName", "sponsorName", "relationshipHistory", "futurePlans"]
+    },
+    {
+        id: "tourist_itinerary",
+        name: "Tourist Visa Itinerary Cover Letter",
+        category: "submission",
+        description: "Cover letter outlining travel itinerary and intent to return.",
+        requiredFields: ["fullName", "travelDates", "destinations", "tiesToHomeCountry", "funding"]
+    },
+    {
+        id: "employer_reference",
+        name: "Employer Reference Letter",
+        category: "legal",
+        description: "Letter from current employer confirming employment and leave.",
+        requiredFields: ["employerName", "employeeName", "jobTitle", "salary", "leaveDates"]
     }
 ];
 
