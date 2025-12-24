@@ -357,13 +357,11 @@ router.patch(
       updateData.lawyerId = body.lawyerId;
     }
 
-<<<<<<< HEAD
     // Log the update operation
     logger.info({ userId, applicationId: id, updates: updateData }, "Updating application");
-=======
+
     if (body.passportNumber) updateData.encryptedPassportNumber = encryptSensitiveData(body.passportNumber);
     if (body.dateOfBirth) updateData.encryptedDateOfBirth = encryptSensitiveData(body.dateOfBirth);
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
     const [updated] = await db
       .update(applications)
@@ -374,14 +372,12 @@ router.patch(
       .where(eq(applications.id, id))
       .returning();
 
-<<<<<<< HEAD
     if (!updated) {
       throw new AppError(500, "Failed to update application");
     }
 
     logger.info({ userId, applicationId: id, newStatus: updated.status }, "Application updated successfully");
 
-=======
     // Automated Invoicing logic: Create an invoice if status moves to 'submitted'
     if (body.status === "submitted" && application.status !== "submitted") {
       try {
@@ -417,8 +413,6 @@ router.patch(
         logger.error({ error: billingError, applicationId: id }, "Failed automated invoice");
       }
     }
-
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     // Send email notification if status changed
     if (body.status && body.status !== application.status) {
       try {
@@ -469,11 +463,119 @@ router.delete(
       throw new AppError(403, "Access denied");
     }
 
-    await db.delete(applications).where(eq(applications.id, id));
-
     await auditLog(userId, "application.delete", "application", id, {}, req);
 
     res.json({ message: "Application deleted successfully" });
+  })
+);
+
+// Submit application to lawyer
+router.post(
+  "/:id/submit",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    if (application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    if (application.status === "submitted" || application.status === "under_review") {
+      throw new AppError(400, "Application is already submitted");
+    }
+
+    // Check completion threshold
+    // 1. Check verified document count vs expected
+    const docs = await db.query.documents.findMany({
+      where: eq(documents.applicationId, id),
+    });
+
+    // Mock logic for "completeness" based on visa type requirements
+    // In a real app, we'd check specific required document types
+    const requiredDocCount =
+      application.visaType === "Student Visa" ? 4 :
+        application.visaType === "Skilled Worker" ? 5 :
+          3; // default
+
+    const uploadedCount = docs.length;
+    const completeness = Math.min((uploadedCount / requiredDocCount) * 100, 100);
+
+    // Also check if personal details are filled
+    const hasDetails = application.country && application.visaType;
+
+    if (completeness < 70 || !hasDetails) {
+      throw new AppError(400, `Application is only ${Math.round(completeness)}% complete. You need at least 70% completion (documents + details) to submit.`);
+    }
+
+    // Proceed with submission
+    const [updated] = await db
+      .update(applications)
+      .set({
+        status: "submitted",
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+
+    // Trigger automated email and invoice logic (reusing logic from PATCH)
+    // 1. Assign lawyer if needed
+    let lawyerId = updated.lawyerId;
+    if (!lawyerId) {
+      const firstLawyer = await db.query.users.findFirst({
+        where: eq(users.role, "lawyer"),
+      });
+      if (firstLawyer) {
+        lawyerId = firstLawyer.id;
+        await db.update(applications).set({ lawyerId }).where(eq(applications.id, id));
+      }
+    }
+
+    // 2. Create Invoice
+    if (lawyerId) {
+      try {
+        const { invoices: invoicesTable } = await import("@shared/schema");
+        await db.insert(invoicesTable).values({
+          lawyerId,
+          applicantId: updated.userId,
+          applicationId: updated.id,
+          amount: "499.00",
+          currency: "USD",
+          status: "draft",
+          items: [
+            { description: `${updated.visaType} Legal Review Fee`, amount: "499.00" }
+          ],
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+        logger.info({ applicationId: id, lawyerId }, "Automated invoice draft created on submission");
+      } catch (billingError) {
+        logger.error({ error: billingError }, "Failed to create invoice on submission");
+      }
+    }
+
+    // 3. Notify
+    await emailQueue.add(
+      "status-update",
+      {
+        to: req.user!.email || "", // Notify applicant
+        applicationId: id,
+        oldStatus: application.status,
+        newStatus: "submitted",
+        html: `Your application has been successfully submitted to our legal team!`,
+      },
+      { jobId: `app-submit-${id}-${Date.now()}` }
+    );
+
+    await auditLog(userId, "application.submit", "application", id, { completeness }, req);
+
+    res.json(updated);
   })
 );
 

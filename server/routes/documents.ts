@@ -11,12 +11,8 @@ import { uploadFile, deleteFile, getPresignedUrl, validateFile } from "../lib/st
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
-<<<<<<< HEAD
 import { extractTextFromBuffer, parseTextToJSON } from "../lib/ocr";
-import { analyzeDocument } from "../lib/ai";
-=======
-import { analyzeUploadedDocument } from "../lib/ai";
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+import { analyzeDocument, analyzeUploadedDocument } from "../lib/ai";
 
 const router = Router();
 
@@ -143,7 +139,11 @@ router.post(
       throw new AppError(500, msg.includes("size") ? "File is too large. Maximum 10MB allowed." : msg);
     }
 
-<<<<<<< HEAD
+    // Verify upload success before DB insertion
+    if (!uploadResult || !uploadResult.key) {
+      throw new AppError(500, "File upload failed to verify. Please try again.");
+    }
+
     // AI Analysis & OCR (Auto-Review)
     let aiAnalysisResult = null;
     let ocrData = null;
@@ -161,20 +161,12 @@ router.post(
 
         // Analyze Integrity/Red Flags
         const docType = body.documentType || 'unknown';
-        // Note: analyzeDocument expects a URL, but for text analysis we might pass the extracted text if logic allowed, 
-        // currently it uses the URL or just the type + data. 
-        // We pass the URL (snapshot) but the agent relies on `ocrData` mostly.
         aiAnalysisResult = await analyzeDocument(uploadResult.url, docType, ocrData);
 
-        logger.info({ flags: aiAnalysisResult.issues.length }, "AI Analysis completed");
+        logger.info({ flags: aiAnalysisResult?.issues?.length || 0 }, "AI Analysis completed");
       }
     } catch (analysisErr) {
       logger.warn({ analysisErr }, "AI Analysis failed during upload (non-blocking)");
-=======
-    // Verify upload success before DB insertion
-    if (!uploadResult || !uploadResult.key) {
-      throw new AppError(500, "File upload failed to verify. Please try again.");
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     }
 
     // Save to database. Attempt to insert s3Key; if DB migration not applied, fall back to inserting without it.
@@ -562,7 +554,6 @@ router.delete(
   })
 );
 
-<<<<<<< HEAD
 // Serve Postgres-stored blobs (if USE_PG_STORAGE was used)
 router.get(
   "/blob/:key(*)",
@@ -599,10 +590,6 @@ router.get(
     }
   })
 );
-=======
-export default router;
-
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 export default router;
 
