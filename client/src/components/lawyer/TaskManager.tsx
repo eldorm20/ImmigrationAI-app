@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { LiveButton } from '@/components/ui/live-elements';
-import { Plus, CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react';
+import { LiveButton, AnimatedCard, GlassSelect } from '@/components/ui/live-elements';
+import { Plus, CheckCircle, Circle, Clock, AlertCircle, Layout, ArrowRight, Trash2, SlidersHorizontal, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
@@ -25,7 +25,7 @@ export default function TaskManager() {
         try {
             const query = filter !== 'all' ? `?status=${filter}` : '';
             const data = await apiRequest<Task[]>(`/tasks${query}`);
-            setTasks(data);
+            setTasks(data || []);
         } catch (err) {
             toast({ title: "Failed to load tasks", variant: "destructive" });
         } finally {
@@ -38,7 +38,7 @@ export default function TaskManager() {
     }, [filter]);
 
     const addTask = async () => {
-        const title = prompt("Enter task title:");
+        const title = prompt("Specify new practice objective:");
         if (!title) return;
 
         try {
@@ -51,121 +51,146 @@ export default function TaskManager() {
                 })
             });
             fetchTasks();
-            toast({ title: "Task added" });
+            toast({ title: "Objective registered" });
         } catch (err) {
-            toast({ title: "Failed to add task", variant: "destructive" });
+            toast({ title: "Failed to register task", variant: "destructive" });
         }
     };
 
     const updateStatus = async (id: string, newStatus: string) => {
         try {
-            // Optimistic update
             setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus as any } : t));
-
             await apiRequest(`/tasks/${id}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ status: newStatus })
             });
         } catch (err) {
-            fetchTasks(); // Revert on error
-            toast({ title: "Failed to update task", variant: "destructive" });
+            fetchTasks();
+            toast({ title: "State transition failed", variant: "destructive" });
         }
     };
 
     const deleteTask = async (id: string) => {
-        if (!confirm("Delete this task?")) return;
+        if (!confirm("Decommission this objective?")) return;
         try {
             setTasks(prev => prev.filter(t => t.id !== id));
             await apiRequest(`/tasks/${id}`, { method: 'DELETE' });
-            toast({ title: "Task deleted" });
+            toast({ title: "Task decommissioned" });
         } catch (err) {
             fetchTasks();
-            toast({ title: "Failed to delete task", variant: "destructive" });
+            toast({ title: "Decommission failed", variant: "destructive" });
         }
     };
 
-    const getPriorityColor = (p: string) => {
+    const getPriorityProps = (p: string) => {
         switch (p) {
-            case 'urgent': return 'text-red-600 bg-red-100 dark:bg-red-900/30';
-            case 'high': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/30';
-            case 'medium': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/30';
-            default: return 'text-slate-600 bg-slate-100 dark:bg-slate-800';
+            case 'urgent': return "bg-rose-500 text-white shadow-rose-500/20";
+            case 'high': return "bg-amber-500 text-white shadow-amber-500/20";
+            case 'medium': return "bg-indigo-500 text-white shadow-indigo-500/20";
+            default: return "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400";
         }
     };
+
+    const STATUS_MAP = [
+        { key: 'todo', label: 'Backlog', color: 'blue' },
+        { key: 'in_progress', label: 'Active', color: 'indigo' },
+        { key: 'review', label: 'Audit', color: 'amber' },
+        { key: 'done', label: 'Closed', color: 'emerald' }
+    ];
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="space-y-8 pb-12">
+            <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold">Tasks</h2>
-                    <select
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm"
-                    >
-                        <option value="all">All Tasks</option>
-                        <option value="todo">To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="done">Done</option>
-                    </select>
+                    <div className="p-3 rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-500/30">
+                        <Layout size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Practice Orchestrator</h2>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Strategic project management and task routing</p>
+                    </div>
                 </div>
-                <LiveButton onClick={addTask} icon={Plus}>Add Task</LiveButton>
+                <div className="flex items-center gap-3">
+                    <GlassSelect value={filter} onChange={e => setFilter(e.target.value)} className="min-w-[160px]">
+                        <option value="all">Global Filter</option>
+                        <option value="todo">Backlog Only</option>
+                        <option value="in_progress">Active Only</option>
+                        <option value="done">Completed Only</option>
+                    </GlassSelect>
+                    <LiveButton onClick={addTask} icon={Plus} size="lg" className="rounded-2xl">
+                        New Objective
+                    </LiveButton>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {['todo', 'in_progress', 'review', 'done'].map(status => (
-                    <div key={status} className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 min-h-[400px]">
-                        <h3 className="font-bold text-sm uppercase text-slate-500 mb-4 flex justify-between">
-                            {status.replace('_', ' ')}
-                            <span className="bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 rounded-full text-xs items-center flex">
-                                {tasks.filter(t => t.status === status).length}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {STATUS_MAP.map((statusObj, idx) => (
+                    <div key={statusObj.key} className="flex flex-col gap-4">
+                        <div className="flex justify-between items-center px-4 py-2 bg-white/20 dark:bg-slate-900/20 rounded-2xl border border-white/10 backdrop-blur-sm">
+                            <span className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+                                <span className={`w-2 h-2 rounded-full bg-${statusObj.color}-500`} />
+                                {statusObj.label}
                             </span>
-                        </h3>
+                            <span className="bg-white/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 px-2 by-1 rounded-lg text-[10px] font-black min-w-[24px] text-center">
+                                {tasks.filter(t => t.status === statusObj.key).length}
+                            </span>
+                        </div>
 
-                        <div className="space-y-3">
-                            <AnimatePresence>
-                                {tasks.filter(t => t.status === status).map(task => (
+                        <div className="space-y-4 min-h-[500px] p-2 rounded-2xl bg-slate-50/50 dark:bg-slate-950/20 border border-transparent hover:border-brand-500/10 transition-colors">
+                            <AnimatePresence mode="popLayout">
+                                {tasks.filter(t => t.status === statusObj.key).map((task, taskIdx) => (
                                     <motion.div
-                                        layoutId={task.id}
                                         key={task.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 cursor-move group relative"
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                        transition={{ delay: taskIdx * 0.05 }}
                                     >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getPriorityColor(task.priority)}`}>
-                                                {task.priority}
-                                            </span>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {status !== 'todo' && (
-                                                    <button onClick={() => updateStatus(task.id, 'todo')} className="p-1 hover:bg-slate-100 rounded" title="Move to Todo">
-                                                        ←
+                                        <AnimatedCard className="p-5 bg-white dark:bg-slate-900 border-white/20 dark:border-white/5 shadow-xl hover:shadow-brand-500/10 group cursor-grab active:cursor-grabbing">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm ${getPriorityProps(task.priority)}`}>
+                                                    {task.priority}
+                                                </span>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                    {statusObj.key !== 'done' && (
+                                                        <button
+                                                            onClick={() => updateStatus(task.id, STATUS_MAP[Math.min(3, idx + 1)].key)}
+                                                            className="p-1.5 hover:bg-brand-50 dark:hover:bg-brand-900/30 text-brand-600 rounded-lg transition-colors"
+                                                            title="Advance State"
+                                                        >
+                                                            <ArrowRight size={14} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => deleteTask(task.id)}
+                                                        className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-600 rounded-lg transition-colors"
+                                                        title="Delete Objective"
+                                                    >
+                                                        <Trash2 size={14} />
                                                     </button>
-                                                )}
-                                                {status !== 'done' && (
-                                                    <button onClick={() => updateStatus(task.id, 'done')} className="p-1 hover:bg-green-100 text-green-600 rounded" title="Done">
-                                                        ✓
-                                                    </button>
-                                                )}
-                                                <button onClick={() => deleteTask(task.id)} className="p-1 hover:bg-red-100 text-red-600 rounded" title="Delete">
-                                                    ×
-                                                </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <p className="font-medium text-sm text-slate-800 dark:text-slate-200">{task.title}</p>
 
-                                        {task.dueDate && (
-                                            <div className="mt-3 flex items-center gap-1 text-xs text-slate-500">
-                                                <Clock size={12} /> {new Date(task.dueDate).toLocaleDateString()}
+                                            <p className="font-extrabold text-sm text-slate-800 dark:text-slate-200 leading-snug group-hover:text-brand-600 transition-colors">{task.title}</p>
+
+                                            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                                    <Clock size={12} className="text-brand-500" />
+                                                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Scheduled'}
+                                                </div>
+                                                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                                    {task.assignedTo?.[0] || 'AI'}
+                                                </div>
                                             </div>
-                                        )}
+                                        </AnimatedCard>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
-                            {tasks.filter(t => t.status === status).length === 0 && (
-                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
-                                    <p className="text-xs text-slate-400">No tasks</p>
+
+                            {tasks.filter(t => t.status === statusObj.key).length === 0 && (
+                                <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl opacity-40">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Queue Vacuum</p>
                                 </div>
                             )}
                         </div>

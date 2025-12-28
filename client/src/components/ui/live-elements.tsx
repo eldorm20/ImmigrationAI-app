@@ -82,3 +82,19 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, className 
     {children}
   </motion.div>
 );
+
+export const GlassInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+  <input
+    {...props}
+    className={`bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 ${props.className || ""}`}
+  />
+);
+
+export const GlassSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({ children, ...props }) => (
+  <select
+    {...props}
+    className={`bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all text-slate-900 dark:text-white appearance-none cursor-pointer ${props.className || ""}`}
+  >
+    {children}
+  </select>
+);

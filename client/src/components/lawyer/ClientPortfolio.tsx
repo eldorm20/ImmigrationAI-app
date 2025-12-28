@@ -1,19 +1,25 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+    Search,
+    MoreHorizontal,
+    Mail,
+    Phone,
+    ArrowUpRight,
+    Briefcase,
+    Calendar,
+    DollarSign,
+    Users,
+    Star,
+    Shield,
+    FileText,
+    MessageSquare,
+    ChevronRight
+} from "lucide-react";
+import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
+import { LiveButton, AnimatedCard, GlassInput } from "@/components/ui/live-elements";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -23,17 +29,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Search,
-    MoreHorizontal,
-    Mail,
-    Phone,
-    ArrowUpRight,
-    Briefcase,
-    Calendar,
-    DollarSign
-} from "lucide-react";
-import { format } from "date-fns";
 
 interface Client {
     id: string;
@@ -70,200 +65,202 @@ export default function ClientPortfolio() {
         );
     }) || [];
 
-    const getStatusBadge = (status: string) => {
-        switch (status.toLowerCase()) {
-            case "active":
-                return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">Active</Badge>;
-            case "lead":
-                return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Lead</Badge>;
-            case "inactive":
-                return <Badge variant="secondary">Inactive</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
-        }
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+        <div className="space-y-8 pb-12">
+            <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Client Portfolio</h2>
-                    <p className="text-muted-foreground">
-                        Manage your client relationships, cases, and history.
-                    </p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Client Hub</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">Manage institutional knowledge and client relations</p>
                 </div>
-                <Button>
-                    <Briefcase className="mr-2 h-4 w-4" />
-                    Add New Client
-                </Button>
+                <LiveButton icon={Plus} size="lg" className="rounded-2xl">
+                    Register Client
+                </LiveButton>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{clients?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground">
-                            +2 from last month
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
-                        <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {clients?.reduce((acc, c) => acc + (c.status === 'active' ? 1 : 0), 0) || 0}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Currently handling
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Potential Leads</CardTitle>
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {clients?.reduce((acc, c) => acc + (c.status === 'lead' ? 1 : 0), 0) || 0}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            From consultations
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Est. Value</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            ${clients?.reduce((acc, c) => acc + (c.totalSpent || 0), 0).toLocaleString() || 0}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Lifetime value
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center justify-between">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-transparent border-none shadow-lg">
+                    <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle>Clients</CardTitle>
-                            <CardDescription>
-                                A list of all your clients and leads including their contact details and case status.
-                            </CardDescription>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Network</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">{clients?.length || 0}</h3>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative w-64">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search clients..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-8"
-                                />
-                            </div>
+                        <div className="p-3 rounded-2xl bg-blue-500/20 text-blue-600">
+                            <Users size={20} />
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="p-8 text-center text-muted-foreground">Loading clients...</div>
-                    ) : filteredClients.length === 0 ? (
-                        <div className="p-8 text-center text-muted-foreground">No clients found matching your search.</div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Client</TableHead>
-                                    <TableHead>Contact</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Source</TableHead>
-                                    <TableHead className="text-right">Last Interaction</TableHead>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredClients.map((client) => (
-                                    <TableRow key={client.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
+                </AnimatedCard>
+
+                <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-transparent border-none shadow-lg">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Mandates</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                                {clients?.reduce((acc, c) => acc + (c.status === 'active' ? 1 : 0), 0) || 0}
+                            </h3>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600">
+                            <Shield size={20} />
+                        </div>
+                    </div>
+                </AnimatedCard>
+
+                <AnimatedCard className="bg-gradient-to-br from-amber-500/10 to-transparent border-none shadow-lg">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Potential Value</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                                {clients?.reduce((acc, c) => acc + (c.status === 'lead' ? 1 : 0), 0) || 0}
+                            </h3>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-600">
+                            <Star size={20} />
+                        </div>
+                    </div>
+                </AnimatedCard>
+
+                <AnimatedCard className="bg-gradient-to-br from-brand-600/10 to-transparent border-none shadow-lg">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Practice Revenue</p>
+                            <h3 className="text-3xl font-black text-slate-900 dark:text-white">
+                                ${(clients?.reduce((acc, c) => acc + (c.totalSpent || 0), 0) || 0).toLocaleString()}
+                            </h3>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-brand-500/20 text-brand-600">
+                            <DollarSign size={20} />
+                        </div>
+                    </div>
+                </AnimatedCard>
+            </div>
+
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <GlassInput
+                        className="pl-12 w-full"
+                        placeholder="Search roster by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <AnimatedCard className="p-0 border-none bg-white/40 dark:bg-slate-950/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Client Identity</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Contact Node</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Engagement</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Acquisition</th>
+                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Last Sync</th>
+                                <th className="px-8 py-5 w-[80px]"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
+                            {isLoading ? (
+                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">Accessing client records...</td></tr>
+                            ) : filteredClients.length === 0 ? (
+                                <tr><td colSpan={6} className="p-20 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <Briefcase size={48} className="text-slate-200 dark:text-slate-800" />
+                                        <p className="text-slate-500 font-medium">No results found in your network.</p>
+                                    </div>
+                                </td></tr>
+                            ) : (
+                                filteredClients.map((client, idx) => (
+                                    <motion.tr
+                                        key={client.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.03 }}
+                                        className="group hover:bg-brand-50/30 dark:hover:bg-brand-900/10 transition-colors cursor-pointer"
+                                    >
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <Avatar className="w-12 h-12 border-2 border-white dark:border-slate-800 shadow-sm">
                                                     <AvatarImage src={client.avatar} alt={client.firstName} />
-                                                    <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
+                                                    <AvatarFallback className="bg-gradient-to-br from-brand-600 to-blue-500 text-white font-bold">
+                                                        {client.firstName[0]}{client.lastName[0]}
+                                                    </AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-medium">{client.firstName} {client.lastName}</p>
-                                                    <p className="text-xs text-muted-foreground">{client.caseCount} Active Case{client.caseCount !== 1 ? 's' : ''}</p>
+                                                    <p className="font-extrabold text-slate-900 dark:text-white text-lg leading-tight">{client.firstName} {client.lastName}</p>
+                                                    <p className="text-[10px] font-black text-brand-600 uppercase tracking-wider mt-1">{client.caseCount} Active Mandate{client.caseCount !== 1 ? 's' : ''}</p>
                                                 </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="h-3 w-3 text-muted-foreground" />
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <div className="flex flex-col gap-1.5 text-sm">
+                                                <div className="flex items-center gap-2 font-semibold text-slate-600 dark:text-slate-300">
+                                                    <Mail className="h-4 w-4 text-brand-500" />
                                                     <span>{client.email}</span>
                                                 </div>
                                                 {client.phone && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="h-3 w-3 text-muted-foreground" />
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                                                        <Phone className="h-3 w-3" />
                                                         <span>{client.phone}</span>
                                                     </div>
                                                 )}
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {getStatusBadge(client.status)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary" className="font-normal text-xs">
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${client.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                    client.status.toLowerCase() === 'lead' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                                                }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${client.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-current'}`} />
+                                                {client.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest">
                                                 {client.source}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right text-muted-foreground">
-                                            <div className="flex items-center justify-end gap-2 text-sm">
-                                                <Calendar className="h-3 w-3" />
-                                                {format(new Date(client.lastInteraction), 'MMM d, yyyy')}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex flex-col items-end">
+                                                <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
+                                                    <Calendar className="h-3.5 w-3.5" />
+                                                    {format(new Date(client.lastInteraction), 'MMM d, yyyy')}
+                                                </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
+                                        </td>
+                                        <td className="px-8 py-6">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
+                                                    <button className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100">
+                                                        <MoreHorizontal className="h-5 w-5 text-slate-400" />
+                                                    </button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(client.email)}>
-                                                        Copy Email
+                                                <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-none shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
+                                                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Executive Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer" onClick={() => navigator.clipboard.writeText(client.email)}>
+                                                        <Mail size={16} /> Copy Contact Info
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                                    <DropdownMenuItem>Examine Case File</DropdownMenuItem>
-                                                    <DropdownMenuItem>Send Message</DropdownMenuItem>
+                                                    <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
+                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
+                                                        <Users size={16} /> View Profile
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
+                                                        <FileText size={16} /> Examine Case File
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer text-brand-600 font-bold">
+                                                        <MessageSquare size={16} /> Dispatch Message
+                                                    </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+                                        </td>
+                                    </motion.tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </AnimatedCard>
         </div>
     );
 }
+
+const Plus = () => <Users size={20} />;

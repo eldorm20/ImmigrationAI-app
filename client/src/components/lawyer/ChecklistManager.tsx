@@ -3,9 +3,10 @@ import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import {
     CheckSquare, Square, FileText, Upload, RefreshCw,
-    ChevronRight, AlertCircle, CheckCircle
+    ChevronRight, AlertCircle, CheckCircle, Sparkles, Zap, ShieldCheck
 } from 'lucide-react';
-import { LiveButton } from '@/components/ui/live-elements';
+import { LiveButton, AnimatedCard } from '@/components/ui/live-elements';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ChecklistItem {
     id: string;
@@ -30,7 +31,7 @@ interface ChecklistData {
 
 interface Props {
     applicationId: string;
-    refreshTrigger?: number; // To trigger refresh from parent
+    refreshTrigger?: number;
 }
 
 export default function ChecklistManager({ applicationId, refreshTrigger }: Props) {
@@ -47,14 +48,9 @@ export default function ChecklistManager({ applicationId, refreshTrigger }: Prop
     const fetchChecklist = async () => {
         setLoading(true);
         try {
-            // First try to get existing checklist
             const res = await apiRequest<ChecklistData>(`/checklists/application/${applicationId}`);
             setData(res);
         } catch (err: any) {
-            // If 404, it means no checklist yet, which is fine
-            if (err.message && !err.message.includes('404')) {
-                console.error(err);
-            }
             setData(null);
         } finally {
             setLoading(false);
@@ -66,12 +62,12 @@ export default function ChecklistManager({ applicationId, refreshTrigger }: Prop
         try {
             await apiRequest(`/checklists/application/${applicationId}/init`, {
                 method: 'POST',
-                body: JSON.stringify({}) // Let backend auto-detect template
+                body: JSON.stringify({})
             });
-            toast({ title: "Checklist created", className: "bg-green-50 text-green-900" });
+            toast({ title: "Checklist Generated", description: "Audit framework initialized for this application.", className: "bg-green-50 text-green-900" });
             fetchChecklist();
         } catch (err) {
-            toast({ title: "Failed to create checklist", variant: "destructive" });
+            toast({ title: "Generation failed", variant: "destructive" });
         } finally {
             setInitLoading(false);
         }
@@ -83,7 +79,6 @@ export default function ChecklistManager({ applicationId, refreshTrigger }: Prop
                 method: 'PATCH',
                 body: JSON.stringify({ isCompleted: !currentStatus })
             });
-            // Optimistic update
             if (data) {
                 setData({
                     ...data,
@@ -91,8 +86,8 @@ export default function ChecklistManager({ applicationId, refreshTrigger }: Prop
                 });
             }
         } catch (err) {
-            toast({ title: "Update failed", variant: "destructive" });
-            fetchChecklist(); // Revert on failure
+            toast({ title: "State transition failed", variant: "destructive" });
+            fetchChecklist();
         }
     };
 
@@ -103,104 +98,145 @@ export default function ChecklistManager({ applicationId, refreshTrigger }: Prop
                 method: 'POST'
             });
             toast({
-                title: "Auto-check Complete",
-                description: `Marked ${res.matchedCount} items based on uploaded files.`,
+                title: "AI Audit Complete",
+                description: `Synchronized ${res.matchedCount} items via document recognition.`,
                 className: "bg-blue-50 text-blue-900"
             });
             fetchChecklist();
         } catch (err) {
-            toast({ title: "Auto-check failed", variant: "destructive" });
+            toast({ title: "Audit synchronization failed", variant: "destructive" });
         } finally {
             setAutoCheckLoading(false);
         }
     };
 
-    // Group items by category
     const groupedItems = data?.items.reduce((acc, item) => {
         if (!acc[item.category]) acc[item.category] = [];
         acc[item.category].push(item);
         return acc;
     }, {} as Record<string, ChecklistItem[]>) || {};
 
-    if (loading && !data) return <div className="p-4 text-center text-slate-400">Loading checklist...</div>;
+    if (loading && !data) return (
+        <div className="p-12 text-center">
+            <RefreshCw className="w-10 h-10 text-brand-500 animate-spin mx-auto mb-4" />
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Synchronizing Audit Records...</p>
+        </div>
+    );
 
     if (!data) {
         return (
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 text-center">
-                <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-2">No Document Checklist</h3>
-                <p className="text-sm text-slate-500 mb-6">Create a checklist to track required documents for this case.</p>
-                <LiveButton onClick={handleInitChecklist} disabled={initLoading} icon={initLoading ? RefreshCw : CheckSquare}>
-                    {initLoading ? 'Creating...' : 'Generate Checklist'}
+            <AnimatedCard className="bg-white/30 dark:bg-slate-900/30 backdrop-blur-xl border-dashed border-2 border-white/20 p-12 text-center rounded-[40px]">
+                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-400">
+                    <FileText size={40} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Audit Framework Missing</h3>
+                <p className="text-sm text-slate-500 font-medium mb-8 max-w-xs mx-auto">Initialize a document checklist to track compliance and required artifacts for this case.</p>
+                <LiveButton onClick={handleInitChecklist} disabled={initLoading} icon={initLoading ? RefreshCw : Sparkles} className="px-10">
+                    {initLoading ? 'Initializing...' : 'Generate Audit Hub'}
                 </LiveButton>
-            </div>
+            </AnimatedCard>
         );
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <AnimatedCard className="p-0 border-none bg-white/40 dark:bg-slate-950/40 backdrop-blur-2xl shadow-2xl overflow-hidden rounded-[32px]">
             {/* Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50">
-                <div>
-                    <h3 className="font-bold flex items-center gap-2">
-                        <CheckSquare className="text-brand-500" size={18} />
-                        Document Checklist
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                        {data.progress}% Complete ({data.stats.completed}/{data.stats.total} items)
-                    </p>
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/20">
+                        <ShieldCheck size={24} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                            Compliance Audit Master
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-black text-brand-600 uppercase tracking-widest">{data.progress}% COMPLIANCE</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-200"></span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{data.stats.completed} / {data.stats.total} ARTIFACTS</span>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={handleAutoCheck}
-                        disabled={autoCheckLoading}
-                        className="text-xs font-bold text-brand-600 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                    >
-                        {autoCheckLoading ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />} Auto-Verify
-                    </button>
-                </div>
+                <LiveButton
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleAutoCheck}
+                    disabled={autoCheckLoading}
+                    className="bg-brand-50 dark:bg-brand-900/20 text-brand-600 font-black text-[10px] uppercase tracking-widest px-6"
+                    icon={autoCheckLoading ? RefreshCw : Zap}
+                >
+                    {autoCheckLoading ? 'Syncing...' : 'AI Synchronize'}
+                </LiveButton>
             </div>
 
-            {/* Progress Bar */}
-            <div className="h-1 bg-slate-100 dark:bg-slate-800 w-full">
-                <div className="h-full bg-brand-500 transition-all duration-500" style={{ width: `${data.progress}%` }}></div>
+            {/* Progress Bar Container */}
+            <div className="px-6 py-4 bg-slate-50/30 dark:bg-slate-900/10">
+                <div className="h-2 bg-slate-100 dark:bg-slate-800 w-full rounded-full overflow-hidden">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${data.progress}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-brand-600 to-indigo-500 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+                    />
+                </div>
             </div>
 
             {/* Items List */}
-            <div className="p-4 space-y-6">
-                {Object.entries(groupedItems).map(([category, items]) => (
-                    <div key={category}>
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                            <ChevronRight size={12} /> {category}
+            <div className="p-6 space-y-8 max-h-[600px] overflow-y-auto scrollbar-thin">
+                {Object.entries(groupedItems).map(([category, items], catIdx) => (
+                    <motion.div
+                        key={category}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: catIdx * 0.1 }}
+                    >
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+                            <span className="w-6 h-[1px] bg-slate-200 dark:bg-slate-800"></span>
+                            {category}
                         </h4>
-                        <div className="space-y-2">
-                            {items.map(item => (
-                                <div key={item.id} className={`flex items-start gap-3 p-2 rounded-lg transition-colors ${item.isCompleted ? 'bg-green-50/50 dark:bg-green-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
+                        <div className="space-y-3">
+                            {items.map((item, idx) => (
+                                <motion.div
+                                    key={item.id}
+                                    whileHover={{ x: 5 }}
+                                    className={`flex items-start gap-4 p-4 rounded-3xl transition-all border ${item.isCompleted
+                                            ? 'bg-green-50/30 dark:bg-green-900/10 border-green-100/50 dark:border-green-900/30'
+                                            : 'bg-white/50 dark:bg-slate-900/50 border-white/20 dark:border-white/5 hover:border-brand-500/30'
+                                        }`}
+                                >
                                     <button
                                         onClick={() => handleToggleItem(item.id, item.isCompleted)}
-                                        className={`mt-0.5 min-w-[20px] h-5 rounded flex items-center justify-center border transition-all ${item.isCompleted ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-brand-400'}`}
+                                        className={`mt-0.5 w-6 h-6 rounded-xl flex items-center justify-center border-2 transition-all ${item.isCompleted
+                                                ? 'bg-brand-600 border-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                                : 'border-slate-200 dark:border-slate-800 hover:border-brand-500'
+                                            }`}
                                     >
-                                        {item.isCompleted && <CheckCircle size={14} />}
+                                        {item.isCompleted ? <CheckCircle size={14} strokeWidth={3} /> : <div className="w-1.5 h-1.5 rounded-sm bg-slate-200" />}
                                     </button>
                                     <div className="flex-1">
-                                        <p className={`text-sm font-medium ${item.isCompleted ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
-                                            {item.name}
-                                        </p>
-                                        {item.isRequired && !item.isCompleted && (
-                                            <span className="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded ml-2">Required</span>
-                                        )}
+                                        <div className="flex items-center justify-between">
+                                            <p className={`text-sm font-extrabold ${item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900 dark:text-white'}`}>
+                                                {item.name}
+                                            </p>
+                                            {item.isRequired && !item.isCompleted && (
+                                                <span className="text-[8px] font-black text-rose-600 bg-rose-50 dark:bg-rose-900/30 px-2 py-1 rounded-lg uppercase tracking-widest">Mandatory</span>
+                                            )}
+                                        </div>
                                         {item.documentId && (
-                                            <span className="block text-[10px] text-brand-600 mt-0.5 flex items-center gap-1">
-                                                <FileText size={10} /> Document Linked
-                                            </span>
+                                            <div className="mt-2 flex items-center gap-2 text-[10px] font-black text-brand-600 uppercase tracking-tighter">
+                                                <div className="w-5 h-5 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                                                    <ShieldCheck size={12} />
+                                                </div>
+                                                Verified Node Attached
+                                            </div>
                                         )}
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
             </div>
-        </div>
+        </AnimatedCard>
     );
 }

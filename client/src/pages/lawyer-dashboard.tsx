@@ -87,7 +87,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant 
     variant={variant as any}
     onClick={onClick}
     disabled={disabled}
-    className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 ${className}`}
+    className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider flex items-center gap-2 ${className}`}
     icon={icon}
     size="sm"
   >
@@ -105,21 +105,21 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, trend }) => (
   <AnimatedCard
-    className="bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group"
+    className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-white/20 dark:border-white/5 shadow-xl relative overflow-hidden group rounded-[32px]"
   >
     <div className={`absolute top-0 right-0 p-20 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity bg-${color}-500`}></div>
     <div className="relative z-10 flex items-center justify-between">
       <div>
-        <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white">{value}</h3>
+        <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">{title}</p>
+        <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</h3>
         {trend && (
-          <p className="text-xs font-bold text-green-500 flex items-center gap-1 mt-2">
-            <TrendingUp size={12} /> {trend} vs last month
+          <p className="text-[10px] font-black text-emerald-500 flex items-center gap-1 mt-3 uppercase tracking-tighter">
+            <TrendingUp size={10} /> {trend} INCREMENTAL
           </p>
         )}
       </div>
-      <div className={`w-14 h-14 rounded-2xl bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400 flex items-center justify-center shadow-inner`}>
-        <Icon size={28} />
+      <div className={`w-16 h-16 rounded-[24px] bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400 flex items-center justify-center shadow-inner border border-${color}-100/20`}>
+        <Icon size={32} />
       </div>
     </div>
   </AnimatedCard>

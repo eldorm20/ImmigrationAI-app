@@ -1,5 +1,6 @@
 import { createWorker } from "tesseract.js";
 import OpenAI from "openai";
+import pdf from "pdf-parse";
 import { logger } from "./logger";
 
 // Initialize OpenAI if key is available
@@ -9,10 +10,23 @@ const openai = process.env.OPENAI_API_KEY
 
 export async function extractTextFromBuffer(buffer: Buffer, mimeType?: string): Promise<string> {
     try {
-        // Check if it's a PDF - Tesseract doesn't support PDFs directly
+        // Check if it's a PDF
         if (mimeType === 'application/pdf' || buffer.toString('utf8', 0, 4) === '%PDF') {
-            logger.warn("PDF files are not supported for OCR extraction - use PDF.js or similar");
-            throw new Error("PDF files require conversion to images before OCR. Please upload an image file (JPEG, PNG).");
+            logger.info("PDF file detected, attempting text extraction with pdf-parse");
+            try {
+                const data = await pdf(buffer);
+                if (data.text && data.text.trim().length > 0) {
+                    logger.info({ charCount: data.text.length }, "PDF text extraction successful");
+                    return data.text;
+                }
+
+                // If it's a scanned PDF (no selectable text), we need to notify the user
+                logger.warn("PDF appears to be scanned or contains no selectable text");
+                throw new Error("This PDF appears to be a scanned document without selectable text. Please upload a high-quality image (JPG/PNG) instead, or a searchable PDF.");
+            } catch (pdfErr: any) {
+                logger.error({ err: pdfErr.message }, "pdf-parse failed");
+                throw new Error(`Failed to parse PDF document: ${pdfErr.message}`);
+            }
         }
 
         const worker = await createWorker('eng');

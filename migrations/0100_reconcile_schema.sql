@@ -242,6 +242,10 @@ ALTER TABLE "documents" ADD COLUMN IF NOT EXISTS "ai_analysis" jsonb;
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "avatar" text;
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "referral_code" varchar(20);
 
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "tax_rate" numeric(5, 2) DEFAULT '0';
+ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "logo" text;
+ALTER TABLE "research_articles" ADD COLUMN IF NOT EXISTS "embedding" vector(1536);
+
 -- Notifications
 CREATE TABLE IF NOT EXISTS "notifications" (
     "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

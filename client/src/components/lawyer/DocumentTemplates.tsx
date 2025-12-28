@@ -1,18 +1,14 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Plus, Search, Trash2, Edit, Copy, ChevronRight } from 'lucide-react';
+import {
+    FileText, Plus, Search, Trash2, Edit, Copy, ChevronRight, BookOpen,
+    Filter, Layout, Sparkles, Send, Download, MoreHorizontal, CheckCircle
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LiveButton, AnimatedCard, GlassInput, GlassSelect } from '@/components/ui/live-elements';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DocumentTemplates() {
     const { toast } = useToast();
@@ -20,7 +16,6 @@ export default function DocumentTemplates() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [editingTemplate, setEditingTemplate] = useState<any>(null); // For edit mode
 
     // Form State
     const [formData, setFormData] = useState({
@@ -31,39 +26,40 @@ export default function DocumentTemplates() {
     });
 
     // Fetch Templates
-    const { data: templates = [], isLoading } = useQuery({
+    const { data: templates = [], isLoading } = useQuery<any[]>({
         queryKey: ['/api/templates'],
         queryFn: async () => {
-            const res = await apiRequest('GET', '/api/templates');
-            return res.json();
+            return apiRequest('/templates');
         }
     });
 
     // Create Template Mutation
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
-            const res = await apiRequest('POST', '/api/templates', data);
-            return res.json();
+            return apiRequest('/templates', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
             setIsCreateOpen(false);
             resetForm();
-            toast({ title: 'Template Created', description: 'Your new template has been saved.' });
+            toast({ title: 'Template Protocol Saved', description: 'Institutional knowledge bank updated.' });
         },
         onError: () => {
-            toast({ title: 'Error', description: 'Failed to create template.', variant: 'destructive' });
+            toast({ title: 'System Error', description: 'Template ingestion failed.', variant: 'destructive' });
         }
     });
 
     const resetForm = () => {
         setFormData({ title: '', description: '', category: 'contract', content: '' });
-        setEditingTemplate(null);
     };
 
-    const handleCreate = () => {
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!formData.title || !formData.content) {
-            toast({ title: 'Missing fields', description: 'Title and content are required.', variant: 'destructive' });
+            toast({ title: 'Validation Failed', description: 'Core descriptors and content are mandatory.', variant: 'destructive' });
             return;
         }
         createMutation.mutate(formData);
@@ -71,170 +67,216 @@ export default function DocumentTemplates() {
 
     const categories = ['contract', 'letter', 'form', 'email', 'other'];
 
-    const filteredTemplates = templates.filter((t: any) => {
+    const filteredTemplates = (templates || []).filter((t: any) => {
         const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()));
         const matchesCategory = selectedCategory === 'all' || t.category === selectedCategory;
         return matchesSearch && matchesCategory;
     });
 
+    const getCategoryStyles = (cat: string) => {
+        switch (cat) {
+            case 'contract': return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400";
+            case 'letter': return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400";
+            case 'form': return "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400";
+            case 'email': return "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400";
+            default: return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400";
+        }
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Document Templates</h2>
-                    <p className="text-slate-500">Manage your legal document templates and standard forms.</p>
+        <div className="space-y-8 pb-12">
+            <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/30">
+                        <BookOpen size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Strategy Bank</h2>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">Standardized templates and legal protocols</p>
+                    </div>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={(open) => {
-                    setIsCreateOpen(open);
-                    if (!open) resetForm();
-                }}>
-                    <DialogTrigger asChild>
-                        <Button className="bg-brand-600 hover:bg-brand-700 text-white">
-                            <Plus size={18} className="mr-2" />
-                            New Template
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Create New Template</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Template Title</Label>
-                                    <Input
-                                        placeholder="e.g. Service Agreement"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Category</Label>
-                                    <Select
-                                        value={formData.category}
-                                        onValueChange={(val) => setFormData({ ...formData, category: val })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories.map(c => (
-                                                <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Input
-                                    placeholder="Brief description of when to use this template"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Content (Markdown/Text)</Label>
-                                <div className="text-xs text-slate-500 mb-1">Use {'{{'}variables{'}}'} for dynamic fields.</div>
-                                <Textarea
-                                    className="min-h-[300px] font-mono text-sm"
-                                    placeholder="# AGREEEMENT&#10;&#10;This agreement is made between {{client_name}} and {{lawyer_name}}..."
-                                    value={formData.content}
-                                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                                <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                                    {createMutation.isPending ? 'Saving...' : 'Save Template'}
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <LiveButton onClick={() => setIsCreateOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
+                    Publish Template
+                </LiveButton>
             </div>
 
-            {/* Filters */}
-            <div className="flex gap-4 items-center bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <Input
-                        placeholder="Search templates..."
-                        className="pl-10"
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <GlassInput
+                        placeholder="Search institutional archives..."
+                        className="pl-12 w-full"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant={selectedCategory === 'all' ? 'secondary' : 'ghost'}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none w-full md:w-auto">
+                    <button
                         onClick={() => setSelectedCategory('all')}
-                        size="sm"
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === 'all'
+                            ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                            : 'bg-white/50 dark:bg-slate-900/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            }`}
                     >
-                        All
-                    </Button>
+                        Global
+                    </button>
                     {categories.map(c => (
-                        <Button
+                        <button
                             key={c}
-                            variant={selectedCategory === c ? 'secondary' : 'ghost'}
                             onClick={() => setSelectedCategory(c)}
-                            size="sm"
-                            className="capitalize"
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === c
+                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
+                                : 'bg-white/50 dark:bg-slate-900/50 text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                                }`}
                         >
                             {c}
-                        </Button>
+                        </button>
                     ))}
                 </div>
             </div>
 
-            {/* Grid */}
             {isLoading ? (
-                <div className="text-center py-12 text-slate-500">Loading templates...</div>
-            ) : filteredTemplates.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-xl">
-                    <FileText className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-gray-100">No templates found</h3>
-                    <p className="text-slate-500">Get started by creating your first document template.</p>
-                </div>
-            ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredTemplates.map((template: any) => (
-                        <Card key={template.id} className="hover:shadow-md transition-shadow group cursor-pointer relative overflow-hidden">
-                            {template.isSystem && (
-                                <div className="absolute top-0 right-0 bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-bl-lg">
-                                    System
-                                </div>
-                            )}
-                            <CardHeader className="pb-3">
-                                <div className="flex justify-between items-start">
-                                    <Badge variant="outline" className="mb-2 capitalize">{template.category}</Badge>
-                                </div>
-                                <CardTitle className="text-lg">{template.title}</CardTitle>
-                                <CardDescription className="line-clamp-2">
-                                    {template.description || 'No description provided.'}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-xs text-slate-400 mb-4">
-                                    Last updated: {new Date(template.updatedAt).toLocaleDateString()}
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button variant="secondary" className="w-full text-xs" size="sm">
-                                        <Edit size={14} className="mr-1" /> Edit
-                                    </Button>
-                                    <Button variant="outline" className="w-full text-xs" size="sm">
-                                        <Copy size={14} className="mr-1" /> Use
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-64 rounded-3xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-white/10"></div>
                     ))}
                 </div>
+            ) : filteredTemplates.length === 0 ? (
+                <div className="text-center py-32 bg-white/20 dark:bg-slate-900/20 rounded-[40px] border-2 border-dashed border-white/10">
+                    <div className="max-w-xs mx-auto space-y-4">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto text-slate-400">
+                            <FileText size={32} />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white">Archive Empty</h3>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">No protocols discovered matching your current filter parameters.</p>
+                        <LiveButton variant="ghost" onClick={() => setSelectedCategory('all')} size="sm">Reset Filter</LiveButton>
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <AnimatePresence>
+                        {filteredTemplates.map((template: any, idx: number) => (
+                            <motion.div
+                                key={template.id}
+                                layout
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                            >
+                                <AnimatedCard className="h-full bg-white dark:bg-slate-900 border-none shadow-xl hover:shadow-brand-500/10 p-8 flex flex-col group rounded-[32px] overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-16 bg-gradient-to-tr from-brand-600/5 to-transparent rounded-full blur-2xl group-hover:bg-brand-600/10 transition-colors"></div>
+
+                                    <div className="relative z-10 flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getCategoryStyles(template.category)}`}>
+                                                {template.category}
+                                            </span>
+                                            {template.isSystem && (
+                                                <span className="flex items-center gap-1.5 text-[8px] font-black text-brand-600 uppercase tracking-widest bg-brand-50 dark:bg-brand-900/20 px-2 py-1 rounded-lg">
+                                                    <Sparkles size={10} /> CORE PROTOCOL
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 group-hover:text-brand-600 transition-colors line-clamp-2">{template.title}</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed mb-auto line-clamp-3">
+                                            {template.description || "Foundational legal framework for practice implementation."}
+                                        </p>
+
+                                        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-4">
+                                            <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                <span>Revision {formatDate(template.updatedAt)}</span>
+                                                <span className="flex items-center gap-1"><Layout size={12} className="text-brand-500" /> V1.0</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <LiveButton variant="ghost" size="sm" className="flex-1 text-[10px] uppercase font-black tracking-widest">
+                                                    <Copy size={14} className="mr-2" /> Utilize
+                                                </LiveButton>
+                                                <LiveButton variant="ghost" size="sm" className="w-12 p-0 flex items-center justify-center">
+                                                    <MoreHorizontal size={18} />
+                                                </LiveButton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </AnimatedCard>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
             )}
+
+            {/* Create Modal */}
+            <AnimatePresence>
+                {isCreateOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+                            onClick={() => setIsCreateOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-slate-900 rounded-[40px] shadow-2xl w-full max-w-4xl overflow-hidden relative z-10 border border-white/10"
+                        >
+                            <form onSubmit={handleCreate} className="flex flex-col h-[90vh]">
+                                <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-indigo-600">
+                                    <h3 className="font-black text-2xl text-white">Capture Legal Protocol</h3>
+                                    <p className="text-brand-100 text-sm font-medium">Define a new standardized template for therategy bank</p>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-10 space-y-8">
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Template Identifer</label>
+                                            <GlassInput required placeholder="Unique Title..." className="w-full"
+                                                value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Classification Target</label>
+                                            <GlassSelect value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full">
+                                                {categories.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                                            </GlassSelect>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Functional Abstract</label>
+                                        <GlassInput placeholder="Contextual guidelines for utilization..." className="w-full"
+                                            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Contextual Body (Dynamic)</label>
+                                            <span className="text-[10px] font-bold text-brand-500 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded uppercase tracking-tighter transition-all">Support Dynamic Injection {'{{'}VAR{'}}'}</span>
+                                        </div>
+                                        <textarea
+                                            className="w-full min-h-[400px] p-6 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono text-sm leading-relaxed"
+                                            placeholder="Specify legal text framework..."
+                                            value={formData.content}
+                                            onChange={e => setFormData({ ...formData, content: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+                                    <LiveButton variant="ghost" type="button" onClick={() => setIsCreateOpen(false)}>Discard</LiveButton>
+                                    <LiveButton icon={CheckCircle} className="px-12" type="submit" loading={createMutation.isPending}>
+                                        Commit to Archive
+                                    </LiveButton>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
+}
+
+function formatDate(date: string) {
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
