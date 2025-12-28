@@ -20,6 +20,7 @@ import { z } from "zod";
 export const userRoleEnum = pgEnum("user_role", ["admin", "lawyer", "applicant", "employer"]);
 export const applicationStatusEnum = pgEnum("application_status", [
   "new",
+  "pending",
   "in_progress",
   "pending_documents",
   "submitted",
