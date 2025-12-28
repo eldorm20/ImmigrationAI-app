@@ -1065,6 +1065,7 @@ export const checklistItems = pgTable("checklist_items", {
   category: varchar("category", { length: 100 }),
   isRequired: boolean("is_required").notNull().default(true),
   isCompleted: boolean("is_completed").notNull().default(false),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, completed, correction_required
   documentId: varchar("document_id", { length: 255 }).references(() => documents.id), // Link to uploaded doc
   completedAt: timestamp("completed_at"),
   completedBy: varchar("completed_by", { length: 255 }).references(() => users.id),

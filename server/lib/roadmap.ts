@@ -14,6 +14,13 @@ const DOC_KEYWORDS: Record<string, string[]> = {
     "medical": ["medical", "health", "exam"],
     "photo": ["photo", "picture"],
     "motivation": ["motivation", "letter", "intent"],
+    "employment": ["employment", "job", "contract", "employer", "offer"],
+    "qualification": ["degree", "diploma", "certificate", "qualification", "education", "transcript"],
+    "cas": ["cas", "acceptance", "university", "admission"],
+    "relationship": ["marriage", "birth", "family", "relationship", "spouse", "partner"],
+    "language": ["english", "ielts", "toefl", "pte", "language"],
+    "insurance": ["insurance", "health", "medical"],
+    "itinerary": ["flight", "itinerary", "booking", "travel"],
 };
 
 export async function updateRoadmapProgress(applicationId: string): Promise<boolean> {
@@ -212,5 +219,87 @@ export async function createDefaultRoadmap(applicationId: string, visaType: stri
         logger.info({ applicationId, visaType, stageCount: stages.length }, "Created default roadmap");
     } catch (error) {
         logger.error({ error, applicationId }, "Failed to create default roadmap");
+    }
+}
+
+/**
+ * Get default document checklist items for a visa type
+ */
+export function getDefaultChecklistItems(visaType: string): Array<{
+    name: string;
+    category: string;
+    isRequired: boolean;
+    description: string;
+    templateUrl?: string;
+}> {
+    const baseItems: Array<{ name: string; category: string; isRequired: boolean; description: string; templateUrl?: string }> = [
+        { name: "Passport", category: "Identity", isRequired: true, description: "Valid passport with at least 6 months validity" },
+        { name: "Passport Photos", category: "Identity", isRequired: true, description: "Recent passport-sized color photographs" },
+        { name: "Bank Statements", category: "Financial", isRequired: true, description: "Last 3-6 months of bank statements showing sufficient funds" },
+    ];
+
+    const visaItems: Record<string, typeof baseItems> = {
+        "Skilled Worker": [
+            ...baseItems,
+            { name: "Certificate of Sponsorship", category: "Employment", isRequired: true, description: "Valid CoS from your employer" },
+            { name: "Job Offer Letter", category: "Employment", isRequired: true, description: "Signed employment contract or offer" },
+            { name: "Degree Certificate", category: "Qualifications", isRequired: true, description: "Original degree or diploma certificate" },
+            { name: "English Proficiency Result", category: "Language", isRequired: true, description: "IELTS/UKVI or equivalent result" },
+            { name: "TB Test Certificate", category: "Health", isRequired: true, description: "Required for certain countries" },
+        ],
+        "Student": [
+            ...baseItems,
+            { name: "CAS Letter", category: "Academic", isRequired: true, description: "Confirmation of Acceptance for Studies" },
+            { name: "Academic Transcripts", category: "Academic", isRequired: true, description: "Transcripts from previous institutions" },
+            { name: "University Admission Letter", category: "Academic", isRequired: true, description: "Official letter of admission" },
+            { name: "English Proficiency Result", category: "Language", isRequired: true, description: "IELTS/UKVI or equivalent result" },
+            { name: "TB Test Certificate", category: "Health", isRequired: true, description: "Required for certain countries" },
+            { name: "ATAS Certificate", category: "Academic", isRequired: false, description: "Academic Technology Approval Scheme certificate if required for your course" },
+        ],
+        "Tourist": [
+            ...baseItems,
+            { name: "Travel Itinerary", category: "Travel", isRequired: true, description: "Flight bookings and travel schedule", templateUrl: "/templates/itinerary_template.docx" },
+            { name: "Hotel Bookings", category: "Travel", isRequired: true, description: "Proof of accommodation" },
+            { name: "Travel Insurance", category: "Travel", isRequired: true, description: "Proof of medical/travel insurance" },
+            { name: "Letter of Invitation", category: "Travel", isRequired: false, description: "If staying with a host", templateUrl: "/templates/invitation_letter.docx" },
+            { name: "Proof of Ties to Home Country", category: "Employment", isRequired: true, description: "Employment letter, property documents, etc.", templateUrl: "/templates/employment_letter.docx" },
+            { name: "Cover Letter", category: "Identity", isRequired: false, description: "Explaining the purpose of your visit", templateUrl: "/templates/cover_letter.docx" },
+        ],
+        "Family": [
+            ...baseItems,
+            { name: "Marriage/Birth Certificate", category: "Relationship", isRequired: true, description: "Proof of relationship to sponsor" },
+            { name: "Sponsor's ID", category: "Sponsor", isRequired: true, description: "Passport or ID of your sponsor" },
+            { name: "Proof of Accommodation", category: "Sponsor", isRequired: true, description: "Tenancy agreement or Land Registry doc" },
+            { name: "Sponsor's Bank Statements", category: "Financial", isRequired: true, description: "Proof of sponsor's financial support" },
+            { name: "Support Letter", category: "Relationship", isRequired: true, description: "Letter from sponsor supporting your application", templateUrl: "/templates/support_letter.docx" },
+        ]
+    };
+
+    return visaItems[visaType] || [...baseItems, { name: "Supporting Documents", category: "Other", isRequired: false, description: "Any other documents that support your application" }];
+}
+
+/**
+ * Create default checklist items for an application
+ */
+export async function createDefaultChecklist(applicationId: string, visaType: string): Promise<void> {
+    try {
+        const { checklistItems: checklistTable } = await import("@shared/schema");
+        const items = getDefaultChecklistItems(visaType);
+
+        const itemsToCreate = items.map((item, idx) => ({
+            applicationId,
+            name: item.name,
+            category: item.category,
+            isRequired: item.isRequired,
+            description: item.description,
+            order: idx,
+            isCompleted: false,
+            notes: item.templateUrl ? `Template available: ${item.templateUrl}` : undefined,
+        }));
+
+        await db.insert(checklistTable).values(itemsToCreate);
+        logger.info({ applicationId, visaType, itemCount: items.length }, "Created default checklist items");
+    } catch (error) {
+        logger.error({ error, applicationId }, "Failed to create default checklist items");
     }
 }

@@ -9,7 +9,15 @@ import { FileUp, Upload, Loader2, FileText, Eye, Trash2, Scan, Copy, Check, Spar
 import { motion, AnimatePresence } from "framer-motion";
 import { createWorker } from "tesseract.js";
 
-export const UploadView = () => {
+interface UploadViewProps {
+    initialChecklistItem?: any;
+    onUploadComplete?: () => void;
+}
+
+export const UploadView: React.FC<UploadViewProps> = ({
+    initialChecklistItem,
+    onUploadComplete
+}) => {
     interface UploadedFile {
         id: string;
         name: string;
@@ -113,7 +121,13 @@ export const UploadView = () => {
 
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('documentType', 'application_document');
+                formData.append('documentType', initialChecklistItem?.name || 'application_document');
+                if (initialChecklistItem?.id) {
+                    formData.append('checklistId', initialChecklistItem.id);
+                }
+                if (initialChecklistItem?.applicationId) {
+                    formData.append('applicationId', initialChecklistItem.applicationId);
+                }
 
                 try {
                     const uploadedDoc = await apiRequest<any>("/documents/upload", {
@@ -155,6 +169,7 @@ export const UploadView = () => {
                     description: `${uploadedCount} of ${fileList.length} ${t.upload.uploadedDesc}`,
                     className: "bg-green-50 text-green-900 border-green-200"
                 });
+                if (onUploadComplete) onUploadComplete();
             }
         } catch (error) {
             clearInterval(progressInterval);
@@ -243,6 +258,11 @@ export const UploadView = () => {
                         <FileUp className="text-white" size={24} />
                     </div>
                     {t.upload.title}
+                    {initialChecklistItem && (
+                        <span className="ml-2 text-sm font-black text-brand-500 bg-brand-50 px-4 py-1.5 rounded-full border border-brand-500/10 animate-pulse">
+                            Uploading for: {initialChecklistItem.name}
+                        </span>
+                    )}
                 </h3>
 
                 <div

@@ -243,6 +243,48 @@ router.get(
   })
 );
 
+// Get application document checklist
+router.get(
+  "/:id/checklist",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Check permissions
+    if (role === "applicant" && application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    const { checklistItems: checklistTable } = await import("@shared/schema");
+    let items = await db.query.checklistItems.findMany({
+      where: eq(checklistTable.applicationId, id),
+      orderBy: (items, { asc }) => asc(items.order),
+    });
+
+    // If no checklist items exist, create them
+    if (items.length === 0) {
+      const { createDefaultChecklist } = await import("../lib/roadmap");
+      await createDefaultChecklist(id, application.visaType);
+
+      items = await db.query.checklistItems.findMany({
+        where: eq(checklistTable.applicationId, id),
+        orderBy: (items, { asc }) => asc(items.order),
+      });
+    }
+
+    res.json(items);
+  })
+);
+
 // Create application
 router.post(
   "/",
@@ -493,26 +535,41 @@ router.post(
     }
 
     // Check completion threshold
-    // 1. Check verified document count vs expected
-    const docs = await db.query.documents.findMany({
-      where: eq(documents.applicationId, id),
+    // 1. Check verified document checklist
+    const { checklistItems: checklistTable } = await import("@shared/schema");
+    const items = await db.query.checklistItems.findMany({
+      where: eq(checklistTable.applicationId, id),
     });
 
-    // Mock logic for "completeness" based on visa type requirements
-    // In a real app, we'd check specific required document types
-    const requiredDocCount =
-      application.visaType === "Student Visa" ? 4 :
-        application.visaType === "Skilled Worker" ? 5 :
-          3; // default
+    if (items.length === 0) {
+      // If checklist not initialized, it means no documents were required or view wasn't opened
+      // We should initialize it now to be sure
+      const { createDefaultChecklist } = await import("../lib/roadmap");
+      await createDefaultChecklist(id, application.visaType);
 
-    const uploadedCount = docs.length;
-    const completeness = Math.min((uploadedCount / requiredDocCount) * 100, 100);
+      const newItems = await db.query.checklistItems.findMany({
+        where: eq(checklistTable.applicationId, id),
+      });
+      items.push(...newItems);
+    }
 
-    // Also check if personal details are filled
+    const totalRequired = items.filter(item => item.isRequired).length;
+    const completedRequired = items.filter(item => item.isRequired && item.isCompleted).length;
+
+    // Completeness based on required items
+    const completeness = totalRequired > 0
+      ? Math.round((completedRequired / totalRequired) * 100)
+      : 100;
+
+    // Check if personal details are filled
     const hasDetails = application.country && application.visaType;
 
-    if (completeness < 70 || !hasDetails) {
-      throw new AppError(400, `Application is only ${Math.round(completeness)}% complete. You need at least 70% completion (documents + details) to submit.`);
+    if (completeness < 100) {
+      throw new AppError(400, `Application is only ${completeness}% complete. You must upload all required documents: ${completedRequired}/${totalRequired} completed.`);
+    }
+
+    if (!hasDetails) {
+      throw new AppError(400, "Please fill in all required application details (Visa Type and Country) before submitting.");
     }
 
     // Proceed with submission

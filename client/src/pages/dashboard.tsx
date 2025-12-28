@@ -36,6 +36,7 @@ import { GovChecksView } from "@/components/dashboard/GovChecksView";
 import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
+import { DocumentChecklistView } from "@/components/dashboard/DocumentChecklistView";
 import CompanySearch from "@/pages/lawyer/company-check";
 
 export default function UserDash() {
@@ -44,10 +45,11 @@ export default function UserDash() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const [activeTab, setActiveTab] = useState('roadmap');
+  const [activeTab, setActiveTab] = useState('checklist');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [applications, setApplications] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingChecklistItem, setPendingChecklistItem] = useState<any>(null);
 
   useEffect(() => {
     const fetchApps = async () => {
@@ -111,6 +113,7 @@ export default function UserDash() {
 
   const navItems = [
     { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
+    { id: 'checklist', icon: BadgeCheck, label: "Checklist" },
     { id: 'docs', icon: FileText, label: t.dash.docs },
     { id: 'templates', icon: FolderOpen, label: t.dash.templates },
     { id: 'simulator', icon: FlaskConical, label: t.dash.simulator },
@@ -276,7 +279,35 @@ export default function UserDash() {
         </header>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} toast={toast} />}
+          {activeTab === 'roadmap' && <RoadmapView key="roadmap" setActiveTab={setActiveTab} />}
+          {activeTab === 'checklist' && (
+            <DocumentChecklistView
+              key="checklist"
+              onSelectChecklistItem={(item) => { setPendingChecklistItem(item); setActiveTab('upload'); }}
+              onSubmit={async () => {
+                if (!activeApp) return;
+                setIsSubmitting(true);
+                try {
+                  await apiRequest(`/applications/${activeApp.id}/submit`, { method: 'POST' });
+                  toast({
+                    title: "Case Submitted",
+                    description: "Your application has been successfully submitted to a lawyer for review.",
+                    className: "bg-green-50 text-green-900 border-green-200"
+                  });
+                  // Refresh app status
+                  window.location.reload();
+                } catch (err: any) {
+                  toast({
+                    title: "Submission Failed",
+                    description: err.message || "Failed to submit application. Please ensure all required documents are verified.",
+                    variant: "destructive"
+                  });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+            />
+          )}
           {activeTab === 'tasks' && <ClientTasksView key="tasks" />}
           {activeTab === 'predictor' && <VisaPredictorView key="predictor" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
@@ -286,7 +317,7 @@ export default function UserDash() {
           {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'gov' && <GovChecksView key="gov" />}
           {activeTab === 'trainer' && <InterviewTrainerView key="trainer" />}
-          {activeTab === 'upload' && <UploadView key="upload" />}
+          {activeTab === 'upload' && <UploadView key="upload" initialChecklistItem={pendingChecklistItem} onUploadComplete={() => setPendingChecklistItem(null)} />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}

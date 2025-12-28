@@ -53,6 +53,7 @@ router.use(authenticate);
 const createDocumentSchema = z.object({
   applicationId: z.string().uuid().optional().nullable(),
   documentType: z.string().max(100).optional(),
+  checklistId: z.string().uuid().optional().nullable(),
 });
 
 // Upload document
@@ -226,7 +227,8 @@ router.post(
       document.id,
       document.fileName,
       document.documentType,
-      document.applicationId
+      document.applicationId,
+      body.checklistId
     ).catch(err => logger.error({ err, documentId: document.id }, "Background AI analysis trigger failed"));
 
     // Return a fresh presigned URL for the client
@@ -240,6 +242,25 @@ router.post(
           await updateRoadmapProgress(body.applicationId);
         } catch (err) {
           logger.warn({ err }, "Failed to auto-update roadmap after doc upload");
+        }
+
+        // Link to checklist item if specified
+        if (body.checklistId) {
+          try {
+            const { checklistItems: checklistTable } = await import("@shared/schema");
+            await db.update(checklistTable)
+              .set({
+                documentId: document.id,
+                isCompleted: true,
+                completedAt: new Date(),
+                updatedAt: new Date()
+              })
+              .where(eq(checklistTable.id, body.checklistId));
+
+            logger.info({ documentId: document.id, checklistId: body.checklistId }, "Linked document to checklist item");
+          } catch (err) {
+            logger.error({ err, checklistId: body.checklistId }, "Failed to link document to checklist item");
+          }
         }
       }
 

@@ -314,6 +314,22 @@ Instructions:
     }
     return result;
   }
+
+  async reviewDoc(prompt: string, options?: any): Promise<AgentResponse> {
+    const result = await this.process(prompt);
+    if (!result.success) return result;
+
+    try {
+      let rawData = result.data;
+      if (typeof rawData === "string") {
+        rawData = rawData.replace(/```json\n?/, "").replace(/```\s*$/, "").trim();
+        result.data = JSON.parse(rawData);
+      }
+    } catch (e) {
+      logger.warn({ error: e }, "Failed to parse document review JSON");
+    }
+    return result;
+  }
 }
 
 /**

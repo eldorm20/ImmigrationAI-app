@@ -822,7 +822,8 @@ export async function analyzeUploadedDocument(
   documentId: string,
   fileName: string,
   documentType: string | null,
-  applicationId: string | null
+  applicationId: string | null,
+  checklistId?: string | null
 ): Promise<void> {
   try {
     const { db } = await import("../db");
@@ -861,6 +862,28 @@ export async function analyzeUploadedDocument(
         ocrData: { extractedText: extractedText.substring(0, 10000) }
       })
       .where(eq(documents.id, documentId));
+
+    // Update checklist item if linked
+    if (checklistId) {
+      const { checklistItems: checklistTable } = await import("@shared/schema");
+
+      const hasRedFlags = analysis.flags.some(f => f.type === 'red');
+      const feedbackNotes = analysis.flags
+        .filter(f => f.type === 'red' || f.type === 'amber')
+        .map(f => f.message)
+        .join(". ");
+
+      await db.update(checklistTable)
+        .set({
+          status: hasRedFlags ? 'correction_required' : 'completed',
+          isCompleted: !hasRedFlags,
+          notes: feedbackNotes || (hasRedFlags ? "Issues detected. Please review." : "Document verified."),
+          updatedAt: new Date()
+        })
+        .where(eq(checklistTable.id, checklistId));
+
+      logger.info({ checklistId, status: hasRedFlags ? 'correction_required' : 'completed' }, "Updated checklist item after analysis");
+    }
 
     logger.info({ documentId, fileName }, "Automated document analysis with OCR completed");
   } catch (error) {
