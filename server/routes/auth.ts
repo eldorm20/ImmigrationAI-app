@@ -242,6 +242,15 @@ router.post(
     const userId = req.user!.userId;
     const { refreshToken, logoutAll = false } = req.body;
 
+    // Blacklist the current access token so it can't be reused
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const accessToken = authHeader.substring(7);
+      // Blacklist for 1 hour (typical access token lifetime)
+      const { addTokenToBlacklist } = await import("../lib/redis");
+      await addTokenToBlacklist(accessToken, 3600);
+    }
+
     if (logoutAll) {
       // Revoke ALL refresh tokens for this user (logout from all devices)
       await revokeAllUserRefreshTokens(userId);

@@ -16,7 +16,12 @@ export default function Invoicing() {
         clientId: '',
         number: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
-        notes: ''
+        notes: '',
+        taxRate: '0',
+        legalEntityName: '',
+        inn: '',
+        oked: '',
+        mfo: ''
     });
 
     const fetchInvoices = async () => {
@@ -130,13 +135,22 @@ export default function Invoicing() {
                     </tbody>
                 </table>
 
-                <div class="total">
-                    Total: $${Number(invoice.amount).toFixed(2)}
+                    ${invoice.taxRate && Number(invoice.taxRate) > 0 ? `
+                    <div style="font-size: 14px; margin-top: 5px; color: #666;">
+                        Subtotal: $${Number(invoice.amount).toFixed(2)}<br/>
+                        Tax (${invoice.taxRate}%): $${(Number(invoice.amount) * (Number(invoice.taxRate) / 100)).toFixed(2)}
+                    </div>
+                    <div style="margin-top: 10px;">
+                        Total: $${(Number(invoice.amount) * (1 + Number(invoice.taxRate) / 100)).toFixed(2)}
+                    </div>
+                    ` : `Total: $${Number(invoice.amount).toFixed(2)}`}
                 </div>
 
                 ${invoice.notes ? `<p><strong>Notes:</strong> ${invoice.notes}</p>` : ''}
 
                 <div class="footer">
+                    ${invoice.inn ? `<p>INN: ${invoice.inn} | MFO: ${invoice.mfo} | OKED: ${invoice.oked}</p>` : ''}
+                    ${invoice.legalEntityName ? `<p>${invoice.legalEntityName}</p>` : ''}
                     <p>Thank you for your business.</p>
                 </div>
                 
@@ -191,6 +205,43 @@ export default function Invoicing() {
                                 value={newInvoice.number}
                                 onChange={e => setNewInvoice({ ...newInvoice, number: e.target.value })}
                             />
+                        </div>
+
+                        <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
+                            <h4 className="text-sm font-bold mb-3 text-slate-500 uppercase">Uzbekistan Fiscal Details</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                                <input
+                                    placeholder="Legal Entity Name (Yuridik shaxs)"
+                                    className="p-2 border rounded bg-transparent"
+                                    value={newInvoice.legalEntityName}
+                                    onChange={e => setNewInvoice({ ...newInvoice, legalEntityName: e.target.value })}
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Tax Rate % (QQS)"
+                                    className="p-2 border rounded bg-transparent"
+                                    value={newInvoice.taxRate}
+                                    onChange={e => setNewInvoice({ ...newInvoice, taxRate: e.target.value })}
+                                />
+                                <input
+                                    placeholder="INN (STIR)"
+                                    className="p-2 border rounded bg-transparent"
+                                    value={newInvoice.inn}
+                                    onChange={e => setNewInvoice({ ...newInvoice, inn: e.target.value })}
+                                />
+                                <input
+                                    placeholder="MFO"
+                                    className="p-2 border rounded bg-transparent"
+                                    value={newInvoice.mfo}
+                                    onChange={e => setNewInvoice({ ...newInvoice, mfo: e.target.value })}
+                                />
+                                <input
+                                    placeholder="OKED"
+                                    className="p-2 border rounded bg-transparent"
+                                    value={newInvoice.oked}
+                                    onChange={e => setNewInvoice({ ...newInvoice, oked: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-2">

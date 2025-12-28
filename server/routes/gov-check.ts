@@ -94,4 +94,38 @@ router.post(
     })
 );
 
+/**
+ * Check USCIS Case Status (USA)
+ * Returns a link for manual verification as USCIS has strong bot detection
+ */
+router.post(
+    "/uscis-status",
+    asyncHandler(async (req, res) => {
+        const { receiptNumber } = z.object({
+            receiptNumber: z.string().min(10).max(15) // e.g., IOE1234567890
+        }).parse(req.body);
+
+        const result = await govCheck.checkUSCISCaseStatus(receiptNumber);
+        if (!result) throw new AppError(400, "Could not check USCIS status.");
+        res.json(result);
+    })
+);
+
+/**
+ * Check Uzbekistan E-Visa Status
+ */
+router.post(
+    "/uzbekistan-visa",
+    asyncHandler(async (req, res) => {
+        const { activationCode, passportNumber } = z.object({
+            activationCode: z.string().min(1),
+            passportNumber: z.string().min(5).max(20)
+        }).parse(req.body);
+
+        const result = await govCheck.checkUzbekistanVisaStatus(activationCode, passportNumber);
+        if (!result) throw new AppError(400, "Could not check visa status.");
+        res.json(result);
+    })
+);
+
 export default router;

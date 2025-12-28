@@ -43,8 +43,15 @@ function setTokens(accessToken: string, refreshToken: string) {
 }
 
 function clearTokens() {
+  // Clear all auth-related tokens and cached data
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("iai_user");
+  localStorage.removeItem("user");
+  localStorage.removeItem("ai_chat_history");
+  // Clear any cached API responses
+  localStorage.removeItem("dashboardCache");
+  localStorage.removeItem("applicationsCache");
 }
 
 // Request deduplication to prevent multiple simultaneous /auth/me calls

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../middleware/auth";
@@ -9,6 +8,24 @@ import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 const router = Router();
+
+// Mock data for company search
+const MOCK_COMPANIES = [
+    {
+        company_number: "12345678",
+        title: "MOCK IMMIGRATION SERVICES LTD",
+        company_status: "active",
+        address_snippet: "123 High Street, London, UK",
+        date_of_creation: "2020-01-01"
+    },
+    {
+        company_number: "87654321",
+        title: "GLOBAL TALENT VISA SPONSORS INC",
+        company_status: "active",
+        address_snippet: "456 Tech Park, Manchester, UK",
+        date_of_creation: "2019-05-15"
+    }
+];
 
 // Public: Lookup Company by Subdomain
 router.get(
@@ -77,7 +94,7 @@ router.patch(
             const existing = await db.query.companies.findFirst({
                 where: eq(companies.subdomain, subdomain)
             });
-            if (existing) throw new AppError(409, "Subdomain using already taken");
+            if (existing) throw new AppError(409, "Subdomain already taken");
         }
 
         const updated = await db
@@ -90,46 +107,8 @@ router.patch(
     })
 );
 
-export default router;
-=======
-import { Router } from "express";
-import { logger } from "../lib/logger";
-
-export const companyRouter = Router();
-
-// Mock data for when API key is missing
-const MOCK_COMPANIES = [
-    {
-        company_number: "12345678",
-        title: "MOCK IMMIGRATION SERVICES LTD",
-        company_status: "active",
-        address_snippet: "123 High Street, London, UK",
-        date_of_creation: "2020-01-01"
-    },
-    {
-        company_number: "87654321",
-        title: "GLOBAL TALENT VISA SPONSORS INC",
-        company_status: "active",
-        address_snippet: "456 Tech Park, Manchester, UK",
-        date_of_creation: "2019-05-15"
-    },
-    {
-        company_number: "00000001",
-        title: "APPLE RETAIL UK LIMITED",
-        company_status: "active",
-        address_snippet: "1 Hanover Street, London, W1S 1YZ",
-        date_of_creation: "2003-09-15"
-    },
-    {
-        company_number: "00000002",
-        title: "GOOGLE UK LIMITED",
-        company_status: "active",
-        address_snippet: "6 Pancras Square, London, N1C 4AG",
-        date_of_creation: "2003-09-17"
-    }
-];
-
-companyRouter.get("/search", async (req, res) => {
+// Public/Protected: Search Companies (Companies House)
+router.get("/search", async (req, res) => {
     const query = req.query.q as string;
 
     if (!query) {
@@ -140,7 +119,7 @@ companyRouter.get("/search", async (req, res) => {
 
     try {
         if (!apiKey) {
-            logger.warn("COMPANIES_HOUSE_API_KEY not set. Returning mock data.");
+            // logger.warn("COMPANIES_HOUSE_API_KEY not set. Returning mock data.");
             // Filter mock data
             const results = MOCK_COMPANIES.filter(c =>
                 c.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -172,4 +151,7 @@ companyRouter.get("/search", async (req, res) => {
         res.status(500).json({ error: "Failed to search companies" });
     }
 });
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+
+// Export both default and named to satisfy imports
+export const companyRouter = router;
+export default router;

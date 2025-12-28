@@ -1,14 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export type Language = "uz" | "en" | "ru";
+export type Script = "latin" | "cyrillic";
 
 interface I18nContextType {
   lang: Language;
   setLang: (lang: Language) => void;
+  script: Script;
+  setScript: (script: Script) => void;
   t: any;
 }
 
 const I18nContext = createContext<I18nContextType | null>(null);
+
+// Basic transliteration map for Uzbek Latin -> Cyrillic
+const cyrillicMap: Record<string, string> = {
+  "a": "а", "b": "б", "d": "д", "e": "э", "f": "ф", "g": "г", "h": "ҳ", "i": "и", "j": "ж", "k": "к", "l": "л", "m": "м", "n": "н", "o": "о", "p": "п", "q": "қ", "r": "р", "s": "с", "t": "т", "u": "у", "v": "в", "x": "х", "y": "й", "z": "з",
+  "o'": "ў", "g'": "ғ", "sh": "ш", "ch": "ч", "ng": "нг",
+  "A": "А", "B": "Б", "D": "Д", "E": "Э", "F": "Ф", "G": "Г", "H": "Ҳ", "I": "И", "J": "Ж", "K": "К", "L": "Л", "M": "М", "N": "Н", "O": "О", "P": "П", "Q": "Қ", "R": "Р", "S": "С", "T": "Т", "U": "У", "V": "В", "X": "Х", "Y": "Й", "Z": "З",
+  "O'": "Ў", "G'": "Ғ", "Sh": "Ш", "Ch": "Ч", "Ng": "Нг", "SH": "Ш", "CH": "Ч", "NG": "НГ"
+};
+
+// Exceptional cases for 'e' - words starting with 'e' or after vowel usually 'э', but inside 'е'. 
+// For simplicity we use 'е' usually or 'э' depending on context. 
+// Standard rules: Start -> Э, after consonant -> Е. 
+// This simple map is "good enough" for UI. 'e' -> 'е' is safer generally, but 'э' is phonetically 'e'.
+// Let's improve the map keys.
+// "ye" -> "е", "yo" -> "ё", "yu" -> "ю", "ya" -> "я"
+const complexCyrillicMap: Record<string, string> = {
+  "yo'": "йў", "yo": "ё", "yu": "ю", "ya": "я", "ye": "е",
+  "Yo'": "Йў", "Yo": "Ё", "Yu": "Ю", "Ya": "Я", "Ye": "Е",
+  "sh": "ш", "ch": "ч", "ng": "нг", "o'": "ў", "g'": "ғ",
+  "Sh": "Ш", "Ch": "Ч", "Ng": "Нг", "O'": "Ў", "G'": "Ғ",
+};
+
+function transliterate(text: string): string {
+  if (!text) return text;
+  let res = text;
+
+  // Handle complex mappings first
+  for (const [lat, cyr] of Object.entries(complexCyrillicMap)) {
+    res = res.replaceAll(lat, cyr);
+  }
+
+  // Handle single chars
+  return res.split('').map(char => cyrillicMap[char] || char).join('');
+}
 
 const TRANSLATIONS = {
   uz: {
@@ -338,7 +375,7 @@ const TRANSLATIONS = {
     brand: { name: "ImmigrationAI" },
     langNames: { en: "English", uz: "Uzbek", ru: "Russian", de: "German", fr: "French", es: "Spanish" },
     roles: { user: "User", lawyer: "Lawyer", applicant: "Applicant", admin: "Admin" },
-    common: { success: "Success", error: "Error", connected: "Connected", disconnected: "Disconnected", date: "Date", page: "Page", of: "of", previous: "Previous", next: "Next", view: "View", actions: "Actions" },
+    common: { success: "Success", error: "Error", connected: "Connected", disconnected: "Disconnected", date: "Date", page: "Page", of: "of", previous: "Previous", next: "Next", view: "View", actions: "Actions", loading: "Loading...", submitting: "Submitting...", submit: "Submit", cancel: "Cancel", save: "Save", delete: "Delete", edit: "Edit", close: "Close", back: "Back", confirm: "Confirm", search: "Search" },
     nav: { login: "Sign In", start: "Get Started", features: "Features", pricing: "Pricing", partner: "Partner", help: "Help" },
     hero: { title: "Reduce Visa Rejection Risk by 90%.", sub: "AI-Powered Assessment & Documents for Uzbek Professionals. Get personalized guidance in 2 minutes.", cta: "Get Free Assessment", trusted: "Trusted by 10,000+ Uzbek users" },
     dash: { welcome: "Welcome,", roadmap: "Roadmap", docs: "AI Docs", lawyer: "Ask Lawyer", chat: "AI Chat", logout: "Log Out", upload: "Documents", translate: "Translation", research: "Research", messages: "Messages", gov: "Gov Checks", trainer: "Interview Prep", voiceAssistant: "AI Voice Coach", simulator: "Visa Simulator", templates: "Templates", agency: "Agency Team" },
@@ -925,25 +962,61 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [lang, setLangState] = useState<Language>("uz");
+  const [script, setScriptState] = useState<Script>("latin");
+  const [translations, setTranslations] = useState(TRANSLATIONS["uz"]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("iai_lang") as Language;
-    if (saved && ["uz", "en", "ru"].includes(saved)) {
-      setLangState(saved);
-    } else {
-      setLangState("uz");
+    const savedLang = localStorage.getItem("iai_lang") as Language;
+    const savedScript = localStorage.getItem("iai_script") as Script;
+
+    if (savedLang && ["uz", "en", "ru"].includes(savedLang)) {
+      setLangState(savedLang);
+    }
+    if (savedScript && ["latin", "cyrillic"].includes(savedScript)) {
+      setScriptState(savedScript);
     }
   }, []);
 
-  const setLang = (l: Language) => {
-    setLangState(l);
-    localStorage.setItem("iai_lang", l);
+  useEffect(() => {
+    localStorage.setItem("iai_lang", lang);
+    localStorage.setItem("iai_script", script);
+
+    let currentTranslations = TRANSLATIONS[lang];
+
+    // Apply transliteration if Uzbek Cyrillic
+    if (lang === 'uz' && script === 'cyrillic') {
+      currentTranslations = transliterateObject(TRANSLATIONS['uz']);
+    }
+
+    setTranslations(currentTranslations);
+  }, [lang, script]);
+
+  // Use a recursive function to transliterate the entire translation object
+  const transliterateObject = (obj: any): any => {
+    if (typeof obj === 'string') return transliterate(obj);
+    if (Array.isArray(obj)) return obj.map(transliterateObject);
+    if (typeof obj === 'object' && obj !== null) {
+      const res: any = {};
+      for (const key in obj) {
+        res[key] = transliterateObject(obj[key]);
+      }
+      return res;
+    }
+    return obj;
   };
 
-  const t = TRANSLATIONS[lang];
+  const setLang = (l: Language) => {
+    setLangState(l);
+    // Reset to latin if not Uzbek, just to be clean, though hidden UI wise
+    if (l !== 'uz') setScriptState('latin');
+  };
+
+  const setScript = (s: Script) => {
+    setScriptState(s);
+  };
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={{ lang, setLang, script, setScript, t: translations }}>
       {children}
     </I18nContext.Provider>
   );

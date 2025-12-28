@@ -579,6 +579,99 @@ router.post(
   })
 );
 
+// Lawyer review and feedback endpoint
+router.post(
+  "/:id/review",
+  requireRole("lawyer", "admin"),
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const { action, feedback, notes } = z.object({
+      action: z.enum(["approve", "reject", "request_changes"]),
+      feedback: z.string().max(5000).optional(),
+      notes: z.string().max(5000).optional()
+    }).parse(req.body);
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Determine new status based on action
+    let newStatus: string;
+    switch (action) {
+      case "approve":
+        newStatus = "approved";
+        break;
+      case "reject":
+        newStatus = "rejected";
+        break;
+      case "request_changes":
+        newStatus = "pending_documents";
+        break;
+      default:
+        newStatus = application.status;
+    }
+
+    // Update the application with lawyer notes
+    const currentNotes = application.notes || "";
+    const lawyerNote = notes || feedback || "";
+    const updatedNotes = lawyerNote
+      ? `${currentNotes}\n\n--- Lawyer Review (${new Date().toISOString().split('T')[0]}) ---\n${lawyerNote}`
+      : currentNotes;
+
+    const [updated] = await db
+      .update(applications)
+      .set({
+        status: newStatus as "new" | "in_progress" | "pending_documents" | "submitted" | "under_review" | "approved" | "rejected" | "cancelled",
+        notes: updatedNotes.trim(),
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+
+    // Notify the applicant
+    try {
+      const applicant = await db.query.users.findFirst({
+        where: eq(users.id, application.userId),
+      });
+
+      if (applicant?.email) {
+        const actionText = action === "approve" ? "approved" : action === "reject" ? "rejected" : "requires changes";
+        await emailQueue.add(
+          "lawyer-review",
+          {
+            to: applicant.email,
+            subject: `Application ${actionText}`,
+            html: `
+              <h2>Your Application Has Been Reviewed</h2>
+              <p>Your ${application.visaType} visa application has been <strong>${actionText}</strong>.</p>
+              ${feedback ? `<p><strong>Lawyer Feedback:</strong> ${feedback}</p>` : ''}
+              <p>Log in to view full details.</p>
+            `,
+          },
+          { jobId: `review-${id}-${Date.now()}` }
+        );
+      }
+    } catch (emailError) {
+      logger.error({ error: emailError, applicationId: id }, "Failed to send review notification");
+    }
+
+    await auditLog(userId, `application.review.${action}`, "application", id, { feedback, action }, req);
+
+    logger.info({ userId, applicationId: id, action }, "Lawyer reviewed application");
+
+    res.json({
+      ...updated,
+      reviewAction: action,
+      message: `Application ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "returned for changes"} successfully`
+    });
+  })
+);
+
 export default router;
 
 

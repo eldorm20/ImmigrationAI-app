@@ -14,6 +14,28 @@ from transformers import pipeline
 import torch
 import datetime
 import json
+import time
+from collections import OrderedDict
+
+# Simple LRU Cache
+class LRUCache:
+    def __init__(self, capacity: int = 100):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def get(self, key: str):
+        if key not in self.cache:
+            return None
+        self.cache.move_to_end(key)
+        return self.cache[key]
+
+    def put(self, key: str, value: any):
+        self.cache[key] = value
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+response_cache = LRUCache(100)
 
 app = FastAPI(title="ImmigrationAI RAG Backend")
 
@@ -106,6 +128,12 @@ async def search_docs(request: SearchRequest):
 
 @app.post("/answer")
 async def get_answer(request: AnswerRequest):
+    # Check cache
+    cache_key = f"{request.jurisdiction}:{request.query}"
+    cached = response_cache.get(cache_key)
+    if cached:
+        return cached
+
     # 1. Search for context
     context_results = await search_docs(SearchRequest(query=request.query, jurisdiction=request.jurisdiction))
     
@@ -115,17 +143,22 @@ async def get_answer(request: AnswerRequest):
     context_str = "\n".join([f"[{i+1}] {r['content']} (Source: {r['metadata']['url']})" for i, r in enumerate(context_results)])
     
     # 2. Generate Answer
-    prompt = f"<|system|>\nYou are an immigration expert. Use the following context to answer the question. Cite sources using [number].\nContext:\n{context_str}</s>\n<|user|>\n{request.query}</s>\n<|assistant|>\n"
+    prompt = f"<|system|>\nYou are an experienced immigration lawyer assistant for Uzbekistan, UK, and USA.\nAnswer the user's question based strictly on the provided context.\nIf the answer is not in the context, state that you do not have enough specific information. Do not hallucinate rules.\nCitations: Always refer to the source number [x] when making a claim.\n\nContext:\n{context_str}</s>\n<|user|>\n{request.query}</s>\n<|assistant|>\n"
     
     outputs = pipe(prompt, max_new_tokens=256, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
     answer = outputs[0]["generated_text"].split("<|assistant|>\n")[-1]
     
     log_audit("answer", {"query": request.query, "jurisdiction": request.jurisdiction, "num_citations": len(context_results)})
     
-    return {
+    result = {
         "answer": answer,
         "citations": [r['metadata'] for r in context_results]
     }
+    
+    # Cache result
+    response_cache.put(cache_key, result)
+    
+    return result
 
 if __name__ == "__main__":
     import uvicorn

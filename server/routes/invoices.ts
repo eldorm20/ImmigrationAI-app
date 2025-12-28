@@ -65,10 +65,29 @@ router.post(
     asyncHandler(async (req, res) => {
         const lawyerId = req.user!.userId;
         try {
+            const invoiceData = { ...req.body };
+
+            // Auto-calculate 12% VAT for Uzbekistan (UZS) invoices
+            if (invoiceData.currency === 'UZS') {
+                const baseAmount = parseFloat(invoiceData.amount || '0');
+                const vatAmount = baseAmount * 0.12;
+                invoiceData.taxRate = '12';
+                invoiceData.taxAmount = vatAmount.toFixed(0); // UZS has no decimals
+                invoiceData.totalAmount = (baseAmount + vatAmount).toFixed(0);
+
+                // Add VAT line item if not already included
+                if (Array.isArray(invoiceData.items)) {
+                    invoiceData.items.push({
+                        description: 'VAT (12%)',
+                        amount: vatAmount.toFixed(0)
+                    });
+                }
+            }
+
             const [invoice] = await db
                 .insert(invoices)
                 .values({
-                    ...req.body,
+                    ...invoiceData,
                     lawyerId,
                 })
                 .returning();

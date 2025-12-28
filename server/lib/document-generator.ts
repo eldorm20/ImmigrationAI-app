@@ -92,6 +92,97 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
         category: "legal",
         description: "Formal letter appealing a visa refusal or requesting review.",
         requiredFields: ["refusalReference", "groundsForAppeal", "evidenceProvided", "rebuttalPoints"]
+    },
+    // UK Student Visa (Tier 4 / Student Route)
+    {
+        id: "uk_student_visa",
+        name: "UK Student Visa - Tier 4/Student Route Cover Letter",
+        category: "submission",
+        description: "Cover letter and statement of purpose for UK Student Visa application with CAS.",
+        requiredFields: ["fullName", "casNumber", "university", "course", "startDate", "fundingSource", "englishProficiency"]
+    },
+    // US F-1 Student Visa
+    {
+        id: "us_f1_visa",
+        name: "US F-1 Student Visa - DS-160 Support Letter",
+        category: "submission",
+        description: "Statement for F-1 visa interview demonstrating non-immigrant intent and ties to home country.",
+        requiredFields: ["fullName", "i20Number", "sevisId", "university", "major", "tiesToHomeCountry", "financialSupport"]
+    },
+    // Canada Study Permit
+    {
+        id: "canada_study_permit",
+        name: "Canada Study Permit - Letter of Explanation",
+        category: "submission",
+        description: "Letter explaining intent to study in Canada and return to home country after completion.",
+        requiredFields: ["fullName", "diNumber", "institution", "program", "studyStart", "studyEnd", "proofOfFunds", "tiesToHome"]
+    },
+    // UK Standard Visitor Visa (Tourist)
+    {
+        id: "uk_tourist_visa",
+        name: "UK Standard Visitor Visa Cover Letter",
+        category: "submission",
+        description: "Cover letter for UK tourist visa explaining travel purpose and intent to return.",
+        requiredFields: ["fullName", "travelDates", "destinationsInUK", "accommodationType", "financialProof", "employment", "familyTies"]
+    },
+    // Schengen Tourist Visa
+    {
+        id: "schengen_tourist_visa",
+        name: "Schengen Tourist Visa Application Letter",
+        category: "submission",
+        description: "Cover letter for Schengen area short-stay visa with detailed itinerary.",
+        requiredFields: ["fullName", "passportNumber", "countriesVisiting", "travelDates", "itinerary", "accommodation", "travelInsurance", "financialMeans", "employment"]
+    },
+    // UK Skilled Worker Visa (work visa)
+    {
+        id: "uk_skilled_worker",
+        name: "UK Skilled Worker Visa Support Letter",
+        category: "submission",
+        description: "Application support letter for UK Skilled Worker visa with CoS details.",
+        requiredFields: ["fullName", "cosNumber", "employer", "jobTitle", "salary", "soc2020Code", "startDate", "qualifications"]
+    },
+    {
+        id: "us_h1b_visa",
+        name: "US H-1B Work Visa - Petition Support Letter",
+        category: "legal",
+        description: "Support letter for H-1B specialty occupation visa petition.",
+        requiredFields: ["beneficiaryName", "petitionerName", "jobTitle", "lca", "prevailingWage", "qualifications", "jobDuties"]
+    },
+    // Uzbekistan Visa Templates
+    {
+        id: "uz_work_visa_e",
+        name: "Uzbekistan Work Visa (Type E) - Application Letter",
+        category: "submission",
+        description: "Official application letter for Uzbekistan 'E' category work visa, addressed to Ministry of Foreign Affairs/OVIR.",
+        requiredFields: ["fullName", "employerName", "jobTitle", "contractDuration", "workPermitNumber", "intendedAddress", "passportDetails"]
+    },
+    {
+        id: "uz_business_visa_b1",
+        name: "Uzbekistan Business Visa (Type B-1/B-2) - Invitation",
+        category: "submission",
+        description: "Business invitation letter (Telex) request for Uzbekistan business visa.",
+        requiredFields: ["fullName", "companyName", "purposeOfVisit", "durationOfStay", "financialGuarantee", "citiesVisiting"]
+    },
+    {
+        id: "uz_student_visa_s",
+        name: "Uzbekistan Student Visa (Type S) - University Support",
+        category: "submission",
+        description: "Support letter from educational institution for Uzbekistan student visa.",
+        requiredFields: ["fullName", "universityName", "courseName", "enrollmentDate", "duration", "rectorName", "orderNumber"]
+    },
+    {
+        id: "uz_vnzh_residence",
+        name: "Uzbekistan Residence Permit (VNZh) - Application",
+        category: "submission",
+        description: "Application for Residence Permit for Foreigner in the Republic of Uzbekistan.",
+        requiredFields: ["fullName", "address", "nationality", "passportInfo", "reasonForResidence", "maritalStatus"]
+    },
+    {
+        id: "uz_registration_propiska",
+        name: "Uzbekistan Temporary Registration (Propiska) - Form",
+        category: "submission",
+        description: "Application form for temporary registration of foreign citizens (propiska).",
+        requiredFields: ["fullName", "hostAddress", "hostOwner", "arrivalDate", "departureDate", "visaNumber"]
     }
 ];
 

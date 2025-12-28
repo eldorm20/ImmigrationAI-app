@@ -135,23 +135,43 @@ export default function Research() {
   });
 
   useEffect(() => {
+    let isCancelled = false;
+
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
+        // Use 15-second timeout for research API calls
         const res = await apiRequest<{ items: ResearchItem[] }>(
           `/research?search=${encodeURIComponent(searchQuery)}&category=${selectedCategory}&language=${lang}`,
+          { timeout: 15000 }
         );
-        setItems(res.items || []);
+        if (!isCancelled) {
+          setItems(res.items || []);
+        }
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg || "Failed to load research library");
+        if (isCancelled) return;
+        let msg = "Failed to load research library";
+        if (e instanceof Error) {
+          if (e.name === 'AbortError' || e.message.includes('abort')) {
+            msg = "Request timed out. Please try again.";
+          } else {
+            msg = e.message;
+          }
+        }
+        setError(msg);
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     load();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [searchQuery, selectedCategory, lang]);
 
   // The research listing is public; show list even if user is not authenticated.
@@ -323,16 +343,9 @@ export default function Research() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-<<<<<<< HEAD
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
-
-                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
-                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
-=======
                 className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat.id
                   ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/30'
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-brand-500'
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
                   }`}
               >
                 {cat.name} ({cat.count})
@@ -536,8 +549,24 @@ export default function Research() {
             </div>
           )}
           {!loading && error && (
-            <div className="text-center py-20 text-red-500">
-              {error}
+            <div className="col-span-full text-center py-20">
+              <div className="text-red-500 mb-4">{error}</div>
+              <LiveButton
+                variant="secondary"
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  apiRequest<{ items: ResearchItem[] }>(
+                    `/research?search=${encodeURIComponent(searchQuery)}&category=${selectedCategory}&language=${lang}`,
+                    { timeout: 15000 }
+                  )
+                    .then(res => setItems(res.items || []))
+                    .catch(e => setError(e instanceof Error ? e.message : "Failed to load"))
+                    .finally(() => setLoading(false));
+                }}
+              >
+                Retry
+              </LiveButton>
             </div>
           )}
           {!loading && !error && filteredResources.filter(Boolean).map((resource, index) => (

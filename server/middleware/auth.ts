@@ -4,6 +4,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { isTokenBlacklisted } from "../lib/redis";
 
 // Extend Express Request type
 declare global {
@@ -37,6 +38,13 @@ export async function authenticate(
     if (!token) {
       logger.warn({ path: req.path, method: req.method }, "Authentication failed: No token provided");
       return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Check if token has been blacklisted (user logged out)
+    const blacklisted = await isTokenBlacklisted(token);
+    if (blacklisted) {
+      logger.warn({ path: req.path, method: req.method }, "Authentication failed: Token has been revoked");
+      return res.status(401).json({ message: "Token has been revoked" });
     }
 
     const payload = verifyAccessToken(token);

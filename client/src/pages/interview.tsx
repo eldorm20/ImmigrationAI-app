@@ -5,33 +5,201 @@ import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
-    Mic, Square, Play, Save, ChevronRight, AlertCircle, Bot, User
+    Mic, Square, Play, Save, ChevronRight, AlertCircle, Bot, User, Globe
 } from "lucide-react";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+    message?: string;
+}
+
+// Extend Window for SpeechRecognition
+declare global {
+    interface Window {
+        SpeechRecognition: new () => SpeechRecognition;
+        webkitSpeechRecognition: new () => SpeechRecognition;
+    }
+}
+
+interface SpeechRecognition extends EventTarget {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    start(): void;
+    stop(): void;
+    abort(): void;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+    onend: (() => void) | null;
+    onstart: (() => void) | null;
+}
+
+const SUPPORTED_LANGUAGES = [
+    { code: 'en-US', label: 'English (US)' },
+    { code: 'uz-UZ', label: "O'zbekcha" },
+    { code: 'ru-RU', label: 'Русский' },
+];
 
 export default function InterviewPage() {
     const { user } = useAuth();
     const { toast } = useToast();
+    const { lang } = useI18n();
     const [activeSession, setActiveSession] = useState<any>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState<any[]>([]); // {role: 'ai'|'user', content: string}
     const [loading, setLoading] = useState(false);
+    const [speechLang, setSpeechLang] = useState<string>('en-US');
+    const [interimText, setInterimText] = useState<string>('');
+    const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-    // Real-time recording - requires WebRTC/browser microphone access
+    // Check for browser support on mount
+    useEffect(() => {
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionAPI) {
+            setSpeechSupported(false);
+        }
+
+        // Set initial language based on i18n
+        if (lang === 'uz') setSpeechLang('uz-UZ');
+        else if (lang === 'ru') setSpeechLang('ru-RU');
+        else setSpeechLang('en-US');
+    }, [lang]);
+
+    // Real-time recording with Web Speech API
     const startRecording = async () => {
-        setIsRecording(true);
-        toast({ title: "Microphone Active", description: "Listening... (Real AI integration pending OpenAI Realtime API key)" });
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        // TODO: Implement real audio capture and send to AI backend
-        // For now, inform the user that this feature requires configuration
-        setTimeout(() => {
-            setIsRecording(false);
+        if (!SpeechRecognitionAPI) {
             toast({
-                title: "AI Integration Required",
-                description: "Configure OPENAI_API_KEY for real-time interview simulation.",
-                variant: "default"
+                title: "Not Supported",
+                description: "Speech recognition is not supported in this browser. Please use Chrome or Edge.",
+                variant: "destructive"
             });
-        }, 3000);
+            return;
+        }
+
+        // Request microphone permission first
+        try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+            toast({
+                title: "Microphone Access Denied",
+                description: "Please allow microphone access to use voice recognition.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const recognition = new SpeechRecognitionAPI();
+        recognition.lang = speechLang;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            setIsRecording(true);
+            toast({ title: "Listening...", description: `Language: ${speechLang}` });
+        };
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+            let finalTranscript = '';
+            let interimTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcriptPart = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcriptPart;
+                } else {
+                    interimTranscript += transcriptPart;
+                }
+            }
+
+            setInterimText(interimTranscript);
+
+            if (finalTranscript) {
+                // Add to transcript and send to AI for evaluation
+                setTranscript(prev => [...prev, { role: 'user', content: finalTranscript }]);
+                setInterimText('');
+
+                // Submit to AI for evaluation
+                evaluateAnswer(finalTranscript);
+            }
+        };
+
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            console.error('Speech recognition error:', event.error);
+            let message = "Speech recognition error. Please try again.";
+
+            if (event.error === 'no-speech') {
+                message = "No speech detected. Please speak clearly into your microphone.";
+            } else if (event.error === 'audio-capture') {
+                message = "No microphone found. Please check your audio settings.";
+            } else if (event.error === 'not-allowed') {
+                message = "Microphone access was denied. Please allow microphone access.";
+            }
+
+            toast({ title: "Error", description: message, variant: "destructive" });
+            setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+            setIsRecording(false);
+            setInterimText('');
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+    };
+
+    const stopRecording = () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+        }
+        setIsRecording(false);
+        setInterimText('');
+    };
+
+    // Send answer to AI for evaluation
+    const evaluateAnswer = async (answer: string) => {
+        if (!activeSession || !transcript.length) return;
+
+        const lastQuestion = transcript.filter(t => t.role === 'ai').pop()?.content;
+        if (!lastQuestion) return;
+
+        try {
+            const feedback = await apiRequest<{ score: number; feedback: string; suggestion: string }>(
+                '/ai/interview/evaluate',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        question: lastQuestion,
+                        answer,
+                        language: speechLang.split('-')[0]
+                    })
+                }
+            );
+
+            // Add AI feedback as next message
+            const feedbackMessage = feedback.feedback
+                ? `${feedback.feedback}\n\nNext question: What documents do you have to support your application?`
+                : "Thank you for your answer. Can you tell me more about your travel history?";
+
+            setTranscript(prev => [...prev, { role: 'ai', content: feedbackMessage }]);
+        } catch (err) {
+            // If AI fails, add a generic follow-up
+            setTranscript(prev => [...prev, {
+                role: 'ai',
+                content: "Thank you. What is the purpose of your visit?"
+            }]);
+        }
     };
 
     const startSession = async () => {
@@ -93,10 +261,31 @@ export default function InterviewPage() {
                     <AnimatedCard className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 text-center">
                         <Bot size={64} className="mx-auto text-brand-200 mb-6" />
                         <h2 className="text-2xl font-bold mb-4">Ready to practice?</h2>
-                        <p className="text-slate-600 mb-8 max-w-md mx-auto">
+                        <p className="text-slate-600 mb-6 max-w-md mx-auto">
                             The AI agent will simulate a real consular officer. Speak clearly into your microphone.
                         </p>
-                        <LiveButton size="lg" onClick={startSession} icon={Play} disabled={loading}>
+
+                        {/* Language Selector */}
+                        <div className="flex items-center justify-center gap-3 mb-6">
+                            <Globe className="w-5 h-5 text-slate-400" />
+                            <select
+                                value={speechLang}
+                                onChange={(e) => setSpeechLang(e.target.value)}
+                                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            >
+                                {SUPPORTED_LANGUAGES.map(l => (
+                                    <option key={l.code} value={l.code}>{l.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {!speechSupported && (
+                            <div className="text-amber-600 text-sm mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                                ⚠️ Speech recognition not supported. Please use Chrome or Edge.
+                            </div>
+                        )}
+
+                        <LiveButton size="lg" onClick={startSession} icon={Play} disabled={loading || !speechSupported}>
                             {loading ? "Starting..." : "Start Interview"}
                         </LiveButton>
                     </AnimatedCard>
@@ -115,23 +304,36 @@ export default function InterviewPage() {
                                     </div>
                                 </div>
                             ))}
-                            {isRecording && (
+                            {(isRecording || interimText) && (
                                 <div className="flex justify-end">
                                     <div className="bg-brand-600/50 text-white p-4 rounded-xl rounded-tr-none animate-pulse">
-                                        Listening...
+                                        {interimText || 'Listening...'}
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Controls */}
-                        <div className="flex justify-center pt-4">
+                        {/* Language & Controls */}
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
+                            <div className="flex items-center gap-2">
+                                <Globe className="w-4 h-4 text-slate-400" />
+                                <select
+                                    value={speechLang}
+                                    onChange={(e) => setSpeechLang(e.target.value)}
+                                    className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm"
+                                    disabled={isRecording}
+                                >
+                                    {SUPPORTED_LANGUAGES.map(l => (
+                                        <option key={l.code} value={l.code}>{l.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <LiveButton
                                 size="lg"
                                 variant={isRecording ? "danger" : "primary"}
-                                onClick={isRecording ? () => setIsRecording(false) : startRecording}
+                                onClick={isRecording ? stopRecording : startRecording}
                                 className="w-full md:w-auto shadow-xl"
-                                icon={Mic}
+                                icon={isRecording ? Square : Mic}
                             >
                                 {isRecording ? "Stop Speaking" : "Push to Talk"}
                             </LiveButton>

@@ -4,7 +4,9 @@ import time
 
 SOURCES = [
     {"url": "https://www.gov.uk/government/organisations/uk-visas-and-immigration", "jurisdiction": "UK", "title": "UKVI Overview"},
-    {"url": "https://www.uscis.gov/news", "jurisdiction": "USA", "title": "USCIS Updates"}
+    {"url": "https://www.uscis.gov/news", "jurisdiction": "USA", "title": "USCIS Updates"},
+    {"url": "https://lex.uz/ru/docs/-3190889", "jurisdiction": "Uzbekistan", "title": "Immigration Law"},
+    {"url": "https://e-visa.gov.uz", "jurisdiction": "Uzbekistan", "title": "E-Visa Portal"}
 ]
 
 BACKEND_URL = "http://localhost:8000"

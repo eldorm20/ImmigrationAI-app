@@ -18,6 +18,7 @@ import { setupVideoSignaling } from "./routes/video";
 import { probeOllamaEndpoint } from "./lib/ollama";
 import { isStripeAvailable } from "./lib/subscription";
 import { ensureErpTablesExist, ensureResearchDataExists } from "./lib/db-init";
+import { startReminderScheduler } from "./lib/reminder-scheduler";
 
 import "dotenv/config";
 
@@ -177,6 +178,7 @@ app.get("/health", async (_req, res) => {
       await runMigrationsIfNeeded();
       await ensureErpTablesExist();
       await ensureResearchDataExists(); // Auto-seed research/news data
+      startReminderScheduler(); // Start automated reminders
     } catch (err) {
       logger.error({ err }, "Auto-run migrations failed");
       // continue startup; migrations failure might be transient but we want the app to start for debugging
@@ -278,6 +280,13 @@ app.get("/health", async (_req, res) => {
           logger.info("Queues closed");
         } catch (err) {
           logger.error({ err }, "Error closing queues");
+        }
+
+        try {
+          await closeRedis();
+          logger.info("Redis connection closed");
+        } catch (err) {
+          logger.error({ err }, "Error closing Redis");
         }
 
         logger.info("HTTP server closed");

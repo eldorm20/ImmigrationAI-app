@@ -131,4 +131,54 @@ export class GovCheckService {
             return null;
         }
     }
+    /**
+     * Check USCIS Case Status
+     * Note: This is a basic scraper. USCIS has strong bot detection.
+     * Fallback is to return the direct link.
+     */
+    async checkUSCISCaseStatus(receiptNumber: string) {
+        const url = "https://egov.uscis.gov/casestatus/mycasestatus.do";
+        try {
+            // Attempt a simple GET first to see if reachable
+            // In MVP, safest is to return the link as 'manual_verification_required'
+            // attempting to scrape might IP block the server.
+
+            return {
+                status: "manual_check_required",
+                provider: "USCIS",
+                message: "Please click the link to verify official status.",
+                link: `${url}?appReceiptNum=${receiptNumber}`,
+                receiptNumber
+            };
+
+            /*
+            // Scraping Logic (Commented out for safety/reliability)
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `appReceiptNum=${receiptNumber}&initCaseSearch=CHECK STATUS`
+            });
+            const html = await res.text();
+            // Parse HTML...
+            */
+        } catch (error) {
+            logger.error({ error, receiptNumber }, "USCIS check failed");
+            return null;
+        }
+    }
+
+    /**
+     * Check Uzbekistan Visa Status
+     */
+    async checkUzbekistanVisaStatus(activationCode: string, passportNumber: string) {
+        // e-visa.gov.uz
+        const url = "https://e-visa.gov.uz/status";
+        return {
+            status: "manual_check_required",
+            provider: "Uzbekistan E-Visa",
+            message: "Please verify on the official portal.",
+            link: url,
+            details: { activationCode, passportNumber }
+        };
+    }
 }

@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Upload, FileText, CheckCircle, AlertCircle, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ChecklistManager from "@/components/lawyer/ChecklistManager";
 
 export default function ApplicationView() {
   const params = useParams<{ id: string }>();
@@ -35,7 +36,7 @@ export default function ApplicationView() {
       setLoading(true);
       const [appRes, docsRes] = await Promise.all([
         apiRequest(`/applications/${id}`),
-        apiRequest(`/documents?applicationId=${id}`)
+        apiRequest<any[]>(`/documents?applicationId=${id}`)
       ]);
       setApp(appRes);
       setDocuments(docsRes);
@@ -101,7 +102,7 @@ export default function ApplicationView() {
 
     try {
       setSubmitting(true);
-      const res = await apiRequest(`/applications/${id}/submit`, "POST");
+      const res = await apiRequest(`/applications/${id}/submit`, { method: "POST" });
       setApp(res);
       toast({
         title: "Application Submitted!",
@@ -183,6 +184,7 @@ export default function ApplicationView() {
             <Tabs defaultValue="documents">
               <TabsList className="w-full">
                 <TabsTrigger value="documents" className="flex-1">Documents</TabsTrigger>
+                <TabsTrigger value="checklist" className="flex-1">Checklist</TabsTrigger>
                 <TabsTrigger value="details" className="flex-1">Application Details</TabsTrigger>
                 <TabsTrigger value="timeline" className="flex-1">Timeline</TabsTrigger>
               </TabsList>
@@ -246,6 +248,10 @@ export default function ApplicationView() {
                     ))}
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="checklist" className="mt-4">
+                <ChecklistManager applicationId={id!} />
               </TabsContent>
 
               <TabsContent value="details">
