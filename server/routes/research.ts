@@ -6,15 +6,11 @@ import { and, or, desc, ilike, sql } from "drizzle-orm";
 import { authenticate, optionalAuth, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { sanitizeInput } from "../middleware/security";
-<<<<<<< HEAD
 import { rssService, type RSSItem } from "../lib/rss-service";
 import { logger } from "../lib/logger";
 import { getCache, setCache, deleteCachePattern } from "../lib/redis";
-=======
 import { refreshImmigrationNews, getFallbackResearchItems } from "../lib/news";
 import { RagClient } from "../lib/rag-client";
-import { logger } from "../lib/logger";
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 const router = Router();
 
@@ -65,7 +61,6 @@ router.get(
       );
     }
 
-<<<<<<< HEAD
     const cacheKey = `research:list:${search}:${category}:${language}:${limit}:${offset}:${includeRss}`;
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -111,57 +106,9 @@ router.get(
       rssArtricles = rssArtricles.filter(a => a.category === category);
     }
 
-    // Combine DB and RSS articles, DB articles first
-    const allItems = [...dbArticles, ...rssArtricles].slice(0, parseInt(limit, 10));
-
-    // If still empty, return curated fallback
-    if (allItems.length === 0 && !search && category === "all") {
-      const fallback: ResearchItem[] = [
-        {
-          id: 'sample-1',
-          title: 'UK Skilled Worker Visa — Eligibility Overview',
-          summary: 'A concise guide for applicants seeking to apply for the UK Skilled Worker visa, including salary thresholds and required documents.',
-          category: 'visa',
-          type: 'guide',
-          tags: ['UK', 'Skilled Worker', 'Visa'],
-          source: 'UK Home Office',
-          sourceUrl: 'https://www.gov.uk/skilled-worker-visa'
-        },
-        {
-          id: 'sample-2',
-          title: 'Germany Opportunity Card — What You Need to Know',
-          summary: "Overview of eligibility and application steps for Germany's Opportunity Card and employment requirements.",
-          category: 'visa',
-          type: 'guide',
-          tags: ['Germany', 'Opportunity Card'],
-          source: 'Bundesregierung',
-          sourceUrl: 'https://www.bundesregierung.de'
-        },
-        {
-          id: 'sample-3',
-          title: 'Case Study: Successful Family Reunification in Poland',
-          summary: 'A real-world case study summarizing best practices for family reunification and common pitfalls to avoid.',
-          category: 'cases',
-          type: 'case_study',
-          tags: ['Poland', 'Family'],
-          source: 'ImmigrationAI Research'
-=======
-    let articles: any[] = [];
-    try {
-      articles = await db.query.researchArticles.findMany({
-        where: whereClauses.length ? and(...(whereClauses as any)) : undefined,
-        orderBy: [desc(researchArticles.publishedAt), desc(researchArticles.createdAt)],
-        limit: parseInt(limit, 10),
-        offset: parseInt(offset, 10),
-      });
-    } catch (dbErr) {
-      logger.error({ err: dbErr }, "Failed to fetch research articles from DB, using fallback");
-      articles = []; // Fallback will handle this
-    }
-
-    // RAG Integration: If search query is provided, augment results from authoritative RAG service
-    let items = [...articles];
-    if (search && articles.length < 5) {
+    // RAG Integration: If search query is provided and we have few results, augment with RAG
+    let items = [...dbArticles, ...rssArtricles];
+    if (search && items.length < 5) {
       try {
         const jurisdiction = (req.query.jurisdiction as string) || "UK";
         const ragResults = await RagClient.search(search, jurisdiction);
@@ -183,43 +130,24 @@ router.get(
           if (!seenTitles.has(r.title.toLowerCase())) {
             items.push(r as any);
           }
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
         }
       } catch (err) {
         logger.warn({ err }, "RAG search failed in research library");
       }
     }
 
-    // If no articles found in DB OR RAG, return filtered fallback data from the mock set
-    if (items.length === 0) {
-      console.log(`[Research] DB empty, serving fallback data for: cat=${category} search=${search}`);
-      let fallback = getFallbackResearchItems();
+    // Limit final set
+    const finalItems = items.slice(0, parseInt(limit, 10));
 
-      // 1. Filter by Category
-      if (category && category !== "all") {
-        fallback = fallback.filter(item => item.category === category);
-      }
-
-      // 2. Filter by Search
-      if (search) {
-        const term = search.toLowerCase();
-        fallback = fallback.filter(item =>
-          item.title.toLowerCase().includes(term) ||
-          item.summary.toLowerCase().includes(term) ||
-          item.tags.some((t: string) => t.toLowerCase().includes(term))
-        );
-      }
-
-      return res.json({ items: fallback });
+    // If still empty, return fallback
+    if (finalItems.length === 0 && !search && category === "all") {
+      const fallback = getFallbackResearchItems();
+      return res.json({ items: fallback, fromRss: 0 });
     }
 
-<<<<<<< HEAD
-    const response = { items: allItems, fromRss: rssItems.length };
+    const response = { items: finalItems, fromRss: rssItems.length };
     await setCache(cacheKey, response, 300); // Cache for 5 minutes
     res.json(response);
-=======
-    res.json({ items });
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   }),
 );
 
@@ -314,7 +242,6 @@ router.delete(
   }),
 );
 
-<<<<<<< HEAD
 // Comments & Reactions logic
 
 // Get comments for an article
@@ -461,16 +388,10 @@ router.get(
       return acc;
     }, {} as Record<string, number>);
 
-    // If authenticated, check if user reacted
-    let userReaction = null;
-    if (req.user) { // parsed by optionalAuth if used, need to check middleware usage
-      // This route might need optionalAuth if we want to return user status
-    }
-    // Since middleware stack in router definition wasn't fully visible, assuming public for counts
-
     res.json({ counts, total: reactions.length });
   })
-=======
+);
+
 // Trigger news refresh - lawyer or admin
 router.post(
   "/refresh",
@@ -480,8 +401,8 @@ router.post(
     const result = await refreshImmigrationNews();
     res.json({ message: "News library updated", ...result });
   }),
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 );
+
 
 export default router;
 

@@ -25,11 +25,7 @@ const createConsultationSchema = z.object({
 });
 
 const updateConsultationSchema = z.object({
-<<<<<<< HEAD
-  status: z.enum(["pending", "scheduled", "completed", "cancelled", "no_show"]).optional(),
-=======
-  status: z.enum(["scheduled", "completed", "cancelled", "no_show", "accepted", "pending"]).optional(),
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+  status: z.enum(["pending", "scheduled", "completed", "cancelled", "no_show", "accepted"]).optional(),
   notes: z.string().max(2000).optional(),
   meetingLink: z.string().url().or(z.string().length(0)).optional().nullable(),
 });

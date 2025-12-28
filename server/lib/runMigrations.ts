@@ -166,7 +166,6 @@ export async function runMigrationsIfNeeded(): Promise<void> {
       logger.warn({ checkErr }, "Could not verify s3_key column existence in documents table");
     }
 
-<<<<<<< HEAD
     // ==========================================
     // MANUAL FIX FOR NEW FEATURES (Employer, Referrals, Audit, Signatures)
     // ==========================================
@@ -347,7 +346,7 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     } catch (manualFixErr) {
       logger.error({ manualFixErr }, "Failed to apply manual schema updates");
     }
-=======
+
     // Verify research_articles.embedding column exists and create if missing
     try {
       // First ensure extension
@@ -374,8 +373,6 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     } catch (checkErr) {
       logger.warn({ checkErr }, "Could not verify embedding column existence in research_articles table");
     }
-
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   } catch (err) {
     logger.error(
       { err, stack: (err as any)?.stack },

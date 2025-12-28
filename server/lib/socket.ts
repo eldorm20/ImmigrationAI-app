@@ -116,230 +116,216 @@ export function setupSocketIO(httpServer: HTTPServer) {
     socket.emit('online_users', currentOnline);
 
     // Handle incoming messages (support both server and frontend event names)
-<<<<<<< HEAD
-    const handleIncomingMessage = async (payload: MessagePayload, ack?: (res: any) => void) => {
-      try {
-        const { content, applicationId } = payload;
-        // Handle field mismatch: client sends recipientId, server expects receiverId
-        const receiverId = payload.receiverId || (payload as any).recipientId;
-=======
-    const handleIncomingMessage = async (payload: any, ack?: (res: any) => void) => {
-      // Require authenticated user for sending messages
-      if (!user || !user.id) {
-        logger.warn({ socketId: socket.id }, "Unauthorized message attempt");
-        return ack?.({ success: false, error: "Authentication required to send messages" });
+    const handleIncomingMessage = async (payload: MessagePayload & { recipientId?: string, receiverId?: string }, ack?: (res: any) => void) => {
+      // Logic from Stash (Auth Check) + HEAD (Type safety) + Unified receiverId
+
+      const recipientId = payload.recipientId || payload.receiverId;
+      const { content, applicationId } = payload;
+
+      if (!content || !recipientId) {
+        logger.warn({ payload, userId }, "Message missing content or recipientId");
+        return ack?.({ success: false, error: "Missing content or recipientId" });
       }
-      try {
-        // Support both receiverId (older backend) and recipientId (frontend hook)
-        const recipientId = payload.recipientId || payload.receiverId;
-        const { content, applicationId } = payload;
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
-        if (!content || !recipientId) {
-          logger.warn({ payload, userId }, "Message missing content or recipientId");
-          return ack?.({ success: false, error: "Missing content or recipientId" });
-        }
-
-        // Persist message to database
-        const [savedMessage] = await db
-          .insert(messages)
-          .values({
-            senderId: userId,
-            receiverId: recipientId,
-            applicationId: applicationId || null,
-            content,
-            isRead: false,
-          })
-          .returning();
-
-        logger.info({ messageId: savedMessage.id, senderId: userId, recipientId }, "Message persisted");
-
-        // Ensure timestamp is a valid ISO string
-        const createdAt = savedMessage.createdAt instanceof Date
-          ? savedMessage.createdAt.toISOString()
-          : (savedMessage.createdAt || new Date().toISOString());
-
-        const payloadOut = {
-          id: savedMessage.id,
-          content,
+      // Persist message to database
+      const [savedMessage] = await db
+        .insert(messages)
+        .values({
           senderId: userId,
-<<<<<<< HEAD
-          senderName: userEmail || 'User',
-          receiverId,
-=======
-          senderName: user.email,
-          recipientId,
-          receiverId: recipientId, // alias for compatibility
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
-          applicationId,
-          timestamp: createdAt,
+          receiverId: recipientId,
+          applicationId: applicationId || null,
+          content,
+          isRead: false,
+        })
+        .returning();
+
+      logger.info({ messageId: savedMessage.id, senderId: userId, recipientId }, "Message persisted");
+
+      // Ensure timestamp is a valid ISO string
+      const createdAt = savedMessage.createdAt instanceof Date
+        ? savedMessage.createdAt.toISOString()
+        : (savedMessage.createdAt || new Date().toISOString());
+
+      const payloadOut = {
+        id: savedMessage.id,
+        content,
+        senderId: userId,
+        senderName: userEmail || 'User',
+        receiverId: recipientId, // Standardize on receiverId for backend consistency
+        recipientId, // Keep strictly for frontend compatibility if needed
+        applicationId,
+        timestamp: createdAt,
+        isRead: false,
+      };
+      applicationId,
+        timestamp: createdAt,
           isRead: false,
         };
 
-        // Emit to receiver's connected sockets (if they're online) using multiple event names
-        const receiverRoom = `user:${recipientId}`;
-        logger.info({ receiverRoom, recipientId, senderId: userId }, "Emitting to receiver room");
-        io.to(receiverRoom).emit('new_message', payloadOut);
-        io.to(receiverRoom).emit('message:received', payloadOut);
+    // Emit to receiver's connected sockets (if they're online) using multiple event names
+    const receiverRoom = `user:${recipientId}`;
+    logger.info({ receiverRoom, recipientId, senderId: userId }, "Emitting to receiver room");
+    io.to(receiverRoom).emit('new_message', payloadOut);
+    io.to(receiverRoom).emit('message:received', payloadOut);
 
-        // Also emit to all of SENDER's other sockets (so it appears on all their devices)
-        logger.info({ senderRoom: `user:${userId}`, userId }, "Emitting to sender room (other sessions)");
-        socket.to(`user:${userId}`).emit('new_message', payloadOut);
-        socket.to(`user:${userId}`).emit('message_sent', payloadOut);
+    // Also emit to all of SENDER's other sockets (so it appears on all their devices)
+    logger.info({ senderRoom: `user:${userId}`, userId }, "Emitting to sender room (other sessions)");
+    socket.to(`user:${userId}`).emit('new_message', payloadOut);
+    socket.to(`user:${userId}`).emit('message_sent', payloadOut);
 
-        // Acknowledge back to sender with message_sent
-        socket.emit('message_sent', payloadOut);
+    // Acknowledge back to sender with message_sent
+    socket.emit('message_sent', payloadOut);
 
-        ack?.({ success: true, messageId: savedMessage.id });
-      } catch (err) {
-        logger.error({ err, payload }, "Failed to send message");
-        ack?.({ success: false, error: "Failed to send message" });
-      }
-    };
+    ack?.({ success: true, messageId: savedMessage.id });
+  } catch (err) {
+    logger.error({ err, payload }, "Failed to send message");
+    ack?.({ success: false, error: "Failed to send message" });
+  }
+};
 
-    socket.on('message:send', handleIncomingMessage as any);
-    socket.on('send_message', handleIncomingMessage as any);
+socket.on('message:send', handleIncomingMessage as any);
+socket.on('send_message', handleIncomingMessage as any);
 
-    // Handle message read status (support both names)
-    const handleMarkRead = async (data: any) => {
-      try {
-        const messageId = typeof data === 'string' ? data : data.messageId;
-        await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
-        io.to(`user:${userId}`).emit('message_read', { messageId });
-        io.to(`user:${userId}`).emit('message:read', { messageId });
-      } catch (err) {
-        logger.error({ err, data }, "Failed to mark message as read");
-      }
-    };
+// Handle message read status (support both names)
+const handleMarkRead = async (data: any) => {
+  try {
+    const messageId = typeof data === 'string' ? data : data.messageId;
+    await db.update(messages).set({ isRead: true }).where(eq(messages.id, messageId));
+    io.to(`user:${userId}`).emit('message_read', { messageId });
+    io.to(`user:${userId}`).emit('message:read', { messageId });
+  } catch (err) {
+    logger.error({ err, data }, "Failed to mark message as read");
+  }
+};
 
-    socket.on('message:mark-read', handleMarkRead as any);
-    socket.on('mark_message_read', handleMarkRead as any);
+socket.on('message:mark-read', handleMarkRead as any);
+socket.on('mark_message_read', handleMarkRead as any);
 
-    // Typing indicators (support multiple event names)
-    socket.on('user_typing', (data) => {
-      const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
-      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
-    });
+// Typing indicators (support multiple event names)
+socket.on('user_typing', (data) => {
+  const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
+  if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
+});
 
-    socket.on('user_stop_typing', (data) => {
-      const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
-      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
-    });
+socket.on('user_stop_typing', (data) => {
+  const rid = (data && (data.recipientId || data.receiverId)) as string | undefined;
+  if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
+});
 
-    socket.on('typing', (data) => {
-      const rid = data && data.recipientId;
-      if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
-    });
+socket.on('typing', (data) => {
+  const rid = data && data.recipientId;
+  if (rid) io.to(`user:${rid}`).emit('user_typing', { senderId: userId, timestamp: Date.now() });
+});
 
-    socket.on('stop_typing', (data) => {
-      const rid = data && data.recipientId;
-      if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
-    });
+socket.on('stop_typing', (data) => {
+  const rid = data && data.recipientId;
+  if (rid) io.to(`user:${rid}`).emit('user_stop_typing', { senderId: userId, timestamp: Date.now() });
+});
 
-    // Handle message editing
-    socket.on('message:edit', (data: { id: string; content: string; recipientId: string }) => {
-      if (!user || !user.id) return;
-      const { id, content, recipientId } = data;
-      const payload = { id, content, senderId: userId, recipientId };
-      io.to(`user:${recipientId}`).emit('message:updated', payload);
-      socket.to(`user:${userId}`).emit('message:updated', payload);
-    });
+// Handle message editing
+socket.on('message:edit', (data: { id: string; content: string; recipientId: string }) => {
+  if (!user || !user.id) return;
+  const { id, content, recipientId } = data;
+  const payload = { id, content, senderId: userId, recipientId };
+  io.to(`user:${recipientId}`).emit('message:updated', payload);
+  socket.to(`user:${userId}`).emit('message:updated', payload);
+});
 
-    // Handle message deleting
-    socket.on('message:delete', (data: { id: string; recipientId: string }) => {
-      if (!user || !user.id) return;
-      const { id, recipientId } = data;
-      io.to(`user:${recipientId}`).emit('message:deleted', { id });
-      socket.to(`user:${userId}`).emit('message:deleted', { id });
-    });
+// Handle message deleting
+socket.on('message:delete', (data: { id: string; recipientId: string }) => {
+  if (!user || !user.id) return;
+  const { id, recipientId } = data;
+  io.to(`user:${recipientId}`).emit('message:deleted', { id });
+  socket.to(`user:${userId}`).emit('message:deleted', { id });
+});
 
-    // Live Collaboration: Join Application Room
-    socket.on('join_application', (data: { applicationId: string }) => {
-      const { applicationId } = data;
-      const room = `application:${applicationId}`;
-      socket.join(room);
+// Live Collaboration: Join Application Room
+socket.on('join_application', (data: { applicationId: string }) => {
+  const { applicationId } = data;
+  const room = `application:${applicationId}`;
+  socket.join(room);
 
-      // Update presence
-      const meta = userMeta.get(userId) || { userName: "User", role: "guest" };
-      io.to(room).emit('presence_update', {
-        userId,
-        userName: (meta as any).userName,
-        role: (meta as any).role,
-        action: 'viewing'
-      });
-
-      logger.info({ userId, applicationId }, "Joined application room");
-    });
-
-    socket.on('leave_application', (data: { applicationId: string }) => {
-      const { applicationId } = data;
-      const room = `application:${applicationId}`;
-      socket.leave(room);
-
-      io.to(room).emit('presence_update', {
-        userId,
-        action: 'left'
-      });
-
-      logger.info({ userId, applicationId }, "Left application room");
-    });
-
-    // Handle conversation clearing
-    socket.on('conversation:clear', (data: { recipientId: string }) => {
-      if (!user || !user.id) return;
-      const { recipientId } = data;
-      io.to(`user:${recipientId}`).emit('conversation:cleared', { userId: userId });
-      socket.to(`user:${userId}`).emit('conversation:cleared', { userId: recipientId });
-    });
-
-    // Handle client presence update (client may emit user_online with more metadata)
-    socket.on('user_online', (meta: any) => {
-      try {
-        const m = {
-          userName: meta.name || meta.userName || (userEmail ? userEmail.split('@')[0] : "User"),
-          email: meta.email || userEmail,
-          role: meta.role || userRole
-        };
-        (m as any).lastSeen = Date.now();
-        userMeta.set(userId, m);
-        // Broadcast status change
-        io.emit('user_status_changed', { userId, userName: m.userName, status: 'online', role: m.role, lastSeen: (m as any).lastSeen });
-        // Broadcast full online list
-        const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
-        io.emit('online_users', list);
-      } catch (err) {
-        logger.error({ err, meta }, 'Failed to update user presence');
-      }
-    });
-
-    socket.on('update_application', (data: { applicationId: string }) => {
-      const { applicationId } = data;
-      const room = `application:${applicationId}`;
-      socket.to(room).emit('application_refetch', { applicationId });
-      logger.info({ userId, applicationId }, "Broadcasted application update refetch");
-    });
-
-    // Clean up on disconnect
-    socket.on("disconnect", () => {
-      const sockets = userSockets.get(userId);
-      if (sockets) {
-        sockets.delete(socket.id);
-        if (sockets.size === 0) {
-          userSockets.delete(userId);
-          // mark last seen timestamp
-          const meta = userMeta.get(userId) || { userName: userEmail ? userEmail.split('@')[0] : 'unknown', email: userEmail, role: userRole };
-          (meta as any).lastSeen = Date.now();
-          userMeta.set(userId, meta as any);
-          io.emit('user_status_changed', { userId, status: 'offline', lastSeen: (meta as any).lastSeen });
-          const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
-          io.emit('online_users', list);
-        }
-      }
-      logger.info({ userId, socketId: socket.id }, "Socket.IO client disconnected");
-    });
+  // Update presence
+  const meta = userMeta.get(userId) || { userName: "User", role: "guest" };
+  io.to(room).emit('presence_update', {
+    userId,
+    userName: (meta as any).userName,
+    role: (meta as any).role,
+    action: 'viewing'
   });
 
-  return io;
+  logger.info({ userId, applicationId }, "Joined application room");
+});
+
+socket.on('leave_application', (data: { applicationId: string }) => {
+  const { applicationId } = data;
+  const room = `application:${applicationId}`;
+  socket.leave(room);
+
+  io.to(room).emit('presence_update', {
+    userId,
+    action: 'left'
+  });
+
+  logger.info({ userId, applicationId }, "Left application room");
+});
+
+// Handle conversation clearing
+socket.on('conversation:clear', (data: { recipientId: string }) => {
+  if (!user || !user.id) return;
+  const { recipientId } = data;
+  io.to(`user:${recipientId}`).emit('conversation:cleared', { userId: userId });
+  socket.to(`user:${userId}`).emit('conversation:cleared', { userId: recipientId });
+});
+
+// Handle client presence update (client may emit user_online with more metadata)
+socket.on('user_online', (meta: any) => {
+  try {
+    const m = {
+      userName: meta.name || meta.userName || (userEmail ? userEmail.split('@')[0] : "User"),
+      email: meta.email || userEmail,
+      role: meta.role || userRole
+    };
+    (m as any).lastSeen = Date.now();
+    userMeta.set(userId, m);
+    // Broadcast status change
+    io.emit('user_status_changed', { userId, userName: m.userName, status: 'online', role: m.role, lastSeen: (m as any).lastSeen });
+    // Broadcast full online list
+    const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
+    io.emit('online_users', list);
+  } catch (err) {
+    logger.error({ err, meta }, 'Failed to update user presence');
+  }
+});
+
+socket.on('update_application', (data: { applicationId: string }) => {
+  const { applicationId } = data;
+  const room = `application:${applicationId}`;
+  socket.to(room).emit('application_refetch', { applicationId });
+  logger.info({ userId, applicationId }, "Broadcasted application update refetch");
+});
+
+// Clean up on disconnect
+socket.on("disconnect", () => {
+  const sockets = userSockets.get(userId);
+  if (sockets) {
+    sockets.delete(socket.id);
+    if (sockets.size === 0) {
+      userSockets.delete(userId);
+      // mark last seen timestamp
+      const meta = userMeta.get(userId) || { userName: userEmail ? userEmail.split('@')[0] : 'unknown', email: userEmail, role: userRole };
+      (meta as any).lastSeen = Date.now();
+      userMeta.set(userId, meta as any);
+      io.emit('user_status_changed', { userId, status: 'offline', lastSeen: (meta as any).lastSeen });
+      const list = Array.from(userMeta.entries()).map(([id, mm]) => ({ userId: id, userName: mm.userName, role: mm.role, lastSeen: (mm as any).lastSeen || null }));
+      io.emit('online_users', list);
+    }
+  }
+  logger.info({ userId, socketId: socket.id }, "Socket.IO client disconnected");
+});
+  });
+
+return io;
 }
 
 export type SocketIOInstance = ReturnType<typeof setupSocketIO>;

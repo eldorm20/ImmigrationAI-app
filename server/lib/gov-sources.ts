@@ -210,45 +210,61 @@ export async function scrapeGovUK(sections: string[] = ['visas-immigration', 'se
 }
 
 /**
- * MFA Uzbekistan Scraper
- * Scrapes visa information from Ministry of Foreign Affairs
+ * UK in Uzbekistan Scraper
+ * Scrapes information specific to applying for UK visas from Uzbekistan
+ * (TLSContact centers, TB testing in Tashkent, etc.)
  */
-export async function scrapeMfaUz(): Promise<ScraperResult> {
-    const baseUrl = 'https://mfa.uz';
-    const sections = ['en/pages/visa-republic-uzbekistan', 'ru/pages/visa-republic-uzbekistan'];
+export async function scrapeGovUKWorldUzbekistan(): Promise<ScraperResult> {
+    const baseUrl = 'https://www.gov.uk/world/uzbekistan/news';
     const results: ScrapedDocument[] = [];
     const errors: string[] = [];
 
-    for (const section of sections) {
-        try {
-            const url = `${baseUrl}/${section}`;
-            const response = await fetch(url, {
-                headers: { 'User-Agent': 'ImmigrationAI-LegalBot/1.0' }
-            });
+    try {
+        const response = await fetch(baseUrl, {
+            headers: { 'User-Agent': 'ImmigrationAI-LegalBot/1.0' }
+        });
 
-            if (response.ok) {
-                const html = await response.text();
-                // Extract content
-                const contentMatch = html.match(/<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/);
-                const content = contentMatch
-                    ? contentMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-                    : '';
+        if (response.ok) {
+            const html = await response.text();
 
-                if (content.length > 100) {
-                    results.push({
-                        url,
-                        title: 'Uzbekistan Visa Requirements (MFA)',
-                        content: content.substring(0, 15000),
-                        jurisdiction: 'UZ',
-                        effectiveDate: new Date().toISOString()
+            // Extract news/updates links
+            const linkPattern = /href="(\/government\/world-location-news\/[^"]*)"/g;
+            const matches = Array.from(html.matchAll(linkPattern));
+
+            for (const match of matches.slice(0, 5)) {
+                const docUrl = `https://www.gov.uk${match[1]}`;
+                try {
+                    const docRes = await fetch(docUrl, {
+                        headers: { 'User-Agent': 'ImmigrationAI-LegalBot/1.0' }
                     });
+
+                    if (docRes.ok) {
+                        const docHtml = await docRes.text();
+                        const titleMatch = docHtml.match(/<h1[^>]*>([^<]+)<\/h1>/);
+                        const title = titleMatch ? titleMatch[1].trim() : 'UK in Uzbekistan Update';
+
+                        const contentMatch = docHtml.match(/<div[^>]*class="[^"]*govspeak[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+                        const content = contentMatch
+                            ? contentMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+                            : '';
+
+                        if (content.length > 100) {
+                            results.push({
+                                url: docUrl,
+                                title,
+                                content: content.substring(0, 10000),
+                                jurisdiction: 'UK-UZ',
+                                effectiveDate: new Date().toISOString()
+                            });
+                        }
+                    }
+                } catch (e) {
+                    errors.push(`Failed to scrape ${docUrl}`);
                 }
-            } else {
-                errors.push(`MFA UZ failed for ${section}: ${response.status}`);
             }
-        } catch (err) {
-            errors.push(`MFA UZ scrape error: ${(err as Error).message}`);
         }
+    } catch (err) {
+        errors.push(`UK-Uzbekistan scrape error: ${(err as Error).message}`);
     }
 
     // Ingest
@@ -256,7 +272,7 @@ export async function scrapeMfaUz(): Promise<ScraperResult> {
         try {
             await RagClient.ingest(doc.url, doc.jurisdiction, doc.title, doc.effectiveDate);
         } catch (err) {
-            logger.warn({ err }, 'Failed to ingest MFA document');
+            logger.warn({ err }, 'Failed to ingest UK-Uzbekistan document');
         }
     }
 
@@ -271,21 +287,21 @@ export async function scrapeMfaUz(): Promise<ScraperResult> {
  * Run all government source scrapers
  * This should be called periodically (e.g., daily cron job)
  */
-export async function scrapeAllGovSources(): Promise<{ lexUz: ScraperResult; govUk: ScraperResult; mfaUz: ScraperResult }> {
+export async function scrapeAllGovSources(): Promise<{ lexUz: ScraperResult; govUk: ScraperResult; ukUz: ScraperResult }> {
     logger.info('Starting government sources scrape...');
 
-    const [lexUz, govUk, mfaUz] = await Promise.all([
-        scrapeLexUz(),
+    const [lexUz, govUk, ukUz] = await Promise.all([
+        scrapeLexUz(), // Keep Lex.uz for local exit laws/notary rules
         scrapeGovUK(),
-        scrapeMfaUz()
+        scrapeGovUKWorldUzbekistan()
     ]);
 
     logger.info({
         lexUz: { docs: lexUz.documentsProcessed, errors: lexUz.errors.length },
         govUk: { docs: govUk.documentsProcessed, errors: govUk.errors.length },
-        mfaUz: { docs: mfaUz.documentsProcessed, errors: mfaUz.errors.length }
+        ukUz: { docs: ukUz.documentsProcessed, errors: ukUz.errors.length }
     }, 'Government sources scrape completed');
 
-    return { lexUz, govUk, mfaUz };
+    return { lexUz, govUk, ukUz };
 }
 

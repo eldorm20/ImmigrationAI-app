@@ -20,9 +20,6 @@ const s3Client = new S3Client({
       : undefined,
   forcePathStyle: true, // Required for Railway storage
 });
-<<<<<<< HEAD
-
-const BUCKET_NAME = process.env.S3_BUCKET || process.env.AWS_S3_BUCKET || "";
 
 // Validate bucket name format
 function validateBucketName(bucketName: string): { valid: boolean; error?: string } {
@@ -44,10 +41,10 @@ function validateBucketName(bucketName: string): { valid: boolean; error?: strin
   }
 
   return { valid: true };
-=======
+}
+
 if (!BUCKET_NAME) {
   logger.warn("S3 bucket not configured - switching to local filesystem storage in /uploads");
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 }
 
 // Validate and log S3 configuration status

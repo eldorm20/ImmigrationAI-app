@@ -1,7 +1,7 @@
 import { logger } from "./logger";
 import { agentsManager, AIAgentsManager } from "./agents";
 import { RagClient } from "./rag-client";
-import Tesseract from "tesseract.js";
+// import Tesseract from "tesseract.js";
 
 // Re-export agents manager for use across the application
 export { agentsManager, AIAgentsManager } from "./agents";
@@ -416,7 +416,6 @@ export async function generateDocument(
   language = "en"
 ): Promise<string> {
   try {
-<<<<<<< HEAD
     const userQuery = `Generate a professional ${template} document with the following information:\n${Object.entries(
       data
     )
@@ -516,10 +515,6 @@ ${new Date().toLocaleDateString()}`;
     }
 
     return response.data || "";
-=======
-    const { generateLegalDocument } = await import("./document-generator");
-    return await generateLegalDocument(template, data, language);
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   } catch (error) {
     logger.error({ error, template }, "Failed to generate document");
     throw new Error("Failed to generate document");
@@ -853,16 +848,9 @@ export async function analyzeUploadedDocument(
     // Perform OCR if it's an image
     const isImage = /\.(jpg|jpeg|png)$/i.test(fileName);
     if (isImage && doc.url) {
-      try {
-        logger.info({ documentId, url: doc.url }, "Starting OCR analysis");
-        const { data: { text } } = await Tesseract.recognize(doc.url, 'eng+uzb+rus');
-        if (text && text.trim().length > 10) {
-          extractedText += `\n\nExtracted Text Content: \n${text} `;
-          logger.info({ documentId }, "OCR extraction successful");
-        }
-      } catch (ocrError) {
-        logger.warn({ ocrError, documentId }, "OCR failed, falling back to basic analysis");
-      }
+      logger.warn({ documentId }, "OCR analysis skipped - Tesseract not installed");
+      // TODO: Re-enable OCR once tesseract.js is installed
+      // const { data: { text } } = await Tesseract.recognize(doc.url, 'eng+uzb+rus');
     }
 
     const analysis = await reviewDocument(extractedText, documentType || "Unknown", visaType);

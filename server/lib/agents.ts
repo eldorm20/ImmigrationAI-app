@@ -731,8 +731,6 @@ async function generateTextWithProvider(
     }
   }
 
-<<<<<<< HEAD
-
   // Try free HuggingFace models that don't require authentication
   const freeModels = [
     'microsoft/DialoGPT-medium',
@@ -763,15 +761,6 @@ async function generateTextWithProvider(
 
 
   throw new Error(`AI Provider configured but failed to respond. Local: ${hasLocalAI}, OpenAI: ${hasOpenAI}, HF: ${hasHuggingFace}`);
-=======
-  if (!hasLocalAI && !hasOpenAI && !hasHuggingFace) {
-    const errorMsg = "No AI Provider available. Please install Ollama or set OPENAI_API_KEY.";
-    logger.error(errorMsg);
-    return "AI Configuration Error: No active AI provider found.";
-  }
-
-  throw new Error(`AI Provider configured but failed to respond.`);
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 }
 
 /**

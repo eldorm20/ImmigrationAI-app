@@ -533,14 +533,8 @@ router.post(
       if (localAIUrl) {
         try {
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
-<<<<<<< HEAD
           const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations.`;
           const payload = buildOllamaPayload(`Translate: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat');
-
-          const response = await fetch(localAIUrl, {
-=======
-          const systemPrompt = `You are a professional translator. Translate the following text from ${fromLang} to ${toLang}. Provide only the translation, no explanations or additional text.`;
-          const payload = buildOllamaPayload(`Translate this text: ${text}`, systemPrompt, process.env.OLLAMA_MODEL || 'mistral');
 
           // Construct correct URL
           let fetchUrl = localAIUrl;
@@ -552,7 +546,6 @@ router.post(
           const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
 
           const response = await fetch(fetchUrl, {
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -706,10 +699,6 @@ Answer specifically in English, clearly and concisely. Avoid repetition.`;
           const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
 
           // Use /api/chat endpoint if available (better for conversation)
-<<<<<<< HEAD
-          const chatUrl = localAIUrl.replace('/api/generate', '/api/chat');
-          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
-=======
           // Construct correct URL for chat
           let chatUrl = localAIUrl;
           if (chatUrl.includes("/api/generate")) {
@@ -717,8 +706,8 @@ Answer specifically in English, clearly and concisely. Avoid repetition.`;
           } else if (!chatUrl.includes("/api/") && !chatUrl.includes("/v1/")) {
             chatUrl = chatUrl.replace(/\/+$/, "") + "/api/chat";
           }
-          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'mistral', allMessages);
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+
+          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
 
           // Log payload for debugging (truncated if too long)
           logger.info({
@@ -811,7 +800,6 @@ Answer specifically in English, clearly and concisely. Avoid repetition.`;
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.warn({ err: errorMsg }, "AI chat failed, using intelligent fallback responses");
 
-<<<<<<< HEAD
       // Intelligent fallback responses for common immigration questions
       const lowerMessage = messageText.toLowerCase();
       let fallbackReply = "";
@@ -1017,30 +1005,6 @@ Try asking a more specific question like:
       }
 
       return res.json({ reply: fallbackReply, fallback: true });
-=======
-      // Check if it's a configuration issue
-      const isConfigError = !process.env.OPENAI_API_KEY && !process.env.LOCAL_AI_URL && !process.env.HUGGINGFACE_API_TOKEN;
-
-      if (isConfigError) {
-        return res.status(503).json({
-          error: "AI Service Not Configured",
-          message: "Please configure OPENAI_API_KEY or LOCAL_AI_URL in environment variables."
-        });
-      }
-
-      // Return 503 if AI provider unavailable, 500 for other errors
-      if (errorMsg.includes("No AI provider available") || errorMsg.includes("provider") || errorMsg.includes("ECONNREFUSED")) {
-        return res.status(503).json({
-          error: "Chat service unavailable",
-          message: "AI provider is currently unreachable. If using Local AI, ensure it is running."
-        });
-      }
-
-      res.status(500).json({
-        error: "Chat response failed",
-        message: "An unexpected error occurred while processing your request."
-      });
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     }
   })
 );

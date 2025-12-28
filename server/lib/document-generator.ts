@@ -148,41 +148,34 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
         description: "Support letter for H-1B specialty occupation visa petition.",
         requiredFields: ["beneficiaryName", "petitionerName", "jobTitle", "lca", "prevailingWage", "qualifications", "jobDuties"]
     },
-    // Uzbekistan Visa Templates
+    // Uzbekistan -> UK Outbound Templates
     {
-        id: "uz_work_visa_e",
-        name: "Uzbekistan Work Visa (Type E) - Application Letter",
+        id: "uz_uk_tb_test",
+        name: "TB Test Certificate Request (Tashkent)",
         category: "submission",
-        description: "Official application letter for Uzbekistan 'E' category work visa, addressed to Ministry of Foreign Affairs/OVIR.",
-        requiredFields: ["fullName", "employerName", "jobTitle", "contractDuration", "workPermitNumber", "intendedAddress", "passportDetails"]
+        description: "Letter to IOM/Clinic in Tashkent requesting TB screening appointment for UK Visa.",
+        requiredFields: ["fullName", "passportDetails", "intendedTravelDate", "ukVisasApplicationNumber"]
     },
     {
-        id: "uz_business_visa_b1",
-        name: "Uzbekistan Business Visa (Type B-1/B-2) - Invitation",
+        id: "uz_uk_bank_statement_letter",
+        name: "Bank Statement Verification (Uzbek Banks)",
         category: "submission",
-        description: "Business invitation letter (Telex) request for Uzbekistan business visa.",
-        requiredFields: ["fullName", "companyName", "purposeOfVisit", "durationOfStay", "financialGuarantee", "citiesVisiting"]
+        description: "Template for Uzbek banks (NBU, Kapitalbank, Ipak Yuli) to verify funds meeting UKVI Appendix Finance rules.",
+        requiredFields: ["bankName", "accountHolderName", "accountNumber", "balanceAmountLCY", "exchangeRate", "fundsHeldDate"]
     },
     {
-        id: "uz_student_visa_s",
-        name: "Uzbekistan Student Visa (Type S) - University Support",
-        category: "submission",
-        description: "Support letter from educational institution for Uzbekistan student visa.",
-        requiredFields: ["fullName", "universityName", "courseName", "enrollmentDate", "duration", "rectorName", "orderNumber"]
+        id: "uz_uk_consent_letter",
+        name: "Parental Consent Affidavit (Uzbek Notary)",
+        category: "legal",
+        description: "Notarized affidavit of consent for minor traveling to UK, formatted for Uzbekistan notary standards.",
+        requiredFields: ["parentName", "childName", "childPassport", "accompanyingAdult", "travelDates", "ukAddress"]
     },
     {
-        id: "uz_vnzh_residence",
-        name: "Uzbekistan Residence Permit (VNZh) - Application",
+        id: "uz_uk_employment_ref",
+        name: "Employment Reference (Uzbek Employer for UKVI)",
         category: "submission",
-        description: "Application for Residence Permit for Foreigner in the Republic of Uzbekistan.",
-        requiredFields: ["fullName", "address", "nationality", "passportInfo", "reasonForResidence", "maritalStatus"]
-    },
-    {
-        id: "uz_registration_propiska",
-        name: "Uzbekistan Temporary Registration (Propiska) - Form",
-        category: "submission",
-        description: "Application form for temporary registration of foreign citizens (propiska).",
-        requiredFields: ["fullName", "hostAddress", "hostOwner", "arrivalDate", "departureDate", "visaNumber"]
+        description: "Employer reference letter from Uzbek company in English, meeting UK Skilled Worker verification standards.",
+        requiredFields: ["employerName", "employeeName", "role", "salaryUZS", "taxIdSTIR", "employmentDates", "contactDetails"]
     }
 ];
 

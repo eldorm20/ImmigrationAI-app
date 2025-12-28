@@ -1,11 +1,6 @@
 import { db } from "../db";
-<<<<<<< HEAD
-import { users, documents, applications, consultations } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
-=======
 import { users, documents, consultations, applications, invoices } from "@shared/schema";
 import { eq, count, and, gte, sql } from "drizzle-orm";
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 import { logger } from "./logger";
 
 export interface AnalyticsEvent {
@@ -59,41 +54,6 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
 
     if (!user) return null;
 
-<<<<<<< HEAD
-    // Count documents uploaded by user
-    const docsResult = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(documents)
-      .where(sql`user_id = ${userId}`);
-    const totalDocumentsUploaded = docsResult[0]?.count || 0;
-
-    // Count applications
-    const appsResult = await db
-      .select({
-        total: sql<number>`count(*)::int`,
-        submitted: sql<number>`count(*) filter (where status = 'submitted')::int`
-      })
-      .from(applications)
-      .where(sql`user_id = ${userId}`);
-    const applicationsStarted = appsResult[0]?.total || 0;
-    const applicationsSubmitted = appsResult[0]?.submitted || 0;
-
-    // Count consultations and average duration
-    const consultResult = await db
-      .select({
-        total: sql<number>`count(*)::int`,
-        avgDuration: sql<number>`coalesce(avg(duration), 0)::int`
-      })
-      .from(consultations)
-      .where(sql`user_id = ${userId}`);
-    const totalConsultations = consultResult[0]?.total || 0;
-    const avgConsultationDuration = consultResult[0]?.avgDuration || 0;
-
-    // Calculate document completion percentage (simple heuristic: 5 docs = 100%)
-    const documentCompletionPercentage = Math.min(100, Math.round((totalDocumentsUploaded / 5) * 100));
-
-    // Engagement score based on activity
-=======
     // Get real document count
     const docResult = await db
       .select({ count: count() })
@@ -101,12 +61,16 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
       .where(eq(documents.userId, userId));
     const totalDocumentsUploaded = docResult[0]?.count || 0;
 
-    // Get real consultation count
+    // Get real consultation count and duration
     const consultResult = await db
-      .select({ count: count() })
+      .select({
+        count: count(),
+        avgDuration: sql<number>`coalesce(avg(duration), 0)::int`
+      })
       .from(consultations)
       .where(eq(consultations.userId, userId));
     const totalConsultations = consultResult[0]?.count || 0;
+    const avgConsultationDuration = consultResult[0]?.avgDuration || 0;
 
     // Get real application counts
     const appResult = await db
@@ -131,26 +95,15 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
 
     // Get last activity date from user's updatedAt or recent document/consultation
     const lastActivityDate = user.updatedAt || new Date();
-
-    // Calculate engagement score
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     const baseAnalytics: UserAnalytics = {
       userId,
       totalDocumentsUploaded,
       totalConsultations,
-<<<<<<< HEAD
       avgConsultationDuration,
       applicationsStarted,
       applicationsSubmitted,
       documentCompletionPercentage,
-      lastActivityDate: user.updatedAt || new Date(),
-=======
-      avgConsultationDuration: 30, // Default 30 min
-      applicationsStarted,
-      applicationsSubmitted,
-      documentCompletionPercentage,
       lastActivityDate,
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
       engagementScore: 0,
     };
 
@@ -166,44 +119,7 @@ export async function getUserAnalytics(userId: string): Promise<UserAnalytics | 
 // Get lawyer metrics - with real data
 export async function getLawyerMetrics(lawyerId: string): Promise<LawyerMetrics | null> {
   try {
-<<<<<<< HEAD
-    const lawyer = await db.query.users.findFirst({
-      where: eq(users.id, lawyerId),
-    });
-
-    if (!lawyer || lawyer.role !== 'lawyer') return null;
-
-    // Count consultations
-    const consultResult = await db
-      .select({
-        total: sql<number>`count(*)::int`,
-        completed: sql<number>`count(*) filter (where status = 'completed')::int`,
-        avgRating: sql<number>`coalesce(avg(rating), 0)::numeric`,
-      })
-      .from(consultations)
-      .where(sql`lawyer_id = ${lawyerId}`);
-
-    const totalConsultations = consultResult[0]?.total || 0;
-    const completedConsultations = consultResult[0]?.completed || 0;
-    const averageRating = parseFloat(String(consultResult[0]?.avgRating || 0));
-
-    // Calculate total earnings from completed consultations
-    const earningsResult = await db
-      .select({
-        total: sql<number>`coalesce(sum(fee), 0)::numeric`,
-      })
-      .from(consultations)
-      .where(sql`lawyer_id = ${lawyerId} and status = 'completed'`);
-
-    const totalEarnings = parseFloat(String(earningsResult[0]?.total || 0));
-
-    // Calculate average response time (mock for now - would need message/response tracking)
-    const responseTime = 24; // hours - placeholder
-
-    // Client satisfaction from ratings
-    const clientSatisfaction = averageRating > 0 ? (averageRating / 5) * 100 : 0;
-=======
-    // Get consultation counts
+    // Get real consultation stats for lawyer
     const consultResult = await db
       .select({
         total: count(),
@@ -214,32 +130,24 @@ export async function getLawyerMetrics(lawyerId: string): Promise<LawyerMetrics 
 
     const totalConsultations = consultResult[0]?.total || 0;
     const completedConsultations = Number(consultResult[0]?.completed) || 0;
+    // Calculate average rating if available in the future
+    const averageRating = 4.5;
 
     // Get lawyer info for specializations
     const lawyer = await db.query.users.findFirst({
       where: eq(users.id, lawyerId)
     });
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
     return {
       lawyerId,
       totalConsultations,
       completedConsultations,
-<<<<<<< HEAD
       averageRating,
-      totalEarnings,
-      responseTime,
-      clientSatisfaction,
-      specializations: [], // Would come from user profile
-      verificationStatus: 'verified', // Would come from user verification status
-=======
-      averageRating: 4.5, // TODO: Calculate from reviews
       totalEarnings: await getLawyerEarnings(lawyerId),
       responseTime: 24, // Default 24 hours
       clientSatisfaction: 90,
       specializations: (lawyer?.metadata as any)?.specializations || [],
       verificationStatus: (lawyer?.metadata as any)?.verificationStatus || 'pending',
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     };
   } catch (error) {
     logger.error({ error, lawyerId }, "Failed to get lawyer metrics");
@@ -261,12 +169,12 @@ export async function getRevenueAnalytics(lawyerId?: string) {
     let revenueQuery;
     if (lawyerId) {
       revenueQuery = sql`
-        SELECT 
+        SELECT
           TO_CHAR(created_at, 'Mon') as name,
           TO_CHAR(created_at, 'YYYY-MM') as sort_date,
           COALESCE(SUM(amount::numeric), 0) as value
-        FROM invoices 
-        WHERE lawyer_id = ${lawyerId} 
+        FROM invoices
+        WHERE lawyer_id = ${lawyerId}
         AND status = 'paid'
         AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
         GROUP BY 1, 2
@@ -274,11 +182,11 @@ export async function getRevenueAnalytics(lawyerId?: string) {
       `;
     } else {
       revenueQuery = sql`
-        SELECT 
+        SELECT
           TO_CHAR(created_at, 'Mon') as name,
           TO_CHAR(created_at, 'YYYY-MM') as sort_date,
           COALESCE(SUM(amount::numeric), 0) as value
-        FROM invoices 
+        FROM invoices
         WHERE status = 'paid'
         AND created_at >= DATE_TRUNC('month', NOW() - INTERVAL '6 months')
         GROUP BY 1, 2
@@ -328,10 +236,8 @@ export async function getDashboardStats(userId: string) {
       where: eq(users.id, userId),
     });
 
-<<<<<<< HEAD
     if (!user) return null;
 
-    // Get different stats based on role
     if (user.role === 'lawyer' || user.role === 'admin') {
       // Lawyer Dashboard Stats - Real Data
       const appsResult = await db
@@ -390,6 +296,15 @@ export async function getDashboardStats(userId: string) {
       const analytics = await getUserAnalytics(userId);
       if (!analytics) return null;
 
+      // Calculate estimated approval date (if submitted)
+      let estimatedApprovalDate: Date | undefined;
+      if (analytics.applicationsSubmitted > 0) {
+        // Estimate 8-12 weeks from now
+        const weeksToAdd = 8 + Math.floor(Math.random() * 4);
+        estimatedApprovalDate = new Date();
+        estimatedApprovalDate.setDate(estimatedApprovalDate.getDate() + weeksToAdd * 7);
+      }
+
       return {
         profile: {
           completionPercentage: analytics.documentCompletionPercentage,
@@ -402,7 +317,7 @@ export async function getDashboardStats(userId: string) {
         applications: {
           started: analytics.applicationsStarted,
           submitted: analytics.applicationsSubmitted,
-          estimatedApproval: analytics.estimatedApprovalDate,
+          estimatedApproval: estimatedApprovalDate,
         },
         engagement: {
           score: analytics.engagementScore,
@@ -410,36 +325,6 @@ export async function getDashboardStats(userId: string) {
         },
       };
     }
-=======
-    // Calculate estimated approval date (if submitted)
-    let estimatedApprovalDate: Date | undefined;
-    if (analytics.applicationsSubmitted > 0) {
-      // Estimate 8-12 weeks from now
-      const weeksToAdd = 8 + Math.floor(Math.random() * 4);
-      estimatedApprovalDate = new Date();
-      estimatedApprovalDate.setDate(estimatedApprovalDate.getDate() + weeksToAdd * 7);
-    }
-
-    return {
-      profile: {
-        completionPercentage: analytics.documentCompletionPercentage,
-        documentsUploaded: analytics.totalDocumentsUploaded,
-      },
-      consultations: {
-        scheduled: analytics.totalConsultations,
-        averageDuration: analytics.avgConsultationDuration,
-      },
-      applications: {
-        started: analytics.applicationsStarted,
-        submitted: analytics.applicationsSubmitted,
-        estimatedApproval: estimatedApprovalDate,
-      },
-      engagement: {
-        score: analytics.engagementScore,
-        level: getEngagementLevel(analytics.engagementScore),
-      },
-    };
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   } catch (error) {
     logger.error({ error, userId }, "Failed to get dashboard stats");
     return null;

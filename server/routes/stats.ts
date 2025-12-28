@@ -44,16 +44,48 @@ router.get(
       const where = undefined; // Show global stats for practice management
       const allApps = await db.query.applications.findMany({ where });
       let totalRevenue = 0;
+      let monthlyRevenue: { name: string; value: number }[] = [];
+
       if (role === "lawyer") {
         totalRevenue = allApps
           .filter((app) => app.fee && app.status === "approved")
           .reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
+
+        // Estimate monthly revenue for lawyer based on apps (simplified)
+        monthlyRevenue = allApps
+          .filter(app => app.fee && app.status === "approved")
+          .reduce((acc, app) => {
+            const month = new Date(app.createdAt).toLocaleString('default', { month: 'short' });
+            const amount = parseFloat(app.fee || "0");
+            const existing = acc.find(m => m.name === month);
+            if (existing) {
+              existing.value += amount;
+            } else {
+              acc.push({ name: month, value: amount });
+            }
+            return acc;
+          }, [] as { name: string; value: number }[]);
+
       } else {
         const allPayments = await db.query.payments.findMany({
           where: eq(payments.status, "completed"),
         });
         totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+
+        // Monthly Revenue for Admin from payments
+        monthlyRevenue = allPayments.reduce((acc, p) => {
+          const month = new Date(p.createdAt).toLocaleString('default', { month: 'short' });
+          const amount = parseFloat(p.amount || "0");
+          const existing = acc.find(m => m.name === month);
+          if (existing) {
+            existing.value += amount;
+          } else {
+            acc.push({ name: month, value: amount });
+          }
+          return acc;
+        }, [] as { name: string; value: number }[]);
       }
+
       const totalLeads = allApps.length;
       const pendingLeads = allApps.filter((app) => app.status === "new" || app.status === "in_progress").length;
       const approvedLeads = allApps.filter((app) => app.status === "approved").length;
@@ -61,41 +93,9 @@ router.get(
       const newThisWeek = allApps.filter((app) => new Date(app.createdAt) > oneWeekAgo).length;
       const totalFees = allApps.reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
 
-<<<<<<< HEAD
-      // Calculate monthly revenue for chart (last 6 months)
-      const revenueChart = [];
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const today = new Date();
-
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthName = months[d.getMonth()];
-        const monthApps = allApps.filter(app => {
-          const appDate = new Date(app.createdAt);
-          return appDate.getMonth() === d.getMonth() && appDate.getFullYear() === d.getFullYear();
-        });
-
-        const monthRevenue = monthApps.reduce((sum, app) => sum + parseFloat(app.fee || "0"), 0);
-        revenueChart.push({ name: monthName, value: monthRevenue });
-      }
-=======
-      // Monthly Revenue for Charts
-      const monthlyRevenue = allPayments.reduce((acc, p) => {
-        const month = new Date(p.createdAt).toLocaleString('default', { month: 'short' });
-        const amount = parseFloat(p.amount || "0");
-        const existing = acc.find(m => m.name === month);
-        if (existing) {
-          existing.value += amount;
-        } else {
-          acc.push({ name: month, value: amount });
-        }
-        return acc;
-      }, [] as { name: string; value: number }[]);
-
       // Sort by month (simple approch for now)
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       monthlyRevenue.sort((a, b) => months.indexOf(a.name) - months.indexOf(b.name));
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
       res.json({
         totalRevenue,
@@ -105,11 +105,8 @@ router.get(
         successRate,
         newThisWeek,
         totalFees,
-<<<<<<< HEAD
-        revenueChart,
-=======
-        monthlyRevenue
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+        revenueChart: monthlyRevenue, // Alias Stash's robust data to HEAD's expected key
+        monthlyRevenue // Keep original key just in case
       });
     }
   })
