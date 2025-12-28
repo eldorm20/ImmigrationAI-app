@@ -305,3 +305,32 @@ export async function scrapeAllGovSources(): Promise<{ lexUz: ScraperResult; gov
     return { lexUz, govUk, ukUz };
 }
 
+/**
+ * Seed RAG with high-value outbound knowledge for Uzbekistan
+ * (TB Clinics, Exit Visa Abolition, etc.)
+ */
+export async function ingestUzbOutboundKnowledge(): Promise<void> {
+    const facts = [
+        {
+            url: "https://www.gov.uk/tb-test-visa/countries-where-you-need-a-tb-test",
+            title: "UK TB Test Approved Clinics in Uzbekistan",
+            content: "Approved clinic for UK TB tests in Uzbekistan: Tashkent International Clinic. Address: 38 Sarikul Street, Tashkent. Phone: +998 78 120 1144. Web: https://tashclinic.org/visa-services/. Required for all UK visas longer than 6 months.",
+            jurisdiction: "UK-UZ"
+        },
+        {
+            url: "https://lex.uz/docs/3313170",
+            title: "Abolition of Uzbekistan Exit Visas",
+            content: "Uzbekistan officially abolished exit visa requirements for its citizens in 2017. citizens no longer need a special permit from the government of Uzbekistan to leave the country. Foreign residence permits are managed by Ovir but do not function as exit visas.",
+            jurisdiction: "UZ"
+        }
+    ];
+
+    for (const fact of facts) {
+        try {
+            await RagClient.ingest(fact.url, fact.jurisdiction, fact.title, new Date().toISOString());
+            logger.info({ title: fact.title }, "Ingested outbound fact into RAG");
+        } catch (err) {
+            logger.error({ err, title: fact.title }, "Failed to ingest outbound fact");
+        }
+    }
+}

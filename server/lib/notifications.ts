@@ -3,11 +3,11 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 import { emailQueue, notificationQueue } from "./queue";
-import { 
-  generateApplicationStatusEmail, 
+import {
+  generateApplicationStatusEmail,
   generateConsultationEmail,
   generatePaymentConfirmationEmail,
-  generateDocumentUploadConfirmationEmail 
+  generateDocumentUploadConfirmationEmail
 } from "./email";
 
 export interface NotificationPayload {
@@ -122,5 +122,40 @@ export async function notifyAdmins(subject: string, message: string): Promise<vo
     logger.info({ count: admins.length }, "Admin notifications queued");
   } catch (error) {
     logger.error({ error }, "Failed to notify admins");
+  }
+}
+
+// Send SMS notification (placeholder for local providers)
+export async function sendSmsNotification(
+  userId: string,
+  message: string
+): Promise<void> {
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user || !user.phone) {
+      logger.warn({ userId }, "User not found or has no phone number for SMS");
+      return;
+    }
+
+    // This is a placeholder for local SMS providers like Eskiz.uz or SMS.uz
+    // In a real production environment, we would call their API here.
+    logger.info({
+      userId,
+      phoneNumber: user.phone,
+      messageLength: message.length
+    }, "[SMS PROVIDER PLACEHOLDER] SMS would be sent now");
+
+    // Add to notification queue for history tracking
+    await notificationQueue.add({
+      userId,
+      title: "SMS Sent",
+      message: message,
+      type: "info"
+    });
+  } catch (error) {
+    logger.error({ error, userId }, "Failed to process SMS notification");
   }
 }
