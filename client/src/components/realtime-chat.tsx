@@ -70,15 +70,9 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
   }, [onlineUsers, recipientId]);
 
   // Fetch conversation history
-<<<<<<< HEAD
-  const { data: historyData } = useQuery<{ messages: ChatMessage[] }>({
-    queryKey: [`/messages/conversation/${recipientId}`],
-    enabled: !!recipientId,
-=======
   const { data: conversationData, isLoading, refetch } = useQuery<{ user: any; messages: ChatMessage[] }>({
-    queryKey: ["/messages/conversation", recipientId],
+    queryKey: [`/messages/conversation/${recipientId}`],
     enabled: !!recipientId && !!user,
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
   });
 
   const historyData = conversationData;
@@ -133,26 +127,16 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
       const ts = msg.timestamp || (msg as any).createdAt;
       messageMap.set(msg.id, {
         ...msg,
-<<<<<<< HEAD
-        timestamp: safeDate(msg.timestamp) // Ensure valid date object
-=======
-        timestamp: ts ? new Date(ts) : new Date() // Ensure date object
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+        timestamp: safeDate(ts) // Ensure valid date object
       });
     });
 
     // Add/Overwrite with live messages
     liveMessages.forEach(msg => {
-<<<<<<< HEAD
-      messageMap.set(msg.id, {
-        ...msg,
-        timestamp: safeDate(msg.timestamp)
-=======
       const ts = msg.timestamp || (msg as any).createdAt;
       messageMap.set(msg.id, {
         ...msg,
-        timestamp: ts ? new Date(ts) : new Date()
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+        timestamp: safeDate(ts)
       });
     });
 

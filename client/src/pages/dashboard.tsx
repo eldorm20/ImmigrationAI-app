@@ -3,19 +3,13 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-<<<<<<< HEAD
 import { error as logError } from "@/lib/logger";
 import {
   LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
   Loader2,
   Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users,
-  Target, CalendarClock, Gift, Sparkles, CheckCircle, Circle, ArrowRight, Zap
-=======
-import { apiRequest } from "@/lib/api";
-import {
-  LayoutDashboard, FileText, MessageSquare, LogOut, Book, Settings, CreditCard, Bell, BadgeCheck,
-  Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical, Users, Shield, BrainCircuit, Menu, X, Building
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+  Target, CalendarClock, Gift, Sparkles, CheckCircle, Circle, ArrowRight, Zap,
+  Shield, BrainCircuit, Menu, X, Building
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
@@ -25,20 +19,13 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 import ConsultationPanel from "@/components/consultation-panel";
 import MessagingPanel from "@/components/messaging-panel";
-import { AIDocsView } from "@/components/dashboard/ai-docs-view";
-import { ChatView } from "@/components/dashboard/chat-view";
-import { TranslateView } from "@/components/dashboard/translate-view";
-import { UploadView } from "@/components/dashboard/upload-view";
+
 import { VisaPredictorView } from "@/components/dashboard/visa-predictor-view";
 import { DeadlineTrackerView } from "@/components/dashboard/deadline-tracker-view";
 import { OCRUploadView } from "@/components/dashboard/ocr-upload-view";
 import { DocumentsView } from "@/components/dashboard/documents-view";
 import ReferralView from "@/components/dashboard/referral-view";
 
-<<<<<<< HEAD
-
-
-=======
 import { AgencyView } from "@/components/dashboard/AgencyView";
 import { RoadmapView } from "@/components/dashboard/RoadmapView";
 import { AIDocsView } from "@/components/dashboard/AIDocsView";
@@ -50,7 +37,6 @@ import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
 import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import CompanySearch from "@/pages/lawyer/company-check";
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
 export default function UserDash() {
   const { user, logout } = useAuth();
@@ -185,24 +171,8 @@ export default function UserDash() {
           </button>
         </div>
 
-<<<<<<< HEAD
-        <nav className="flex-1 px-4 space-y-2">
-          {[
-            { id: 'roadmap', icon: LayoutDashboard, label: t.dash.roadmap },
-            { id: 'tasks', icon: CheckCircle, label: 'My Tasks' },
-            { id: 'documents', icon: FolderOpen, label: 'My Files' },
-            { id: 'docs', icon: Sparkles, label: 'AI Generator' },
-            { id: 'lawyer', icon: Briefcase, label: t.dash.lawyer },
-            { id: 'messages', icon: Send, label: t.dash.messages },
-            { id: 'tools', icon: Settings, label: 'Tools' }, // Simple group label? No, assume user knows
-            { id: 'translate', icon: Globe, label: t.dash.translate },
-            { id: 'predictor', icon: Target, label: 'Visa Predictor' },
-            { id: 'employer', icon: BadgeCheck, label: 'Company Check' },
-          ].map(item => (
-=======
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
           {navItems.map(item => (
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
             <motion.button
               key={item.id}
               onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
@@ -310,21 +280,16 @@ export default function UserDash() {
           {activeTab === 'tasks' && <ClientTasksView key="tasks" />}
           {activeTab === 'predictor' && <VisaPredictorView key="predictor" />}
           {activeTab === 'docs' && <AIDocsView key="docs" />}
-<<<<<<< HEAD
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'documents' && <DocumentsView key="documents" />}
-=======
           {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
           {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
           {activeTab === 'gov' && <GovChecksView key="gov" />}
           {activeTab === 'trainer' && <InterviewTrainerView key="trainer" />}
           {activeTab === 'upload' && <UploadView key="upload" />}
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
           {activeTab === 'translate' && <TranslateView key="translate" />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
-<<<<<<< HEAD
-=======
           {activeTab === 'agency' && <AgencyView key="agency" />}
           {activeTab === 'companies' && <CompanySearch />}
           {activeTab === 'research' && (
@@ -341,7 +306,6 @@ export default function UserDash() {
               </AnimatedCard>
             </motion.div>
           )}
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
         </AnimatePresence>
       </main>
     </div>
@@ -368,154 +332,7 @@ interface RoadmapItem {
   desc?: string;
 }
 
-const RoadmapView = ({ setActiveTab, toast }: { setActiveTab: (tab: string) => void; toast: ToastHandler }) => {
-  const { user } = useAuth();
-  const { t } = useI18n();
-  const [application, setApplication] = useState<ApplicationSummary | null>(null);
-  const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
 
-  useEffect(() => {
-    const loadRoadmapData = async () => {
-      try {
-        setLoading(true);
-        // Fetch user's applications (supports paginated response or array)
-        const appsResp: any = await apiRequest('/applications');
-        const appArray = Array.isArray(appsResp) ? appsResp : appsResp.applications || [];
-        if (appArray && appArray.length > 0) {
-          const activeApp = appArray[0]; // Get first application
-          setApplication(activeApp);
-
-          // Fetch roadmap items for this application
-          const items = await apiRequest<RoadmapItem[]>(`/roadmap/application/${activeApp.id}`);
-          setRoadmapItems(items || []);
-
-          // Calculate progress
-          const completed = (items || []).filter((i) => i.status === 'completed').length;
-          const total = (items || []).length || 1;
-          setProgress(Math.round((completed / total) * 100));
-        }
-      } catch (error) {
-        logError('Failed to load roadmap:', error);
-        toast({
-          title: "Error loading roadmap",
-          description: "Could not load application progress.",
-          variant: "destructive"
-        });
-        setProgress(35); // Fallback for demo
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRoadmapData();
-  }, []);
-
-  if (loading) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-        <AnimatedCard>
-          <div className="flex items-center justify-center p-12">
-            <Loader2 className="animate-spin" />
-          </div>
-        </AnimatedCard>
-      </motion.div>
-    );
-  }
-
-  const items = roadmapItems.length > 0 ? roadmapItems : [
-    { title: t.roadmap?.eligibility || 'Eligibility Assessment', status: 'done', description: t.roadmap?.defaults?.eligibilityDesc || 'Passed with 85 points' },
-    { title: t.roadmap?.collection || 'Document Collection', status: 'current', description: t.roadmap?.defaults?.collectionDesc || 'Passport, Degree, TB Test' },
-    { title: t.roadmap?.translation || 'Official Translation', status: 'pending', description: t.roadmap?.defaults?.translationDesc || 'Notarized translations required' },
-    { title: t.roadmap?.submission || 'Visa Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Home Office portal' }
-  ];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="space-y-8"
-    >
-      <AnimatedCard className="border-l-4 border-brand-500 bg-gradient-to-r from-white to-brand-50/30 dark:from-slate-900 dark:to-brand-900/10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h3 className="font-bold text-xl flex items-center gap-2 text-slate-900 dark:text-white">
-              {application?.visaType || 'Skilled Worker Visa'} ({application?.country || 'UK'})
-              <span className="bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">{application?.status || 'In Progress'}</span>
-            </h3>
-            <p className="text-slate-500 mt-1">{t.roadmap?.applicationReference || 'Application Reference:'} #{application?.id?.slice(0, 8).toUpperCase() || 'UK-SW-2025-8842'}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-extrabold text-brand-600 dark:text-brand-400">{progress}%</div>
-            <div className="text-xs font-bold text-slate-400 uppercase">{t.roadmap?.completionLabel || 'Completion'}</div>
-          </div>
-        </div>
-
-        <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 mb-6 overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 1.5, ease: "easeOut" }}
-            className="bg-gradient-to-r from-brand-500 to-purple-500 h-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] relative"
-          >
-            <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12"></div>
-          </motion.div>
-        </div>
-
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
-          <Zap size={16} className="text-yellow-500 fill-yellow-500" />
-          {t.roadmap?.nextStepLabel || 'Next Step:'} <span className="font-bold">{items.find(i => i.status === 'current')?.title || (t.roadmap?.defaults?.submissionDesc || 'Complete Application')}</span>
-        </p>
-      </AnimatedCard>
-
-      <div className="grid gap-4">
-        {items.map((step: RoadmapItem, i: number) => (
-          <AnimatedCard
-            key={i}
-            delay={i * 0.1}
-            className={`p-0 overflow-hidden transition-all cursor-pointer ${step.status === 'current' ? 'ring-2 ring-brand-500 ring-offset-2 dark:ring-offset-slate-950' : 'opacity-80 hover:opacity-100'} ${step.status !== 'pending' ? 'hover:shadow-lg' : ''}`}
-            onClick={() => step.status !== 'pending' && (
-              step.title.includes('Document') ? setActiveTab('upload') :
-                step.title.includes('Translation') ? setActiveTab('translate') : null
-            )}
-          >
-            <div className={`p-5 flex items-center gap-5 ${step.status === 'current' ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/50 dark:bg-slate-900/50'}`}>
-              {step.status === 'done' || step.status === 'completed' ? (
-                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center shadow-sm">
-                  <CheckCircle size={20} />
-                </div>
-              ) : step.status === 'current' ? (
-                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm relative">
-                  <div className="absolute inset-0 bg-brand-500 rounded-full opacity-20 animate-ping"></div>
-                  <Loader2 size={20} className="animate-spin" />
-                </div>
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-                  <Circle size={20} />
-                </div>
-              )}
-
-              <div className="flex-1">
-                <h4 className={`font-bold text-lg ${step.status === 'pending' ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{step.title}</h4>
-                <p className="text-sm text-slate-500">{step.description || step.desc}</p>
-              </div>
-
-              {step.status === 'current' && (
-                <LiveButton size="sm" className="h-10 px-6 text-sm" onClick={() => {
-                  toast({
-                    title: t.tools?.nextStep || "Next Step",
-                    description: `${t.roadmap?.starting || 'Starting'} ${step.title}...`,
-                    className: "bg-blue-50 text-blue-900 border-blue-200"
-                  });
-                }}>
-                  {t.tools?.next || 'Next'} <ArrowRight size={16} />
-                </LiveButton>
-              )}
-            </div>
-          </AnimatedCard>
-        ))}
-      </div>
-    </motion.div>
-  );
-};
 
 import { EmployerVerificationPanel } from "@/components/employer-verification-panel";
 
@@ -592,4 +409,3 @@ const ClientTasksView = () => {
     </AnimatedCard>
   );
 };
-

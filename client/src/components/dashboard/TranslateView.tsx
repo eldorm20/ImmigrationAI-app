@@ -33,12 +33,10 @@ export const TranslateView = () => {
 
         setTranslating(true);
         try {
-<<<<<<< HEAD
+
 
             const resp = await apiRequest<{ translation: string }>("/api/translate", {
-=======
-            const resp = await apiRequest<{ translation: string }>("/translate", {
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+
                 method: "POST",
                 body: JSON.stringify({ text, source: fromLang, target: toLang }),
             });

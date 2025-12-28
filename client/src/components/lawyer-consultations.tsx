@@ -30,11 +30,7 @@ interface Consultation {
   applicationId?: string;
   scheduledTime: string;
   duration: number;
-<<<<<<< HEAD
-  status: "pending" | "scheduled" | "completed" | "cancelled" | "no_show";
-=======
-  status: "scheduled" | "completed" | "cancelled" | "no_show" | "accepted";
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
+  status: "pending" | "scheduled" | "completed" | "cancelled" | "no_show" | "accepted";
   notes?: string;
   meetingLink?: string;
   createdAt: string;
@@ -77,11 +73,7 @@ export default function LawyerConsultations() {
         setLoading(true);
         const data = await apiRequest<Consultation[]>("/consultations");
         setConsultations(data || []);
-<<<<<<< HEAD
 
-        // ... user fetching code
-=======
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
       } catch (error: unknown) {
         // ... error handling
       } finally {
@@ -238,17 +230,6 @@ export default function LawyerConsultations() {
     );
   };
 
-<<<<<<< HEAD
-  // ...
-
-  return (
-    <div className="space-y-6">
-      {/* ... Header ... */}
-=======
-  const filteredConsultations = consultations.filter((c) =>
-    filterStatus === "all" ? true : c.status === filterStatus
-  );
-
   const handleClearHistory = async () => {
     if (!confirm(t.consultation?.confirmClearHistory || "Are you sure you want to clear your consultation history? This will remove all completed and cancelled consultations.")) return;
     try {
@@ -296,7 +277,6 @@ export default function LawyerConsultations() {
           {filteredConsultations.length} {t.lawyerDashboard?.consultations || t.lawyer?.consultations || (filterStatus === "scheduled" ? "pending" : filterStatus)}
         </div>
       </div>
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
 
       {/* Status Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4">

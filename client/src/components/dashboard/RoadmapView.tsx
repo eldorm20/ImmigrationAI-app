@@ -82,15 +82,6 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
     }
 
     const items = roadmapItems.length > 0 ? roadmapItems : [
-<<<<<<< HEAD
-
-        { title: t.roadmap?.assessment || 'Assessment Complete', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated, visa route identified' },
-        { title: t.roadmap?.documents || 'Documents Uploaded', status: 'current', description: t.roadmap?.defaults?.documentsDesc || 'Upload passport, degree, work experience proof' },
-        { title: t.roadmap?.aiReview || 'AI Document Review', status: 'pending', description: t.roadmap?.defaults?.aiReviewDesc || 'Automated verification and compliance check' },
-        { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional consultation and case review' },
-        { title: t.roadmap?.employerVerification || 'Employer Verification', status: 'pending', description: t.roadmap?.defaults?.employerDesc || 'Sponsor company registry validation' },
-        { title: t.roadmap?.submission || 'Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission to immigration authority' }
-=======
         { title: t.roadmap?.assessment || 'Assessment Complete', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated' },
         { title: t.simulator?.title || 'Visa Simulator', status: 'done', description: t.simulator?.desc || 'Success probability check' },
         { title: t.roadmap?.documents || 'Documents Uploaded', status: 'done', description: t.roadmap?.defaults?.documentsDesc || 'Essential documentation' },
@@ -99,7 +90,6 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
         { title: t.voice?.title || 'Interview Prep', status: 'pending', description: t.voice?.desc || 'AI-guided mock interviews' },
         { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional case review' },
         { title: t.roadmap?.submission || 'Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission' }
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
     ];
 
     const currentStep = items.find(i => i.status === 'current') || items[0];
@@ -186,8 +176,8 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                             key={i}
                             delay={i * 0.05}
                             className={`group relative p-0 overflow-hidden transition-all rounded-[2.5rem] border-none shadow-sm hover:shadow-xl ${step.status === 'current'
-                                    ? 'bg-white dark:bg-slate-800 ring-2 ring-brand-500 ring-offset-4 dark:ring-offset-slate-950 scale-105 z-10'
-                                    : 'bg-white/40 dark:bg-slate-900/40 opacity-70 hover:opacity-100 hover:scale-[1.01]'
+                                ? 'bg-white dark:bg-slate-800 ring-2 ring-brand-500 ring-offset-4 dark:ring-offset-slate-950 scale-105 z-10'
+                                : 'bg-white/40 dark:bg-slate-900/40 opacity-70 hover:opacity-100 hover:scale-[1.01]'
                                 }`}
                             onClick={() => {
                                 if (step.title.includes('Document') && step.title.includes('Review')) setActiveTab('docs');
@@ -202,10 +192,10 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                         >
                             <div className="flex items-center gap-6 p-6">
                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${step.status === 'done' || step.status === 'completed'
-                                        ? 'bg-green-500 text-white shadow-green-500/20'
-                                        : step.status === 'current'
-                                            ? 'bg-brand-600 text-white shadow-brand-500/20 relative'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                    ? 'bg-green-500 text-white shadow-green-500/20'
+                                    : step.status === 'current'
+                                        ? 'bg-brand-600 text-white shadow-brand-500/20 relative'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                                     }`}>
                                     {step.status === 'done' || step.status === 'completed' ? (
                                         <CheckCircle size={24} />

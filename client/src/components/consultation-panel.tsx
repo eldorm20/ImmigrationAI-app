@@ -251,7 +251,6 @@ export default function ConsultationPanel() {
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
-<<<<<<< HEAD
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <User className="w-6 h-6 text-brand-600 dark:text-brand-400" />
@@ -260,33 +259,26 @@ export default function ConsultationPanel() {
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Connect with immigration experts</p>
         </div>
 
-        {fetchError && (
-          <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800">{t.error?.message || 'Failed to load consultations'}</div>
-        )}
-        <LiveButton
-          variant="primary"
-=======
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">{t.consultation.title}</h2>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        <div className="flex items-center gap-3">
+          {fetchError && (
+            <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-800">{t.error?.message || 'Failed to load consultations'}</div>
+          )}
+          <LiveButton
+            variant="ghost"
             onClick={handleClearHistory}
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm font-medium border border-red-100 dark:border-red-800"
+            className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} className="mr-2" />
             {t.consultation?.clearHistory || "Clear History"}
-          </motion.button>
+          </LiveButton>
+          <LiveButton
+            variant="primary"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2"
+          >
+            {t.consultation?.requestConsultation || 'New Request'}
+          </LiveButton>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
->>>>>>> 7c4e79e6df8eb2a17381cadf22bb67ab1aaf9720
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
-        >
-          {t.consultation?.requestConsultation || 'New Request'}
-        </LiveButton>
       </div>
 
       {/* Request Modal */}
