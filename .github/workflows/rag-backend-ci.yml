@@ -1,0 +1,39 @@
+name: rag-backend CI
+
+on:
+  pull_request:
+    paths:
+      - 'rag-backend/**'
+
+jobs:
+  test-rag-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          cd rag-backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run rag-backend tests
+        run: |
+          cd rag-backend
+          # Start the FastAPI server in background
+          uvicorn main:app --host 127.0.0.1 --port 8000 &
+          # Give server time to start
+          sleep 5
+          echo "Checking /health endpoint..."
+          # Fail early if /health is not reporting OK
+          if ! curl --fail http://127.0.0.1:8000/health; then
+            echo "RAG backend /health probe failed" >&2
+            exit 2
+          fi
+          echo "/health OK — running tests"
+          python tests.py
