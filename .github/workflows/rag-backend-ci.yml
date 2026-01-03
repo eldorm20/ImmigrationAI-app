@@ -25,15 +25,33 @@ jobs:
       - name: Run rag-backend tests
         run: |
           cd rag-backend
-          # Start the FastAPI server in background
-          uvicorn main:app --host 127.0.0.1 --port 8000 &
-          # Give server time to start
-          sleep 5
-          echo "Checking /health endpoint..."
-          # Fail early if /health is not reporting OK
-          if ! curl --fail http://127.0.0.1:8000/health; then
-            echo "RAG backend /health probe failed" >&2
+          # Start the FastAPI server in background, capture logs
+          uvicorn main:app --host 127.0.0.1 --port 8000 > rag-backend.log 2>&1 &
+          PID=$!
+
+          echo "Waiting for /health to become available (timeout 60s)"
+          # Poll /health until available or timeout
+          ATTEMPTS=60
+          SLEEP=1
+          OK=1
+          for i in $(seq 1 $ATTEMPTS); do
+            if curl --silent --fail http://127.0.0.1:8000/health >/dev/null 2>&1; then
+              OK=0
+              echo "/health OK after ${i}s"
+              break
+            fi
+            sleep $SLEEP
+          done
+
+          if [ $OK -ne 0 ]; then
+            echo "RAG backend /health probe failed after ${ATTEMPTS}s" >&2
+            echo "--- rag-backend.log ---"
+            tail -n +1 rag-backend.log || true
+            kill $PID || true
             exit 2
           fi
+
           echo "/health OK — running tests"
           python tests.py
+          # cleanup
+          kill $PID || true

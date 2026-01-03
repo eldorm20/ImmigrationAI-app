@@ -16,13 +16,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright tests
+      - name: Install dependencies (client)
+        run: |
+          cd client
+          npm ci
+      - name: Install Playwright browsers (client)
+        run: |
+          cd client
+          npx playwright install --with-deps
+      - name: Run Playwright tests (client)
         run: |
           echo "Running Playwright tests..."
+          cd client
           npx playwright test
         env:
           BASE_URL: ${{ secrets.BASE_URL || 'https://immigrationai-app-production-b994.up.railway.app' }}
