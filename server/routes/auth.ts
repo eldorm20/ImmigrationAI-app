@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { sendEmail, generatePasswordResetEmail } from "../lib/email";
+import { generatePasswordResetEmail } from "../lib/email";
 import {
   hashPassword,
   verifyPassword,
@@ -19,7 +19,7 @@ import { authenticate } from "../middleware/auth";
 import { authLimiter, normalizeEmail, sanitizeInput } from "../middleware/security";
 import { asyncHandler } from "../middleware/errorHandler";
 import { auditLog, logger } from "../lib/logger";
-import { emailQueue } from "../lib/queue";
+import { enqueueJob } from "../lib/queue";
 
 const router = Router();
 
@@ -110,7 +110,7 @@ router.post(
         const appUrl = process.env.APP_URL || "http://localhost:5000";
         const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
         const html = `Please verify your email by visiting: <a href="${verificationUrl}">${verificationUrl}</a>`;
-        await emailQueue.add({ to: newUser.email, subject: "Verify your ImmigrationAI account", html });
+        await enqueueJob(newUser.id, "email", { to: newUser.email, subject: "Verify your ImmigrationAI account", html });
       } catch (err) {
         logger.error({ error: err }, "Failed to queue verification email");
       }
@@ -361,7 +361,7 @@ router.post(
     const html = generatePasswordResetEmail(resetToken, appUrl);
 
     try {
-      await emailQueue.add({
+      await enqueueJob(user.id, "email", {
         to: user.email,
         subject: "Password Reset Request - ImmigrationAI",
         html,

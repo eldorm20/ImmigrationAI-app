@@ -5,7 +5,7 @@ import { messages, users } from "@shared/schema";
 import { eq, and, or, desc } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { emailQueue } from "../lib/queue";
+import { enqueueJob } from "../lib/queue";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -57,10 +57,10 @@ router.post(
     // Queue email notification
     try {
       const sender = await db.query.users.findFirst({ where: eq(users.id, senderId) });
-      await emailQueue.add("send_message_notification", {
-        recipientEmail: recipient.email,
-        senderName: sender?.firstName || sender?.email || "User",
-        messagePreview: body.content.substring(0, 100),
+      await enqueueJob(senderId, "email", {
+        to: recipient.email,
+        subject: `New Message from ${sender?.firstName || "User"}`,
+        html: `<div style="font-family: sans-serif;"><h2>New Message</h2><p>You have a new message from <strong>${sender?.firstName || "User"}</strong>:</p><blockquote style="border-left: 4px solid #eee; padding-left: 15px; font-style: italic;">${body.content.substring(0, 200)}${body.content.length > 200 ? '...' : ''}</blockquote><p>Log in to your dashboard to reply.</p></div>`,
       });
     } catch (error) {
       logger.warn({ error }, "Failed to queue message notification");

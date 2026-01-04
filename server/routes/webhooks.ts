@@ -5,7 +5,7 @@ import { users, payments, subscriptions } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { emailQueue } from "../lib/queue";
+import { enqueueJob } from "../lib/queue";
 import { generatePaymentConfirmationEmail } from "../lib/email";
 import type Stripe from "stripe";
 
@@ -80,18 +80,15 @@ router.post(
 
             if (user) {
               // Queue payment confirmation email
-              await emailQueue.add(
-                {
-                  to: user.email,
-                  subject: "Payment Confirmation - ImmigrationAI",
-                  html: generatePaymentConfirmationEmail(
-                    "Application Fee",
-                    `$${(paymentIntent.amount / 100).toFixed(2)}`,
-                    new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000)
-                  ),
-                },
-                { jobId: `payment-${paymentIntent.id}` }
-              );
+              await enqueueJob(user.id, "email", {
+                to: user.email,
+                subject: "Payment Confirmation - ImmigrationAI",
+                html: generatePaymentConfirmationEmail(
+                  "Application Fee",
+                  `$${(paymentIntent.amount / 100).toFixed(2)}`,
+                  new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000)
+                ),
+              });
 
               logger.info({ userId, paymentId: paymentIntent.id }, "Payment succeeded");
             }

@@ -8,7 +8,7 @@ import { isValidCountryCode, isValidVisaType, sanitizeInput } from "../middlewar
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { auditLog } from "../lib/logger";
 import { logger } from "../lib/logger";
-import { emailQueue } from "../lib/queue";
+import { enqueueJob } from "../lib/queue";
 import { generateApplicationStatusEmail } from "../lib/email";
 import { encryptSensitiveData, decryptSensitiveData } from "../lib/security";
 
@@ -461,17 +461,14 @@ router.patch(
         const applicant = await db.query.users.findFirst({
           where: eq(users.id, application.userId),
         });
-        await emailQueue.add(
-          "status-update",
-          {
-            to: applicant?.email || "",
-            applicationId: id,
-            oldStatus: application.status,
-            newStatus: body.status,
-            html: `Your application status changed from ${application.status} to ${body.status}`,
-          },
-          { jobId: `app-status-${id}-${Date.now()}` }
-        );
+        await enqueueJob(userId, "email", {
+          to: applicant?.email || "",
+          subject: "Application Status Update",
+          html: generateApplicationStatusEmail(body.status, applicant?.firstName || "Applicant", id),
+          applicationId: id,
+          oldStatus: application.status,
+          newStatus: body.status,
+        });
       } catch (emailError) {
         // Don't fail the request if email fails
         logger.error({ error: emailError, applicationId: id }, "Failed to send status update email");
@@ -618,17 +615,13 @@ router.post(
     }
 
     // 3. Notify
-    await emailQueue.add(
-      "status-update",
-      {
-        to: req.user!.email || "", // Notify applicant
-        applicationId: id,
-        oldStatus: application.status,
-        newStatus: "submitted",
-        html: `Your application has been successfully submitted to our legal team!`,
-      },
-      { jobId: `app-submit-${id}-${Date.now()}` }
-    );
+    await enqueueJob(userId, "email", {
+      to: req.user!.email || "", // Notify applicant
+      subject: "Application Submitted",
+      html: `<h2>Application Submitted</h2>Your application has been successfully submitted to our legal team!`,
+      applicationId: id,
+      newStatus: "submitted",
+    });
 
     await auditLog(userId, "application.submit", "application", id, { completeness }, req);
 
@@ -698,20 +691,16 @@ router.post(
 
       if (applicant?.email) {
         const actionText = action === "approve" ? "approved" : action === "reject" ? "rejected" : "requires changes";
-        await emailQueue.add(
-          "lawyer-review",
-          {
-            to: applicant.email,
-            subject: `Application ${actionText}`,
-            html: `
+        await enqueueJob(userId, "email", {
+          to: applicant.email,
+          subject: `Application ${actionText}`,
+          html: `
               <h2>Your Application Has Been Reviewed</h2>
               <p>Your ${application.visaType} visa application has been <strong>${actionText}</strong>.</p>
               ${feedback ? `<p><strong>Lawyer Feedback:</strong> ${feedback}</p>` : ''}
               <p>Log in to view full details.</p>
             `,
-          },
-          { jobId: `review-${id}-${Date.now()}` }
-        );
+        });
       }
     } catch (emailError) {
       logger.error({ error: emailError, applicationId: id }, "Failed to send review notification");

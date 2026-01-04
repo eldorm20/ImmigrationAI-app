@@ -11,7 +11,6 @@ import fs from "fs";
 import path from "path";
 import { testConnection } from "./db";
 import { checkRedisConnection, closeRedis } from "./lib/redis";
-import { closeQueues } from "./lib/queue";
 import { runMigrationsIfNeeded } from "./lib/runMigrations";
 import { setupSocketIO } from "./lib/socket";
 import { setupVideoSignaling } from "./routes/video";
@@ -280,8 +279,7 @@ app.get("/health", async (_req, res) => {
 
       httpServer.close(async () => {
         try {
-          await closeQueues();
-          logger.info("Queues closed");
+          logger.info("Queues closed (No action needed)");
         } catch (err) {
           logger.error({ err }, "Error closing queues");
         }

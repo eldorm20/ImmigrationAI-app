@@ -6,7 +6,7 @@ import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { validateBody } from "../middleware/validate";
 import { logger } from "../lib/logger";
-import { sendEmail } from "../lib/email";
+import { enqueueJob } from "../lib/queue";
 
 const router = Router();
 
@@ -157,7 +157,7 @@ router.post(
                 return res.status(404).json({ message: "Client not found" });
             }
 
-            const success = await sendEmail({
+            await enqueueJob(lawyerId, "email", {
                 to: applicant.email,
                 subject: `Payment Reminder: Invoice #${invoice.id.slice(0, 8).toUpperCase()}`,
                 html: `
@@ -183,10 +183,6 @@ router.post(
             </div>
             `
             });
-
-            if (!success) {
-                return res.status(500).json({ message: "Failed to send email via Resend" });
-            }
 
             res.json({ message: "Reminder sent successfully" });
         } catch (error) {
