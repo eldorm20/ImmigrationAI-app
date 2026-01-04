@@ -35,6 +35,7 @@ import ClientPortfolio from "@/components/lawyer/ClientPortfolio";
 import DocumentTemplates from '@/components/lawyer/DocumentTemplates';
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import CompanySearch from "@/pages/lawyer/company-check";
+import { LiveButton, AnimatedCard, StaggerContainer } from "@/components/ui/live-elements";
 
 // --- Types & Components ---
 
@@ -80,7 +81,7 @@ interface ActionButtonProps {
 
 
 
-import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+
 
 const ActionButton: React.FC<ActionButtonProps> = ({ children, onClick, variant = 'primary', className = '', icon, disabled }) => (
   <LiveButton
@@ -628,7 +629,7 @@ export default function LawyerDashboard() {
             )}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {statsLoading && !stats ? (
                 // Loading skeleton
                 <>
@@ -647,13 +648,82 @@ export default function LawyerDashboard() {
                   <StatCard title={t.lawyerDashboard?.approved || t.lawyer?.approved || "Approved"} value={stats?.approvedLeads ?? leads.filter(l => l.status === 'Approved').length} icon={CheckCircle} color="purple" trend="+5%" />
                 </>
               )}
-            </div>
+            </StaggerContainer>
+
+            {/* Policy Updates & AI Summary Section */}
+            {(policyUpdates || stats) && (
+              <StaggerContainer className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+                <div className="lg:col-span-2 space-y-6">
+                  {policyUpdates && (
+                    <AnimatedCard className="bg-brand-50/30 dark:bg-brand-900/10 border-brand-200/50 dark:border-brand-800/50 p-8 rounded-[32px] relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-16 bg-brand-500/10 rounded-full blur-3xl -mr-8 -mt-8"></div>
+                      <div className="flex items-center justify-between mb-6 relative z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-brand-600 text-white rounded-2xl shadow-lg shadow-brand-500/20">
+                            <Zap size={24} className="fill-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-xl text-slate-900 dark:text-white">{t.lawyerDashboard?.policyUpdatesTitle || 'UK Immigration Policy Updates'}</h4>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t.lawyerDashboard?.dailySummary || 'Daily Automated Summary'}</p>
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-black bg-white dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 uppercase tracking-widest">
+                          Live
+                        </div>
+                      </div>
+                      <div className="space-y-4 relative z-10">
+                        {policyUpdates.split('\n').filter(l => l.trim()).map((line, i) => (
+                          <div key={i} className="flex gap-4 items-start p-4 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-2xl transition-all border border-transparent hover:border-brand-500/10">
+                            <div className="mt-1 w-2 h-2 rounded-full bg-brand-500 shrink-0 shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{line.replace(/^-\s*/, '')}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-8 flex justify-end relative z-10">
+                        <LiveButton variant="ghost" size="sm" className="font-black text-[10px] tracking-widest uppercase" icon={ArrowUpRight}>
+                          {t.lawyerDashboard?.viewRegulatoryChanges || 'View All Regulatory Changes'}
+                        </LiveButton>
+                      </div>
+                    </AnimatedCard>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  <AnimatedCard className="bg-indigo-600 text-white p-8 rounded-[32px] shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-20 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] mb-8 opacity-80">{t.lawyerDashboard?.caseLoadBalance || 'AI Case Load Balance'}</h4>
+                    <div className="space-y-6 relative z-10">
+                      <div>
+                        <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-2">
+                          <span>{t.lawyerDashboard?.capacityUtilization || 'Capacity Utilization'}</span>
+                          <span>78%</span>
+                        </div>
+                        <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: "78%" }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                            className="h-full bg-white rounded-full"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs font-medium leading-relaxed opacity-90 italic">
+                        "{t.lawyerDashboard?.throughputHigher?.replace('{percent}', '12').replace('{count}', '3') || 'Your current throughput is 12% higher than last week. Consider delegating 3 pending reviews.'}"
+                      </p>
+                      <LiveButton variant="glass" className="w-full text-[10px] font-black tracking-widest uppercase border-white/20">
+                        {t.lawyerDashboard?.optimizeWorkflow || 'Optimize Workflow'}
+                      </LiveButton>
+                    </div>
+                  </AnimatedCard>
+                </div>
+              </StaggerContainer>
+            )}
 
             {/* Quick Actions for lawyers */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <h4 className="font-bold mb-2">{t.lawyerDashboard?.quickActions || 'Quick Actions'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Common tasks to speed up your workflow</p>
+                <p className="text-sm text-slate-500 mb-4">{t.lawyerDashboard?.quickActionsDesc || 'Common tasks to speed up your workflow'}</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
                     // Open messaging panel
@@ -676,7 +746,7 @@ export default function LawyerDashboard() {
 
               <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <h4 className="font-bold mb-2">{t.lawyerDashboard?.aiTools || 'AI Tools'}</h4>
-                <p className="text-sm text-slate-500 mb-4">Generate documents or run quick translations</p>
+                <p className="text-sm text-slate-500 mb-4">{t.lawyerDashboard?.aiToolsDesc || 'Generate documents or run quick translations'}</p>
                 <div className="flex flex-col gap-2">
                   <ActionButton variant="primary" onClick={() => {
                     setActiveTab('ai-docs');

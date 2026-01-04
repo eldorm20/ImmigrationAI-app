@@ -15,6 +15,7 @@ import {
   Menu,
   Video,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import VideoCall from "./video-call";
@@ -25,6 +26,7 @@ import { error as logError } from "@/lib/logger";
 
 interface Consultation {
   id: string;
+  type: 'booking' | 'inquiry';
   lawyerId: string;
   userId: string;
   applicationId?: string;
@@ -64,6 +66,10 @@ export default function LawyerConsultations() {
   const [notes, setNotes] = useState("");
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [activeCall, setActiveCall] = useState<{ roomName: string; displayName: string } | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [convertToCall, setConvertToCall] = useState(false);
+  const [isReplyingId, setIsReplyingId] = useState<string | null>(null);
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   // Fetch lawyer's consultations
   useEffect(() => {
@@ -171,6 +177,41 @@ export default function LawyerConsultations() {
         description: msg || "Failed to complete consultation",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleReply = async (consultationId: string) => {
+    if (!replyText.trim()) return;
+    try {
+      setSubmittingReply(true);
+      await apiRequest(`/consultations/${consultationId}/reply`, {
+        method: "POST",
+        body: JSON.stringify({
+          reply: replyText,
+          convertToConsultation: convertToCall
+        })
+      });
+
+      setConsultations(prev => prev.map(c =>
+        c.id === consultationId ? { ...c, status: "completed", notes: (c.notes || "") + `\n\nREPLY: ${replyText}` } : c
+      ));
+
+      setIsReplyingId(null);
+      setReplyText("");
+      setConvertToCall(false);
+
+      toast({
+        title: "Reply Sent",
+        description: "Your response has been sent to the applicant."
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to send reply",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmittingReply(false);
     }
   };
 
@@ -440,14 +481,14 @@ export default function LawyerConsultations() {
                       </div>
                     </div>
 
-                    {/* Notes */}
+                    {/* Notes / Question */}
                     {consultation.notes && (
-                      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
-                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
-                          Applicant Notes
+                      <div className={`mb-4 p-4 rounded-lg border ${consultation.type === 'inquiry' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
+                        <p className={`text-xs font-medium mb-2 ${consultation.type === 'inquiry' ? 'text-indigo-700 dark:text-indigo-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                          {consultation.type === 'inquiry' ? "Inquiry / Question" : "Applicant Notes"}
                         </p>
-                        <p className="text-sm text-blue-900 dark:text-blue-100">
-                          {consultation.notes}
+                        <p className={`text-sm ${consultation.type === 'inquiry' ? 'text-indigo-900 dark:text-indigo-100' : 'text-blue-900 dark:text-blue-100'}`}>
+                          {consultation.notes.replace('QUERY: ', '')}
                         </p>
                       </div>
                     )}
@@ -576,6 +617,59 @@ export default function LawyerConsultations() {
                             </>
                           )}
                         </>
+                      )}
+
+                      {consultation.status === "pending" && consultation.type === 'inquiry' && (
+                        <div className="w-full mt-4 flex flex-col gap-4">
+                          {isReplyingId === consultation.id ? (
+                            <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-800">
+                              <textarea
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 text-sm min-h-[120px] focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                                placeholder={t.lawyerDashboard?.typeResponse || "Type your response here..."}
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                              />
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id={`convert-${consultation.id}`}
+                                  checked={convertToCall}
+                                  onChange={(e) => setConvertToCall(e.target.checked)}
+                                  className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <label htmlFor={`convert-${consultation.id}`} className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                                  {t.lawyerDashboard?.suggestConsultation || "Suggest scheduling a consultation call"}
+                                </label>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  disabled={submittingReply || !replyText.trim()}
+                                  onClick={() => handleReply(consultation.id)}
+                                  className="px-6 py-2 bg-brand-600 text-white rounded-lg font-bold text-sm hover:bg-brand-700 disabled:opacity-50 flex items-center gap-2"
+                                >
+                                  {submittingReply ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                                  {t.lawyerDashboard?.sendResponse || "Send Response"}
+                                </button>
+                                <button
+                                  onClick={() => { setIsReplyingId(null); setReplyText(""); }}
+                                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium"
+                                >
+                                  {t.common?.cancel || "Cancel"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => setIsReplyingId(consultation.id)}
+                              className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 rounded-xl hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors text-sm font-bold border border-brand-100 dark:border-brand-800"
+                            >
+                              <MessageSquare size={18} />
+                              {t.lawyerDashboard?.replyToInquiry || "Reply to Inquiry"}
+                            </motion.button>
+                          )}
+                        </div>
                       )}
 
                       {consultation.status === "completed" && (

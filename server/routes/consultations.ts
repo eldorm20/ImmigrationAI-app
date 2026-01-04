@@ -523,4 +523,56 @@ router.delete(
   })
 );
 
+// Respond to Inquiry (Reply to question)
+router.post(
+  "/:id/reply",
+  asyncHandler(async (req, res) => {
+    const user = req.user!;
+    if (user.role !== "lawyer" && user.role !== "admin") {
+      throw new AppError(403, "Only lawyers can respond to inquiries");
+    }
+
+    const { id } = req.params;
+    const { reply, convertToConsultation } = z.object({
+      reply: z.string().min(1),
+      convertToConsultation: z.boolean().default(false)
+    }).parse(req.body);
+
+    const consultation = await db.query.consultations.findFirst({
+      where: and(eq(consultations.id, id), eq(consultations.lawyerId, user.userId)),
+      with: { user: true }
+    });
+
+    if (!consultation) throw new AppError(404, "Inquiry not found");
+
+    // Send email reply
+    try {
+      await enqueueJob(user.userId, "email", {
+        to: consultation.user.email,
+        subject: `Response to your legal inquiry`,
+        html: `
+                <h3>Legal Response</h3>
+                <p>Dear ${consultation.user.firstName || 'Client'},</p>
+                <div style="white-space: pre-wrap; margin-bottom: 20px;">${reply}</div>
+                <hr style="border: 1px solid #eee; margin: 20px 0;"/>
+                ${convertToConsultation ? `<p>The lawyer has suggested scheduling a full consultation for further discussion. <a href="${process.env.APP_URL || ''}/dashboard?tab=lawyer">Schedule Now</a></p>` : ''}
+                <p style="color: #666; font-size: 12px; margin-top: 30px;">Sent via ImmigrationAI Legal Portal</p>
+            `
+      });
+    } catch (err) {
+      logger.error({ err }, "Failed to send inquiry reply email");
+    }
+
+    // Update status to completed and append reply to notes
+    await db.update(consultations)
+      .set({
+        status: "completed",
+        notes: (consultation.notes || "") + `\n\n--- REPLY ---\n${reply}`
+      })
+      .where(eq(consultations.id, id));
+
+    res.json({ success: true });
+  })
+);
+
 export default router;

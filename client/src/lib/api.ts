@@ -123,6 +123,14 @@ export async function apiRequest<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+
+      // Retry for 5xx errors or 429
+      if ((response.status >= 500 || response.status === 429) && retryCount < 3) {
+        const delay = Math.pow(2, retryCount) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return apiRequest<T>(endpoint, options, retryCount + 1);
+      }
+
       throw new APIError(response.status, errorData);
     }
 
@@ -139,6 +147,13 @@ export async function apiRequest<T>(
         });
       }
       throw error;
+    }
+
+    // Retry for network errors or timeouts
+    if (retryCount < 3) {
+      const delay = Math.pow(2, retryCount) * 1000;
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return apiRequest<T>(endpoint, options, retryCount + 1);
     }
 
     if (error instanceof TypeError && error.message.includes("Failed to fetch")) {

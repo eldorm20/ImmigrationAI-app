@@ -483,7 +483,7 @@ LANGUAGES
 • [Native Language]`;
       }
 
-      if (template === 'Reference Letter') {
+      if (template === 'Reference Letter' || template === 'Employer Letter') {
         return `To Whom It May Concern,
 
 I am writing to provide a professional reference for ${data.name || '[Employee Name]'}, who worked with us at ${data.company || '[Company Name]'} as a ${data.role || '[Position]'}.
@@ -508,7 +508,7 @@ ${data.company || '[Company Name]'}
 ${new Date().toLocaleDateString()}`;
       }
 
-      if (template === 'Student Visa App') {
+      if (template === 'Student Visa App' || template === 'Student Letter') {
         return `PERSONAL STATEMENT FOR STUDENT VISA APPLICATION
 
 Dear Entry Clearance Officer,
@@ -533,7 +533,7 @@ Sincerely,
 ${data.name || '[Full Name]'}`;
       }
 
-      if (template === 'Tourist Visa App') {
+      if (template === 'Tourist Visa App' || template === 'Tourist Letter') {
         return `COVER LETTER FOR TOURIST VISA APPLICATION
 
 To: The Visa Officer,
@@ -563,7 +563,7 @@ Sincerely,
 ${data.name || '[Full Name]'}`;
       }
 
-      if (template === 'General Immigration Letter') {
+      if (template === 'General Immigration Letter' || template === 'Generic Letter') {
         return `TO WHOM IT MAY CONCERN
 
 Subject: Formal Representation regarding ${data.name || '[Subject Name]'}

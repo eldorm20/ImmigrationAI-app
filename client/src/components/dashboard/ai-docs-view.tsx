@@ -109,11 +109,149 @@ ${data.company || '[Company Name]'}
 ${new Date().toLocaleDateString()}`;
     };
 
-    type TemplateKey = 'Motivation Letter' | 'CV Enhancement' | 'Reference Letter';
+    const generateEmployerLetter = (data: Record<string, unknown>) => {
+        return `[Company Letterhead]
+[Company Name]
+[Address Line 1]
+[Address Line 2]
+[Postcode/ZIP]
+[Date]
+
+To: UK Visas and Immigration (UKVI) / Relevant Embassy
+
+RE: Employment Verification for ${user?.name || '[Employee Full Name]'}
+
+This letter is to confirm that ${user?.name || '[Employee Full Name]'} is currently employed with ${data.company || '[Company Name]'} in a full-time capacity.
+
+Role and Responsibilities:
+${user?.name || 'The employee'} holds the position of ${data.role || '[Job Title]'}. Their primary responsibilities include ${data.skills || '[Key Duties]'}.
+
+Salary Information:
+Their current annual gross salary is [£XXXXX].
+
+Current Status:
+${user?.name || 'The employee'} has been with us since [Date] and holds a [Permanent/Fixed-term] contract. We fully support their application for [Visa Type/Immigration Status].
+
+If you require any further information, please feel free to reach out.
+
+Yours faithfully,
+
+[Signature]
+[Name of Authorized Official]
+[Job Title of Official]
+[Contact Email/Phone]`;
+    };
+
+    const generateStudentVisaLetter = (data: Record<string, unknown>) => {
+        return `[Date]
+
+To: The Entry Clearance Officer / Visa Office
+
+RE: Personal Statement / Support Letter for Student Visa Application
+Applicant: ${user?.name || '[Your Full Name]'}
+Course: [Exact Course Name]
+Institution: [University Name]
+
+Dear Sir/Madam,
+
+I am writing this statement to support my application for a student visa to pursue [Course Name] at [University Name].
+
+Educational Background:
+I have successfully completed ${data.education || '[Your previous degree/education]'} from [Previous School/University]. My academic focus has consistently been in the field of [Field of Study], and I have developed skills in ${data.skills || '[Key Skills]'}.
+
+Rationale for Course and Institution:
+I have chosen to study at [University Name] because of its outstanding reputation in [Field]. This course aligns perfectly with my long-term career goal of becoming a ${data.role || '[Target Role]'}.
+
+Financial Capacity:
+I have adequate funds to cover my tuition fees and living expenses for the duration of my stay. Documentation confirming this is attached.
+
+Post-Study Plans:
+Upon completion of my studies, I intend to return to [Home Country] to apply the knowledge and skills gained to [Reason/Career Goal].
+
+Thank you for considering my application.
+
+Sincerely,
+
+${user?.name || '[Your Name]'}
+[Your Address]
+[Your Phone Number]`;
+    };
+
+    const generateTouristVisaLetter = (data: Record<string, unknown>) => {
+        return `[Date]
+
+To: Embassy of [Country] / Consular Service
+
+RE: Invitation Letter for ${user?.name || '[Applicant Full Name]'}
+Passport Number: [Passport No.]
+
+Dear Sir/Madam,
+
+I am writing to formally invite my [Friend/Family Member], ${user?.name || '[Applicant Full Name]'}, to visit me in [Country] for a period of [X] weeks, starting from [Date].
+
+Purpose of Visit:
+The purpose of ${user?.name || 'their'} visit is for tourism and to spend time together. We plan to visit [Locations/Plan].
+
+Accommodation and Expenses:
+During their stay, ${user?.name || '[Applicant Full Name]'} will be staying at my residence located at [Full Address]. I will be responsible for [Accommodation/Food/All Expenses].
+
+Supporting Evidence:
+Attached are copies of my passport, residence permit, and proof of address.
+
+I guarantee that ${user?.name || '[Applicant Full Name]'} will return to [Home Country] before the expiration of their visa.
+
+Yours sincerely,
+
+[Your Full Name]
+[Your Signature]
+[Your ID/Permit Number]
+[Your Contact Details]`;
+    };
+
+    const generateGenericLetter = (data: Record<string, unknown>) => {
+        return `[Your Name]
+[Your Address]
+[Email]
+[Phone]
+
+[Date]
+
+To: [Department/Recipient Name]
+[Organization Name]
+[Address]
+
+RE: Immigration Matter Regarding ${user?.name || '[Your Full Name]'}
+Reference: ${formData.role || '[Ref No.]'}
+
+Dear [Recipient Name],
+
+I am writing to you regarding [Specific Subject]. I would like to bring to your attention [Explanation of Request/Situation].
+
+Key Background Information:
+I have been [Role/Status] at ${data.company || '[Organization]'} for some time, where I have utilized my background in ${data.education || '[Education]'} and skills in ${data.skills || '[Skills]'}.
+
+[Body Paragraph with Details]
+
+Attached to this letter are the relevant supporting documents for your review. I would be grateful if you could process this request at your earliest convenience.
+
+If you require any further information or clarification, please do not hesitate to contact me.
+
+Thank you for your time and consideration.
+
+Sincerely,
+
+${user?.name || '[Your Name]'}`;
+    };
+
+    type TemplateKey = 'Motivation Letter' | 'CV Enhancement' | 'Reference Letter' | 'Employer Letter' | 'Student Letter' | 'Tourist Letter' | 'Generic Letter';
     const templates: Record<TemplateKey, (data: Record<string, unknown>) => string> = {
         'Motivation Letter': generateMotivationLetter,
         'CV Enhancement': generateCVEnhancement,
-        'Reference Letter': generateReferenceLetter
+        'Reference Letter': generateReferenceLetter,
+        'Employer Letter': generateEmployerLetter,
+        'Student Letter': generateStudentVisaLetter,
+        'Tourist Letter': generateTouristVisaLetter,
+        'Generic Letter': generateGenericLetter
     };
 
     const handleGenerate = () => {
