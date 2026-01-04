@@ -199,6 +199,7 @@ export async function runMigrationsIfNeeded(): Promise<void> {
 
       // Add columns if they don't exist (for existing tables)
       try {
+        await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo TEXT");
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS subdomain TEXT UNIQUE");
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS branding_config JSONB");
         await pool.query("ALTER TABLE companies ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true");
@@ -272,6 +273,24 @@ export async function runMigrationsIfNeeded(): Promise<void> {
             signature_url TEXT,
             signed_at TIMESTAMP,
             metadata JSONB,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // 6b. Background Jobs
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS background_jobs (
+            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            type VARCHAR(50) NOT NULL,
+            status VARCHAR(50) DEFAULT 'pending' NOT NULL,
+            payload JSONB,
+            result JSONB,
+            error TEXT,
+            progress INTEGER DEFAULT 0,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT NOW(),
             updated_at TIMESTAMP DEFAULT NOW()
         )
