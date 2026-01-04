@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { LiveButton, AnimatedCard, GlassSelect } from '@/components/ui/live-elements';
-import { Plus, CheckCircle, Circle, Clock, AlertCircle, Layout, ArrowRight, Trash2, SlidersHorizontal, MoreVertical } from 'lucide-react';
+import { LiveButton, AnimatedCard, GlassSelect, GlassInput } from '@/components/ui/live-elements';
+import { Plus, CheckCircle, Circle, Clock, AlertCircle, Layout, ArrowRight, Trash2, SlidersHorizontal, MoreVertical, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Task {
@@ -19,6 +19,15 @@ export default function TaskManager() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+
+    // Create Task Modal State
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [newTask, setNewTask] = useState<Partial<Task>>({
+        title: '',
+        priority: 'medium',
+        status: 'todo',
+        dueDate: ''
+    });
 
     const fetchTasks = async () => {
         setLoading(true);
@@ -37,21 +46,17 @@ export default function TaskManager() {
         fetchTasks();
     }, [filter]);
 
-    const addTask = async () => {
-        const title = prompt("Specify new practice objective:");
-        if (!title) return;
-
+    const handleCreateTask = async (e: React.FormEvent) => {
+        e.preventDefault();
         try {
             await apiRequest('/tasks', {
                 method: 'POST',
-                body: JSON.stringify({
-                    title,
-                    status: 'todo',
-                    priority: 'medium'
-                })
+                body: JSON.stringify(newTask)
             });
             fetchTasks();
-            toast({ title: "Objective registered" });
+            toast({ title: "Objective registered", description: "Task successfully added to the board." });
+            setIsCreateOpen(false);
+            setNewTask({ title: '', priority: 'medium', status: 'todo', dueDate: '' });
         } catch (err) {
             toast({ title: "Failed to register task", variant: "destructive" });
         }
@@ -117,7 +122,7 @@ export default function TaskManager() {
                         <option value="in_progress">Active Only</option>
                         <option value="done">Completed Only</option>
                     </GlassSelect>
-                    <LiveButton onClick={addTask} icon={Plus} size="lg" className="rounded-2xl">
+                    <LiveButton onClick={() => setIsCreateOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
                         New Objective
                     </LiveButton>
                 </div>
@@ -197,6 +202,72 @@ export default function TaskManager() {
                     </div>
                 ))}
             </div>
+
+            {/* Create Task Modal */}
+            <AnimatePresence>
+                {isCreateOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
+                            onClick={() => setIsCreateOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative z-10 border border-white/20 dark:border-white/5"
+                        >
+                            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-indigo-600">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-black text-2xl text-white">New Objective</h3>
+                                        <p className="text-brand-100 text-sm font-medium">Define a strategic task for the practice</p>
+                                    </div>
+                                    <button onClick={() => setIsCreateOpen(false)} className="text-white/70 hover:text-white transition-colors">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                            <form onSubmit={handleCreateTask} className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Task Title</label>
+                                    <GlassInput required className="w-full font-bold"
+                                        placeholder="e.g. Review Visa Application"
+                                        value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Priority Level</label>
+                                        <GlassSelect className="w-full"
+                                            value={newTask.priority} onChange={e => setNewTask({ ...newTask, priority: e.target.value as any })}>
+                                            <option value="low">Low Priority</option>
+                                            <option value="medium">Medium Priority</option>
+                                            <option value="high">High Priority</option>
+                                            <option value="urgent">Urgent</option>
+                                        </GlassSelect>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Due Date</label>
+                                        <GlassInput type="date" className="w-full"
+                                            value={newTask.dueDate} onChange={e => setNewTask({ ...newTask, dueDate: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <LiveButton variant="ghost" type="button" onClick={() => setIsCreateOpen(false)}>Discard</LiveButton>
+                                    <LiveButton icon={CheckCircle} className="px-8" type="submit">
+                                        Deploy Objective
+                                    </LiveButton>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

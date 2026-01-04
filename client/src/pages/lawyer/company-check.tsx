@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Building, Calendar, MapPin, CheckCircle, XCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/lib/api";
 import {
     Card,
     CardContent,
@@ -28,9 +29,7 @@ export default function CompanySearch() {
         queryKey: ["companies", debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery) return { items: [] };
-            const res = await fetch(`/api/companies/search?q=${encodeURIComponent(debouncedQuery)}`);
-            if (!res.ok) throw new Error("Search failed");
-            return res.json();
+            return await apiRequest<any>(`/api/companies/search?q=${encodeURIComponent(debouncedQuery)}`);
         },
         enabled: debouncedQuery.length > 2,
     });
@@ -88,6 +87,7 @@ export default function CompanySearch() {
                                     <TableHead>Company Name</TableHead>
                                     <TableHead>Number</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead>Sponsor License</TableHead>
                                     <TableHead>Created</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
@@ -111,9 +111,27 @@ export default function CompanySearch() {
                                                 {company.company_status}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell>
+                                            {company.sponsor_license ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge variant={company.sponsor_license.status === "licensed" ? "success" : "secondary"}>
+                                                        {company.sponsor_license.status}
+                                                    </Badge>
+                                                    {company.sponsor_license.status === "licensed" && (
+                                                        <span className="text-[10px] font-medium text-slate-500">
+                                                            {company.sponsor_license.type} ({company.sponsor_license.rating})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground italic">No data</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell>{company.date_of_creation}</TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm">
+                                            <Button variant="ghost" size="sm" onClick={() => {
+                                                // Hypothetical details view
+                                            }}>
                                                 Details
                                             </Button>
                                         </TableCell>

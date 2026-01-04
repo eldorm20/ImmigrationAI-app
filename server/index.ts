@@ -71,6 +71,10 @@ app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 // Request logging
 app.use(requestLogger);
 
+// Correlation ID middleware
+import { correlationId } from "./middleware/errorHandler";
+app.use(correlationId);
+
 // ============================================
 // FIX #4: HEALTH CHECK ENDPOINT (EARLY)
 // ============================================

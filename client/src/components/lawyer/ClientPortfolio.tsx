@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 import {
     Search,
     MoreHorizontal,
     Mail,
     Phone,
-    ArrowUpRight,
     Briefcase,
     Calendar,
     DollarSign,
@@ -15,7 +16,9 @@ import {
     Shield,
     FileText,
     MessageSquare,
-    ChevronRight
+    Plus,
+    CheckCircle,
+    X
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,23 +48,62 @@ interface Client {
 }
 
 export default function ClientPortfolio() {
+    const { toast } = useToast();
+    const { t } = useI18n();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState("");
+    const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
+    // New Client Form State
+    const [newClient, setNewClient] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+    });
 
     const { data: clients, isLoading } = useQuery<Client[]>({
-        queryKey: ["/practice/clients"],
-        queryFn: async () => {
-            const res = await fetch("/api/clients");
-            if (!res.ok) throw new Error("Failed to fetch clients");
-            return res.json();
+        queryKey: ["/clients"],
+        queryFn: () => apiRequest<Client[]>("/clients")
+    });
+
+    const createClientMutation = useMutation({
+        mutationFn: async (data: typeof newClient) => {
+            return apiRequest("/clients", {
+                method: "POST",
+                body: JSON.stringify(data)
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/clients"] });
+            toast({
+                title: t.common?.success || "Success",
+                description: `${newClient.firstName} has been added to your portfolio.`,
+                className: "bg-green-50 text-green-900 border-green-200"
+            });
+            setIsRegisterOpen(false);
+            setNewClient({ firstName: "", lastName: "", email: "", phone: "" });
+        },
+        onError: (err: any) => {
+            toast({
+                title: t.common?.error || "Error",
+                description: err.message || "Could not register client.",
+                variant: "destructive"
+            });
         }
     });
+
+    const handleRegister = (e: React.FormEvent) => {
+        e.preventDefault();
+        createClientMutation.mutate(newClient);
+    };
 
     const filteredClients = clients?.filter(client => {
         const searchLower = searchTerm.toLowerCase();
         return (
-            client.firstName.toLowerCase().includes(searchLower) ||
-            client.lastName.toLowerCase().includes(searchLower) ||
-            client.email.toLowerCase().includes(searchLower)
+            (client.firstName || "").toLowerCase().includes(searchLower) ||
+            (client.lastName || "").toLowerCase().includes(searchLower) ||
+            (client.email || "").toLowerCase().includes(searchLower)
         );
     }) || [];
 
@@ -69,11 +111,11 @@ export default function ClientPortfolio() {
         <div className="space-y-8 pb-12">
             <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Client Hub</h2>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Manage institutional knowledge and client relations</p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer.clientsHub.title}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer.clientsHub.subtitle}</p>
                 </div>
-                <LiveButton icon={Plus} size="lg" className="rounded-2xl">
-                    Register Client
+                <LiveButton onClick={() => setIsRegisterOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
+                    {t.lawyer.clientsHub.register}
                 </LiveButton>
             </div>
 
@@ -81,7 +123,7 @@ export default function ClientPortfolio() {
                 <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Network</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.totalNetwork}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">{clients?.length || 0}</h3>
                         </div>
                         <div className="p-3 rounded-2xl bg-blue-500/20 text-blue-600">
@@ -93,9 +135,9 @@ export default function ClientPortfolio() {
                 <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Mandates</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.activeMandates}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-                                {clients?.reduce((acc, c) => acc + (c.status === 'active' ? 1 : 0), 0) || 0}
+                                {clients?.reduce((acc, c) => acc + ((c.status || '').toLowerCase() === 'active' ? 1 : 0), 0) || 0}
                             </h3>
                         </div>
                         <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600">
@@ -107,9 +149,9 @@ export default function ClientPortfolio() {
                 <AnimatedCard className="bg-gradient-to-br from-amber-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Potential Value</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.potentialValue}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-                                {clients?.reduce((acc, c) => acc + (c.status === 'lead' ? 1 : 0), 0) || 0}
+                                {clients?.reduce((acc, c) => acc + ((c.status || '').toLowerCase() === 'lead' ? 1 : 0), 0) || 0}
                             </h3>
                         </div>
                         <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-600">
@@ -121,7 +163,7 @@ export default function ClientPortfolio() {
                 <AnimatedCard className="bg-gradient-to-br from-brand-600/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Practice Revenue</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.practiceRevenue}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
                                 ${(clients?.reduce((acc, c) => acc + (c.totalSpent || 0), 0) || 0).toLocaleString()}
                             </h3>
@@ -138,7 +180,7 @@ export default function ClientPortfolio() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <GlassInput
                         className="pl-12 w-full"
-                        placeholder="Search roster by name or email..."
+                        placeholder={t.lawyer.clientsHub.search}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -150,22 +192,22 @@ export default function ClientPortfolio() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Client Identity</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Contact Node</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Engagement</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Acquisition</th>
-                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Last Sync</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.identity}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.contact}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.engagement}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.acquisition}</th>
+                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.lastSync}</th>
                                 <th className="px-8 py-5 w-[80px]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
                             {isLoading ? (
-                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">Accessing client records...</td></tr>
+                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">{t.lawyer.clientsHub.loading}</td></tr>
                             ) : filteredClients.length === 0 ? (
                                 <tr><td colSpan={6} className="p-20 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Briefcase size={48} className="text-slate-200 dark:text-slate-800" />
-                                        <p className="text-slate-500 font-medium">No results found in your network.</p>
+                                        <p className="text-slate-500 font-medium">{t.lawyer.clientsHub.empty}</p>
                                     </div>
                                 </td></tr>
                             ) : (
@@ -182,7 +224,7 @@ export default function ClientPortfolio() {
                                                 <Avatar className="w-12 h-12 border-2 border-white dark:border-slate-800 shadow-sm">
                                                     <AvatarImage src={client.avatar} alt={client.firstName} />
                                                     <AvatarFallback className="bg-gradient-to-br from-brand-600 to-blue-500 text-white font-bold">
-                                                        {client.firstName[0]}{client.lastName[0]}
+                                                        {(client.firstName || "?")[0]}{(client.lastName || "?")[0]}
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <div>
@@ -206,24 +248,24 @@ export default function ClientPortfolio() {
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${client.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                    client.status.toLowerCase() === 'lead' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${(client.status || '').toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                (client.status || '').toLowerCase() === 'lead' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                                                 }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${client.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-current'}`} />
-                                                {client.status}
+                                                <span className={`w-1.5 h-1.5 rounded-full ${(client.status || '').toLowerCase() === 'active' ? 'bg-green-500' : 'bg-current'}`} />
+                                                {client.status || 'Unknown'}
                                             </span>
                                         </td>
                                         <td className="px-8 py-6">
                                             <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                                {client.source}
+                                                {client.source || 'Direct'}
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex flex-col items-end">
                                                 <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
                                                     <Calendar className="h-3.5 w-3.5" />
-                                                    {format(new Date(client.lastInteraction), 'MMM d, yyyy')}
+                                                    {client.lastInteraction ? format(new Date(client.lastInteraction), 'MMM d, yyyy') : 'Never'}
                                                 </div>
                                             </div>
                                         </td>
@@ -237,17 +279,17 @@ export default function ClientPortfolio() {
                                                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-none shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
                                                     <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Executive Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer" onClick={() => navigator.clipboard.writeText(client.email)}>
-                                                        <Mail size={16} /> Copy Contact Info
+                                                        <Mail size={16} /> {t.lawyer.clientsHub.actions.copy}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
                                                     <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
-                                                        <Users size={16} /> View Profile
+                                                        <Users size={16} /> {t.lawyer.clientsHub.actions.profile}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
-                                                        <FileText size={16} /> Examine Case File
+                                                        <FileText size={16} /> {t.lawyer.clientsHub.actions.file}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer text-brand-600 font-bold">
-                                                        <MessageSquare size={16} /> Dispatch Message
+                                                        <MessageSquare size={16} /> {t.lawyer.clientsHub.actions.msg}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -259,8 +301,72 @@ export default function ClientPortfolio() {
                     </table>
                 </div>
             </AnimatedCard>
+
+            {/* Register Client Modal */}
+            <AnimatePresence>
+                {isRegisterOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
+                            onClick={() => setIsRegisterOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden relative z-10 border border-white/20 dark:border-white/5"
+                        >
+                            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-blue-500">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-black text-2xl text-white">{t.lawyer.clientsHub.newClient}</h3>
+                                        <p className="text-brand-100 text-sm font-medium">{t.lawyer.clientsHub.addDesc}</p>
+                                    </div>
+                                    <button onClick={() => setIsRegisterOpen(false)} className="text-white/70 hover:text-white transition-colors">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                            <form onSubmit={handleRegister} className="p-8 space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.settings?.firstName || "First Name"}</label>
+                                        <GlassInput required className="w-full"
+                                            value={newClient.firstName} onChange={e => setNewClient({ ...newClient, firstName: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.settings?.lastName || "Last Name"}</label>
+                                        <GlassInput required className="w-full"
+                                            value={newClient.lastName} onChange={e => setNewClient({ ...newClient, lastName: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.settings?.emailAddress || "Email Address"}</label>
+                                    <GlassInput type="email" required className="w-full"
+                                        value={newClient.email} onChange={e => setNewClient({ ...newClient, email: e.target.value })} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.settings?.phoneNumber || "Phone Number"} (Optional)</label>
+                                    <GlassInput className="w-full"
+                                        value={newClient.phone} onChange={e => setNewClient({ ...newClient, phone: e.target.value })} />
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <LiveButton variant="ghost" type="button" onClick={() => setIsRegisterOpen(false)}>{t.settings?.cancel || "Cancel"}</LiveButton>
+                                    <LiveButton icon={CheckCircle} className="px-8" type="submit" disabled={createClientMutation.isPending}>
+                                        {createClientMutation.isPending ? 'Registering...' : 'Complete Registration'}
+                                    </LiveButton>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
-
-const Plus = () => <Users size={20} />;

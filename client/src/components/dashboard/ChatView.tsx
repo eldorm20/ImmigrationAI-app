@@ -6,7 +6,7 @@ import { Send, Sparkles, User, Download, RefreshCw, Trash2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
-export const ChatView = () => {
+export const ChatView = ({ applicationId }: { applicationId?: string }) => {
     const { t, lang } = useI18n();
     const { toast } = useToast();
     const [messages, setMessages] = useState<{ role: string; text: string; ts: string }[]>([]);
@@ -14,9 +14,16 @@ export const ChatView = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
 
+    // Context message on mount if applicationId is provided
+    useEffect(() => {
+        if (applicationId && messages.length === 0) {
+            console.log("Chat initialized with application context:", applicationId);
+        }
+    }, [applicationId]);
+
     // Load history from localStorage on mount
     useEffect(() => {
-        const saved = localStorage.getItem('ai_chat_history');
+        const saved = localStorage.getItem(`ai_chat_history_${applicationId || 'general'}`);
         if (saved) {
             try {
                 setMessages(JSON.parse(saved));
@@ -26,14 +33,14 @@ export const ChatView = () => {
         } else {
             setMessages([{ role: 'ai', text: t.chat.greeting, ts: new Date().toISOString() }]);
         }
-    }, [t.chat.greeting]);
+    }, [t.chat.greeting, applicationId]);
 
     // Save history to localStorage whenever messages change
     useEffect(() => {
         if (messages.length > 0) {
-            localStorage.setItem('ai_chat_history', JSON.stringify(messages));
+            localStorage.setItem(`ai_chat_history_${applicationId || 'general'}`, JSON.stringify(messages));
         }
-    }, [messages]);
+    }, [messages, applicationId]);
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,7 +66,8 @@ export const ChatView = () => {
                     body: JSON.stringify({
                         message: userMsg,
                         language: lang,
-                        history: conversationHistory
+                        history: conversationHistory,
+                        applicationId: applicationId // Explicit context
                     }),
                 });
                 setIsTyping(false);

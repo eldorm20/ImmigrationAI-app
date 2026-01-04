@@ -5,7 +5,7 @@ import { getFeatureLimit } from "./subscriptionTiers";
 import { logger } from "./logger";
 import { AppError } from "../middleware/errorHandler";
 import { sendNotification } from "./notifications";
-import { emailQueue } from "./queue";
+import { enqueueJob } from "./queue";
 
 function currentMonthKey() {
   const d = new Date();
@@ -92,7 +92,7 @@ export async function incrementUsage(userId: string, category: string, amount = 
             if (user && user.email && user.emailVerified) {
               const subject = "Almost at your AI usage limit";
               const html = `<p>Hi ${user.firstName || ""},</p><p>You have <strong>${remaining}</strong> ${category} remaining for ${month}. Consider upgrading your subscription to increase your monthly AI allowance.</p><p>Thank you,<br/>ImmigrationAI</p>`;
-              await emailQueue.add({ to: user.email, subject, html }, { priority: 5 });
+              await enqueueJob(user.id, "email", { to: user.email, subject, html });
             }
           } catch (e) {
             logger.error({ e, userId, category }, "Failed to queue email usage notification");

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/lib/i18n';
 import { LiveButton, AnimatedCard, GlassInput } from '@/components/ui/live-elements';
 import { Plus, Download, DollarSign, CheckCircle, Clock, FileText, Send, Trash2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Invoicing() {
     const { toast } = useToast();
+    const { t } = useI18n();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
@@ -30,7 +32,7 @@ export default function Invoicing() {
             setInvoices(data);
         } catch (err) {
             console.error(err);
-            toast({ title: 'Failed to load invoices', variant: 'destructive' });
+            toast({ title: t.common?.error || 'Failed to load invoices', variant: 'destructive' });
         } finally {
             setLoading(false);
         }
@@ -52,11 +54,11 @@ export default function Invoicing() {
                 body: JSON.stringify(newInvoice)
             });
 
-            toast({ title: 'Invoice created' });
+            toast({ title: t.common?.success || 'Invoice created' });
             setShowCreate(false);
             fetchInvoices();
         } catch (err) {
-            toast({ title: 'Failed to create invoice', variant: 'destructive' });
+            toast({ title: t.common?.error || 'Failed to create invoice', variant: 'destructive' });
         }
     };
 
@@ -180,8 +182,7 @@ export default function Invoicing() {
                 ` : ''}
 
                 <div class="footer">
-                    <p>Thank you for choosing ImmigrationAI. For questions, contact support@immigrationai.com</p>
-                    <p>&copy; 2025 ImmigrationAI | Digital Legal Solutions</p>
+                    <p>Thank you for choosing ImmigrationAI.</p>
                 </div>
                 
                 <script>
@@ -201,10 +202,10 @@ export default function Invoicing() {
                 method: 'PATCH',
                 body: JSON.stringify({ status: 'paid' })
             });
-            toast({ title: 'Payment Confirmed' });
+            toast({ title: t.common?.success || 'Payment Confirmed' });
             setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'paid' } : inv));
         } catch (err) {
-            toast({ title: 'Failed to update', variant: 'destructive' });
+            toast({ title: t.common?.error || 'Failed to update', variant: 'destructive' });
         }
     };
 
@@ -212,11 +213,11 @@ export default function Invoicing() {
         <div className="space-y-8 pb-12">
             <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Financial Hub</h2>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Manage billable hours, invoices, and payments</p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer.financials.title}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer.financials.subtitle}</p>
                 </div>
                 <LiveButton onClick={() => setShowCreate(true)} icon={Plus} size="lg" className="rounded-2xl">
-                    Create Invoice
+                    {t.lawyer.financials.create}
                 </LiveButton>
             </div>
 
@@ -230,7 +231,7 @@ export default function Invoicing() {
                     >
                         <AnimatedCard className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-brand-200/50 dark:border-brand-800/50 p-8 shadow-2xl">
                             <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-blue-500">Draft New Invoice</h3>
+                                <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-blue-500">{t.lawyer.financials.create}</h3>
                                 <button onClick={() => setShowCreate(false)} className="hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition-colors">
                                     <Trash2 size={20} className="text-slate-400" />
                                 </button>
@@ -239,7 +240,7 @@ export default function Invoicing() {
                             <div className="grid lg:grid-cols-2 gap-8">
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Client Information</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.financials.form.client}</label>
                                         <GlassInput
                                             placeholder="Enter Client ID or Email"
                                             value={newInvoice.clientId}
@@ -248,7 +249,7 @@ export default function Invoicing() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Invoice Label</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.financials.table.invoice}</label>
                                         <GlassInput
                                             placeholder="Invoice Number"
                                             value={newInvoice.number}
@@ -260,18 +261,18 @@ export default function Invoicing() {
 
                                 <div className="bg-white/40 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-white/5 space-y-4">
                                     <h4 className="text-sm font-bold flex items-center gap-2 text-brand-600 dark:text-brand-400">
-                                        <Globe size={16} /> Uzbekistan Fiscal Parameters
+                                        <Globe size={16} /> Fiscal Parameters
                                     </h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <GlassInput
-                                            placeholder="Yuridik shaxs nomi"
+                                            placeholder="Legal Entity Name"
                                             value={newInvoice.legalEntityName}
                                             onChange={e => setNewInvoice({ ...newInvoice, legalEntityName: e.target.value })}
                                             className="col-span-2"
                                         />
                                         <GlassInput
                                             type="number"
-                                            placeholder="QQS (%)"
+                                            placeholder={`${t.lawyer.financials.form.tax} (%)`}
                                             value={newInvoice.taxRate}
                                             onChange={e => setNewInvoice({ ...newInvoice, taxRate: e.target.value })}
                                         />
@@ -285,7 +286,7 @@ export default function Invoicing() {
                             </div>
 
                             <div className="mt-10 space-y-4">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Line Items</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.financials.form.items}</label>
                                 <div className="space-y-3">
                                     {newInvoice.items.map((item, i) => (
                                         <motion.div
@@ -302,14 +303,14 @@ export default function Invoicing() {
                                             />
                                             <GlassInput
                                                 type="number"
-                                                placeholder="Qty"
+                                                placeholder={t.lawyer.financials.form.quantity}
                                                 className="w-24 text-center"
                                                 value={item.quantity}
                                                 onChange={e => updateItem(i, 'quantity', Number(e.target.value))}
                                             />
                                             <GlassInput
                                                 type="number"
-                                                placeholder="Rate"
+                                                placeholder={t.lawyer.financials.form.rate}
                                                 className="w-32"
                                                 value={item.rate}
                                                 onChange={e => updateItem(i, 'rate', Number(e.target.value))}
@@ -339,7 +340,7 @@ export default function Invoicing() {
                                     </p>
                                 </div>
                                 <div className="flex gap-3">
-                                    <LiveButton variant="ghost" onClick={() => setShowCreate(false)} className="px-6">Cancel</LiveButton>
+                                    <LiveButton variant="ghost" onClick={() => setShowCreate(false)} className="px-6">{t.settings?.cancel || "Cancel"}</LiveButton>
                                     <LiveButton onClick={handleCreate} icon={Send} size="lg" className="px-10">Send to Client</LiveButton>
                                 </div>
                             </div>
@@ -354,22 +355,22 @@ export default function Invoicing() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Reference</th>
-                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Client</th>
-                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Issued</th>
-                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Amount</th>
-                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Status</th>
-                                    <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">Operations</th>
+                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.invoice}</th>
+                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.client}</th>
+                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.date}</th>
+                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.amount}</th>
+                                    <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.status}</th>
+                                    <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.financials.table.actions}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
                                 {loading ? (
-                                    <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">Synchronizing documents...</td></tr>
+                                    <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">{t.common?.loading || "Loading..."}</td></tr>
                                 ) : invoices.length === 0 ? (
                                     <tr><td colSpan={6} className="p-20 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <FileText size={48} className="text-slate-200 dark:text-slate-800" />
-                                            <p className="text-slate-500 font-medium">No financial records found in your practice.</p>
+                                            <p className="text-slate-500 font-medium">{t.lawyer.financials.pendingPayments}</p>
                                         </div>
                                     </td></tr>
                                 ) : (

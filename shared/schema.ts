@@ -1304,3 +1304,32 @@ export const consultationsRelations = relations(consultations, ({ one }) => ({
     references: [users.id],
   }),
 }));
+// Background Jobs for long-running tasks (e.g. AI generation)
+export const backgroundJobs = pgTable("background_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // document_generation, document_review
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, processing, completed, failed
+  payload: jsonb("payload"), // Input data
+  result: jsonb("result"), // Output data
+  error: text("error"),
+  progress: integer("progress").default(0),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("background_jobs_user_id_idx").on(table.userId),
+  statusIdx: index("background_jobs_status_idx").on(table.status),
+  typeIdx: index("background_jobs_type_idx").on(table.type),
+}));
+
+export const insertBackgroundJobSchema = createInsertSchema(backgroundJobs).pick({
+  userId: true,
+  type: true,
+  payload: true,
+  status: true,
+});
+
+export type InsertBackgroundJob = z.infer<typeof insertBackgroundJobSchema>;
+export type BackgroundJob = typeof backgroundJobs.$inferSelect;

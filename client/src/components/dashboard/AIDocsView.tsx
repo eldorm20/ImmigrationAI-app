@@ -13,92 +13,111 @@ export const AIDocsView = () => {
     const { toast } = useToast();
     const { t, lang } = useI18n();
 
-    type TemplateKey = 'motivation' | 'cv' | 'reference';
+    type TemplateKey = 'motivation' | 'cv' | 'reference' | 'student_visa' | 'tourist_visa' | 'generic';
     const [docType, setDocType] = useState<TemplateKey>('motivation');
     const [generatedContent, setGeneratedContent] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [mode, setMode] = useState<'generate' | 'review'>('generate');
     const [reviewContent, setReviewContent] = useState("");
-    const [reviewResult, setReviewResult] = useState<{ score: number; feedback: string[]; flags: { type: 'red' | 'green' | 'amber'; message: string }[] } | null>(null);
+    const [reviewResult, setReviewResult] = useState<{ score: number; feedback: string[]; flags: { type: 'red' | 'green' | 'amber'; message: string }[]; proposals?: { original: string; proposed: string; reason: string }[] } | null>(null);
     const [isReviewing, setIsReviewing] = useState(false);
-    const [formData, setFormData] = useState({ role: '', company: '', skills: '', name: '', experience: '', education: '', achievements: '' });
+    const [formData, setFormData] = useState({ role: '', company: '', skills: '', name: '', experience: '', education: '', achievements: '', visaType: '' });
 
-    const generateMotivationLetter = (data: Record<string, any>) => {
-        const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-        const skillsText = skillsList.length > 0 ? skillsList.join(', ') : '[Your key skills]';
+    // Helper for polling job status
+    const pollJob = async (jobId: string): Promise<any> => {
+        const check = async () => {
+            const res = await apiRequest<{ status: string; result: any; error?: string }>(`/ai/jobs/${jobId}`);
+            if (res.status === 'completed') return res.result;
+            if (res.status === 'failed') throw new Error(res.error || 'Job failed');
+            return null; // pending/processing
+        };
 
-        return `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${data.role || '[Position Title]'} position at ${data.company || '[Company Name]'}. With ${data.experience || '[X]'} years of professional experience and a proven track record in ${skillsText}, I am confident that I would be a valuable addition to your team.\n\nPROFESSIONAL BACKGROUND\n${data.experience ? `I bring ${data.experience} years of experience in [relevant field], with expertise in ${skillsText}.` : 'I have extensive experience in [relevant field].'} My background includes working with ${data.company || 'leading organizations'} where I have consistently delivered results and exceeded expectations.\n\nKEY QUALIFICATIONS\n${skillsList.length > 0 ? skillsList.map((skill: string, i: number) => `• ${skill}`).join('\n') : '• [Skill 1]\n• [Skill 2]\n• [Skill 3]'}\n\n${data.achievements ? `RECENT ACHIEVEMENTS\n${data.achievements}` : ''}\n\nWHY I AM INTERESTED\nI am particularly drawn to ${data.company || 'your organization'} because of [specific reason]. The opportunity to contribute to [specific project/goal] aligns perfectly with my career aspirations and professional values.\n\nI am excited about the possibility of bringing my skills and experience to your team and contributing to your continued success. I would welcome the opportunity to discuss how my background, skills, and enthusiasm can benefit ${data.company || 'your organization'}.\n\nThank you for considering my application. I look forward to hearing from you.\n\nSincerely,\n${user?.name || '[Your Name]'}\n${user?.email ? user.email : '[Your Email]'}\n${new Date().toLocaleDateString()}`;
+        for (let i = 0; i < 60; i++) { // Poll for up to 60 * 2s = 2 minutes
+            const result = await check();
+            if (result) return result;
+            await new Promise(r => setTimeout(r, 2000));
+        }
+        throw new Error("Timeout waiting for job completion");
     };
 
-    const generateCVEnhancement = (data: Record<string, any>) => {
-        const skillsList = data.skills ? data.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const generateMotivationLetter = (data: Record<string, any>) => `Dear Hiring Manager,\n\nI am applying for ${data.role} at ${data.company}...`; // (Truncated for brevity in fallback, usually AI handles this)
 
-        return `PROFESSIONAL SUMMARY\n\nResults-driven ${data.role || 'professional'} with ${data.experience || '[X]'} years of experience in [industry/field]. Proven expertise in ${skillsList.length > 0 ? skillsList.join(', ') : '[key skills]'} with a track record of delivering exceptional results in ${data.company ? `organizations like ${data.company}` : 'diverse professional environments'}.\n\nCORE COMPETENCIES\n${skillsList.length > 0 ? skillsList.map((skill: string) => `• ${skill}`).join('\n') : '• [Competency 1]\n• [Competency 2]\n• [Competency 3]'}\n\nPROFESSIONAL EXPERIENCE\n\n${data.role || '[Job Title]'} | ${data.company || '[Company Name]'} | ${data.experience ? `[Dates] (${data.experience} years)` : '[Dates]'}\n${data.achievements ? `• ${data.achievements.split(',').map((a: string) => a.trim()).join('\n• ')}` : '• [Key Achievement 1]\n• [Key Achievement 2]\n• [Key Achievement 3]'}\n\nEDUCATION\n${data.education || '[Degree] in [Field] from [University] | [Year]'}\n\nCERTIFICATIONS & SKILLS\n${skillsList.length > 0 ? skillsList.map((skill: string) => `• ${skill}`).join('\n') : '• [Certification/Skill 1]\n• [Certification/Skill 2]'}\n\nLANGUAGES\n• English (Professional)\n• [Additional Languages]\n\n${data.achievements ? `KEY ACHIEVEMENTS\n${data.achievements}` : ''}`;
-    };
+    // Simple maps for local fallback (kept simple as AI will be primary)
+    // We rely on backend fallback for complex templates if AI fails
 
-    const generateReferenceLetter = (data: Record<string, any>) => {
-        return `To Whom It May Concern,\n\nRE: Reference Letter for ${user?.name || '[Employee Name]'}\n\nI am writing to provide a professional reference for ${user?.name || '[Employee Name]'}, who ${data.experience ? `worked with us for ${data.experience} years` : 'was employed with our organization'} in the capacity of ${data.role || '[Position]'}.\n\nEMPLOYMENT PERIOD\n${data.experience ? `During their ${data.experience} years of service` : 'During their tenure'} with ${data.company || 'our organization'}, ${user?.name || 'the employee'} demonstrated exceptional professionalism, dedication, and competence.\n\nKEY STRENGTHS\n${data.skills ? data.skills.split(',').map((s: string) => `• ${s.trim()}`).join('\n') : '• [Strength 1]\n• [Strength 2]\n• [Strength 3]'}\n\nPERFORMANCE HIGHLIGHTS\n${data.achievements || '• Consistently met and exceeded performance expectations\n• Demonstrated strong problem-solving abilities\n• Worked effectively both independently and as part of a team'}\n\nRECOMMENDATION\nI can confidently recommend ${user?.name || '[Employee Name]'} for any position that requires ${data.skills ? data.skills.split(',').slice(0, 2).join(' and ') : '[relevant skills]'}. They would be a valuable asset to any organization.\n\nIf you require any additional information, please do not hesitate to contact me.\n\nSincerely,\n\n[Manager Name]\n[Your Title]\n${data.company || '[Company Name]'}\n[Contact Information]\n${new Date().toLocaleDateString()}`;
-    };
-
-    const templates: Record<TemplateKey, (data: Record<string, any>) => string> = {
-        'motivation': generateMotivationLetter,
-        'cv': generateCVEnhancement,
-        'reference': generateReferenceLetter
+    // Keys for UI iteration
+    const templates: Record<TemplateKey, string> = {
+        'motivation': 'Motivation Letter',
+        'cv': 'CV Enhancement',
+        'reference': 'Reference Letter',
+        'student_visa': 'Student Visa App',
+        'tourist_visa': 'Tourist Visa App',
+        'generic': 'General Immigration Letter'
     };
 
     const keyToAITemplate = (key: TemplateKey) => {
-        if (key === 'motivation') return 'Motivation Letter';
-        if (key === 'cv') return 'CV Enhancement';
-        if (key === 'reference') return 'Reference Letter';
-        return 'Motivation Letter';
+        const map: Record<TemplateKey, string> = {
+            'motivation': 'Motivation Letter',
+            'cv': 'CV Enhancement',
+            'reference': 'Reference Letter',
+            'student_visa': 'Student Visa App',
+            'tourist_visa': 'Tourist Visa App',
+            'generic': 'General Immigration Letter'
+        };
+        return map[key];
     };
 
-    const handleGenerate = () => {
-        if (!formData.role && !formData.company && !formData.skills) {
-            toast({
-                title: t.tools.gen,
-                description: t.docs.fillRequired,
-                variant: "destructive",
-            });
+    const handleGenerate = async () => {
+        // Validation
+        if (!formData.name) {
+            toast({ title: t.tools.gen, description: t.docs.fillRequired + " (Name)", variant: "destructive" });
             return;
         }
 
         setIsGenerating(true);
         setGeneratedContent("");
 
-        (async () => {
-            try {
-                const resp = await apiRequest<{ document: string }>("/ai/documents/generate", {
-                    method: "POST",
-                    body: JSON.stringify({ template: keyToAITemplate(docType), data: formData, language: lang || 'en' }),
-                    timeout: 120000,
-                });
+        try {
+            // STEP 1: Start Job
+            const startRes = await apiRequest<{ jobId: string }>("/ai/documents/generate", {
+                method: "POST",
+                body: JSON.stringify({
+                    template: keyToAITemplate(docType),
+                    data: formData,
+                    language: lang || 'en',
+                    visaType: formData.visaType || 'General'
+                }),
+            });
 
-                const targetText = resp.document || "";
-                try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch { };
-                let i = 0;
+            // STEP 2: Poll for completion
+            const result = await pollJob(startRes.jobId);
+            const targetText = result.document || "";
 
-                const interval = setInterval(() => {
-                    const safeText = String(targetText || "");
-                    if (i >= safeText.length) {
-                        clearInterval(interval);
-                        setIsGenerating(false);
-                        toast({
-                            title: t.docs.genSuccess,
-                            description: `${t.docs[docType]} ${t.docs.genSuccess.toLowerCase()}`,
-                            className: "bg-green-50 text-green-900 border-green-200",
-                        });
-                        return;
-                    }
+            // STEP 3: Animate text
+            try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch { };
 
-                    setGeneratedContent((prev) => prev + safeText.charAt(i));
-                    i++;
-                }, 10);
-            } catch (err) {
-                setIsGenerating(false);
-                toast({ title: t.docs.genError, description: err instanceof Error ? err.message : t.docs.genError, variant: 'destructive' });
-            }
-        })();
+            let i = 0;
+            const interval = setInterval(() => {
+                const safeText = String(targetText || "");
+                if (i >= safeText.length) {
+                    clearInterval(interval);
+                    setIsGenerating(false);
+                    toast({
+                        title: t.docs.genSuccess,
+                        description: `${t.docs[docType] || 'Document'} generated successfully`,
+                        className: "bg-green-50 text-green-900 border-green-200",
+                    });
+                    return;
+                }
+                setGeneratedContent((prev) => prev + safeText.charAt(i));
+                i++;
+            }, 5);
+
+        } catch (err) {
+            setIsGenerating(false);
+            console.error(err);
+            toast({ title: t.docs.genError, description: err instanceof Error ? err.message : "Failed to generate document", variant: 'destructive' });
+        }
     };
 
     const handleReview = async () => {
@@ -109,14 +128,19 @@ export const AIDocsView = () => {
 
         setIsReviewing(true);
         try {
-            const res = await apiRequest<any>("/ai/documents/review", {
+            // Start Job
+            const startRes = await apiRequest<{ jobId: string }>("/ai/documents/review", {
                 method: "POST",
                 body: JSON.stringify({
                     content: reviewContent,
                     docType: keyToAITemplate(docType),
-                    visaType: "Skilled Worker"
+                    visaType: formData.visaType || "Skilled Worker"
                 })
             });
+
+            // Poll
+            const res = await pollJob(startRes.jobId);
+
             setReviewResult(res);
             toast({
                 title: t.upload.ocrComplete,
@@ -124,7 +148,7 @@ export const AIDocsView = () => {
                 className: "bg-blue-50 text-blue-900 border-blue-200"
             });
         } catch (err) {
-            toast({ title: t.docs.reviewFail, description: t.error.message, variant: "destructive" });
+            toast({ title: t.docs.reviewFail, description: err instanceof Error ? err.message : "Review failed", variant: "destructive" });
         } finally {
             setIsReviewing(false);
         }
@@ -199,6 +223,8 @@ export const AIDocsView = () => {
                                             onChange={e => setFormData({ ...formData, role: e.target.value })}
                                         />
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-5">
                                     <div>
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block pl-1">{t.docs.company}</label>
                                         <input
@@ -206,6 +232,15 @@ export const AIDocsView = () => {
                                             placeholder="e.g. Google"
                                             value={formData.company}
                                             onChange={e => setFormData({ ...formData, company: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block pl-1">Visa Type</label>
+                                        <input
+                                            className="w-full px-5 py-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-slate-900 dark:text-white"
+                                            placeholder="e.g. Skilled Worker"
+                                            value={formData.visaType}
+                                            onChange={e => setFormData({ ...formData, visaType: e.target.value })}
                                         />
                                     </div>
                                 </div>
@@ -351,8 +386,7 @@ export const AIDocsView = () => {
                                             <RefreshCw className="mr-2" size={14} /> {t.tools.clear}
                                         </LiveButton>
                                     </div>
-
-                                    <div className="grid lg:grid-cols-2 gap-10 relative z-10">
+                                    <div className="grid lg:grid-cols-2 gap-10 relative z-10 mb-10">
                                         <div>
                                             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3">
                                                 <div className="w-1.5 h-4 bg-brand-500 rounded-full"></div>
@@ -396,6 +430,40 @@ export const AIDocsView = () => {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {reviewResult.proposals && reviewResult.proposals.length > 0 && (
+                                        <div className="mt-10 relative z-10 border-t border-slate-100 dark:border-slate-800 pt-10">
+                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3">
+                                                <div className="w-1.5 h-4 bg-brand-500 rounded-full"></div>
+                                                {t.docs.proposals || "Proposed Edits"}
+                                            </h4>
+                                            <div className="space-y-4">
+                                                {reviewResult.proposals.map((p, i) => (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.5 + (i * 0.1) }}
+                                                        key={i}
+                                                        className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3"
+                                                    >
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="text-[10px] uppercase font-black text-red-500 tracking-wider">Current</div>
+                                                                <div className="text-sm font-medium text-slate-500 line-through leading-relaxed">{p.original}</div>
+                                                            </div>
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="text-[10px] uppercase font-black text-green-500 tracking-wider">Proposed</div>
+                                                                <div className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">{p.proposed}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] italic text-slate-500">
+                                                            <strong>Reason:</strong> {p.reason}
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </AnimatedCard>
 
                                 <AnimatedCard className="bg-white/30 dark:bg-slate-900/50 font-mono text-[11px] opacity-60 p-8 rounded-3xl overflow-y-auto max-h-60 border-2 border-dashed border-slate-200 dark:border-slate-800 leading-relaxed shadow-inner italic">

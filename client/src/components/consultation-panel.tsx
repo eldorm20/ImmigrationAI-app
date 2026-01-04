@@ -248,6 +248,94 @@ export default function ConsultationPanel() {
     }
   };
 
+  const [view, setView] = useState<"list" | "schedule" | "ask">("list");
+
+  const handleAskSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLawyer || !formData.notes) {
+      toast({
+        title: t.common.error,
+        description: "Please select a lawyer and enter your question",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const resp = await apiRequest<Consultation>("/consultations/ask", {
+        method: "POST",
+        body: JSON.stringify({
+          lawyerId: selectedLawyer,
+          question: formData.notes,
+        }),
+      });
+
+      setConsultations([...consultations, resp]);
+      setView("list");
+      setFormData({ scheduledTime: "", duration: 60, notes: "" });
+      setSelectedLawyer("");
+
+      toast({
+        title: t.common.success,
+        description: "Your question has been sent to the lawyer. You'll be notified of their response.",
+      });
+    } catch (error: any) {
+      toast({
+        title: t.common.error,
+        description: error.message || "Failed to send question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderLawyerSelection = () => (
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+        <User size={16} className="text-brand-500" />
+        {t.consultation.selectLawyer}
+      </label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {lawyers.length > 0 ? (
+          lawyers.map((lawyer) => (
+            <div
+              key={lawyer.id}
+              onClick={() => setSelectedLawyer(lawyer.id)}
+              className={`
+                cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group
+                ${selectedLawyer === lawyer.id
+                  ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
+                  : "border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-700 bg-white dark:bg-slate-800"
+                }
+              `}
+            >
+              {selectedLawyer === lawyer.id && (
+                <div className="absolute top-2 right-2 text-brand-600 dark:text-brand-400">
+                  <CheckCircle size={20} fill="currentColor" className="text-brand-100 dark:text-brand-900" />
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
+                  {lawyer.firstName?.[0]}
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white">
+                    {lawyer.firstName} {lawyer.lastName}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{lawyer.email}</p>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="col-span-2 p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+            <User className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium">No lawyers currently available</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex justify-between items-center">
@@ -272,11 +360,20 @@ export default function ConsultationPanel() {
             {t.consultation?.clearHistory || "Clear History"}
           </LiveButton>
           <LiveButton
-            variant="primary"
-            onClick={() => setShowModal(true)}
+            variant="outline"
+            onClick={() => { setView("ask"); setShowModal(true); }}
             className="flex items-center gap-2"
           >
-            {t.consultation?.requestConsultation || 'New Request'}
+            <MessageSquare size={16} />
+            {t.consultation.askQuestion}
+          </LiveButton>
+          <LiveButton
+            variant="primary"
+            onClick={() => { setView("schedule"); setShowModal(true); }}
+            className="flex items-center gap-2"
+          >
+            <Calendar size={16} />
+            {t.consultation.scheduleCall}
           </LiveButton>
         </div>
       </div>
@@ -298,8 +395,12 @@ export default function ConsultationPanel() {
             >
               <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t.consultation.requestConsultation}</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Schedule a video call with an immigration lawyer</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {view === "ask" ? t.consultation.askTitle : t.consultation.requestConsultation}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {view === "ask" ? t.consultation.askDesc : "Schedule a video call with an immigration lawyer"}
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowModal(false)}
@@ -310,130 +411,107 @@ export default function ConsultationPanel() {
               </div>
 
               <div className="p-6 overflow-y-auto">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Lawyer Selection Grid */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                      <User size={16} className="text-brand-500" />
-                      {t.consultation.selectLawyer}
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {lawyers.length > 0 ? (
-                        lawyers.map((lawyer) => (
-                          <div
-                            key={lawyer.id}
-                            onClick={() => setSelectedLawyer(lawyer.id)}
-                            className={`
-                              cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 relative overflow-hidden group
-                              ${selectedLawyer === lawyer.id
-                                ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
-                                : "border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-700 bg-white dark:bg-slate-800"
-                              }
-                            `}
-                          >
-                            {selectedLawyer === lawyer.id && (
-                              <div className="absolute top-2 right-2 text-brand-600 dark:text-brand-400">
-                                <CheckCircle size={20} fill="currentColor" className="text-brand-100 dark:text-brand-900" />
-                              </div>
-                            )}
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
-                                {lawyer.firstName?.[0]}
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-slate-900 dark:text-white">
-                                  {lawyer.firstName} {lawyer.lastName}
-                                </h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">{lawyer.email}</p>
-                              </div>
-                            </div>
-                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-xs">
-                              <span className="text-slate-500">Immigration Expert</span>
-                              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-2 py-0.5 rounded-full font-medium">Available</span>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="col-span-2 p-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                          <User className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                          <p className="text-slate-500 dark:text-slate-400 font-medium">No lawyers currently available</p>
-                          <p className="text-xs text-slate-400">Please check back later</p>
+                {view === "ask" ? (
+                  <form onSubmit={handleAskSubmit} className="space-y-6">
+                    {renderLawyerSelection()}
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <MessageSquare size={16} className="text-brand-500" />
+                        {t.consultation.yourQuestion}
+                      </label>
+                      <textarea
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none"
+                        rows={6}
+                        required
+                        placeholder="Detail your question or legal concern here..."
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <LiveButton type="button" variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
+                        {t.consultation.cancel}
+                      </LiveButton>
+                      <LiveButton type="submit" variant="primary" className="flex-1 shadow-lg shadow-brand-500/20" disabled={!selectedLawyer || !formData.notes}>
+                        {t.consultation.submitQuestion}
+                      </LiveButton>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {renderLawyerSelection()}
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Calendar size={16} className="text-brand-500" />
+                          {t.consultation.preferredDateTime}
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="datetime-local"
+                            value={formData.scheduledTime}
+                            onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                            className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                            required
+                          />
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Calendar size={16} className="text-brand-500" />
-                        {t.consultation.preferredDateTime}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="datetime-local"
-                          value={formData.scheduledTime}
-                          onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                          className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
-                          required
-                        />
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                      <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                          <Clock size={16} className="text-brand-500" />
+                          {t.consultation.duration} <span className="text-slate-400 font-normal">(minutes)</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="15"
+                            max="480"
+                            step="15"
+                            value={formData.duration}
+                            onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                            className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                          />
+                          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                        </div>
                       </div>
                     </div>
 
                     <div className="space-y-3">
                       <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Clock size={16} className="text-brand-500" />
-                        {t.consultation.duration} <span className="text-slate-400 font-normal">(minutes)</span>
+                        <MessageSquare size={16} className="text-brand-500" />
+                        {t.consultation.notes}
                       </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="15"
-                          max="480"
-                          step="15"
-                          value={formData.duration}
-                          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                          className="w-full p-3 pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
-                        />
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                      </div>
+                      <textarea
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none"
+                        rows={3}
+                        placeholder={t.consultation?.notesPlaceholder || "Briefly describe your case or questions..."}
+                      />
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                      <MessageSquare size={16} className="text-brand-500" />
-                      {t.consultation.notes}
-                    </label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full p-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 border rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all resize-none"
-                      rows={3}
-                      placeholder={t.consultation?.notesPlaceholder || "Briefly describe your case or questions..."}
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
-                    <LiveButton
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setShowModal(false)}
-                      className="flex-1"
-                    >
-                      {t.consultation.cancel}
-                    </LiveButton>
-                    <LiveButton
-                      type="submit"
-                      variant="primary"
-                      className="flex-1 shadow-lg shadow-brand-500/20"
-                      disabled={!selectedLawyer || !formData.scheduledTime}
-                    >
-                      {t.consultation.submitRequest}
-                    </LiveButton>
-                  </div>
-                </form>
+                    <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 mt-6">
+                      <LiveButton
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowModal(false)}
+                        className="flex-1"
+                      >
+                        {t.consultation.cancel}
+                      </LiveButton>
+                      <LiveButton
+                        type="submit"
+                        variant="primary"
+                        className="flex-1 shadow-lg shadow-brand-500/20"
+                        disabled={!selectedLawyer || !formData.scheduledTime}
+                      >
+                        {t.consultation.submitRequest}
+                      </LiveButton>
+                    </div>
+                  </form>
+                )}
               </div>
             </motion.div>
           </motion.div>

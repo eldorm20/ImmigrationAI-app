@@ -16,14 +16,32 @@ const MOCK_COMPANIES = [
         title: "MOCK IMMIGRATION SERVICES LTD",
         company_status: "active",
         address_snippet: "123 High Street, London, UK",
-        date_of_creation: "2020-01-01"
+        date_of_creation: "2020-01-01",
+        sponsor_license: { status: "licensed", type: "Worker (Tier 2)", rating: "A-rated" }
     },
     {
         company_number: "87654321",
         title: "GLOBAL TALENT VISA SPONSORS INC",
         company_status: "active",
         address_snippet: "456 Tech Park, Manchester, UK",
-        date_of_creation: "2019-05-15"
+        date_of_creation: "2019-05-15",
+        sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
+    },
+    {
+        company_number: "09876543",
+        title: "LONDON TECH SOLUTIONS LTD",
+        company_status: "active",
+        address_snippet: "789 Innovation Way, Shoreditch, London",
+        date_of_creation: "2018-11-20",
+        sponsor_license: { status: "not_licensed", type: "None", rating: "N/A" }
+    },
+    {
+        company_number: "11223344",
+        title: "BRITISH EDUCATION GROUP",
+        company_status: "active",
+        address_snippet: "10 University Rd, Oxford, UK",
+        date_of_creation: "2015-03-10",
+        sponsor_license: { status: "licensed", type: "Student Sponor", rating: "Highly Trusted" }
     }
 ];
 

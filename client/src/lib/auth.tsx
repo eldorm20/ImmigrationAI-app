@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionStorage.clear();
 
       setUser(null);
-      setLocation("/login");
+      setLocation("/auth");
     }
   };
 

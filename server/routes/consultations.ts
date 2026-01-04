@@ -5,7 +5,7 @@ import { users, consultations, applications, tasks } from "@shared/schema";
 import { eq, and, or, desc, gte, lt, sql } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
-import { emailQueue } from "../lib/queue";
+import { enqueueJob } from "../lib/queue";
 import { generateConsultationEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 import { generateGoogleMeetLink, createCalendarEventWithMeet, generateJitsiMeetLink } from "../lib/googleMeet";
@@ -29,6 +29,66 @@ const updateConsultationSchema = z.object({
   notes: z.string().max(2000).optional(),
   meetingLink: z.string().url().or(z.string().length(0)).optional().nullable(),
 });
+
+// Ask a Lawyer (Structured Query)
+router.post(
+  "/ask",
+  asyncHandler(async (req, res) => {
+    const user = req.user!;
+    if (user.role !== "applicant") {
+      throw new AppError(403, "Only applicants can ask questions");
+    }
+
+    const { lawyerId, question, applicationId } = z.object({
+      lawyerId: z.string().min(1),
+      question: z.string().min(10).max(5000),
+      applicationId: z.string().optional()
+    }).parse(req.body);
+
+    const lawyer = await db.query.users.findFirst({
+      where: and(eq(users.id, lawyerId), eq(users.role, "lawyer")),
+    });
+
+    if (!lawyer) throw new AppError(404, "Lawyer not found");
+
+    const applicant = await db.query.users.findFirst({
+      where: eq(users.id, user.userId),
+    });
+
+    if (!applicant) throw new AppError(404, "Applicant not found");
+
+    // Create a 'pending' consultation with a default time (e.g., end of current day)
+    // or just use Now to represent a requested callback
+    const [consultation] = await db.insert(consultations).values({
+      lawyerId,
+      userId: user.userId,
+      applicationId: applicationId || null,
+      notes: `QUERY: ${question}`,
+      status: "pending",
+      scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+      duration: 30,
+    }).returning();
+
+    // Notify lawyer
+    try {
+      await enqueueJob(user.userId, "email", {
+        to: lawyer.email,
+        subject: `New Legal Inquiry from ${applicant.firstName || applicant.email}`,
+        html: `
+          <h3>New Legal Inquiry</h3>
+          <p><strong>From:</strong> ${applicant.firstName} ${applicant.lastName || ""}</p>
+          <p><strong>Question:</strong> ${question}</p>
+          <hr/>
+          <p><a href="${process.env.APP_URL}/lawyer/consultations/${consultation.id}">Respond to Inquiry</a></p>
+        `
+      });
+    } catch (err) {
+      logger.error({ err }, "Failed to send inquiry email");
+    }
+
+    res.status(201).json(consultation);
+  })
+);
 
 // Create consultation request (Applicant requests lawyer)
 router.post(
@@ -106,7 +166,7 @@ router.post(
 
     // Email lawyer about new consultation request
     try {
-      await emailQueue.add({
+      await enqueueJob(user.userId, "email", {
         to: lawyer.email,
         subject: `New Consultation Request from ${applicant.firstName || applicant.email}`,
         html: `
@@ -131,7 +191,7 @@ router.post(
 
     // Email applicant confirmation
     try {
-      await emailQueue.add({
+      await enqueueJob(user.userId, "email", {
         to: applicant.email,
         subject: "Consultation Request Submitted",
         html: `
@@ -343,11 +403,10 @@ router.patch(
         if (clientUser) {
           await db.insert(tasks).values({
             lawyerId: consultation.lawyerId,
-            clientId: consultation.userId,
             applicationId: consultation.applicationId,
             title: `Follow up: Consultation with ${clientUser.firstName} ${clientUser.lastName}`,
-            description: `Consultation completed on ${new Date().toLocaleDateString()}. \n\nReview notes: ${body.notes || consultation.notes || 'No notes provided'}. \n\nAction: Send follow-up email or proposal.`,
-            status: 'todo',
+            description: `Follow-up for client ${clientUser.firstName} ${clientUser.lastName}.\n\nConsultation completed on ${new Date().toLocaleDateString()}. \n\nReview notes: ${body.notes || consultation.notes || 'No notes provided'}. \n\nAction: Send follow-up email or proposal.`,
+            status: 'pending',
             priority: 'medium',
             dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Due in 2 days
           });
@@ -362,7 +421,7 @@ router.patch(
             ? consultation.scheduledTime.toLocaleString()
             : new Date(consultation.scheduledTime).toLocaleString();
 
-          await emailQueue.add({
+          await enqueueJob(user.userId, "email", {
             to: otherUser.email,
             subject: `Consultation Status Update: ${body.status}`,
             html: `
@@ -440,7 +499,7 @@ router.delete(
 
     if (otherUser) {
       try {
-        await emailQueue.add({
+        await enqueueJob(user.userId, "email", {
           to: otherUser.email,
           subject: "Consultation Cancelled",
           html: `

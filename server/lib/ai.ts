@@ -508,6 +508,88 @@ ${data.company || '[Company Name]'}
 ${new Date().toLocaleDateString()}`;
       }
 
+      if (template === 'Student Visa App') {
+        return `PERSONAL STATEMENT FOR STUDENT VISA APPLICATION
+
+Dear Entry Clearance Officer,
+
+I, ${data.name || '[Full Name]'}, am submitting this personal statement in support of my application for a Student Visa to study ${data.role || '[Degree Title]'} at [University Name].
+
+BACKGROUND AND MOTIVATION
+I have completed ${data.education || '[Previous Education]'} and have a strong interest in ${data.skills || '[Field of Study]'}. My decision to pursue this course is driven by my desire to gain advanced knowledge in ${data.skills || 'my chosen field'}.
+
+WHY THIS COURSE AND INSTITUTION?
+The ${data.role || 'course'} offered by [University Name] is globally recognized for its excellence. I am particularly interested in [Specific Module/Research Area].
+
+FUTURE ASPIRATIONS
+Upon completion of my studies, I intend to return to my home country to apply the skills and knowledge gained at [University Name] to contribute to [Career Goals].
+
+FINANCIAL CAPABILITY
+I have demonstrated that I have sufficient funds to cover my tuition fees and living expenses for the duration of my stay in the UK.
+
+I hope for a favorable consideration of my application.
+
+Sincerely,
+${data.name || '[Full Name]'}`;
+      }
+
+      if (template === 'Tourist Visa App') {
+        return `COVER LETTER FOR TOURIST VISA APPLICATION
+
+To: The Visa Officer,
+[Consulate/Embassy Name]
+
+Subject: Application for a Standard Visitor Visa (Tourism)
+
+Dear Sir/Madam,
+
+I, ${data.name || '[Full Name]'}, am applying for a visitor visa to visit [Country] from [Start Date] to [End Date].
+
+PURPOSE OF VISIT
+The primary purpose of my visit is tourism and leisure. I plan to visit [List of Attractions] and experience the local culture.
+
+TRAVEL ITINERARY
+I will be arriving at [Arrival City] on [Date] and staying at [Hotel/Accommodation].
+
+FINANCIAL ARRANGEMENTS
+I am self-funding this trip and have sufficient funds to cover all my travel costs, as demonstrated by my attached bank statements.
+
+TIES TO HOME COUNTRY
+I am currently employed as ${data.role || '[Job Title]'} at ${data.company || '[Company Name]'} and have ${data.experience || '[X]'} years of service. I have already secured leave for this trip and will be returning to my position on [Return Date].
+
+Thank you for your time and consideration.
+
+Sincerely,
+${data.name || '[Full Name]'}`;
+      }
+
+      if (template === 'General Immigration Letter') {
+        return `TO WHOM IT MAY CONCERN
+
+Subject: Formal Representation regarding ${data.name || '[Subject Name]'}
+
+Dear Sir/Madam,
+
+This letter is in reference to the immigration matters of ${data.name || '[Subject Name]'}, currently [Status/Application Stage].
+
+BACKGROUND
+${data.name || 'The individual'} has been associated with ${data.company || '[Company/Organization]'} for ${data.experience || '[Number]'} years. During this time, they have demonstrated ${data.skills || '[Key Qualities]'}.
+
+PURPOSE OF REPRESENTATION
+We wish to highlight ${data.achievements || '[Specific Points to Note]'} in support of their current application for [Visa Category].
+
+SUPPORTING EVIDENCE
+Please find attached documented proof of [Evidence 1], [Evidence 2], and [Evidence 3].
+
+We trust this information assists in the fair assessment of the application.
+
+Yours faithfully,
+
+[Your Name/Signature]
+[Title]
+${new Date().toLocaleDateString()}`;
+      }
+
       // Generic Fallback
       return `${template}\n\n${Object.entries(data)
         .map(([k, v]) => `${k}: ${v}`)
@@ -546,7 +628,7 @@ export async function translateText(
 }
 
 // Chat responder specialized for immigration assistance
-export async function chatRespond(message: string, language = "en"): Promise<string> {
+export async function chatRespond(message: string, language = "en", context: any = {}): Promise<string> {
   try {
     const langNames: Record<string, string> = {
       uz: "Uzbek",
@@ -558,16 +640,21 @@ export async function chatRespond(message: string, language = "en"): Promise<str
     };
 
     const targetLang = langNames[language] || "English";
-    const systemPrompt = `You are a professional immigration assistant. You MUST respond in ${targetLang}. 
-    Provide accurate information regarding visas, requirements, and legal procedures. 
-    If the user greets you in ${targetLang}, greet them back in ${targetLang}.`;
+
+    // Choose the most appropriate agent based on context
+    // Default to immigration-law for most grounded queries
+    const agentType = context.type === 'support' ? "customer-service" : "immigration-law";
 
     const response = await agentsManager.processRequest(
-      "customer-service",
+      agentType,
       "handleUserQuery",
       [
-        `${systemPrompt}\n\nUser Question: ${message}`,
-        { context: "immigration chat", language: targetLang },
+        message,
+        {
+          ...context,
+          language: targetLang,
+          jurisdiction: context.jurisdiction || "UK"
+        }
       ]
     );
 
@@ -779,12 +866,14 @@ export async function reviewDocument(
     1. Score the document's compliance/quality from 0-100 based on the Official Rules above.
     2. Identify specific strengths and weaknesses.
     3. List "Red Flags"(missing info, inconsistencies) and "Green Flags"(strong points).
+    4. Propose specific text edits or additions to improve the document's chances of success.
     
     Response format(JSON):
     {
       "score": number,
-        "feedback": ["point 1", "point 2"],
-          "flags": [{ "type": "red", "message": "..." }, { "type": "green", "message": "..." }]
+      "feedback": ["point 1", "point 2"],
+      "flags": [{ "type": "red", "message": "..." }, { "type": "green", "message": "..." }],
+      "proposals": [{ "original": "text to replace", "proposed": "new text", "reason": "why" }]
     }
     `;
 

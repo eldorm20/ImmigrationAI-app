@@ -33,8 +33,8 @@ import { UploadView } from "@/components/dashboard/UploadView";
 import { TranslateView } from "@/components/dashboard/TranslateView";
 import { ChatView } from "@/components/dashboard/ChatView";
 import { GovChecksView } from "@/components/dashboard/GovChecksView";
-import { SavedTemplatesView } from "@/components/dashboard/SavedTemplatesView";
-import { ScenarioSimulator } from "@/components/dashboard/ScenarioSimulator";
+import { TemplatesView } from "@/components/dashboard/TemplatesView";
+import { VisaSimulatorView } from "@/components/dashboard/VisaSimulatorView";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import { DocumentChecklistView } from "@/components/dashboard/DocumentChecklistView";
 import CompanySearch from "@/pages/lawyer/company-check";
@@ -178,7 +178,14 @@ export default function UserDash() {
           {navItems.map(item => (
             <motion.button
               key={item.id}
-              onClick={() => { setActiveTab(item.id); setIsMobileMenuOpen(false); }}
+              onClick={() => {
+                if (item.id === 'research') {
+                  setLocation('/research');
+                } else {
+                  setActiveTab(item.id);
+                }
+                setIsMobileMenuOpen(false);
+              }}
               whileHover={{ x: 5 }}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-bold transition-all relative overflow-hidden ${activeTab === item.id ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
             >
@@ -313,30 +320,18 @@ export default function UserDash() {
           {activeTab === 'docs' && <AIDocsView key="docs" />}
           {activeTab === 'employer' && <EmployerVerificationView key="employer" />}
           {activeTab === 'documents' && <DocumentsView key="documents" />}
-          {activeTab === 'templates' && <SavedTemplatesView key="templates" />}
-          {activeTab === 'simulator' && <ScenarioSimulator key="simulator" />}
+          {activeTab === 'templates' && <TemplatesView key="templates" />}
+          {activeTab === 'simulator' && <VisaSimulatorView key="simulator" />}
           {activeTab === 'gov' && <GovChecksView key="gov" />}
           {activeTab === 'trainer' && <InterviewTrainerView key="trainer" />}
           {activeTab === 'upload' && <UploadView key="upload" initialChecklistItem={pendingChecklistItem} onUploadComplete={() => setPendingChecklistItem(null)} />}
           {activeTab === 'translate' && <TranslateView key="translate" />}
+          {activeTab === 'chat' && <ChatView key="chat" applicationId={activeApp?.id} />}
           {activeTab === 'messages' && <MessagingPanel key="messages" />}
           {activeTab === 'lawyer' && <ConsultationPanel key="lawyer" />}
           {activeTab === 'agency' && <AgencyView key="agency" />}
           {activeTab === 'companies' && <CompanySearch />}
-          {activeTab === 'research' && (
-            <motion.div key="research" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-20">
-              <AnimatedCard className="max-w-md mx-auto">
-                <Book className="w-16 h-16 mx-auto mb-4 text-brand-500" />
-                <h3 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">{t.research.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 font-medium">
-                  {t.research.subtitle}
-                </p>
-                <LiveButton onClick={() => setLocation('/research')} icon={Book}>
-                  {t.research.title}
-                </LiveButton>
-              </AnimatedCard>
-            </motion.div>
-          )}
+          {activeTab === 'research' && null}
         </AnimatePresence>
       </main>
     </div>

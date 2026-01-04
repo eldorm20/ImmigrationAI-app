@@ -119,6 +119,14 @@ export async function registerRoutes(app: Express) {
   const checklistsRoutes = (await import("./routes/checklists")).default;
   app.use("/api/checklists", checklistsRoutes);
 
+  // Import and register templates
+  const templatesRoutes = (await import("./routes/templates")).default;
+  app.use("/api/templates", templatesRoutes);
+
+  // Import and register simulator
+  const simulatorRoutes = (await import("./routes/simulator")).default;
+  app.use("/api/simulator", simulatorRoutes);
+
   // Import and register UZ payments
   const paymentsUzRoutes = (await import("./routes/payments-uz")).default;
   app.use("/api/payments-uz", paymentsUzRoutes);

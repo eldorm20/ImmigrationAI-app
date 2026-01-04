@@ -162,168 +162,64 @@ router.post(
 
 
 
-// Generate professional document via AI
+import { enqueueJob, getJob } from "../lib/queue";
+
+// Check job status
+router.get(
+  "/jobs/:jobId",
+  asyncHandler(async (req, res) => {
+    const { jobId } = req.params;
+    const userId = req.user!.userId;
+
+    const job = await getJob(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    if (job.userId !== userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    res.json(job);
+  })
+);
+
+// Generate professional document via AI (Async)
 router.post(
   "/documents/generate",
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
 
-    // Increment document-generation usage and generic AI usage (both enforced)
     try {
       await incrementUsage(userId, 'aiDocumentGenerations', 1);
       await incrementUsage(userId, 'aiMonthlyRequests', 1);
     } catch (err) {
-      logger.warn({ userId, error: (err as any)?.message }, "AI usage quota exceeded");
-      return res.status(err instanceof Error && (err as any).statusCode ? (err as any).statusCode : 403).json({
-        message: (err as any).message || 'AI quota exceeded. Please upgrade your plan to continue using AI features.'
-      });
+      return res.status(403).json({ message: 'AI quota exceeded' });
     }
 
-    const { template, data, language } = z
-      .object({ template: z.string().min(1), data: z.record(z.any()).optional(), language: z.string().optional() })
+    const { template, data, language, visaType } = z
+      .object({
+        template: z.string().min(1),
+        data: z.record(z.any()).optional(),
+        language: z.string().optional(),
+        visaType: z.string().optional().default("General")
+      })
       .parse(req.body);
 
-    let doc;
-    let usedFallback = false;
-
-    // Set a longer timeout for AI generation (90 seconds)
-    res.setTimeout(90000, () => {
-      logger.warn({ userId, template }, "AI document generation timed out at 90s");
+    // Enqueue job
+    const job = await enqueueJob(userId, "document_generation", {
+      documentType: template,
+      userDetails: data || {},
+      visaType: visaType,
+      language: language || 'en'
     });
 
-    try {
-      logger.info({ userId, template, language }, "Attempting AI document generation");
-
-      // key-value to force promise race if needed, but simple await with express timeout is usually enough
-      // We'll wrap in a timeout promise to catch it before express cuts it off
-      const generationPromise = generateDocument(template, data || {}, language || 'en');
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("AI generation timed out")), 85000));
-
-      doc = await Promise.race([generationPromise, timeoutPromise]);
-
-      logger.info({ userId, template, success: true }, "AI document generation successful");
-    } catch (err: any) {
-      // Fallback: Generate document using local templates when AI fails
-      usedFallback = true;
-      logger.warn({ err: err?.message, template, userId }, 'AI document generation failed, using local fallback');
-
-      const userData = data || {};
-      const name = userData.name || req.user?.email?.split('@')[0] || '[Your Name]';
-      const role = userData.role || '[Position]';
-      const company = userData.company || '[Company Name]';
-      const experience = userData.experience || '[X]';
-      const skills = userData.skills || '[Key Skills]';
-      const education = userData.education || '[Education]';
-      const achievements = userData.achievements || '';
-
-      const templateLower = template.toLowerCase();
-
-      if (templateLower.includes('motivation') || templateLower.includes('cover')) {
-        doc = `Dear Hiring Manager,
-
-I am writing to express my strong interest in the ${role} position at ${company}. With ${experience} years of professional experience and expertise in ${skills}, I am confident that I would be a valuable addition to your team.
-
-PROFESSIONAL BACKGROUND
-I bring ${experience} years of dedicated experience, with demonstrated expertise in ${skills}. My educational background includes ${education}, which has provided me with both theoretical knowledge and practical skills essential for success in this role.
-
-KEY QUALIFICATIONS
-${String(skills).split(',').map((s: string) => `• ${s.trim()}`).join('\n')}
-
-${achievements ? `RECENT ACHIEVEMENTS\n${achievements}\n` : ''}
-WHY ${company.toUpperCase()}
-I am particularly drawn to ${company} because of your commitment to excellence and innovation. The opportunity to contribute to your team aligns perfectly with my career aspirations and professional values.
-
-I am excited about the possibility of bringing my skills and experience to your team. I would welcome the opportunity to discuss how my background can benefit ${company}.
-
-Thank you for considering my application.
-
-Sincerely,
-${name}
-${new Date().toLocaleDateString()}`;
-      } else if (templateLower.includes('cv') || templateLower.includes('resume')) {
-        doc = `PROFESSIONAL SUMMARY
-
-Results-driven ${role} with ${experience} years of experience. Proven expertise in ${skills} with a track record of delivering exceptional results.
-
-CORE COMPETENCIES
-${String(skills).split(',').map((s: string) => `• ${s.trim()}`).join('\n')}
-
-PROFESSIONAL EXPERIENCE
-
-${role} | ${company} | ${experience} years
-${achievements ? String(achievements).split(',').map((a: string) => `• ${a.trim()}`).join('\n') : '• Delivered key projects on time\n• Exceeded performance expectations\n• Collaborated effectively with cross-functional teams'}
-
-EDUCATION
-${education}
-
-LANGUAGES
-• English (Professional)
-
-CONTACT
-${name}`;
-      } else if (templateLower.includes('reference')) {
-        doc = `To Whom It May Concern,
-
-RE: Reference Letter for ${name}
-
-I am writing to provide a professional reference for ${name}, who worked with us for ${experience} years in the capacity of ${role}.
-
-EMPLOYMENT PERIOD
-During their ${experience} years of service with ${company}, ${name} demonstrated exceptional professionalism, dedication, and competence.
-
-KEY STRENGTHS
-${String(skills).split(',').map((s: string) => `• ${s.trim()}`).join('\n')}
-
-PERFORMANCE HIGHLIGHTS
-${achievements || '• Consistently met and exceeded performance expectations\n• Demonstrated strong problem-solving abilities\n• Worked effectively both independently and as part of a team'}
-
-I can confidently recommend ${name} for any position that requires ${String(skills).split(',').slice(0, 2).join(' and ')}. They would be a valuable asset to any organization.
-
-If you require any additional information, please do not hesitate to contact me.
-
-Sincerely,
-
-[Recommender Name]
-[Title]
-${company}
-${new Date().toLocaleDateString()}`;
-      } else {
-        // Default professional document
-        doc = `PROFESSIONAL DOCUMENT
-
-Name: ${name}
-Role: ${role}
-Organization: ${company}
-Experience: ${experience} years
-
-PROFILE
-A dedicated ${role} with ${experience} years of experience, specializing in ${skills}.
-
-QUALIFICATIONS
-${String(skills).split(',').map((s: string) => `• ${s.trim()}`).join('\n')}
-
-EDUCATION
-${education}
-
-${achievements ? `ACHIEVEMENTS\n${achievements}` : ''}
-
----
-Generated on ${new Date().toLocaleDateString()}`;
-      }
-    }
-
-    // Return document with metadata about fallback usage
-    res.json({
-      document: doc,
-      ...(usedFallback && {
-        note: "Generated using local template. AI service temporarily unavailable."
-      })
-    });
+    res.status(202).json({ jobId: job.id, status: 'pending', message: "Document generation started" });
   })
 );
 
-// Review document for compliance
+// Review document for compliance (Async)
 router.post(
   "/documents/review",
   aiLimiter,
@@ -344,8 +240,13 @@ router.post(
       })
       .parse(req.body);
 
-    const check = await reviewDocument(content, docType, visaType);
-    res.json(check);
+    const job = await enqueueJob(userId, "document_review", {
+      content,
+      documentType: docType,
+      visaType
+    });
+
+    res.status(202).json({ jobId: job.id, status: 'pending', message: "Document review started" });
   })
 );
 
@@ -627,6 +528,7 @@ router.post(
       messageText = parsed.message || '';
     }
 
+    // AI Chat with Contextual Awareness
     try {
       let history: Array<{ role: string, content: string }> = parsed.history || [];
 
@@ -643,159 +545,36 @@ router.post(
         messageText = parsed.message;
       }
 
-      // Use specialized immigration agent with RAG for relevant queries
-      const keywords = ["viza", "visa", "qonun", "law", "registration", "registratsiya", "uzbekistan", "o'zbekiston", "zru", "pkm", "uzb"];
-      if (keywords.some(k => messageText.toLowerCase().includes(k))) {
-        try {
-          const { agentsManager } = await import("../lib/agents");
-          const agentResponse = await agentsManager.processRequest(
-            "immigration-law",
-            "handleUserQuery",
-            [messageText, { language: parsed.language || 'en' }]
-          );
+      // Fetch user context (active application and profile)
+      const userProfile = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
 
-          if (agentResponse.success) {
-            return res.json({ response: agentResponse.data });
-          }
-        } catch (agentErr) {
-          logger.warn({ agentErr }, "Specialized agent failed, falling back to general chat");
-        }
-      }
+      // Prefer explicitly passed applicationId
+      const passedAppId = (req.body as any).applicationId;
 
-      // Use improved chat function that properly handles conversation history
+      const activeApplication = await db.query.applications.findFirst({
+        where: passedAppId
+          ? and(eq(applications.id, passedAppId), eq(applications.userId, userId))
+          : and(
+            eq(applications.userId, userId),
+            gte(applications.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // Recent application
+          ),
+        orderBy: [desc(applications.updatedAt)]
+      });
+
+      const chatContext = {
+        userName: userProfile?.name,
+        visaType: activeApplication?.visaType,
+        country: activeApplication?.country || "UK",
+        status: activeApplication?.status,
+        messages: history
+      };
+
       const language = (parsed.language as string) || 'en';
+      const reply = await chatRespond(messageText, language, chatContext);
 
-      let systemPrompt = "";
-      if (language === 'uz') {
-        systemPrompt = `Siz "AI Yordamchi"siz - ImmigrationAI platformasining rasmiy yordamchisi. Sizning vazifangiz:
-1. Immigratsiya va vizalar bo'yicha aniq maslahat berish.
-2. Platformadan foydalanish bo'yicha texnik yordam ko'rsatish (akkaunt, to'lovlar, hujjatlar).
-3. Foydalanuvchi muammolarini hal qilish.
-Javoblarni asosan O'zbek tilida bering. AGAR savolga o'zbek tilida aniq javob berish qiyin bo'lsa yoki atamalar murakkab bo'lsa, tushuntirish uchun RUS tilidan foydalanishingiz mumkin. Maqsad - foydalanuvchiga eng to'g'ri ma'lumotni yetkazish.`;
-      } else if (language === 'ru') {
-        systemPrompt = `Вы "AI Yordamchi" - официальный помощник платформы ImmigrationAI. Ваша задача:
-1. Давать точные советы по иммиграции и визам.
-2. Оказывать техническую поддержку по платформе (аккаунт, оплата, документы).
-3. Решать проблемы пользователей.
-Отвечайте только на Русском языке, четко и кратко. Избегайте повторений.`;
-      } else {
-        systemPrompt = `You are "AI Yordamchi" - the official support assistant for the ImmigrationAI platform. Your role is to:
-1. Provide accurate advice on immigration and visas.
-2. Provide technical support for the platform (account, billing, documents).
-3. Solve user issues.
-Answer specifically in English, clearly and concisely. Avoid repetition.`;
-      }
-
-      // Build full conversation with history for context
-      const allMessages = [
-        ...history,
-        { role: 'user', content: messageText }
-      ];
-
-      // Try to use Ollama with messages format if available
-      const localAIUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL;
-      if (localAIUrl) {
-        try {
-          const { buildOllamaPayload, parseOllamaResponse } = await import("../lib/ollama");
-
-          // Use /api/chat endpoint if available (better for conversation)
-          // Construct correct URL for chat
-          let chatUrl = localAIUrl;
-          if (chatUrl.includes("/api/generate")) {
-            chatUrl = chatUrl.replace('/api/generate', '/api/chat');
-          } else if (!chatUrl.includes("/api/") && !chatUrl.includes("/v1/")) {
-            chatUrl = chatUrl.replace(/\/+$/, "") + "/api/chat";
-          }
-
-          const payload = buildOllamaPayload(messageText, systemPrompt, process.env.OLLAMA_MODEL || 'neural-chat', allMessages);
-
-          // Log payload for debugging (truncated if too long)
-          logger.info({
-            payloadMeta: {
-              model: payload.model,
-              messagesCount: payload.messages?.length,
-              options: payload.options
-            }
-          }, "Sending chat request to Ollama");
-
-          let response;
-          let attempts = 0;
-          const maxRetries = 3;
-
-          while (attempts < maxRetries) {
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for Ollama on CPU
-
-              response = await fetch(chatUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-                signal: controller.signal,
-              });
-
-              clearTimeout(timeoutId);
-
-              if (response.ok) {
-                break; // Success!
-              }
-
-              // If 500 or 503, retry
-              if (response.status >= 500) {
-                const errText = await response.text();
-                logger.warn({ status: response.status, attempt: attempts + 1, errText }, "Ollama returned server error, retrying...");
-                if (attempts === maxRetries - 1) {
-                  // Throw on last attempt to let outer catch handle it
-                  throw new Error(`Ollama failed with status ${response.status}: ${errText}`);
-                }
-              } else {
-                // 4xx errors should not be retried
-                break;
-              }
-
-            } catch (netErr) {
-              logger.warn({ err: netErr, attempt: attempts + 1 }, "Network error communicating with Ollama");
-              if (attempts === maxRetries - 1) throw netErr;
-            }
-
-            attempts++;
-            // Exponential backoff: 1s, 2s, 4s
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts - 1)));
-          }
-
-
-          if (response && response.ok) {
-            const json = await response.json();
-            const parsed = parseOllamaResponse(json);
-            if (parsed) {
-              return res.json({ reply: parsed });
-            }
-          } else if (response) {
-            const errorText = await response.text();
-            logger.error({ status: response.status, statusText: response.statusText, errorText, url: chatUrl, model: process.env.OLLAMA_MODEL }, "Ollama chat request failed");
-          }
-        } catch (ollamaErr) {
-          logger.warn({ err: ollamaErr }, "Ollama chat endpoint failed, falling back to generate");
-        }
-      }
-
-      // Fallback to standard chatRespond function
-      const contextualMessage = history && history.length > 0
-        ? `Previous conversation:\n${history.map((m: any) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')}\n\nUser: ${messageText}`
-        : messageText;
-
-      // AI Chat Response with 15s timeout
-      try {
-        const chatPromise = chatRespond(contextualMessage, language);
-        const timeoutPromise = new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("AI chat timeout")), 15000)
-        );
-
-        const reply = await Promise.race([chatPromise, timeoutPromise]);
-        res.json({ reply });
-      } catch (err: any) {
-        throw new Error(err.message || "AI chat generation failed");
-      }
+      res.json({ reply });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       logger.warn({ err: errorMsg }, "AI chat failed, using intelligent fallback responses");

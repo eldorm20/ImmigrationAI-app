@@ -2,12 +2,10 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
-import { emailQueue, notificationQueue } from "./queue";
+import { enqueueJob } from "./queue";
 import {
   generateApplicationStatusEmail,
   generateConsultationEmail,
-  generatePaymentConfirmationEmail,
-  generateDocumentUploadConfirmationEmail
 } from "./email";
 
 export interface NotificationPayload {
@@ -31,7 +29,7 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
     }
 
     // Queue notification
-    await notificationQueue.add(payload, { priority: 10 });
+    await enqueueJob(payload.userId, "notification", payload);
 
     logger.info({ userId: payload.userId }, "Notification queued");
   } catch (error) {
@@ -59,7 +57,7 @@ export async function sendApplicationStatusNotification(
     const name = applicantName || user.firstName || "Applicant";
     const html = generateApplicationStatusEmail(status, name, applicationId);
 
-    await emailQueue.add({
+    await enqueueJob(userId, "email", {
       to: user.email,
       subject: `Application Status Updated - ${status}`,
       html,
@@ -90,7 +88,7 @@ export async function sendConsultationNotification(
 
     const html = generateConsultationEmail(lawyerName, scheduledTime, meetingLink);
 
-    await emailQueue.add({
+    await enqueueJob(userId, "email", {
       to: user.email,
       subject: "Consultation Scheduled - ImmigrationAI",
       html,
@@ -111,7 +109,7 @@ export async function notifyAdmins(subject: string, message: string): Promise<vo
 
     for (const admin of admins) {
       if (admin.emailVerified) {
-        await emailQueue.add({
+        await enqueueJob(admin.id, "email", {
           to: admin.email,
           subject: `[ADMIN] ${subject}`,
           html: `<p>${message}</p>`,
@@ -149,7 +147,7 @@ export async function sendSmsNotification(
     }, "[SMS PROVIDER PLACEHOLDER] SMS would be sent now");
 
     // Add to notification queue for history tracking
-    await notificationQueue.add({
+    await enqueueJob(userId, "notification", {
       userId,
       title: "SMS Sent",
       message: message,
