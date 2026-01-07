@@ -22,7 +22,7 @@ export async function extractTextFromBuffer(buffer: Buffer, mimeType?: string): 
 
                 // If it's a scanned PDF (no selectable text), we need to notify the user
                 logger.warn("PDF appears to be scanned or contains no selectable text");
-                throw new Error("This PDF appears to be a scanned document without selectable text. Please upload a high-quality image (JPG/PNG) instead, or a searchable PDF.");
+                throw new Error("This PDF appears to be a scanned document (image-only) without selectable text. Our system currently requires PDFs to have selectable text. Please convert this document to a high-quality image (JPG, PNG) and upload it again.");
             } catch (pdfErr: any) {
                 logger.error({ err: pdfErr.message }, "pdf-parse failed");
                 throw new Error(`Failed to parse PDF document: ${pdfErr.message}`);

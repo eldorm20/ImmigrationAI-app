@@ -82,7 +82,10 @@ export function requireRole(...allowedRoles: ("admin" | "lawyer" | "applicant" |
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const userRole = (req.user.role || "").toLowerCase();
+    const formattedAllowedRoles = allowedRoles.map(r => r.toLowerCase());
+
+    if (!formattedAllowedRoles.includes(userRole)) {
       return res.status(403).json({ message: "Insufficient permissions" });
     }
 

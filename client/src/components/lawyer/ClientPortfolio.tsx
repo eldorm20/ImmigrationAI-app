@@ -32,6 +32,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ClientDocumentsModal } from "./ClientDocumentsModal";
+import ClientProfile from "./ClientProfile";
 
 interface Client {
     id: string;
@@ -47,7 +49,11 @@ interface Client {
     source: string;
 }
 
-export default function ClientPortfolio() {
+interface ClientPortfolioProps {
+    onMessageClient?: (clientId: string) => void;
+}
+
+export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProps) {
     const { toast } = useToast();
     const { t } = useI18n();
     const queryClient = useQueryClient();
@@ -61,6 +67,11 @@ export default function ClientPortfolio() {
         email: "",
         phone: "",
     });
+
+    // Document Modal State
+    const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null);
+    const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
 
     const { data: clients, isLoading } = useQuery<Client[]>({
         queryKey: ["/clients"],
@@ -282,13 +293,25 @@ export default function ClientPortfolio() {
                                                         <Mail size={16} /> {t.lawyer.clientsHub.actions.copy}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
-                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
+                                                    <DropdownMenuItem
+                                                        className="rounded-xl flex items-center gap-3 p-3 cursor-pointer"
+                                                        onClick={() => setViewingProfileId(client.id)}
+                                                    >
                                                         <Users size={16} /> {t.lawyer.clientsHub.actions.profile}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer">
+                                                    <DropdownMenuItem
+                                                        className="rounded-xl flex items-center gap-3 p-3 cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelectedClient({ id: client.id, name: `${client.firstName} ${client.lastName}` });
+                                                            setIsDocsModalOpen(true);
+                                                        }}
+                                                    >
                                                         <FileText size={16} /> {t.lawyer.clientsHub.actions.file}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer text-brand-600 font-bold">
+                                                    <DropdownMenuItem
+                                                        className="rounded-xl flex items-center gap-3 p-3 cursor-pointer text-brand-600 font-bold"
+                                                        onClick={() => onMessageClient?.(client.id)}
+                                                    >
                                                         <MessageSquare size={16} /> {t.lawyer.clientsHub.actions.msg}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
@@ -301,6 +324,38 @@ export default function ClientPortfolio() {
                     </table>
                 </div>
             </AnimatedCard>
+
+            <ClientDocumentsModal
+                isOpen={isDocsModalOpen}
+                onClose={() => setIsDocsModalOpen(false)}
+                clientId={selectedClient?.id || null}
+                clientName={selectedClient?.name || ""}
+            />
+
+            {/* Client Profile Modal */}
+            <AnimatePresence>
+                {viewingProfileId && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                            onClick={() => setViewingProfileId(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="bg-white dark:bg-slate-950 rounded-[32px] shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden relative z-10 border border-white/20 dark:border-white/5 flex flex-col"
+                        >
+                            <div className="flex-1 overflow-hidden relative">
+                                <ClientProfile clientId={viewingProfileId} onClose={() => setViewingProfileId(null)} />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Register Client Modal */}
             <AnimatePresence>

@@ -55,14 +55,18 @@ interface OnlineUser {
 }
 
 type SocketAck = { success?: boolean; messageId?: string; error?: string };
-export default function MessagingPanel() {
+interface MessagingPanelProps {
+  initialSelectedUserId?: string | null;
+}
+
+export default function MessagingPanel({ initialSelectedUserId }: MessagingPanelProps) {
   const { t } = useI18n();
   const { user } = useAuth();
   const { toast } = useToast();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<ChatParticipant[]>([]);
-  const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<string | null>(initialSelectedUserId || null);
   const [inputMessage, setInputMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);

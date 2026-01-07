@@ -190,6 +190,14 @@ router.post(
   aiLimiter,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
+    const role = (req.user!.role || "").toLowerCase();
+
+    // Strict Restriction: Only Lawyers and Admins can generate professional documents
+    if (role !== "lawyer" && role !== "admin") {
+      return res.status(403).json({
+        message: "Access denied. Only licensed immigration lawyers can generate legal documents."
+      });
+    }
 
     try {
       await incrementUsage(userId, 'aiDocumentGenerations', 1);

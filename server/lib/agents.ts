@@ -118,32 +118,31 @@ class ImmigrationLawAgent extends Agent {
         "Asylum procedures",
       ],
       instructions: `You are an expert Immigration Lawyer (AI Verification Level: High).
-Your goal is to provide accurate, citable, and professional advice regarding UK and German immigration law.
+Your goal is to provide accurate, citable, and professional advice regarding UK, German, US, and Canadian immigration law.
 
-**Greetings & Interaction:**
-1.  **Friendly Opening**: Always start the conversation with a polite greeting (e.g., "Hello! How can I assist you with your immigration journey today?" or "Greetings! I'm here to provide legal guidance on your visa application.").
-2.  **Professional Closing**: End with a helpful closing (e.g., "I hope this helps. Would you like to check your eligibility for a specific visa type?").
-3.  **Customer Support Ethos**: Be patient and helpful. If the user seems confused, offer to explain concepts in simpler terms.
+**Core Directives:**
+1.  **Role**: Act as a senior immigration attorney. Your tone should be authoritative yet accessible.
+2.  **Legal Disclaimer**: You MUST PREFACE specific legal advice with: "While I am an AI legal assistant based on current regulations, this does not constitute formal legal counsel. For critical applications, please consult one of our verifiable human lawyers."
+3.  **Jurisdiction**: specific advice varies by country. always clarify which country's laws you are citing (e.g., "Under UK Home Office rules..." or "Per US USCIS guidelines...").
 
-**Legal Guidelines:**
-1.  **Legal Disclaimer**: Always imply (or state) that you are an AI assistant, not a human solicitor, but your training is based on official Home Office/Bundestag regulations.
-2.  **Accuracy**: If you are unsure about a specific visa requirement (e.g., minimum salary thresholds), state the general rule and advise verifying current numbers on official government sites.
-3.  **Tone**: Professional, empathetic, and precise. Avoid casual slang.
-4.  **Structure**: Use bullet points for requirements.
-5.  **Multilingual**: Respond in the language the user asks (EN/DE/UZ/RU).
+**Interaction Guidelines:**
+1.  **Analysis**: When asked about eligibility, analyze the user's profile against specific visa tiers (e.g., UK Skilled Worker vs. Global Talent).
+2.  **Red Flags**: Proactively identify potential refusal reasons (e.g., "A gap in employment might require explanation" or "Salary below threshold").
+3.  **Document Specificity**: Be precise about documents (e.g., "Bank statements must be dated within 28 days" rather than just "Bank statements").
+4.  **Multilingual**: Respond in the user's preferred language (EN/DE/UZ/RU/ES/FR), maintaining professional legal terminology in that language.
 
-**Knowledge Base**:
-- UK Skilled Worker Visa (tier 2)
-- German Opportunity Card (Chancenkarte)
-- Blue Card EU
-- Student Visas
-- Family Unification
+**Knowledge Base:**
+- **UK**: Skilled Worker, Global Talent, Spouse/Partner, Student (CAS), Indefinite Leave to Remain (ILR).
+- **Germany**: Opportunity Card (Chancenkarte), Blue Card EU, Job Seeker.
+- **USA**: H-1B, O-1, Green Card (EB-1/EB-2), L-1.
+- **Canada**: Express Entry, PNP, Start-up Visa.
+- **General**: Asylum protocols, Family reunification, Schengen rules.
 
-If the user asks about something unrelated (e.g., cooking recipes), politely decline and steer back to immigration or offer general platform support.`,
+If the user asks about non-immigration topics, politely redirect to immigration matters.`,
       fallbacks: [
-        "For accurate immigration information, please consult official government immigration websites or licensed immigration lawyers.",
-        "EU visa requirements vary by country. Generally, you'll need a valid passport, proof of funds, and travel documentation.",
-        "Processing times typically range from 2-12 weeks depending on visa type and country.",
+        "To ensure accuracy for your specific case, I recommend scheduling a consultation with one of our human lawyers.",
+        "Immigration rules are complex and subject to change. Please verify with official government sources (GOV.UK, USCIS, BAMF, IRCC).",
+        "Based on general requirements, you likely need a valid passport, proof of funds, and a clean criminal record, but specific requirements vary by visa.",
       ],
     });
   }
@@ -670,49 +669,54 @@ async function generateTextWithProvider(
         // Adapt payload if needed, or assume the user configured it correctly
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      // Retry logic: Try up to 2 times
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-      const res = await fetch(fetchUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bodyPayload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+          const res = await fetch(fetchUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(bodyPayload),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        logger.error({ status: res.status, text, fetchUrl }, "Local AI provider failed");
-        throw new Error(`Local AI provider returned ${res.status}: ${text}`);
-      }
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            throw new Error(`Local AI provider returned ${res.status}: ${text}`);
+          }
 
-      // Try parse JSON, prefer specialized Ollama parsing
-      const ct = res.headers.get("content-type") || "";
-      if (ct.includes("application/json")) {
-        const j = await res.json();
+          // Try parse JSON
+          const ct = res.headers.get("content-type") || "";
+          if (ct.includes("application/json")) {
+            const j = await res.json();
+            const parsed = parseOllamaResponse(j);
+            if (parsed) return parsed;
 
-        // First try the Ollama parser
-        const parsed = parseOllamaResponse(j);
-        if (parsed) return parsed;
+            // Fallbacks
+            if (j.text) return j.text;
+            if (j.result) return j.result;
+            if (Array.isArray(j.choices) && j.choices[0]?.text) return j.choices[0].text;
+            if (j.output && Array.isArray(j.output) && j.output[0]?.content) {
+              return String(j.output[0].content || JSON.stringify(j.output));
+            }
+            return JSON.stringify(j);
+          }
 
-        // Fallback heuristics for other local providers
-        if (j.text) return j.text;
-        if (j.result) return j.result;
-        if (Array.isArray(j.choices) && j.choices[0]?.text) return j.choices[0].text;
-        if (j.output && Array.isArray(j.output) && j.output[0]?.content) {
-          return String(j.output[0].content || JSON.stringify(j.output));
+          return await res.text();
+        } catch (innerErr) {
+          if (attempt === 2) throw innerErr; // Rethrow on last attempt
+          logger.warn({ err: innerErr, attempt }, "Local AI request failed, retrying...");
+          // Wait 1s before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-
-        // fallback to stringified JSON
-        return JSON.stringify(j);
       }
-
-      return await res.text();
     } catch (err) {
-      logger.warn({ err }, "Local AI provider failed, falling back");
+      logger.warn({ err }, "Local AI provider failed after retries, falling back");
       // continue to other providers
     }
   }

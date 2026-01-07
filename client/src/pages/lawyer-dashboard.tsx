@@ -33,6 +33,7 @@ export default function LawyerDashboard() {
   const [_, setLocation] = useLocation();
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('leads');
+  const [selectedClientIdForMessage, setSelectedClientIdForMessage] = useState<string | null>(null);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand-500" /></div>;
   if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) {
@@ -66,7 +67,10 @@ export default function LawyerDashboard() {
     >
       <div className="min-h-full pb-10">
         {activeTab === 'leads' && <LeadsManager />}
-        {activeTab === 'applications' && <ClientPortfolio />} {/* Reusing ClientPortfolio for Applications/Cases */}
+        {activeTab === 'applications' && <ClientPortfolio onMessageClient={(clientId) => {
+          setSelectedClientIdForMessage(clientId);
+          setActiveTab('messages');
+        }} />} {/* Reusing ClientPortfolio for Applications/Cases */}
         {activeTab === 'consultations' && <LawyerConsultations />}
         {activeTab === 'financials' && (
           <div className="space-y-8">
@@ -77,7 +81,7 @@ export default function LawyerDashboard() {
         {activeTab === 'documents' && <AIDocsView />}
         {activeTab === 'templates' && <DocumentTemplates />}
         {activeTab === 'company-check' && <CompanySearch />}
-        {activeTab === 'messages' && <MessagingPanel />}
+        {activeTab === 'messages' && <MessagingPanel initialSelectedUserId={selectedClientIdForMessage} />}
       </div>
     </AppLayout>
   );
