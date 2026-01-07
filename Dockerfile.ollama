@@ -1,0 +1,10 @@
+FROM ollama/ollama:latest
+
+# Pre-pull the mistral model during build
+RUN ollama serve &
+SLEEP_PID=$!
+sleep 10
+ollama pull mistral
+wait $SLEEP_PID
+
+CMD ["ollama", "serve"]

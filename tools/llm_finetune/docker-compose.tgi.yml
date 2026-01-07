@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  tgi:
+    image: ghcr.io/huggingface/text-generation-inference:latest
+    # For GPU usage, ensure you have the nvidia runtime and Docker configured for GPU.
+    # You can set `runtime: nvidia` in older Docker setups, or rely on automatic GPU discovery.
+    # runtime: nvidia
+    environment:
+      # Either set HF_MODEL to a Hub id, or place a model folder under ./models and set MODEL_ID
+      - MODEL_ID=${HF_MODEL}
+      - HUGGING_FACE_HUB_TOKEN=${HUGGINGFACE_API_TOKEN}
+      # Tune these for your host
+      - TGI_MAX_INPUT_LENGTH=${TGI_MAX_INPUT_LENGTH:-2048}
+    ports:
+      - "8080:8080"
+    volumes:
+      # Optionally mount a local models directory (models will be loaded from HF or local path)
+      - ./models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

@@ -1,0 +1,2 @@
+-- Metadata column already included in initial migration 0000
+-- This migration is now a no-op as the column exists from creation

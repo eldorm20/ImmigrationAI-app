@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: immigrationai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  tgi:
+    image: ghcr.io/huggingface/text-generation-inference:latest
+    container_name: tgi
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models:rw
+    command: ["--model-id", "/models/<MODEL_FOLDER>", "--port", "8080", "--enable-text-generation", "--no-stream"]
+    environment:
+      - HUGGINGFACEHUB_API_TOKEN=${HUGGINGFACE_API_TOKEN}
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: npm run dev
+    working_dir: /app
+    volumes:
+      - .:/app:delegated
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgres://postgres:password@postgres:5432/immigrationai
+      REDIS_URL: redis://redis:6379
+      LOCAL_AI_URL: http://tgi:8080
+      HF_INFERENCE_URL: http://tgi:8080
+      # Stripe keys (set via env vars or .env.local, not in compose file)
+      # STRIPE_SECRET_KEY: set in .env.local or Railway dashboard
+      # STRIPE_PUBLISHABLE_KEY: set in .env.local or Railway dashboard
+      # Hugging Face Inference API (optional)
+      # HUGGINGFACE_API_TOKEN: set in .env.local (requires valid token + model)
+      # HF_MODEL: mistralai/Mistral-7B-Instruct-v0.2
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - redis
+      - tgi
+
+volumes:
+  pgdata:
+    driver: local

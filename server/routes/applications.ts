@@ -1,0 +1,724 @@
+import { Router } from "express";
+import { z } from "zod";
+import { db } from "../db";
+import { applications, users, documents } from "@shared/schema";
+import { eq, and, desc, asc, like, or, inArray, sql } from "drizzle-orm";
+import { authenticate, requireRole } from "../middleware/auth";
+import { isValidCountryCode, isValidVisaType, sanitizeInput } from "../middleware/security";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
+import { auditLog } from "../lib/logger";
+import { logger } from "../lib/logger";
+import { enqueueJob } from "../lib/queue";
+import { generateApplicationStatusEmail } from "../lib/email";
+import { encryptSensitiveData, decryptSensitiveData } from "../lib/security";
+
+const router = Router();
+
+// All routes require authentication
+router.use(authenticate);
+
+// Get unique clients (applicants) for the lawyer (needed for invoicing)
+router.get(
+  "/clients/list",
+  requireRole("lawyer", "admin"),
+  asyncHandler(async (req, res) => {
+    const lawyerId = req.user!.userId;
+    const role = req.user!.role;
+
+    // 1. Get user IDs from applications assigned to this lawyer
+    const myApps = await db.query.applications.findMany({
+      where: role === "lawyer" ? eq(applications.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    // 2. Get user IDs from consultations booked with this lawyer
+    const { consultations: consultationsTable } = await import("@shared/schema");
+    const myConsults = await db.query.consultations.findMany({
+      where: role === "lawyer" ? eq(consultationsTable.lawyerId, lawyerId) : undefined,
+      columns: { userId: true }
+    });
+
+    const userIds = Array.from(new Set([
+      ...myApps.map(a => a.userId),
+      ...myConsults.map(c => c.userId)
+    ]));
+
+    if (!userIds.length) return res.json([]);
+
+    const clientList = await db.query.users.findMany({
+      where: or(...userIds.map(id => eq(users.id, id))),
+      columns: { id: true, firstName: true, lastName: true, email: true }
+    });
+
+    res.json(clientList);
+  })
+);
+
+const createApplicationSchema = z.object({
+  visaType: z.string().min(1).max(100),
+  country: z.string().length(2),
+  fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  notes: z.string().max(5000).optional(),
+  lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
+});
+
+const updateApplicationSchema = z.object({
+  status: z.enum([
+    "new",
+    "in_progress",
+    "pending_documents",
+    "submitted",
+    "under_review",
+    "approved",
+    "rejected",
+    "cancelled",
+  ]).optional(),
+  visaType: z.string().min(1).max(100).optional(),
+  country: z.string().length(2).optional(),
+  fee: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+  notes: z.string().max(5000).optional(),
+  lawyerId: z.string().optional(),
+  passportNumber: z.string().min(5).max(20).optional(),
+  dateOfBirth: z.string().optional(),
+});
+
+// Get all applications (with filters)
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { status, search, page = "1", pageSize = "10", assigned } = req.query;
+
+    logger.debug({ userId, role, status, search }, "Fetching applications");
+
+    // 1. Build where clause based on role and filters
+    const conditions = [];
+
+    if (role === "applicant") {
+      conditions.push(eq(applications.userId, userId));
+    } else if (role === "lawyer" && assigned === "true") {
+      conditions.push(eq(applications.lawyerId, userId));
+    }
+
+    if (status && status !== "all") {
+      conditions.push(eq(applications.status, status as any));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // 2. Optimized Database query
+    const allApps = await db.query.applications.findMany({
+      where: whereClause,
+      orderBy: [desc(applications.createdAt)],
+    });
+
+    // 3. In-memory filtering (for search - ideally this would be done in SQL, but keeping as is for safety)
+    let filtered = allApps;
+    if (search) {
+      const searchLower = String(search).toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          app.visaType.toLowerCase().includes(searchLower) ||
+          app.country.toLowerCase().includes(searchLower) ||
+          app.notes?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // 4. Pagination
+    const pageNum = Math.max(1, parseInt(page as string, 10));
+    const size = Math.max(1, parseInt(pageSize as string, 10));
+    const paginated = filtered.slice((pageNum - 1) * size, pageNum * size);
+
+    // 5. Bulk fetch users and document counts for enrichment
+    if (paginated.length > 0) {
+      const uIds = Array.from(new Set(paginated.map(a => a.userId)));
+      const usersList = await db.query.users.findMany({
+        where: inArray(users.id, uIds),
+        columns: { id: true, firstName: true, lastName: true, email: true }
+      });
+      const userMap: Record<string, any> = {};
+      usersList.forEach(u => userMap[u.id] = u);
+
+      const appIds = paginated.map(a => a.id);
+      const docCounts = await db.execute(sql`
+        SELECT application_id, COUNT(*) as count 
+        FROM documents 
+        WHERE application_id IN (${sql.join(appIds.map(id => sql`${id}`), sql`, `)}) 
+        GROUP BY application_id
+      `).catch(() => []);
+
+      const docMap: Record<string, number> = {};
+      const results = docCounts as any;
+      if (Array.isArray(results.rows)) {
+        results.rows.forEach((row: any) => docMap[row.application_id] = parseInt(row.count));
+      } else if (Array.isArray(results)) {
+        results.forEach((row: any) => docMap[row.application_id] = parseInt(row.count));
+      }
+
+      const enriched = paginated.map((a) => {
+        try {
+          let score = 0;
+          const feeNum = parseFloat(String(a.fee || "0"));
+          if (feeNum >= 2000) score += 40;
+          else if (feeNum >= 1000) score += 20;
+
+          const count = docMap[a.id] || 0;
+          if (count >= 5) score += 30;
+          else if (count >= 2) score += 15;
+
+          const daysOld = a.createdAt ? (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 3600 * 24) : 99;
+          if (daysOld < 3) score += 30;
+          else if (daysOld < 7) score += 15;
+
+          const priorityLevel = score >= 70 ? "High" : score >= 40 ? "Medium" : "Low";
+          const u = userMap[a.userId];
+
+          return {
+            ...a,
+            userName: u ? `${u.firstName} ${u.lastName || ''}`.trim() : "Unknown User",
+            userEmail: u?.email,
+            passportNumber: a.encryptedPassportNumber ? decryptSensitiveData(a.encryptedPassportNumber) : undefined,
+            dateOfBirth: a.encryptedDateOfBirth ? decryptSensitiveData(a.encryptedDateOfBirth) : undefined,
+            priorityScore: score,
+            priorityLevel
+          };
+        } catch (err) {
+          logger.error({ err, applicationId: a.id }, "Enrichment failed");
+          return { ...a, priorityLevel: "Low", priorityScore: 0 };
+        }
+      });
+
+      return res.json({
+        applications: enriched,
+        total: filtered.length,
+        page: pageNum,
+        pageSize: size,
+        totalPages: Math.ceil(filtered.length / size),
+      });
+    }
+
+    res.json({
+      applications: [],
+      total: filtered.length,
+      page: pageNum,
+      pageSize: size,
+      totalPages: Math.ceil(filtered.length / size),
+    });
+  })
+);
+
+// Get single application
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Check permissions
+    if (role === "applicant" && application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    res.json({
+      ...application,
+      passportNumber: application.encryptedPassportNumber ? decryptSensitiveData(application.encryptedPassportNumber) : undefined,
+      dateOfBirth: application.encryptedDateOfBirth ? decryptSensitiveData(application.encryptedDateOfBirth) : undefined,
+    });
+  })
+);
+
+// Get application document checklist
+router.get(
+  "/:id/checklist",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Check permissions
+    if (role === "applicant" && application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    const { checklistItems: checklistTable } = await import("@shared/schema");
+    let items = await db.query.checklistItems.findMany({
+      where: eq(checklistTable.applicationId, id),
+      orderBy: (items, { asc }) => asc(items.order),
+    });
+
+    // If no checklist items exist, create them
+    if (items.length === 0) {
+      const { createDefaultChecklist } = await import("../lib/roadmap");
+      await createDefaultChecklist(id, application.visaType);
+
+      items = await db.query.checklistItems.findMany({
+        where: eq(checklistTable.applicationId, id),
+        orderBy: (items, { asc }) => asc(items.order),
+      });
+    }
+
+    res.json(items);
+  })
+);
+
+// Create application
+router.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const body = createApplicationSchema.parse(req.body);
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+
+    // Validate country code
+    if (!isValidCountryCode(body.country)) {
+      throw new AppError(400, "Invalid country code");
+    }
+
+    // Validate visa type
+    if (!isValidVisaType(body.visaType)) {
+      throw new AppError(400, "Invalid visa type");
+    }
+
+    const insertData: any = {
+      userId,
+      visaType: sanitizeInput(body.visaType),
+      country: body.country.toUpperCase(),
+      fee: body.fee || "0",
+      notes: body.notes ? sanitizeInput(body.notes) : null,
+      encryptedPassportNumber: body.passportNumber ? encryptSensitiveData(body.passportNumber) : null,
+      encryptedDateOfBirth: body.dateOfBirth ? encryptSensitiveData(body.dateOfBirth) : null,
+    };
+
+    // Only allow assigning lawyer if the current user is a lawyer or admin and provided a lawyerId
+    if (req.body.lawyerId && (role === "lawyer" || role === "admin")) {
+      // Validate that provided user exists and is a lawyer
+      const assignedUser = await db.query.users.findFirst({ where: eq(users.id, req.body.lawyerId) });
+      if (assignedUser && assignedUser.role === 'lawyer') {
+        insertData.lawyerId = req.body.lawyerId;
+      }
+    }
+
+    // Add applicant metadata for easy display in UIs
+    const applicant = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (applicant) {
+      insertData.metadata = { applicantName: `${applicant.firstName || ''} ${applicant.lastName || ''}`.trim(), email: applicant.email };
+    }
+
+    const [newApplication] = await db
+      .insert(applications)
+      .values({
+        ...insertData,
+      })
+      .returning();
+
+    await auditLog(userId, "application.create", "application", newApplication.id, {
+      visaType: body.visaType,
+      country: body.country,
+    }, req);
+
+    logger.info({ userId, applicationId: newApplication.id }, "Application created");
+
+    res.status(201).json(newApplication);
+  })
+);
+
+// Update application
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { id } = req.params;
+    const body = updateApplicationSchema.parse(req.body);
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Check permissions
+    if (role === "applicant" && application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    // Only lawyers and admins can change status, except for applicants submitting
+    if (body.status && role === "applicant") {
+      if (body.status !== "submitted") {
+        throw new AppError(403, "Cannot change application status to " + body.status);
+      }
+    }
+
+    const updateData: any = {};
+    if (body.status) updateData.status = body.status;
+    if (body.visaType) {
+      if (!isValidVisaType(body.visaType)) {
+        throw new AppError(400, "Invalid visa type");
+      }
+      updateData.visaType = sanitizeInput(body.visaType);
+    }
+    if (body.country) {
+      if (!isValidCountryCode(body.country)) {
+        throw new AppError(400, "Invalid country code");
+      }
+      updateData.country = body.country.toUpperCase();
+    }
+    if (body.fee !== undefined) updateData.fee = body.fee;
+    if (body.notes !== undefined) updateData.notes = body.notes ? sanitizeInput(body.notes) : null;
+    if (body.lawyerId && (role === "lawyer" || role === "admin")) {
+      const assignedUser = await db.query.users.findFirst({ where: eq(users.id, body.lawyerId) });
+      if (!assignedUser || assignedUser.role !== 'lawyer') {
+        throw new AppError(400, 'Invalid lawyerId');
+      }
+      updateData.lawyerId = body.lawyerId;
+    }
+
+    // Log the update operation
+    logger.info({ userId, applicationId: id, updates: updateData }, "Updating application");
+
+    if (body.passportNumber) updateData.encryptedPassportNumber = encryptSensitiveData(body.passportNumber);
+    if (body.dateOfBirth) updateData.encryptedDateOfBirth = encryptSensitiveData(body.dateOfBirth);
+
+    const [updated] = await db
+      .update(applications)
+      .set({
+        ...updateData,
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+
+    if (!updated) {
+      throw new AppError(500, "Failed to update application");
+    }
+
+    logger.info({ userId, applicationId: id, newStatus: updated.status }, "Application updated successfully");
+
+    // Automated Invoicing logic: Create an invoice if status moves to 'submitted'
+    if (body.status === "submitted" && application.status !== "submitted") {
+      try {
+        // If no lawyer assigned, assign the first available lawyer
+        let lawyerId = updated.lawyerId;
+        if (!lawyerId) {
+          const firstLawyer = await db.query.users.findFirst({
+            where: eq(users.role, "lawyer"),
+          });
+          if (firstLawyer) {
+            lawyerId = firstLawyer.id;
+            await db.update(applications).set({ lawyerId }).where(eq(applications.id, id));
+          }
+        }
+
+        if (lawyerId) {
+          const { invoices: invoicesTable } = await import("@shared/schema");
+          await db.insert(invoicesTable).values({
+            lawyerId,
+            applicantId: updated.userId,
+            applicationId: updated.id,
+            amount: "499.00",
+            currency: "USD",
+            status: "draft",
+            items: [
+              { description: `${updated.visaType} Legal Review Fee`, amount: "499.00" }
+            ],
+            dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          });
+          logger.info({ applicationId: id, lawyerId }, "Automated invoice draft created");
+        }
+      } catch (billingError) {
+        logger.error({ error: billingError, applicationId: id }, "Failed automated invoice");
+      }
+    }
+    // Send email notification if status changed
+    if (body.status && body.status !== application.status) {
+      try {
+        const applicant = await db.query.users.findFirst({
+          where: eq(users.id, application.userId),
+        });
+        await enqueueJob(userId, "email", {
+          to: applicant?.email || "",
+          subject: "Application Status Update",
+          html: generateApplicationStatusEmail(body.status, applicant?.firstName || "Applicant", id),
+          applicationId: id,
+          oldStatus: application.status,
+          newStatus: body.status,
+        });
+      } catch (emailError) {
+        // Don't fail the request if email fails
+        logger.error({ error: emailError, applicationId: id }, "Failed to send status update email");
+      }
+    }
+
+    await auditLog(userId, "application.update", "application", id, body, req);
+
+    res.json(updated);
+  })
+);
+
+// Delete application
+router.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Check permissions
+    if (role === "applicant" && application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    await auditLog(userId, "application.delete", "application", id, {}, req);
+
+    res.json({ message: "Application deleted successfully" });
+  })
+);
+
+// Submit application to lawyer
+router.post(
+  "/:id/submit",
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    if (application.userId !== userId) {
+      throw new AppError(403, "Access denied");
+    }
+
+    if (application.status === "submitted" || application.status === "under_review") {
+      throw new AppError(400, "Application is already submitted");
+    }
+
+    // Check completion threshold
+    // 1. Check verified document checklist
+    const { checklistItems: checklistTable } = await import("@shared/schema");
+    const items = await db.query.checklistItems.findMany({
+      where: eq(checklistTable.applicationId, id),
+    });
+
+    if (items.length === 0) {
+      // If checklist not initialized, it means no documents were required or view wasn't opened
+      // We should initialize it now to be sure
+      const { createDefaultChecklist } = await import("../lib/roadmap");
+      await createDefaultChecklist(id, application.visaType);
+
+      const newItems = await db.query.checklistItems.findMany({
+        where: eq(checklistTable.applicationId, id),
+      });
+      items.push(...newItems);
+    }
+
+    const totalRequired = items.filter(item => item.isRequired).length;
+    const completedRequired = items.filter(item => item.isRequired && item.isCompleted).length;
+
+    // Completeness based on required items
+    const completeness = totalRequired > 0
+      ? Math.round((completedRequired / totalRequired) * 100)
+      : 100;
+
+    // Check if personal details are filled
+    const hasDetails = application.country && application.visaType;
+
+    if (completeness < 100) {
+      throw new AppError(400, `Application is only ${completeness}% complete. You must upload all required documents: ${completedRequired}/${totalRequired} completed.`);
+    }
+
+    if (!hasDetails) {
+      throw new AppError(400, "Please fill in all required application details (Visa Type and Country) before submitting.");
+    }
+
+    // Proceed with submission
+    const [updated] = await db
+      .update(applications)
+      .set({
+        status: "submitted",
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+
+    // Trigger automated email and invoice logic (reusing logic from PATCH)
+    // 1. Assign lawyer if needed
+    let lawyerId = updated.lawyerId;
+    if (!lawyerId) {
+      const firstLawyer = await db.query.users.findFirst({
+        where: eq(users.role, "lawyer"),
+      });
+      if (firstLawyer) {
+        lawyerId = firstLawyer.id;
+        await db.update(applications).set({ lawyerId }).where(eq(applications.id, id));
+      }
+    }
+
+    // 2. Create Invoice
+    if (lawyerId) {
+      try {
+        const { invoices: invoicesTable } = await import("@shared/schema");
+        await db.insert(invoicesTable).values({
+          lawyerId,
+          applicantId: updated.userId,
+          applicationId: updated.id,
+          amount: "499.00",
+          currency: "USD",
+          status: "draft",
+          items: [
+            { description: `${updated.visaType} Legal Review Fee`, amount: "499.00" }
+          ],
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+        logger.info({ applicationId: id, lawyerId }, "Automated invoice draft created on submission");
+      } catch (billingError) {
+        logger.error({ error: billingError }, "Failed to create invoice on submission");
+      }
+    }
+
+    // 3. Notify
+    await enqueueJob(userId, "email", {
+      to: req.user!.email || "", // Notify applicant
+      subject: "Application Submitted",
+      html: `<h2>Application Submitted</h2>Your application has been successfully submitted to our legal team!`,
+      applicationId: id,
+      newStatus: "submitted",
+    });
+
+    await auditLog(userId, "application.submit", "application", id, { completeness }, req);
+
+    res.json(updated);
+  })
+);
+
+// Lawyer review and feedback endpoint
+router.post(
+  "/:id/review",
+  requireRole("lawyer", "admin"),
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const { action, feedback, notes } = z.object({
+      action: z.enum(["approve", "reject", "request_changes"]),
+      feedback: z.string().max(5000).optional(),
+      notes: z.string().max(5000).optional()
+    }).parse(req.body);
+
+    const application = await db.query.applications.findFirst({
+      where: eq(applications.id, id),
+    });
+
+    if (!application) {
+      throw new AppError(404, "Application not found");
+    }
+
+    // Determine new status based on action
+    let newStatus: string;
+    switch (action) {
+      case "approve":
+        newStatus = "approved";
+        break;
+      case "reject":
+        newStatus = "rejected";
+        break;
+      case "request_changes":
+        newStatus = "pending_documents";
+        break;
+      default:
+        newStatus = application.status;
+    }
+
+    // Update the application with lawyer notes
+    const currentNotes = application.notes || "";
+    const lawyerNote = notes || feedback || "";
+    const updatedNotes = lawyerNote
+      ? `${currentNotes}\n\n--- Lawyer Review (${new Date().toISOString().split('T')[0]}) ---\n${lawyerNote}`
+      : currentNotes;
+
+    const [updated] = await db
+      .update(applications)
+      .set({
+        status: newStatus as "new" | "in_progress" | "pending_documents" | "submitted" | "under_review" | "approved" | "rejected" | "cancelled",
+        notes: updatedNotes.trim(),
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, id))
+      .returning();
+
+    // Notify the applicant
+    try {
+      const applicant = await db.query.users.findFirst({
+        where: eq(users.id, application.userId),
+      });
+
+      if (applicant?.email) {
+        const actionText = action === "approve" ? "approved" : action === "reject" ? "rejected" : "requires changes";
+        await enqueueJob(userId, "email", {
+          to: applicant.email,
+          subject: `Application ${actionText}`,
+          html: `
+              <h2>Your Application Has Been Reviewed</h2>
+              <p>Your ${application.visaType} visa application has been <strong>${actionText}</strong>.</p>
+              ${feedback ? `<p><strong>Lawyer Feedback:</strong> ${feedback}</p>` : ''}
+              <p>Log in to view full details.</p>
+            `,
+        });
+      }
+    } catch (emailError) {
+      logger.error({ error: emailError, applicationId: id }, "Failed to send review notification");
+    }
+
+    await auditLog(userId, `application.review.${action}`, "application", id, { feedback, action }, req);
+
+    logger.info({ userId, applicationId: id, action }, "Lawyer reviewed application");
+
+    res.json({
+      ...updated,
+      reviewAction: action,
+      message: `Application ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "returned for changes"} successfully`
+    });
+  })
+);
+
+export default router;
+
+
+
+
+
+
+

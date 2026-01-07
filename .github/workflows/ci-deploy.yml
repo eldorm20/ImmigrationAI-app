@@ -1,0 +1,96 @@
+# CI & optional Railway deploy
+# - Runs on push to `main`.
+# - Builds server and client to catch build errors early.
+# - If `RAILWAY_API_KEY` and `RAILWAY_PROJECT_ID` GitHub secrets are present,
+#   the workflow will attempt to log in to the Railway CLI and run a linked
+#   deployment command and optional migrations.
+#
+# IMPORTANT: Add these repository secrets in GitHub when you want automatic deploy:
+# - RAILWAY_API_KEY: your Railway API key
+# - RAILWAY_PROJECT_ID: the Railway project id (optional, helps targeting project)
+
+name: CI & Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build (server + client)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (server + client)
+        run: npm run build
+
+  deploy:
+    name: Optional Railway deploy
+    runs-on: ubuntu-latest
+    needs: build
+    if: secrets.RAILWAY_API_KEY != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Railway CLI
+        run: |
+          npm install -g railway || true
+          railway --version || true
+
+      - name: Railway login (API key)
+        env:
+          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+        run: |
+          # Login using API key for non-interactive CI
+          echo "Logging into Railway CLI"
+          railway login --apiKey "$RAILWAY_API_KEY" || true
+
+      - name: Link to project (optional)
+        env:
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          if [ -n "$RAILWAY_PROJECT_ID" ]; then
+            echo "Linking to Railway project $RAILWAY_PROJECT_ID"
+            railway link --projectId "$RAILWAY_PROJECT_ID" || true
+          else
+            echo "No RAILWAY_PROJECT_ID provided; skipping explicit link"
+          fi
+
+      - name: Deploy to Railway (best-effort)
+        run: |
+          echo "Attempting a deploy via the Railway CLI (best-effort)."
+          # `railway up` is interactive for first run; in many CI setups it will
+          # detect the linked project and push a build. This is best-effort — if
+          # it fails, the build job still indicates success/failure from `build`.
+          set -x
+          railway up --yes || echo "railway up failed — check logs or run manually"
+
+      - name: Run migrations on Railway (optional)
+        if: secrets.RAILWAY_API_KEY != ''
+        env:
+          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+        run: |
+          # If you prefer automatic migrations after deploy, uncomment/run this.
+          # This uses `railway run` which executes a command in the Railway environment.
+          echo "Running migrations via Railway (optional)."
+          railway run npm run db:migrate || echo "railway run db:migrate failed — migrate manually"
+
+      - name: Done
+        run: echo "Deploy job finished (check logs for railway steps)."

@@ -1,0 +1,34 @@
+name: Comment Playwright Failures
+
+on:
+  workflow_run:
+    workflows: ["Playwright E2E Tests"]
+    types:
+      - completed
+
+jobs:
+  comment-on-failure:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on related PRs with failure notice
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const run = context.payload.workflow_run;
+            const prs = run.pull_requests || [];
+            const runUrl = run.html_url || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${run.id}`;
+            if (prs.length === 0) {
+              console.log('No pull requests associated with this workflow run.');
+              return;
+            }
+            const body = `⚠️ Playwright E2E Tests failed for [this run](${runUrl}).\n\nPlease review the attached Playwright report and JUnit results in the workflow artifacts for details.`;
+            for (const pr of prs) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body,
+              });
+            }
