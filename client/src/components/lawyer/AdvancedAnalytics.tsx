@@ -69,11 +69,15 @@ export function AdvancedAnalytics() {
         queryFn: () => apiRequest<AnalyticsData>(`/analytics/lawyer?range=${dateRange}`),
     });
 
-    if (isLoading || !analytics) {
+    if (isLoading) {
         return <div className="text-center py-12">Loading analytics...</div>;
     }
 
-    const { overview, revenue, casesByType, casesByStatus, performance, clientAcquisition, topServices } = analytics;
+    if (!analytics || !analytics.overview) {
+        return <div className="text-center py-12 text-slate-500">No analytics data available yet. Start managing cases to see insights.</div>;
+    }
+
+    const { overview, revenue = [], casesByType = [], casesByStatus = [], performance, clientAcquisition = [], topServices = [] } = analytics;
 
     const statCards = [
         {
@@ -122,8 +126,8 @@ export function AdvancedAnalytics() {
                             key={range}
                             onClick={() => setDateRange(range)}
                             className={`px-4 py-2 rounded-md font-semibold text-sm transition-all ${dateRange === range
-                                    ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm'
-                                    : 'text-slate-600 dark:text-slate-400'
+                                ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400'
                                 }`}
                         >
                             {range.charAt(0).toUpperCase() + range.slice(1)}

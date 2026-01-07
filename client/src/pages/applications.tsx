@@ -56,10 +56,10 @@ export default function ApplicationsPage() {
               <tbody>
                 {apps.map((a) => (
                   <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer" onClick={() => setLocation(`/applications/${a.id}`)}>
-                    <td className="p-3 text-sm font-mono text-slate-600">{a.id?.slice(0,8)}</td>
+                    <td className="p-3 text-sm font-mono text-slate-600">{a.id?.slice(0, 8) || 'N/A'}</td>
                     <td className="p-3">{a.visaType}</td>
                     <td className="p-3">{a.country}</td>
-                    <td className="p-3">{(a.status || 'new').replace('_',' ')}</td>
+                    <td className="p-3">{(a.status || 'new').replace('_', ' ')}</td>
                     <td className="p-3">${a.fee || 0}</td>
                     <td className="p-3">{new Date(a.createdAt).toLocaleString()}</td>
                   </tr>
