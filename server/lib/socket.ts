@@ -87,8 +87,8 @@ export function setupSocketIO(httpServer: HTTPServer) {
   const userMeta = new Map<string, { userName: string; email: string; role: string }>();
 
   io.on("connection", (socket: Socket) => {
-    const jwtPayload = socket.data.user as { userId: string; email: string; role: string };
-    const userId = jwtPayload.userId;
+    const jwtPayload = socket.data.user as { id: string; email: string; role: string };
+    const userId = jwtPayload.id;
     const userEmail = jwtPayload.email;
     const userRole = jwtPayload.role;
     const user = { id: userId, email: userEmail, role: userRole };

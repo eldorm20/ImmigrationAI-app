@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Eye, Search, Sparkles, CheckCircle } from "lucide-react";
 import { LiveButton } from "@/components/ui/live-elements";
+import { CaseReviewAction } from "./lawyer/CaseReviewAction";
 
 interface ClientNote {
     id: string;
@@ -444,6 +445,17 @@ export default function ClientProfile({ clientId, onClose }: ClientProfileProps)
                                     <Mail size={20} /> {t.clientProfile.autoCollect}
                                 </LiveButton>
                             </AnimatedCard>
+
+                            {/* Lawyer Review Actions */}
+                            {authUser?.role === 'lawyer' && (
+                                <AnimatedCard delay={0.4}>
+                                    <CaseReviewAction
+                                        applicationId={client.latestApplication.id}
+                                        currentStatus={client.latestApplication.status}
+                                        onSuccess={fetchClient}
+                                    />
+                                </AnimatedCard>
+                            )}
                         </>
                     )}
                 </div>

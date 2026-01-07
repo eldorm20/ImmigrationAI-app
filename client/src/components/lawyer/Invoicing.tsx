@@ -13,61 +13,56 @@ export default function Invoicing() {
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
 
-    // New invoice state
+    const [clients, setClients] = useState<any[]>([]);
     const [newInvoice, setNewInvoice] = useState({
-        clientId: '',
+        applicantId: '',
         number: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
         items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
         notes: '',
-        taxRate: '0',
+        taxRate: '12', // Standard UZ VAT
         legalEntityName: '',
         inn: '',
         oked: '',
         mfo: ''
     });
 
-    const fetchInvoices = async () => {
+    const fetchData = async () => {
         try {
-            const data = await apiRequest<any[]>('/invoices');
-            setInvoices(data);
+            const [invoiceData, clientData] = await Promise.all([
+                apiRequest<any[]>('/invoices'),
+                apiRequest<any[]>('/applications/clients/list')
+            ]);
+            setInvoices(invoiceData);
+            setClients(clientData || []);
         } catch (err) {
             console.error(err);
-            toast({ title: t.common?.error || 'Failed to load invoices', variant: 'destructive' });
+            toast({ title: t.common?.error || 'Failed to load data', variant: 'destructive' });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchInvoices();
+        fetchData();
     }, []);
 
     const handleCreate = async () => {
         try {
-            if (!newInvoice.clientId) {
-                toast({ title: "Client ID required", variant: "destructive" });
+            if (!newInvoice.applicantId) {
+                toast({ title: "Client selection required", variant: "destructive" });
                 return;
             }
 
-            const totalAmount = newInvoice.items.reduce((sum, item) => sum + item.amount, 0);
-            const subtotal = totalAmount;
+            const subtotal = newInvoice.items.reduce((sum, item) => sum + item.amount, 0);
             const taxAmount = subtotal * (Number(newInvoice.taxRate) / 100);
             const finalTotal = subtotal + taxAmount;
 
             const payload = {
-                applicantId: newInvoice.clientId,
-                number: newInvoice.number,
+                ...newInvoice,
                 amount: subtotal.toString(),
-                taxRate: newInvoice.taxRate.toString(),
                 taxAmount: taxAmount.toFixed(2),
                 totalAmount: finalTotal.toFixed(2),
-                status: 'sent',
-                notes: newInvoice.notes,
-                legalEntityName: newInvoice.legalEntityName,
-                inn: newInvoice.inn,
-                oked: newInvoice.oked,
-                mfo: newInvoice.mfo,
-                items: newInvoice.items
+                status: 'sent'
             };
 
             await apiRequest('/invoices', {
@@ -75,9 +70,9 @@ export default function Invoicing() {
                 body: JSON.stringify(payload)
             });
 
-            toast({ title: t.common?.success || 'Invoice created' });
+            toast({ title: t.common?.success || 'Invoice created & sent' });
             setShowCreate(false);
-            fetchInvoices();
+            fetchData();
         } catch (err) {
             toast({ title: t.common?.error || 'Failed to create invoice', variant: 'destructive' });
         }
@@ -92,12 +87,24 @@ export default function Invoicing() {
         setNewInvoice({ ...newInvoice, items });
     };
 
+    const handleCopyPayLink = async (invoiceId: string) => {
+        try {
+            const { url } = await apiRequest<{ url: string }>(`/invoices/${invoiceId}/link`, { method: "POST" });
+            await navigator.clipboard.writeText(url);
+            toast({ title: "Payment Link Copied", description: "Share this URL with your client for direct payment." });
+        } catch (err) {
+            toast({ title: "Error", description: "Failed to generate payment link", variant: "destructive" });
+        }
+    };
+
     const handlePrint = (invoice: any) => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
             toast({ title: "Pop-up blocked", description: "Please allow pop-ups to print invoices", variant: "destructive" });
             return;
         }
+
+        const clientName = invoice.applicant ? `${invoice.applicant.firstName} ${invoice.applicant.lastName}` : invoice.applicantId;
 
         const html = `
             <!DOCTYPE html>
@@ -130,14 +137,15 @@ export default function Invoicing() {
                     <div class="invoice-details">
                         <h1>INVOICE</h1>
                         <p>#${invoice.number}</p>
-                        <p>Date: ${new Date(invoice.issueDate || Date.now()).toLocaleDateString()}</p>
+                        <p>Date: ${new Date(invoice.createdAt || Date.now()).toLocaleDateString()}</p>
                     </div>
                 </div>
 
                 <div class="bill-to">
                     <div>
                         <div class="section-title">Bill To:</div>
-                        <p style="font-weight: 600; color: #0f172a;">Client ID: ${invoice.clientId}</p>
+                        <p style="font-weight: 600; color: #0f172a;">${clientName}</p>
+                        <p style="font-size: 12px; color: #64748b;">${invoice.applicant?.email || ''}</p>
                     </div>
                     ${invoice.legalEntityName ? `
                     <div>
@@ -165,8 +173,8 @@ export default function Invoicing() {
                         ${invoice.items?.map((item: any) => `
                             <tr>
                                 <td style="font-weight: 500;">${item.description}</td>
-                                <td style="text-align: center;">${item.quantity}</td>
-                                <td style="text-align: right;">${Number(item.rate).toLocaleString()} UZS</td>
+                                <td style="text-align: center;">${item.quantity || 1}</td>
+                                <td style="text-align: right;">${Number(item.rate || item.amount).toLocaleString()} UZS</td>
                                 <td style="text-align: right; font-weight: 600;">${Number(item.amount).toLocaleString()} UZS</td>
                             </tr>
                         `).join('') || ''}
@@ -181,11 +189,11 @@ export default function Invoicing() {
                     ${invoice.taxRate && Number(invoice.taxRate) > 0 ? `
                     <div class="total-row">
                         <span>Tax (${invoice.taxRate}%):</span>
-                        <span>${(Number(invoice.amount) * (Number(invoice.taxRate) / 100)).toLocaleString()} UZS</span>
+                        <span>${Number(invoice.taxAmount || (Number(invoice.amount) * (Number(invoice.taxRate) / 100))).toLocaleString()} UZS</span>
                     </div>
                     <div class="total-row grand-total">
                         <span>Total:</span>
-                        <span>${(Number(invoice.amount) * (1 + Number(invoice.taxRate) / 100)).toLocaleString()} UZS</span>
+                        <span>${Number(invoice.totalAmount || (Number(invoice.amount) * (1 + Number(invoice.taxRate) / 100))).toLocaleString()} UZS</span>
                     </div>
                     ` : `
                     <div class="total-row grand-total">
@@ -262,12 +270,16 @@ export default function Invoicing() {
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.financials.form.client}</label>
-                                        <GlassInput
-                                            placeholder="Enter Client ID or Email"
-                                            value={newInvoice.clientId}
-                                            onChange={e => setNewInvoice({ ...newInvoice, clientId: e.target.value })}
-                                            className="w-full"
-                                        />
+                                        <select
+                                            className="w-full bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2.5 border-none outline-none focus:ring-2 focus:ring-brand-500"
+                                            value={newInvoice.applicantId}
+                                            onChange={e => setNewInvoice({ ...newInvoice, applicantId: e.target.value })}
+                                        >
+                                            <option value="">Select a client...</option>
+                                            {clients.map(c => (
+                                                <option key={c.id} value={c.id}>{c.firstName || ''} {c.lastName || ''} ({c.email})</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.financials.table.invoice}</label>
@@ -412,8 +424,10 @@ export default function Invoicing() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{inv.clientId}</div>
-                                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Case #${inv.applicationId || 'N/A'}</div>
+                                                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                                    {inv.applicant ? `${inv.applicant.firstName || ''} ${inv.applicant.lastName || ''}` : inv.applicantId}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{inv.applicant?.email || 'No email'}</div>
                                             </td>
                                             <td className="px-8 py-6 text-slate-500 font-medium">{new Date(inv.issueDate || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                             <td className="px-8 py-6">
@@ -439,6 +453,13 @@ export default function Invoicing() {
                                                             <CheckCircle size={18} />
                                                         </button>
                                                     )}
+                                                    <button
+                                                        onClick={() => handleCopyPayLink(inv.id)}
+                                                        className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100 transition-colors"
+                                                        title="Copy Payment Link"
+                                                    >
+                                                        <Globe size={18} />
+                                                    </button>
                                                     <button
                                                         onClick={() => handlePrint(inv)}
                                                         className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-brand-600 transition-colors"

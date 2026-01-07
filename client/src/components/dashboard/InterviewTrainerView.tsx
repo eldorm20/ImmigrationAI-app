@@ -23,7 +23,7 @@ interface Evaluation {
     overallAssessment: string;
 }
 
-export const InterviewTrainerView = ({ defaultTab = "text" }: { defaultTab?: "text" | "voice" }) => {
+export const InterviewTrainerView = ({ defaultTab = "text", applicationId }: { defaultTab?: "text" | "voice", applicationId?: string }) => {
     const { t, lang } = useI18n();
     const { toast } = useToast();
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -45,7 +45,8 @@ export const InterviewTrainerView = ({ defaultTab = "text" }: { defaultTab?: "te
                 body: JSON.stringify({
                     visaType,
                     country,
-                    language: lang || "en"
+                    language: lang || "en",
+                    applicationId
                 }),
                 timeout: 120000,
             });

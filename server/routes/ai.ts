@@ -22,6 +22,7 @@ import { documents, users, applications } from "@shared/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { getUserSubscriptionTier, getTierFeatures } from "../lib/subscriptionTiers";
 import { logger } from "../lib/logger";
+import { updateMilestone } from "../lib/roadmap";
 
 const router = Router();
 
@@ -132,6 +133,12 @@ router.post(
     }
 
     const questions = await generateInterviewQuestions(visaType, country, language || 'en');
+
+    const applicationId = (req.body as any).applicationId;
+    if (applicationId) {
+      await updateMilestone(applicationId, 'interviewCoach');
+    }
+
     res.json({ questions });
   })
 );
@@ -240,13 +247,18 @@ router.post(
       return res.status(403).json({ message: 'AI quota exceeded' });
     }
 
-    const { content, docType, visaType } = z
+    const { content, docType, visaType, applicationId } = z
       .object({
         content: z.string().min(10),
         docType: z.string().min(1),
-        visaType: z.string().optional()
+        visaType: z.string().optional(),
+        applicationId: z.string().optional()
       })
       .parse(req.body);
+
+    if (applicationId) {
+      await updateMilestone(applicationId, 'aiReview');
+    }
 
     const job = await enqueueJob(userId, "document_review", {
       content,

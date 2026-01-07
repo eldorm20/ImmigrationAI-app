@@ -318,7 +318,7 @@ export default function SubscriptionPage() {
 
         {/* Plans Comparison */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-12">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">{t.subscription.upgradeYourPlan}</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-8">{t.subscription?.upgradeYourPlan || "Scale Your Capacity"}</h2>
 
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan, i) => (
@@ -326,7 +326,7 @@ export default function SubscriptionPage() {
                 <AnimatedCard className={`flex flex-col h-full ${plan.popular ? "border-2 border-brand-500 relative" : "border border-slate-200 dark:border-slate-700"}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-1 rounded-full text-xs font-bold">
-                      {t.subscription.mostPopular}
+                      {t.subscription?.mostPopular || "Recommended"}
                     </div>
                   )}
 
@@ -371,22 +371,22 @@ export default function SubscriptionPage() {
         {/* Billing History */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <AnimatedCard>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">{t.subscription.billingHistory}</h3>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">{t.subscription?.billingHistory || "Transactional Archive"}</h3>
 
             {billingHistory.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <AlertCircle size={32} className="mx-auto mb-2 opacity-50" />
-                <p>{t.subscription.noBillingHistory}</p>
+                <p>{t.subscription?.noBillingHistory || "No transaction records found"}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-700">
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.date}</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.amount}</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.status}</th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription.invoice}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription?.date || "Timestamp"}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription?.amount || "Value"}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription?.status || "State"}</th>
+                      <th className="text-left py-3 px-4 font-bold text-slate-600 dark:text-slate-400">{t.subscription?.invoice || "Voucher"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -401,7 +401,7 @@ export default function SubscriptionPage() {
                         </td>
                         <td className="py-3 px-4">
                           <a href={`#invoice-${item.id}`} className="text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium">
-                            {t.subscription.download}
+                            {t.subscription?.download || "Retrieve PDF"}
                           </a>
                         </td>
                       </tr>

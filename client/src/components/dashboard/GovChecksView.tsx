@@ -23,7 +23,7 @@ interface ImmigrationResult {
     conditions?: string[];
 }
 
-export function GovChecksView() {
+export function GovChecksView({ applicationId }: { applicationId?: string }) {
     const { toast } = useToast();
     const { t } = useI18n();
     const [activeCheck, setActiveCheck] = useState<'rtw' | 'immigration'>('rtw');
@@ -74,6 +74,7 @@ export function GovChecksView() {
                 body: JSON.stringify({
                     shareCode: formData.code,
                     dateOfBirth: formData.dob,
+                    applicationId
                 }),
             });
             setResult({ type: 'rtw', data: res });
@@ -99,6 +100,7 @@ export function GovChecksView() {
                 body: JSON.stringify({
                     shareCode: formData.code,
                     dateOfBirth: formData.dob,
+                    applicationId
                 }),
             });
             setResult({ type: 'immigration', data: res });

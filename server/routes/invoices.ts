@@ -109,7 +109,7 @@ router.post(
     })
 );
 
-// Initiate Stripe payment for an invoice
+// Initiate Stripe payment for an invoice (Applicant version)
 router.post(
     "/:id/pay",
     asyncHandler(async (req, res) => {
@@ -123,7 +123,7 @@ router.post(
                 .where(and(eq(invoices.id, id), eq(invoices.applicantId, userId)));
 
             if (!invoice) {
-                return res.status(404).json({ message: "Invoice not found" });
+                return res.status(404).json({ message: "Invoice not found or access denied" });
             }
 
             if (invoice.status === 'paid') {
@@ -168,6 +168,67 @@ router.post(
             res.json({ url: session.url });
         } catch (error) {
             logger.error({ error, userId, invoiceId: id }, "Failed to create payment session");
+            throw error;
+        }
+    })
+);
+
+// Generate payment link for an invoice (Lawyer version)
+router.post(
+    "/:id/link",
+    requireRole("lawyer", "admin"),
+    asyncHandler(async (req, res) => {
+        const lawyerId = req.user!.userId;
+        const { id } = req.params;
+
+        try {
+            const [invoice] = await db
+                .select()
+                .from(invoices)
+                .where(and(eq(invoices.id, id), eq(invoices.lawyerId, lawyerId)));
+
+            if (!invoice) {
+                return res.status(404).json({ message: "Invoice not found or access denied" });
+            }
+
+            const { getStripeClient } = await import("../lib/subscription");
+            const stripe = await getStripeClient();
+
+            if (!stripe) {
+                return res.status(503).json({ message: "Stripe is not configured" });
+            }
+
+            const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
+            const amount = Math.round(parseFloat(invoice.totalAmount || invoice.amount) * 1); // UZS is zero-decimal
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ["card"],
+                line_items: [
+                    {
+                        price_data: {
+                            currency: (invoice.currency || 'UZS').toLowerCase(),
+                            product_data: {
+                                name: `Invoice #${invoice.id.slice(0, 8).toUpperCase()}`,
+                                description: `Legal Services - ImmigrationAI`,
+                            },
+                            unit_amount: amount,
+                        },
+                        quantity: 1,
+                    },
+                ],
+                mode: "payment",
+                success_url: `${clientUrl}/payment-success?invoice=${invoice.id}`,
+                cancel_url: `${clientUrl}/payment-cancel`,
+                metadata: {
+                    invoiceId: invoice.id,
+                    lawyerId: lawyerId,
+                    type: "invoice_payment"
+                },
+            });
+
+            res.json({ url: session.url });
+        } catch (error) {
+            logger.error({ error, lawyerId, invoiceId: id }, "Failed to generate payment link");
             throw error;
         }
     })

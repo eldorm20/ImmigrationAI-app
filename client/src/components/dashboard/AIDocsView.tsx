@@ -8,7 +8,7 @@ import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { FileCheck, Download, RefreshCw, Sparkles, CheckCircle, Edit3, Loader2, Search, AlertCircle, FileText, XCircle, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 
-export const AIDocsView = () => {
+export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const { t, lang } = useI18n();
@@ -85,7 +85,8 @@ export const AIDocsView = () => {
                     template: keyToAITemplate(docType),
                     data: formData,
                     language: lang || 'en',
-                    visaType: formData.visaType || 'General'
+                    visaType: formData.visaType || 'General',
+                    applicationId
                 }),
             });
 
@@ -134,7 +135,8 @@ export const AIDocsView = () => {
                 body: JSON.stringify({
                     content: reviewContent,
                     docType: keyToAITemplate(docType),
-                    visaType: formData.visaType || "Skilled Worker"
+                    visaType: formData.visaType || "Skilled Worker",
+                    applicationId
                 })
             });
 

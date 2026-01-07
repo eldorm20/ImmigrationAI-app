@@ -196,6 +196,7 @@ app.get("/health", async (_req, res) => {
     // so it can handle /socket.io/* requests before the API middleware
     try {
       const io = setupSocketIO(httpServer);
+      app.set("io", io);
       setupVideoSignaling(io);
       logger.info("Socket.IO messaging server initialized");
     } catch (err) {

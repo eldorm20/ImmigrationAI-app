@@ -61,7 +61,7 @@ export default function LeadsManager() {
             setLeads(data.leads || []);
         } catch (err) {
             console.error(err);
-            toast({ title: t.common?.error || "Error", description: t.lawyer.leads.sync, variant: "destructive" });
+            toast({ title: t.common?.error || "Error", description: t.lawyer?.leads?.sync || "Syncing infrastructure...", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -131,8 +131,9 @@ export default function LeadsManager() {
         if (stage === 'inquiry') return t.lawyer?.leads?.stages?.inquiry || "Inquiry";
         if (stage === 'new') return t.lawyer?.leads?.stages?.new || "New Inquiry";
 
-        const key = stage as keyof typeof t.lawyer.leads.stages;
-        return t.lawyer.leads.stages[key] || stage;
+        const leadsObj = t.lawyer?.leads || {};
+        const stagesObj = leadsObj.stages || {};
+        return (stagesObj as any)[stage] || stage;
     };
 
     const STAGES = ['inquiry', 'contacted', 'consultation_scheduled', 'proposal_sent', 'converted', 'lost'];
@@ -141,11 +142,11 @@ export default function LeadsManager() {
         <div className="space-y-8 pb-12">
             <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer.leads.title}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer.leads.subtitle}</p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer?.leads?.title || "Client Inquiries"}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer?.leads?.subtitle || "Track and manage potential clients"}</p>
                 </div>
                 <LiveButton onClick={() => setIsAddModalOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
-                    {t.lawyer.leads.add}
+                    {t.lawyer?.leads?.add || "Register Lead"}
                 </LiveButton>
             </div>
 
@@ -173,7 +174,7 @@ export default function LeadsManager() {
                                     </div>
                                     <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-1">{stat?.count || 0}</h3>
                                     <div className="text-xs font-bold text-slate-400">
-                                        {t.lawyer.leads.stats.potential} <span className={`text-${props.color}-500`}>${(stat?.totalValue || 0).toLocaleString()}</span>
+                                        {t.lawyer?.leads?.stats?.potential || "Portfolio Value"} <span className={`text-${props.color}-500`}>${(stat?.totalValue || 0).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </AnimatedCard>
@@ -189,7 +190,7 @@ export default function LeadsManager() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <GlassInput
                             className="pl-12 w-full"
-                            placeholder={t.lawyer.leads.search}
+                            placeholder={t.lawyer?.leads?.search || "Search inquiries..."}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
@@ -200,13 +201,13 @@ export default function LeadsManager() {
                         onChange={e => setFilterStage(e.target.value)}
                         className="px-6"
                     >
-                        <option value="all">{t.lawyer.leads.stages.all}</option>
+                        <option value="all">{t.lawyer?.leads?.stages?.all || "Global View"}</option>
                         {STAGES.map(s => <option key={s} value={s}>{getStageLabel(s)}</option>)}
                     </GlassSelect>
                 </div>
 
                 <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest hidden md:flex">
-                    <SlidersHorizontal size={14} /> {t.lawyer.leads.filter}
+                    <SlidersHorizontal size={14} /> {t.lawyer?.leads?.filter || "Refine"}
                 </div>
             </div>
 
@@ -216,22 +217,22 @@ export default function LeadsManager() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.client}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.contact}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.objective}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.stage}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.value}</th>
-                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.leads.table.action}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.client || "Identity"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.contact || "Communications"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.objective || "Strategy"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.stage || "Status"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.value || "Valuation"}</th>
+                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.leads?.table?.action || "Command"}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
                             {loading ? (
-                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse">{t.lawyer.leads.sync}</td></tr>
+                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse">{t.lawyer?.leads?.sync || "Syncing infrastructure..."}</td></tr>
                             ) : filteredLeads.length === 0 ? (
                                 <tr><td colSpan={6} className="p-20 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Users size={48} className="text-slate-200 dark:text-slate-800" />
-                                        <p className="text-slate-500 font-medium font-bold uppercase text-xs tracking-widest">{t.lawyer.leads.empty}</p>
+                                        <p className="text-slate-500 font-medium font-bold uppercase text-xs tracking-widest">{t.lawyer?.leads?.empty || "No active inquiries"}</p>
                                     </div>
                                 </td></tr>
                             ) : filteredLeads.map((lead, idx) => {
@@ -286,7 +287,7 @@ export default function LeadsManager() {
                                                     onClick={() => handleConvert(lead.id)}
                                                     icon={ArrowRight}
                                                 >
-                                                    {t.lawyer.leads.promote}
+                                                    {t.lawyer?.leads?.promote || "Advance Case"}
                                                 </LiveButton>
                                             )}
                                         </td>
@@ -318,8 +319,8 @@ export default function LeadsManager() {
                             <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-blue-500">
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <h3 className="font-black text-2xl text-white">{t.lawyer.leads.register}</h3>
-                                        <p className="text-brand-100 text-sm font-medium">{t.lawyer.leads.capture}</p>
+                                        <h3 className="font-black text-2xl text-white">{t.lawyer?.leads?.register || "Intake Protocol"}</h3>
+                                        <p className="text-brand-100 text-sm font-medium">{t.lawyer?.leads?.capture || "Initial Client Ingestion"}</p>
                                     </div>
                                     <button onClick={() => setIsAddModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
                                         <X size={24} />
@@ -329,37 +330,37 @@ export default function LeadsManager() {
                             <form onSubmit={handleCreateLead} className="p-10 space-y-6">
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.firstName}</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.firstName || "Given Name"}</label>
                                         <GlassInput required className="w-full"
                                             value={newLead.firstName} onChange={e => setNewLead({ ...newLead, firstName: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.lastName}</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.lastName || "Surname"}</label>
                                         <GlassInput required className="w-full"
                                             value={newLead.lastName} onChange={e => setNewLead({ ...newLead, lastName: e.target.value })} />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.email}</label>
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.email || "Electronic Mail"}</label>
                                     <GlassInput type="email" required className="w-full"
                                         value={newLead.email} onChange={e => setNewLead({ ...newLead, email: e.target.value })} />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.visa}</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.visa || "Strategic Objective"}</label>
                                         <GlassInput className="w-full"
                                             value={newLead.visaInterest} onChange={e => setNewLead({ ...newLead, visaInterest: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.val}</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.val || "Expected Valuation"}</label>
                                         <GlassInput type="number" className="w-full font-bold"
                                             value={newLead.estimatedValue} onChange={e => setNewLead({ ...newLead, estimatedValue: Number(e.target.value) })} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer.leads.form.source}</label>
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.leads?.form?.source || "Origin Channel"}</label>
                                     <GlassSelect className="w-full"
                                         value={newLead.source} onChange={e => setNewLead({ ...newLead, source: e.target.value })}>
                                         <option value="Website">Website</option>
@@ -371,8 +372,8 @@ export default function LeadsManager() {
                                 </div>
 
                                 <div className="flex justify-end gap-4 pt-8">
-                                    <LiveButton variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>{t.lawyer.leads.form.discard}</LiveButton>
-                                    <LiveButton icon={CheckCircle} className="px-10" type="submit">{t.lawyer.leads.form.deploy}</LiveButton>
+                                    <LiveButton variant="ghost" type="button" onClick={() => setIsAddModalOpen(false)}>{t.lawyer?.leads?.form?.discard || "Abort"}</LiveButton>
+                                    <LiveButton icon={CheckCircle} className="px-10" type="submit">{t.lawyer?.leads?.form?.deploy || "Deploy to Pipeline"}</LiveButton>
                                 </div>
                             </form>
                         </motion.div>

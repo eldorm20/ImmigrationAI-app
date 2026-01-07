@@ -82,14 +82,14 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
     }
 
     const items = roadmapItems.length > 0 ? roadmapItems : [
-        { title: t.roadmap?.assessment || 'Assessment Complete', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated' },
+        { title: t.roadmap?.assessment || 'Assessment', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated' },
         { title: t.simulator?.title || 'Visa Simulator', status: 'done', description: t.simulator?.desc || 'Success probability check' },
-        { title: t.roadmap?.documents || 'Documents Uploaded', status: 'done', description: t.roadmap?.defaults?.documentsDesc || 'Essential documentation' },
-        { title: t.review?.title || 'AI Document Review', status: 'current', description: t.review?.desc || 'Automated compliance check' },
+        { title: t.roadmap?.documents || 'Documents', status: 'done', description: t.roadmap?.defaults?.documentsDesc || 'Essential documentation' },
+        { title: t.review?.title || 'AI Review', status: 'current', description: t.review?.desc || 'Automated compliance check' },
         { title: t.gov?.title || 'Gov Checks', status: 'pending', description: t.gov?.desc || 'Official status verification' },
-        { title: t.voice?.title || 'Interview Prep', status: 'pending', description: t.voice?.desc || 'AI-guided mock interviews' },
+        { title: t.voice?.title || 'Interview Coach', status: 'pending', description: t.voice?.desc || 'AI-guided mock interviews' },
         { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional case review' },
-        { title: t.roadmap?.submission || 'Application Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission' }
+        { title: t.roadmap?.submission || 'Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission' }
     ];
 
     const currentStep = items.find(i => i.status === 'current') || items[0];
@@ -154,7 +154,15 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                         size="sm"
                         className="py-6 px-10 rounded-2xl font-black text-lg bg-brand-600 group-hover:scale-105 active:scale-95 transition-all shadow-xl shadow-brand-500/20"
                         onClick={() => {
-                            if (currentStep.title.includes('Document') && currentStep.title.includes('Review')) setActiveTab('docs');
+                            const title = currentStep.title.toLowerCase();
+                            if (title.includes('assessment')) setActiveTab('checklist');
+                            else if (title.includes('simulator')) setActiveTab('simulator');
+                            else if (title.includes('documents')) setActiveTab('upload');
+                            else if (title.includes('ai review')) setActiveTab('docs');
+                            else if (title.includes('gov check')) setActiveTab('gov');
+                            else if (title.includes('interview')) setActiveTab('trainer');
+                            else if (title.includes('lawyer')) setActiveTab('lawyer');
+                            else if (title.includes('submission')) setActiveTab('submission');
                             else setActiveTab('upload');
                         }}
                     >
@@ -180,14 +188,15 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                                 : 'bg-white/40 dark:bg-slate-900/40 opacity-70 hover:opacity-100 hover:scale-[1.01]'
                                 }`}
                             onClick={() => {
-                                if (step.title.includes('Document') && step.title.includes('Review')) setActiveTab('docs');
-                                else if (step.title.includes('Document') && step.title.includes('Uploaded')) setActiveTab('upload');
-                                else if (step.title.includes('AI Document Review')) setActiveTab('docs');
-                                else if (step.title.includes('Translation')) setActiveTab('translate');
-                                else if (step.title.includes('Simulator')) setActiveTab('simulator');
-                                else if (step.title.includes('Gov Checks') || step.title.includes('Employer')) setActiveTab('gov');
-                                else if (step.title.includes('Interview')) setActiveTab('trainer');
-                                else if (step.title.includes('Lawyer')) setActiveTab('lawyer');
+                                const title = step.title.toLowerCase();
+                                if (title.includes('assessment')) setActiveTab('checklist');
+                                else if (title.includes('simulator')) setActiveTab('simulator');
+                                else if (title.includes('documents')) setActiveTab('upload');
+                                else if (title.includes('ai review') || title.includes('document review')) setActiveTab('docs');
+                                else if (title.includes('gov check') || title.includes('employer')) setActiveTab('gov');
+                                else if (title.includes('interview')) setActiveTab('trainer');
+                                else if (title.includes('lawyer')) setActiveTab('lawyer');
+                                else if (title.includes('submission')) setActiveTab('submission');
                             }}
                         >
                             <div className="flex items-center gap-6 p-6">

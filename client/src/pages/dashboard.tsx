@@ -34,6 +34,7 @@ import { AnimatedCard } from "@/components/ui/live-elements";
 import { ResearchView } from "@/components/dashboard/ResearchView";
 import { FinancesView } from "@/components/dashboard/FinancesView";
 import Subscription from "@/pages/subscription";
+import { SubmissionStatusView } from "@/components/dashboard/SubmissionStatusView";
 
 export default function UserDash() {
   const { user } = useAuth();
@@ -118,7 +119,8 @@ export default function UserDash() {
     { id: 'finances', icon: CreditCard, label: "Finances" },
     { id: 'subscription', icon: Shield, label: "Billing & Subscription" },
     { id: 'research', icon: Book, label: t?.dash?.research || "Research" },
-    { id: 'companies', icon: Building, label: "Companies" }
+    { id: 'companies', icon: Building, label: "Companies" },
+    { id: 'submission', icon: Send, label: t?.dash?.submission || "Submission" }
   ];
 
   const currentNavItem = navItems.find(i => i.id === activeTab);
@@ -169,7 +171,7 @@ export default function UserDash() {
         )}
         {activeTab === 'tasks' && <ClientTasksView />}
         {activeTab === 'predictor' && <VisaPredictorView />}
-        {activeTab === 'docs' && <AIDocsView />}
+        {activeTab === 'docs' && <AIDocsView applicationId={activeApp?.id} />}
         {activeTab === 'upload' && <UploadView initialChecklistItem={pendingChecklistItem} onUploadComplete={() => setPendingChecklistItem(null)} />}
         {activeTab === 'translate' && <TranslateView />}
         {activeTab === 'chat' && <ChatView applicationId={activeApp?.id} />}
@@ -180,10 +182,11 @@ export default function UserDash() {
         {activeTab === 'agency' && <AgencyView />}
         {activeTab === 'companies' && <CompanySearch />}
         {activeTab === 'research' && <ResearchView />}
-        {activeTab === 'gov' && <GovChecksView />}
+        {activeTab === 'gov' && <GovChecksView applicationId={activeApp?.id} />}
         {activeTab === 'templates' && <TemplatesView />}
-        {activeTab === 'simulator' && <VisaSimulatorView />}
-        {activeTab === 'trainer' && <InterviewTrainerView />}
+        {activeTab === 'simulator' && <VisaSimulatorView applicationId={activeApp?.id} />}
+        {activeTab === 'trainer' && <InterviewTrainerView applicationId={activeApp?.id} />}
+        {activeTab === 'submission' && <SubmissionStatusView application={activeApp} />}
       </div>
     </AppLayout>
   );

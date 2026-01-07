@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/lib/i18n';
 import {
     FileText, Plus, Search, Trash2, Edit, Copy, ChevronRight, BookOpen,
     Filter, Layout, Sparkles, Send, Download, MoreHorizontal, CheckCircle
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 
 export default function DocumentTemplates() {
     const { toast } = useToast();
+    const { t } = useI18n();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -45,10 +47,10 @@ export default function DocumentTemplates() {
             queryClient.invalidateQueries({ queryKey: ['/api/templates'] });
             setIsCreateOpen(false);
             resetForm();
-            toast({ title: 'Template Protocol Saved', description: 'Institutional knowledge bank updated.' });
+            toast({ title: t.common?.success || 'Success', description: 'Institutional knowledge bank updated.' });
         },
         onError: () => {
-            toast({ title: 'System Error', description: 'Template ingestion failed.', variant: 'destructive' });
+            toast({ title: t.common?.error || 'System Error', description: 'Template ingestion failed.', variant: 'destructive' });
         }
     });
 
@@ -92,12 +94,12 @@ export default function DocumentTemplates() {
                         <BookOpen size={24} />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Strategy Bank</h2>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium">Standardized templates and legal protocols</p>
+                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer?.templates?.title || "Strategy Bank"}</h2>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer?.templates?.subtitle || "Standardized templates and legal protocols"}</p>
                     </div>
                 </div>
                 <LiveButton onClick={() => setIsCreateOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
-                    Publish Template
+                    {t.lawyer?.templates?.publish || "Publish Template"}
                 </LiveButton>
             </div>
 
@@ -105,7 +107,7 @@ export default function DocumentTemplates() {
                 <div className="relative w-full md:w-96">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <GlassInput
-                        placeholder="Search institutional archives..."
+                        placeholder={t.lawyer?.templates?.search || "Search institutional archives..."}
                         className="pl-12 w-full"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -148,9 +150,9 @@ export default function DocumentTemplates() {
                         <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto text-slate-400">
                             <FileText size={32} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white">Archive Empty</h3>
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white">{t.lawyer?.templates?.empty || "Archive Empty"}</h3>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed">No protocols discovered matching your current filter parameters.</p>
-                        <LiveButton variant="ghost" onClick={() => setSelectedCategory('all')} size="sm">Reset Filter</LiveButton>
+                        <LiveButton variant="ghost" onClick={() => setSelectedCategory('all')} size="sm">{t.lawyer?.templates?.reset || "Reset Filter"}</LiveButton>
                     </div>
                 </div>
             ) : (
@@ -223,19 +225,19 @@ export default function DocumentTemplates() {
                         >
                             <form onSubmit={handleCreate} className="flex flex-col h-[90vh]">
                                 <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-indigo-600">
-                                    <h3 className="font-black text-2xl text-white">Capture Legal Protocol</h3>
-                                    <p className="text-brand-100 text-sm font-medium">Define a new standardized template for therategy bank</p>
+                                    <h3 className="font-black text-2xl text-white">{t.lawyer?.templates?.modal?.title || "Capture Legal Protocol"}</h3>
+                                    <p className="text-brand-100 text-sm font-medium">{t.lawyer?.templates?.modal?.desc || "Define a new standardized template for the strategy bank"}</p>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-10 space-y-8">
                                     <div className="grid grid-cols-2 gap-8">
                                         <div className="space-y-3">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Template Identifer</label>
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.templates?.modal?.labelTitle || "Template Identifier"}</label>
                                             <GlassInput required placeholder="Unique Title..." className="w-full"
                                                 value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Classification Target</label>
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.templates?.modal?.labelCat || "Classification Target"}</label>
                                             <GlassSelect value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} className="w-full">
                                                 {categories.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
                                             </GlassSelect>
@@ -243,14 +245,14 @@ export default function DocumentTemplates() {
                                     </div>
 
                                     <div className="space-y-3">
-                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Functional Abstract</label>
+                                        <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.templates?.modal?.labelDesc || "Functional Abstract"}</label>
                                         <GlassInput placeholder="Contextual guidelines for utilization..." className="w-full"
                                             value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                                     </div>
 
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Contextual Body (Dynamic)</label>
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">{t.lawyer?.templates?.modal?.labelBody || "Contextual Body (Dynamic)"}</label>
                                             <span className="text-[10px] font-bold text-brand-500 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded uppercase tracking-tighter transition-all">Support Dynamic Injection {'{{'}VAR{'}}'}</span>
                                         </div>
                                         <textarea
@@ -263,9 +265,9 @@ export default function DocumentTemplates() {
                                 </div>
 
                                 <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4 bg-slate-50/50 dark:bg-slate-900/50">
-                                    <LiveButton variant="ghost" type="button" onClick={() => setIsCreateOpen(false)}>Discard</LiveButton>
+                                    <LiveButton variant="ghost" type="button" onClick={() => setIsCreateOpen(false)}>{t.lawyer?.templates?.modal?.discard || "Discard"}</LiveButton>
                                     <LiveButton icon={CheckCircle} className="px-12" type="submit" loading={createMutation.isPending}>
-                                        Commit to Archive
+                                        {t.lawyer?.templates?.modal?.commit || "Commit to Archive"}
                                     </LiveButton>
                                 </div>
                             </form>

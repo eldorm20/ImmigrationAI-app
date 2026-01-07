@@ -633,7 +633,7 @@ router.post(
     const userId = req.user!.userId;
     const { id } = req.params;
     const { action, feedback, notes } = z.object({
-      action: z.enum(["approve", "reject", "request_changes"]),
+      action: z.enum(["approve", "reject", "request_changes", "submit_to_gov"]),
       feedback: z.string().max(5000).optional(),
       notes: z.string().max(5000).optional()
     }).parse(req.body);
@@ -657,6 +657,9 @@ router.post(
         break;
       case "request_changes":
         newStatus = "pending_documents";
+        break;
+      case "submit_to_gov":
+        newStatus = "submitted_to_gov";
         break;
       default:
         newStatus = application.status;
@@ -709,8 +712,23 @@ router.post(
     res.json({
       ...updated,
       reviewAction: action,
-      message: `Application ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "returned for changes"} successfully`
+      message: `Application ${action === "submit_to_gov" ? "submitted to government" : action === "approve" ? "approved" : action === "reject" ? "rejected" : "returned for changes"} successfully`
     });
+
+    // Update roadmap progress after status change
+    try {
+      const { updateRoadmapProgress } = await import("../lib/roadmap");
+      await updateRoadmapProgress(id);
+
+      // Notify client via WebSocket for real-time roadmap update
+      const io = req.app.get("io");
+      if (io) {
+        io.emit("update_application", { applicationId: id });
+        logger.info({ applicationId: id }, "Broadcasted application update via socket");
+      }
+    } catch (roadmapError) {
+      logger.error({ error: roadmapError, applicationId: id }, "Failed to update roadmap/socket after review");
+    }
   })
 );
 

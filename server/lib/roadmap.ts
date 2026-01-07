@@ -25,6 +25,13 @@ const DOC_KEYWORDS: Record<string, string[]> = {
 
 export async function updateRoadmapProgress(applicationId: string): Promise<boolean> {
     try {
+        // Fetch application for metadata and status
+        const application = await db.query.applications.findFirst({
+            where: eq(roadmapItems.applicationId, applicationId), // roadmapItems.applicationId is same as applications.id
+        });
+
+        if (!application) return false;
+
         // Fetch roadmap items (ordered)
         let items = await db.query.roadmapItems.findMany({
             where: eq(roadmapItems.applicationId, applicationId),
@@ -38,28 +45,69 @@ export async function updateRoadmapProgress(applicationId: string): Promise<bool
             where: eq(documents.applicationId, applicationId),
         });
 
+        const metadata = (application.metadata || {}) as any;
+        const milestones = (metadata.milestones || {}) as Record<string, boolean>;
         let hasUpdates = false;
 
-        // 1. Update status based on documents
+        // 1. Update status based on documents, milestones, and application status
         for (const item of items) {
             if (item.status === "completed") continue;
 
             const lowerTitle = item.title.toLowerCase();
             let isCompleted = false;
 
-            // Check keywords
-            for (const [key, variants] of Object.entries(DOC_KEYWORDS)) {
-                if (variants.some(v => lowerTitle.includes(v))) {
-                    // Check if corresponding document exists
-                    const hasDoc = uploadedDocs.some(d => {
-                        const dType = d.documentType?.toLowerCase() || "";
-                        const dName = d.fileName.toLowerCase();
-                        return dType.includes(key) || dName.includes(key) || variants.some(v => dType.includes(v) || dName.includes(v));
-                    });
+            // Stage 1: Assessment
+            if (lowerTitle.includes("assessment") && milestones.assessment) {
+                isCompleted = true;
+            }
+            // Stage 2: Visa Simulator
+            else if (lowerTitle.includes("simulator") && milestones.simulator) {
+                isCompleted = true;
+            }
+            // Stage 3: Documents
+            else if (lowerTitle.includes("documents")) {
+                // Check if any required doc or significant number of docs are uploaded
+                if (uploadedDocs.length > 0) isCompleted = true;
+            }
+            // Stage 4: AI Review
+            else if (lowerTitle.includes("ai review") && milestones.aiReview) {
+                isCompleted = true;
+            }
+            // Stage 5: Gov Checks
+            else if (lowerTitle.includes("gov check") && milestones.govChecks) {
+                isCompleted = true;
+            }
+            // Stage 6: Interview Coach
+            else if (lowerTitle.includes("interview") && milestones.interviewCoach) {
+                isCompleted = true;
+            }
+            // Stage 7: Lawyer Review
+            else if (lowerTitle.includes("lawyer review")) {
+                if (application.status === 'approved' || application.status === 'submitted_to_gov') {
+                    isCompleted = true;
+                }
+            }
+            // Stage 8: Submission
+            else if (lowerTitle.includes("submission")) {
+                if (application.status === 'submitted_to_gov') {
+                    isCompleted = true;
+                }
+            }
 
-                    if (hasDoc) {
-                        isCompleted = true;
-                        break;
+            // Fallback: Check keywords in documents (original logic)
+            if (!isCompleted) {
+                for (const [key, variants] of Object.entries(DOC_KEYWORDS)) {
+                    if (variants.some(v => lowerTitle.includes(v))) {
+                        const hasDoc = uploadedDocs.some(d => {
+                            const dType = d.documentType?.toLowerCase() || "";
+                            const dName = d.fileName.toLowerCase();
+                            return dType.includes(key) || dName.includes(key) || variants.some(v => dType.includes(v) || dName.includes(v));
+                        });
+
+                        if (hasDoc) {
+                            isCompleted = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -75,19 +123,16 @@ export async function updateRoadmapProgress(applicationId: string): Promise<bool
 
         // 2. Logic to maintain "Pending" -> "Current" flow.
         if (hasUpdates) {
-            // Re-fetch to be safe or rely on local modifications if careful
             items = await db.query.roadmapItems.findMany({
                 where: eq(roadmapItems.applicationId, applicationId),
                 orderBy: (items, { asc }) => asc(items.order),
             });
         }
 
-        // Find first non-completed
         const firstPendingIndex = items.findIndex(i => i.status !== "completed");
 
         if (firstPendingIndex !== -1) {
             const currentItem = items[firstPendingIndex];
-            // If it's pending, mark it as current
             if (currentItem.status === "pending") {
                 await db.update(roadmapItems)
                     .set({ status: "current" })
@@ -95,7 +140,6 @@ export async function updateRoadmapProgress(applicationId: string): Promise<bool
                 hasUpdates = true;
             }
 
-            // Ensure subsequent items are pending (if they were somehow current?)
             for (let i = firstPendingIndex + 1; i < items.length; i++) {
                 if (items[i].status === "current") {
                     await db.update(roadmapItems)
@@ -104,15 +148,39 @@ export async function updateRoadmapProgress(applicationId: string): Promise<bool
                     hasUpdates = true;
                 }
             }
-        } else {
-            // All completed?
-            // Optionally mark application as 'pending_review' or similar
         }
 
         return hasUpdates;
     } catch (error) {
         logger.error({ error, applicationId }, "Failed to update roadmap progress");
         return false;
+    }
+}
+
+/**
+ * Update a milestone in application metadata and trigger roadmap recalculation
+ */
+export async function updateMilestone(applicationId: string, milestone: string): Promise<void> {
+    try {
+        const { applications } = await import("@shared/schema");
+        const app = await db.query.applications.findFirst({
+            where: eq(applications.id, applicationId)
+        });
+
+        if (app) {
+            const metadata = (app.metadata || {}) as any;
+            if (!metadata.milestones) metadata.milestones = {};
+            metadata.milestones[milestone] = true;
+
+            await db.update(applications)
+                .set({ metadata, updatedAt: new Date() })
+                .where(eq(applications.id, applicationId));
+
+            await updateRoadmapProgress(applicationId);
+            logger.info({ applicationId, milestone }, "Updated milestone and roadmap");
+        }
+    } catch (err) {
+        logger.error({ err, applicationId, milestone }, "Failed to update milestone");
     }
 }
 
@@ -124,79 +192,51 @@ export function getDefaultRoadmapStages(visaType: string): Array<{
     description: string;
     estimatedDays?: number;
 }> {
-    // Common base stages for all visa types
-    const baseStages = [
+    // Standard 8-stage journey for all applications as per client requirement
+    const journeyStages = [
         {
-            title: "Initial Assessment",
-            description: "Complete eligibility quiz and get AI assessment of your application chances",
+            title: "Assessment",
+            description: "Initial profile assessment and eligibility scoring.",
             estimatedDays: 1
         },
         {
-            title: "Identity Documents",
-            description: "Upload passport copy and passport-sized photos",
-            estimatedDays: 2
+            title: "Visa Simulator",
+            description: "AI-powered probability check for visa success.",
+            estimatedDays: 1
         },
         {
-            title: "Financial Documents",
-            description: "Bank statements, proof of funds, and financial evidence",
+            title: "Documents",
+            description: "Collection and preliminary upload of required documentation.",
             estimatedDays: 5
         },
+        {
+            title: "AI Review",
+            description: "Automated analysis of uploaded documents for compliance.",
+            estimatedDays: 1
+        },
+        {
+            title: "Gov Checks",
+            description: "Identity and background verification against government databases.",
+            estimatedDays: 7
+        },
+        {
+            title: "Interview Coach",
+            description: "AI-guided training sessions for embassy or consulate interviews.",
+            estimatedDays: 14
+        },
+        {
+            title: "Lawyer Review",
+            description: "Final case verification and authorization by immigration counsel.",
+            estimatedDays: 3
+        },
+        {
+            title: "Submission",
+            description: "Official submission to immigration authorities.",
+            estimatedDays: 1
+        }
     ];
 
-    // Visa-specific stages
-    const visaSpecificStages: Record<string, Array<{ title: string; description: string; estimatedDays?: number }>> = {
-        "Skilled Worker": [
-            ...baseStages,
-            { title: "Employment Evidence", description: "Job offer letter, Certificate of Sponsorship (CoS), employment contracts", estimatedDays: 7 },
-            { title: "Qualification Documents", description: "Degrees, certificates, professional qualifications", estimatedDays: 5 },
-            { title: "English Language Test", description: "IELTS, TOEFL, or equivalent test results", estimatedDays: 14 },
-            { title: "TB Test Certificate", description: "Tuberculosis test from approved clinic", estimatedDays: 7 },
-            { title: "Application Review", description: "Lawyer reviews complete application", estimatedDays: 3 },
-            { title: "Submission", description: "Application submitted to immigration authority", estimatedDays: 1 },
-            { title: "Biometrics Appointment", description: "Attend biometrics enrollment appointment", estimatedDays: 14 },
-            { title: "Decision", description: "Await and receive visa decision", estimatedDays: 56 },
-        ],
-        "Student": [
-            ...baseStages,
-            { title: "CAS Letter", description: "Confirmation of Acceptance for Studies from university", estimatedDays: 14 },
-            { title: "Academic Documents", description: "Transcripts, diplomas, admission letter", estimatedDays: 5 },
-            { title: "English Language Test", description: "IELTS, TOEFL, or equivalent test results", estimatedDays: 14 },
-            { title: "TB Test Certificate", description: "Tuberculosis test from approved clinic", estimatedDays: 7 },
-            { title: "Application Review", description: "Final review of complete application", estimatedDays: 3 },
-            { title: "Submission", description: "Application submitted to immigration authority", estimatedDays: 1 },
-            { title: "Biometrics Appointment", description: "Attend biometrics enrollment appointment", estimatedDays: 14 },
-            { title: "Decision", description: "Await and receive visa decision", estimatedDays: 21 },
-        ],
-        "Family": [
-            ...baseStages,
-            { title: "Relationship Evidence", description: "Marriage certificate, photos, communication history", estimatedDays: 7 },
-            { title: "Sponsor Documents", description: "Sponsor's financial evidence and accommodation proof", estimatedDays: 7 },
-            { title: "English Language Test", description: "A1 minimum CEFR level test results", estimatedDays: 14 },
-            { title: "TB Test Certificate", description: "Tuberculosis test from approved clinic", estimatedDays: 7 },
-            { title: "Application Review", description: "Lawyer reviews complete application", estimatedDays: 5 },
-            { title: "Submission", description: "Application submitted to immigration authority", estimatedDays: 1 },
-            { title: "Biometrics Appointment", description: "Attend biometrics enrollment appointment", estimatedDays: 14 },
-            { title: "Decision", description: "Await and receive visa decision", estimatedDays: 84 },
-        ],
-        "Tourist": [
-            ...baseStages,
-            { title: "Travel Itinerary", description: "Flight bookings and travel plan", estimatedDays: 3 },
-            { title: "Accommodation Proof", description: "Hotel bookings or host invitation", estimatedDays: 3 },
-            { title: "Travel Insurance", description: "Valid travel insurance coverage", estimatedDays: 2 },
-            { title: "Employment/Ties Evidence", description: "Proof of ties to home country", estimatedDays: 5 },
-            { title: "Submission", description: "Application submitted", estimatedDays: 1 },
-            { title: "Decision", description: "Await and receive visa decision", estimatedDays: 15 },
-        ],
-    };
-
-    // Return visa-specific stages or default general stages
-    return visaSpecificStages[visaType] || [
-        ...baseStages,
-        { title: "Supporting Documents", description: "Additional documents as required for your visa type", estimatedDays: 7 },
-        { title: "Application Review", description: "Final review of complete application", estimatedDays: 3 },
-        { title: "Submission", description: "Application submitted to immigration authority", estimatedDays: 1 },
-        { title: "Decision", description: "Await and receive visa decision", estimatedDays: 30 },
-    ];
+    return journeyStages;
 }
 
 /**

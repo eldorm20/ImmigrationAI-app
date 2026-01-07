@@ -3,6 +3,10 @@ import { authenticate } from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import { agentsManager } from "../lib/agents";
 import { logger } from "../lib/logger";
+import { db } from "../db";
+import { applications } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { updateRoadmapProgress, updateMilestone } from "../lib/roadmap";
 
 const router = Router();
 
@@ -61,6 +65,9 @@ router.post(
                         throw new Error("AI Parse Error");
                     }
                 }
+                if (inputs.applicationId) {
+                    await updateMilestone(inputs.applicationId, 'simulator');
+                }
                 return res.json(data);
             }
 
@@ -97,6 +104,10 @@ router.post(
 
             // Clamp
             score = Math.max(5, Math.min(95, score));
+
+            if (inputs.applicationId) {
+                await updateMilestone(inputs.applicationId, 'simulator');
+            }
 
             res.json({
                 probability: score,

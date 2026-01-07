@@ -122,11 +122,11 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
         <div className="space-y-8 pb-12">
             <div className="flex justify-between items-center bg-white/30 dark:bg-slate-900/30 backdrop-blur-md p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-xl">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer.clientsHub.title}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer.clientsHub.subtitle}</p>
+                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t.lawyer?.clientsHub?.title || "Practice Portfolio"}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{t.lawyer?.clientsHub?.subtitle || "Institutional client management bank"}</p>
                 </div>
                 <LiveButton onClick={() => setIsRegisterOpen(true)} icon={Plus} size="lg" className="rounded-2xl">
-                    {t.lawyer.clientsHub.register}
+                    {t.lawyer?.clientsHub?.register || "Onboard Principal"}
                 </LiveButton>
             </div>
 
@@ -134,7 +134,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                 <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.totalNetwork}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer?.clientsHub?.totalNetwork || "Universal Network"}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">{clients?.length || 0}</h3>
                         </div>
                         <div className="p-3 rounded-2xl bg-blue-500/20 text-blue-600">
@@ -146,7 +146,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                 <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.activeMandates}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer?.clientsHub?.activeMandates || "Active Mandates"}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
                                 {clients?.reduce((acc, c) => acc + ((c.status || '').toLowerCase() === 'active' ? 1 : 0), 0) || 0}
                             </h3>
@@ -160,7 +160,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                 <AnimatedCard className="bg-gradient-to-br from-amber-500/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.potentialValue}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer?.clientsHub?.potentialValue || "Pipeline Velocity"}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
                                 {clients?.reduce((acc, c) => acc + ((c.status || '').toLowerCase() === 'lead' ? 1 : 0), 0) || 0}
                             </h3>
@@ -174,7 +174,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                 <AnimatedCard className="bg-gradient-to-br from-brand-600/10 to-transparent border-none shadow-lg">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer.clientsHub.practiceRevenue}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.lawyer?.clientsHub?.practiceRevenue || "AUM Revenue"}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">
                                 ${(clients?.reduce((acc, c) => acc + (c.totalSpent || 0), 0) || 0).toLocaleString()}
                             </h3>
@@ -191,7 +191,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <GlassInput
                         className="pl-12 w-full"
-                        placeholder={t.lawyer.clientsHub.search}
+                        placeholder={t.lawyer?.clientsHub?.search || "Search portfolio archives..."}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -203,22 +203,22 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.identity}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.contact}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.engagement}</th>
-                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.acquisition}</th>
-                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer.clientsHub.table.lastSync}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.clientsHub?.table?.identity || "Principal Identity"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.clientsHub?.table?.contact || "Channel Status"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.clientsHub?.table?.engagement || "Engagement Level"}</th>
+                                <th className="px-8 py-5 font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.clientsHub?.table?.acquisition || "Origin Protocol"}</th>
+                                <th className="px-8 py-5 text-right font-bold text-slate-500 uppercase text-[10px] tracking-[0.2em]">{t.lawyer?.clientsHub?.table?.lastSync || "Temporal Sync"}</th>
                                 <th className="px-8 py-5 w-[80px]"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-900">
                             {isLoading ? (
-                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">{t.lawyer.clientsHub.loading}</td></tr>
+                                <tr><td colSpan={6} className="p-20 text-center text-slate-400 animate-pulse font-medium">{t.lawyer?.clientsHub?.loading || "Accessing archives..."}</td></tr>
                             ) : filteredClients.length === 0 ? (
                                 <tr><td colSpan={6} className="p-20 text-center">
                                     <div className="flex flex-col items-center gap-3">
                                         <Briefcase size={48} className="text-slate-200 dark:text-slate-800" />
-                                        <p className="text-slate-500 font-medium">{t.lawyer.clientsHub.empty}</p>
+                                        <p className="text-slate-500 font-medium">{t.lawyer?.clientsHub?.empty || "Portfolio empty"}</p>
                                     </div>
                                 </td></tr>
                             ) : (
@@ -290,14 +290,14 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                                                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-none shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
                                                     <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Executive Actions</DropdownMenuLabel>
                                                     <DropdownMenuItem className="rounded-xl flex items-center gap-3 p-3 cursor-pointer" onClick={() => navigator.clipboard.writeText(client.email)}>
-                                                        <Mail size={16} /> {t.lawyer.clientsHub.actions.copy}
+                                                        <Mail size={16} /> {t.lawyer?.clientsHub?.actions?.copy || "Copy Identity Reference"}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800 my-1" />
                                                     <DropdownMenuItem
                                                         className="rounded-xl flex items-center gap-3 p-3 cursor-pointer"
                                                         onClick={() => setViewingProfileId(client.id)}
                                                     >
-                                                        <Users size={16} /> {t.lawyer.clientsHub.actions.profile}
+                                                        <Users size={16} /> {t.lawyer?.clientsHub?.actions?.profile || "Executive Profile"}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         className="rounded-xl flex items-center gap-3 p-3 cursor-pointer"
@@ -306,13 +306,13 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                                                             setIsDocsModalOpen(true);
                                                         }}
                                                     >
-                                                        <FileText size={16} /> {t.lawyer.clientsHub.actions.file}
+                                                        <FileText size={16} /> {t.lawyer?.clientsHub?.actions?.file || "Dossier Access"}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         className="rounded-xl flex items-center gap-3 p-3 cursor-pointer text-brand-600 font-bold"
                                                         onClick={() => onMessageClient?.(client.id)}
                                                     >
-                                                        <MessageSquare size={16} /> {t.lawyer.clientsHub.actions.msg}
+                                                        <MessageSquare size={16} /> {t.lawyer?.clientsHub?.actions?.msg || "Encrypted Uplink"}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -377,8 +377,8 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                             <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-brand-600 to-blue-500">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h3 className="font-black text-2xl text-white">{t.lawyer.clientsHub.newClient}</h3>
-                                        <p className="text-brand-100 text-sm font-medium">{t.lawyer.clientsHub.addDesc}</p>
+                                        <h3 className="font-black text-2xl text-white">{t.lawyer?.clientsHub?.newClient || "Register Principal"}</h3>
+                                        <p className="text-brand-100 text-sm font-medium">{t.lawyer?.clientsHub?.addDesc || "Initialize new client record in institutional bank"}</p>
                                     </div>
                                     <button onClick={() => setIsRegisterOpen(false)} className="text-white/70 hover:text-white transition-colors">
                                         <X size={24} />

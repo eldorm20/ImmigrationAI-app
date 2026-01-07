@@ -67,7 +67,7 @@ router.get(
             userTemplates = userTemplates.filter(t => !t.visaType || t.visaType === visaType);
         }
 
-        res.json({ templates: userTemplates });
+        res.json(userTemplates);
     })
 );
 

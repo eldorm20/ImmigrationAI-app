@@ -27,7 +27,8 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "under_review",
   "approved",
   "rejected",
-  "cancelled"
+  "cancelled",
+  "submitted_to_gov"
 ]);
 export const consultationStatusEnum = pgEnum("consultation_status", [
   "pending",

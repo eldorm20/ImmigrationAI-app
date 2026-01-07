@@ -3,6 +3,11 @@ import { GovCheckService } from "../lib/gov-check";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
 import { authenticate } from "../middleware/auth";
 import { z } from "zod";
+import { db } from "../db";
+import { applications } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { updateRoadmapProgress, updateMilestone } from "../lib/roadmap";
+import { logger } from "../lib/logger";
 
 const router = Router();
 const govCheck = new GovCheckService({
@@ -48,14 +53,18 @@ router.get(
 router.post(
     "/right-to-work",
     asyncHandler(async (req, res) => {
-        const { shareCode, dateOfBirth } = z.object({
+        const { shareCode, dateOfBirth, applicationId } = z.object({
             shareCode: z.string().min(9).max(9),
-            dateOfBirth: z.string() // Format: YYYY-MM-DD
+            dateOfBirth: z.string(), // Format: YYYY-MM-DD
+            applicationId: z.string().optional()
         }).parse(req.body);
 
         try {
             const result = await govCheck.checkRightToWork(shareCode, dateOfBirth);
             if (!result) throw new AppError(400, "Could not verify Right to Work. Please check your share code and DOB.");
+            if (applicationId) {
+                await updateMilestone(applicationId, 'govChecks');
+            }
             res.json(result);
         } catch (error: any) {
             if (error.status === 400) throw error;
@@ -70,13 +79,17 @@ router.post(
 router.post(
     "/immigration-status",
     asyncHandler(async (req, res) => {
-        const { shareCode, dateOfBirth } = z.object({
+        const { shareCode, dateOfBirth, applicationId } = z.object({
             shareCode: z.string().min(9).max(9),
-            dateOfBirth: z.string()
+            dateOfBirth: z.string(),
+            applicationId: z.string().optional()
         }).parse(req.body);
 
         const result = await govCheck.checkImmigrationStatus(shareCode, dateOfBirth);
         if (!result) throw new AppError(400, "Could not verify Immigration Status.");
+        if (applicationId) {
+            await updateMilestone(applicationId, 'govChecks');
+        }
         res.json(result);
     })
 );

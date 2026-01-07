@@ -33,7 +33,7 @@ interface SimulatorResult {
     message: string;
 }
 
-export const VisaSimulatorView: React.FC = () => {
+export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applicationId }) => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<SimulatorResult | null>(null);
@@ -54,7 +54,7 @@ export const VisaSimulatorView: React.FC = () => {
             setLoading(true);
             const data = await apiRequest<SimulatorResult>('/simulator/calculate', {
                 method: 'POST',
-                body: JSON.stringify(inputs),
+                body: JSON.stringify({ ...inputs, applicationId }),
             });
             setResult(data);
         } catch (error) {
@@ -250,10 +250,10 @@ export const VisaSimulatorView: React.FC = () => {
                                         strokeDasharray={`${2 * Math.PI * 88}`}
                                         strokeDashoffset={`${2 * Math.PI * 88 * (1 - result.probability / 100)}`}
                                         className={`${result.probability >= 70
-                                                ? 'text-green-500'
-                                                : result.probability >= 50
-                                                    ? 'text-yellow-500'
-                                                    : 'text-red-500'
+                                            ? 'text-green-500'
+                                            : result.probability >= 50
+                                                ? 'text-yellow-500'
+                                                : 'text-red-500'
                                             } transition-all duration-1000`}
                                         strokeLinecap="round"
                                     />
