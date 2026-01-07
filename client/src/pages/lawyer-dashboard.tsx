@@ -27,6 +27,9 @@ import DocumentTemplates from '@/components/lawyer/DocumentTemplates';
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import CompanySearch from "@/pages/lawyer/company-check";
 import MessagingPanel from "@/components/messaging-panel";
+import { LawyerVideoConsultations } from "@/components/lawyer/LawyerVideoConsultations";
+import { LawyerSubscription } from "@/components/lawyer/LawyerSubscription";
+import { Crown } from "lucide-react";
 
 export default function LawyerDashboard() {
   const { user, isLoading } = useAuth();
@@ -45,7 +48,9 @@ export default function LawyerDashboard() {
     { id: 'leads', label: "Inquiries", icon: Users },
     { id: 'applications', label: "Applications", icon: Briefcase },
     { id: 'consultations', label: "Consultations", icon: Calendar },
+    { id: 'video-consultations', label: "Video Calls", icon: Video },
     { id: 'financials', label: "Financials", icon: DollarSign },
+    { id: 'subscription', label: "Subscription", icon: Crown },
     { id: 'documents', label: "Documents", icon: FileText },
     { id: 'templates', label: "Templates", icon: FolderOpen },
     { id: 'company-check', label: "Company Check", icon: Building },
@@ -70,14 +75,16 @@ export default function LawyerDashboard() {
         {activeTab === 'applications' && <ClientPortfolio onMessageClient={(clientId) => {
           setSelectedClientIdForMessage(clientId);
           setActiveTab('messages');
-        }} />} {/* Reusing ClientPortfolio for Applications/Cases */}
+        }} />}
         {activeTab === 'consultations' && <LawyerConsultations />}
+        {activeTab === 'video-consultations' && <LawyerVideoConsultations />}
         {activeTab === 'financials' && (
           <div className="space-y-8">
             <BillingManager />
             <Invoicing />
           </div>
         )}
+        {activeTab === 'subscription' && <LawyerSubscription />}
         {activeTab === 'documents' && <AIDocsView />}
         {activeTab === 'templates' && <DocumentTemplates />}
         {activeTab === 'company-check' && <CompanySearch />}

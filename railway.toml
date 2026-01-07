@@ -1,0 +1,56 @@
+# Railway Deployment Configuration for Immigration AI Platform
+
+# Build Configuration
+[build]
+builder = "NIXPACKS"
+
+[build.env]
+NODE_VERSION = "18"
+
+# Service Configuration - Web Server
+[[services]]
+name = "web"
+startCommand = "npm run start"
+
+[services.web]
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Service Configuration - Ollama (AI Engine)
+[[services]]
+name = "ollama"
+image = "ollama/ollama:latest"
+startCommand = "ollama serve"
+
+[services.ollama]
+volumes = ["/root/.ollama:/root/.ollama"]
+
+# Service Configuration - ChromaDB (Vector Database)
+[[services]]
+name = "chromadb"
+image = "chromadb/chroma:latest"
+
+[services.chromadb]
+volumes = ["/chroma/chroma:/chroma/chroma"]
+
+# Environment Variables (set in Railway dashboard)
+# REQUIRED:
+# - DATABASE_URL (provided by Railway Postgres)
+# - REDIS_URL (provided by Railway Redis)
+# - OLLAMA_URL=http://ollama:11434
+# - CHROMA_URL=http://chromadb:8000
+# - NODE_ENV=production
+
+# Database (Postgres)
+[[plugins]]
+type = "postgresql"
+
+# Cache (Redis)
+[[plugins]]
+type = "redis"
+
+# Networking
+[network]
+enableIPv6 = false

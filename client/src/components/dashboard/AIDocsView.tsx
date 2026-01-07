@@ -7,6 +7,13 @@ import { trackEvent } from "@/lib/analytics";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { FileCheck, Download, RefreshCw, Sparkles, CheckCircle, Edit3, Loader2, Search, AlertCircle, FileText, XCircle, Shield } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+    DOCUMENT_CONFIGS,
+    getDocumentFields,
+    getAllDocumentTypes,
+    getDocumentTypesForRole,
+    type DocumentField
+} from "@/lib/documentConfigurations";
 
 export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
     const { user } = useAuth();
@@ -15,14 +22,22 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
 
     const [templates, setTemplates] = useState<any[]>([]);
     const [templateLoading, setTemplateLoading] = useState(true);
-    const [docType, setDocType] = useState<string>('Motivation Letter');
+
+    // Use available document types based on user role
+    const availableDocTypes = user?.role === 'lawyer'
+        ? getAllDocumentTypes()
+        : getDocumentTypesForRole('client');
+
+    const [docType, setDocType] = useState<string>(availableDocTypes[0] || 'Motivation Letter');
     const [generatedContent, setGeneratedContent] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [mode, setMode] = useState<'generate' | 'review'>('generate');
     const [reviewContent, setReviewContent] = useState("");
     const [reviewResult, setReviewResult] = useState<{ score: number; feedback: string[]; flags: { type: 'red' | 'green' | 'amber'; message: string }[]; proposals?: { original: string; proposed: string; reason: string }[] } | null>(null);
     const [isReviewing, setIsReviewing] = useState(false);
-    const [formData, setFormData] = useState({ role: '', company: '', skills: '', name: '', experience: '', education: '', achievements: '', visaType: '' });
+
+    // Dynamic form data - changes based on selected document type
+    const [formData, setFormData] = useState<Record<string, any>>({});
 
     React.useEffect(() => {
         const fetchTemplates = async () => {

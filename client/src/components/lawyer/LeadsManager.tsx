@@ -78,18 +78,98 @@ export default function LeadsManager() {
 
     const handleCreateLead = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Client-side validation
+        if (!newLead.firstName?.trim() || !newLead.lastName?.trim()) {
+            toast({
+                title: t.common?.error || "Validation Error",
+                description: "First name and last name are required.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (!newLead.email?.trim()) {
+            toast({
+                title: t.common?.error || "Validation Error",
+                description: "Email address is required.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(newLead.email)) {
+            toast({
+                title: t.common?.error || "Validation Error",
+                description: "Please enter a valid email address.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         try {
+            const payload = {
+                firstName: newLead.firstName.trim(),
+                lastName: newLead.lastName.trim(),
+                email: newLead.email.trim().toLowerCase(),
+                phone: newLead.phone?.trim() || undefined,
+                visaInterest: newLead.visaInterest || 'UK Skilled Worker',
+                country: newLead.country || 'United Kingdom',
+                stage: newLead.stage || 'inquiry',
+                source: newLead.source || 'Website',
+                estimatedValue: Number(newLead.estimatedValue) || 0
+            };
+
             await apiRequest('/leads', {
                 method: 'POST',
-                body: JSON.stringify(newLead)
+                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-            toast({ title: t.common?.success || "Success", description: "Lead captured successfully." });
+
+            toast({
+                title: t.common?.success || "Success",
+                description: `${newLead.firstName} has been successfully registered as a lead.`,
+                className: "bg-green-50 text-green-900 border-green-200"
+            });
+
             setIsAddModalOpen(false);
-            setNewLead({ firstName: '', lastName: '', email: '', stage: 'inquiry', estimatedValue: 0, source: 'Website', visaInterest: 'UK Skilled Worker', country: 'United Kingdom' });
+            setNewLead({
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                stage: 'inquiry',
+                estimatedValue: 0,
+                source: 'Website',
+                visaInterest: 'UK Skilled Worker',
+                country: 'United Kingdom'
+            });
+
             fetchLeads();
             fetchStats();
-        } catch (err) {
-            toast({ title: t.common?.error || "Error", variant: "destructive" });
+        } catch (err: any) {
+            console.error('Lead registration error:', err);
+
+            // More detailed error messages
+            let errorMessage = "Could not register lead. Please try again.";
+
+            if (err.message) {
+                errorMessage = err.message;
+            } else if (err.error) {
+                errorMessage = err.error;
+            } else if (err.details) {
+                errorMessage = err.details;
+            }
+
+            toast({
+                title: t.common?.error || "Registration Failed",
+                description: errorMessage,
+                variant: "destructive"
+            });
         }
     };
 

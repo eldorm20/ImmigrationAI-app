@@ -1,0 +1,87 @@
+# Docker Compose for AI Infrastructure
+# Run Ollama + ChromaDB + Redis for free AI-powered platform
+
+version: '3.8'
+
+services:
+  # Ollama - Local LLM Runtime (FREE)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: immigration-ai-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - ai-network
+    # Pull models on startup
+    command: >
+      sh -c "
+        ollama pull llama3:8b &&
+        ollama pull mistral:7b &&
+        ollama pull mixtral:8x7b &&
+        ollama pull aya:8b &&
+        ollama pull nomic-embed-text &&
+        ollama serve
+      "
+
+  # ChromaDB - Vector Database for RAG (FREE)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: immigration-ai-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+  # Redis - Caching & Agent Memory (FREE)
+  redis:
+    image: redis:7-alpine
+    container_name: immigration-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+  # PostgreSQL - Database (FREE)
+  postgres:
+    image: postgres:15-alpine
+    container_name: immigration-ai-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=immigration_ai
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+volumes:
+  ollama-models:
+    driver: local
+  chroma-data:
+    driver: local
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  ai-network:
+    driver: bridge
