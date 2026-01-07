@@ -219,6 +219,34 @@ export const tasks = pgTable("tasks", {
   statusIdx: index("tasks_status_idx").on(table.status),
 }));
 
+// Invoices table for lawyer billing
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicantId: varchar("applicant_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD"),
+  status: invoiceStatusEnum("status").notNull().default("draft"),
+  dueDate: timestamp("due_date"),
+  items: jsonb("items"), // Array of { description, amount }
+  // Uzbekistan Financial Localization
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"), // e.g. 12.00 for VAT
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).default("0"),
+  legalEntityName: varchar("legal_entity_name", { length: 255 }),
+  inn: varchar("inn", { length: 20 }), // STIR
+  oked: varchar("oked", { length: 10 }),
+  mfo: varchar("mfo", { length: 10 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  lawyerIdIdx: index("invoices_lawyer_id_idx").on(table.lawyerId),
+  applicantIdIdx: index("invoices_applicant_id_idx").on(table.applicantId),
+  statusIdx: index("invoices_status_idx").on(table.status),
+}));
+
+
 // Templates table
 export const templates = pgTable("templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
