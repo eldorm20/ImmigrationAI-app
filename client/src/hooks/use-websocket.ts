@@ -243,17 +243,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   // Send message
   // Send message
   const sendMessage = useCallback(
-    (recipientId: string, content: string): Promise<boolean> => {
+    (recipientId: string, content: string): Promise<{ success: boolean; error?: string }> => {
       return new Promise((resolve) => {
         if (!socketRef.current?.connected) {
           logError('WebSocket not connected');
-          resolve(false);
+          resolve({ success: false, error: "Connection lost. Please refresh." });
           return;
         }
 
         const timeout = setTimeout(() => {
           logError('Message send timeout');
-          resolve(false);
+          resolve({ success: false, error: "Request timed out." });
         }, 5000);
 
         socketRef.current.emit('send_message', {
@@ -262,10 +262,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         }, (response: any) => {
           clearTimeout(timeout);
           if (response?.success) {
-            resolve(true);
+            resolve({ success: true });
           } else {
             logError('Message send failed:', response?.error);
-            resolve(false);
+            resolve({ success: false, error: response?.error || "Unknown server error" });
           }
         });
       });

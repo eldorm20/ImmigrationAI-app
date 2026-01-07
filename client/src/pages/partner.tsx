@@ -14,7 +14,8 @@ export default function PartnerPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In production, this would send to your backend
-    window.location.href = `mailto:partners@immigrationai.com?subject=Partnership Interest from ${contactForm.company}&body=${encodeURIComponent(contactForm.message)}`;
+    const body = `Partnership Interest from ${contactForm.company}\nLicense: ${(contactForm as any).license}\nTax ID: ${(contactForm as any).taxId}\n\nMessage:\n${contactForm.message}`;
+    window.location.href = `mailto:partners@immigrationai.com?subject=Partnership Interest from ${contactForm.company}&body=${encodeURIComponent(body)}`;
     setSubmitted(true);
   };
 
@@ -122,7 +123,7 @@ export default function PartnerPage() {
       {/* Navigation */}
       <nav className="fixed w-full z-50 px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <motion.div 
+          <motion.div
             className="flex items-center gap-3 font-extrabold text-2xl tracking-tight cursor-pointer"
             onClick={() => setLocation('/')}
           >
@@ -340,6 +341,34 @@ export default function PartnerPage() {
                   className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
                   placeholder="Your Company"
                 />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Business License Number</label>
+                  <input
+                    type="text"
+                    value={(contactForm as any).license || ""}
+                    onChange={(e) => setContactForm({ ...contactForm, license: e.target.value } as any)}
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                    placeholder="License #"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-900 dark:text-white mb-2">Tax ID / EIN</label>
+                  <input
+                    type="text"
+                    value={(contactForm as any).taxId || ""}
+                    onChange={(e) => setContactForm({ ...contactForm, taxId: e.target.value } as any)}
+                    className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                    placeholder="Tax ID"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex gap-3 text-sm text-blue-700 dark:text-blue-300">
+                <Shield className="w-5 h-5 flex-shrink-0" />
+                <p>To prevent fraud, all partners must undergo a business verification process. Please provide valid registration details.</p>
               </div>
 
               <div>

@@ -171,324 +171,337 @@ export function RealtimeChat({ recipientId }: { recipientId: string }) {
     setIsTyping(false);
 
     try {
-      const success = await sendMessage(recipientId, currentInput);
-      if (!success) {
+      const result = await sendMessage(recipientId, currentInput);
+      if (!result.success) {
         // Restore input on failure
         setMessageInput(currentInput);
-        // You might want to show a toast here using useToast hook if available in this component context
-        console.error("Failed to send message");
+
+        toast({
+          title: "Message Failed",
+          description: result.error || t.messaging?.sendError || "Failed to send message",
+          variant: "destructive"
+        });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error sending message:", err);
       setMessageInput(currentInput);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setMessageInput(value);
-
-    if (value.trim() && !isTyping) {
-      setIsTyping(true);
-      emitTyping(recipientId);
-    } else if (!value.trim() && isTyping) {
-      setIsTyping(false);
-      emitStopTyping(recipientId);
-    }
-
-    // Clear typing timeout and set new one
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      emitStopTyping(recipientId);
-      setIsTyping(false);
-    }, 3000);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleEditMessage = async (messageId: string, content: string) => {
-    try {
-      await apiRequest(`/messages/${messageId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ content }),
-      });
-      emitEditMessage(recipientId, messageId, content);
-      setEditingMessageId(null);
-      setEditingContent('');
       toast({
-        title: t.common.success,
-        description: "Message updated",
-      });
-    } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to update message",
-        variant: 'destructive',
+        title: "Error",
+        description: err.message || "Unexpected error occurred",
+        variant: "destructive"
       });
     }
-  };
+  } catch (err) {
+    console.error("Error sending message:", err);
+    setMessageInput(currentInput);
+  }
+};
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Are you sure you want to delete this message?")) return;
-    try {
-      await apiRequest(`/messages/${messageId}`, {
-        method: 'DELETE',
-      });
-      emitDeleteMessage(recipientId, messageId);
-      toast({
-        title: t.common.success,
-        description: "Message deleted",
-      });
-    } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to delete message",
-        variant: 'destructive',
-      });
-    }
-  };
+const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setMessageInput(value);
 
-  const handleClearConversation = async () => {
-    if (!confirm("Are you sure you want to clear this entire conversation? This action cannot be undone.")) return;
-    try {
-      await apiRequest(`/messages/conversation/${recipientId}`, {
-        method: 'DELETE',
-      });
-      emitClearConversation(recipientId);
-      toast({
-        title: t.common.success,
-        description: "Conversation cleared",
-      });
-    } catch (err) {
-      toast({
-        title: t.common.error,
-        description: "Failed to clear conversation",
-        variant: 'destructive',
-      });
-    }
-  };
+  if (value.trim() && !isTyping) {
+    setIsTyping(true);
+    emitTyping(recipientId);
+  } else if (!value.trim() && isTyping) {
+    setIsTyping(false);
+    emitStopTyping(recipientId);
+  }
 
-  return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3">
-            <div
-              className={`w-3 h-3 rounded-full ${recipientUser?.lastSeen === null ? 'bg-green-500' : 'bg-gray-400'
-                }`}
-              title={recipientUser?.lastSeen === null ? 'Online' : 'Offline'}
-            />
-            {recipientUser || historyData?.user ? (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span>
-                    {recipientUser?.userName ||
-                      (historyData?.user?.firstName
-                        ? `${historyData.user.firstName} ${historyData.user.lastName || ''}`.trim()
-                        : historyData?.user?.email) ||
-                      'Loading...'}
-                  </span>
-                  <span className="text-sm font-normal text-gray-500">
-                    ({recipientUser?.role || historyData?.user?.role || '...'})
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {recipientUser?.lastSeen === null ? (
-                    <span className="text-green-600">Online now</span>
-                  ) : recipientUser?.lastSeen ? (
-                    <span>
-                      Last seen{' '}
-                      {formatDistance(new Date(recipientUser.lastSeen), new Date(), {
-                        addSuffix: true,
-                      })}
-                    </span>
-                  ) : (
-                    <span>Offline</span>
-                  )}
-                </div>
+  // Clear typing timeout and set new one
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+  }
+
+  typingTimeoutRef.current = setTimeout(() => {
+    emitStopTyping(recipientId);
+    setIsTyping(false);
+  }, 3000);
+};
+
+const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    handleSendMessage();
+  }
+};
+
+const handleEditMessage = async (messageId: string, content: string) => {
+  try {
+    await apiRequest(`/messages/${messageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+    emitEditMessage(recipientId, messageId, content);
+    setEditingMessageId(null);
+    setEditingContent('');
+    toast({
+      title: t.common.success,
+      description: "Message updated",
+    });
+  } catch (err) {
+    toast({
+      title: t.common.error,
+      description: "Failed to update message",
+      variant: 'destructive',
+    });
+  }
+};
+
+const handleDeleteMessage = async (messageId: string) => {
+  if (!confirm("Are you sure you want to delete this message?")) return;
+  try {
+    await apiRequest(`/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+    emitDeleteMessage(recipientId, messageId);
+    toast({
+      title: t.common.success,
+      description: "Message deleted",
+    });
+  } catch (err) {
+    toast({
+      title: t.common.error,
+      description: "Failed to delete message",
+      variant: 'destructive',
+    });
+  }
+};
+
+const handleClearConversation = async () => {
+  if (!confirm("Are you sure you want to clear this entire conversation? This action cannot be undone.")) return;
+  try {
+    await apiRequest(`/messages/conversation/${recipientId}`, {
+      method: 'DELETE',
+    });
+    emitClearConversation(recipientId);
+    toast({
+      title: t.common.success,
+      description: "Conversation cleared",
+    });
+  } catch (err) {
+    toast({
+      title: t.common.error,
+      description: "Failed to clear conversation",
+      variant: 'destructive',
+    });
+  }
+};
+
+return (
+  <Card className="h-full flex flex-col">
+    <CardHeader className="border-b">
+      <div className="flex items-center justify-between">
+        <CardTitle className="flex items-center gap-3">
+          <div
+            className={`w-3 h-3 rounded-full ${recipientUser?.lastSeen === null ? 'bg-green-500' : 'bg-gray-400'
+              }`}
+            title={recipientUser?.lastSeen === null ? 'Online' : 'Offline'}
+          />
+          {recipientUser || historyData?.user ? (
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span>
+                  {recipientUser?.userName ||
+                    (historyData?.user?.firstName
+                      ? `${historyData.user.firstName} ${historyData.user.lastName || ''}`.trim()
+                      : historyData?.user?.email) ||
+                    'Loading...'}
+                </span>
+                <span className="text-sm font-normal text-gray-500">
+                  ({recipientUser?.role || historyData?.user?.role || '...'})
+                </span>
               </div>
-            ) : (
-              <span>Loading...</span>
-            )}
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="text-xs font-medium mr-2">
-              {isConnected ? (
-                <span className="text-green-600">Connected</span>
-              ) : (
-                <span className="text-red-600">Disconnected</span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearConversation}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              title="Clear Conversation"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        <div className="space-y-4">
-          {filteredMessages.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              <p>No messages yet. Start the conversation!</p>
+              <div className="text-xs text-gray-500">
+                {recipientUser?.lastSeen === null ? (
+                  <span className="text-green-600">Online now</span>
+                ) : recipientUser?.lastSeen ? (
+                  <span>
+                    Last seen{' '}
+                    {formatDistance(new Date(recipientUser.lastSeen), new Date(), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                ) : (
+                  <span>Offline</span>
+                )}
+              </div>
             </div>
           ) : (
-            filteredMessages.map((msg) => (
+            <span>Loading...</span>
+          )}
+        </CardTitle>
+        <div className="flex items-center gap-2">
+          <div className="text-xs font-medium mr-2">
+            {isConnected ? (
+              <span className="text-green-600">Connected</span>
+            ) : (
+              <span className="text-red-600">Disconnected</span>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearConversation}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            title="Clear Conversation"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </CardHeader>
+
+    <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div className="space-y-4">
+        {filteredMessages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <p>No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          filteredMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'
+                }`}
+            >
               <div
-                key={msg.id}
-                className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'
+                className={`max-w-xs rounded-lg px-4 py-2 relative group ${msg.senderId === user?.id
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-900'
                   }`}
               >
-                <div
-                  className={`max-w-xs rounded-lg px-4 py-2 relative group ${msg.senderId === user?.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-900'
-                    }`}
-                >
-                  {editingMessageId === msg.id ? (
-                    <div className="space-y-2 py-1">
-                      <Input
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="text-sm bg-white text-gray-900 h-8"
-                        autoFocus
-                      />
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-[10px] text-white hover:bg-white/20"
-                          onClick={() => setEditingMessageId(null)}
-                        >
-                          <X className="w-3 h-3 mr-1" /> Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="h-6 px-2 text-[10px] bg-white text-blue-500 hover:bg-gray-100"
-                          onClick={() => handleEditMessage(msg.id, editingContent)}
-                        >
-                          Save
-                        </Button>
-                      </div>
+                {editingMessageId === msg.id ? (
+                  <div className="space-y-2 py-1">
+                    <Input
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      className="text-sm bg-white text-gray-900 h-8"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] text-white hover:bg-white/20"
+                        onClick={() => setEditingMessageId(null)}
+                      >
+                        <X className="w-3 h-3 mr-1" /> Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-6 px-2 text-[10px] bg-white text-blue-500 hover:bg-gray-100"
+                        onClick={() => handleEditMessage(msg.id, editingContent)}
+                      >
+                        Save
+                      </Button>
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm pr-4">{msg.content}</p>
-                      {msg.senderId === user?.id && (
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/20">
-                                <MoreVertical className="w-3 h-3 text-white" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setEditingMessageId(msg.id);
-                                  setEditingContent(msg.content);
-                                }}
-                              >
-                                <Edit2 className="w-4 h-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDeleteMessage(msg.id)}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  <div className="flex items-center justify-between mt-1 gap-2">
-                    <span className="text-xs opacity-70">
-                      {(() => {
-                        try {
-                          const ts = msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp);
-                          return isNaN(ts.getTime()) ? 'Just now' : formatDistanceToNow(ts, { addSuffix: true });
-                        } catch { return 'Just now'; }
-                      })()}
-                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm pr-4">{msg.content}</p>
                     {msg.senderId === user?.id && (
-                      <div className="flex">
-                        {msg.isRead ? (
-                          <CheckCheck className="w-3 h-3" />
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/20">
+                              <MoreVertical className="w-3 h-3 text-white" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingMessageId(msg.id);
+                                setEditingContent(msg.content);
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteMessage(msg.id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-          {remoteTyping && (
-            <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-900 rounded-lg px-4 py-2 flex items-center gap-1">
-                <span className="text-xs font-medium">Typing</span>
-                <div className="flex gap-0.5">
-                  <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
-                  <div
-                    className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.1s' }}
-                  />
-                  <div
-                    className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.2s' }}
-                  />
+                  </>
+                )}
+                <div className="flex items-center justify-between mt-1 gap-2">
+                  <span className="text-xs opacity-70">
+                    {(() => {
+                      try {
+                        const ts = msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp);
+                        return isNaN(ts.getTime()) ? 'Just now' : formatDistanceToNow(ts, { addSuffix: true });
+                      } catch { return 'Just now'; }
+                    })()}
+                  </span>
+                  {msg.senderId === user?.id && (
+                    <div className="flex">
+                      {msg.isRead ? (
+                        <CheckCheck className="w-3 h-3" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      <CardContent className="border-t p-4 space-y-2">
-        <p className="text-[10px] text-gray-400 italic mb-2 text-center">
-          Note: This chat is for informational purposes only and does not constitute legal advice.
-        </p>
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            placeholder={t.consultation?.inputPlaceholder || "Type a message..."}
-            value={messageInput}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            disabled={!isConnected}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!isConnected || !messageInput.trim()}
-            size="sm"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
-        {!isConnected && (
-          <p className="text-xs text-red-600 text-center">
-            {t.consultation?.connected === false ? t.consultation?.disconnected : "Connecting... Real-time messaging unavailable"}
-          </p>
+          ))
         )}
-      </CardContent>
-    </Card>
-  );
+        {remoteTyping && (
+          <div className="flex justify-start">
+            <div className="bg-gray-200 text-gray-900 rounded-lg px-4 py-2 flex items-center gap-1">
+              <span className="text-xs font-medium">Typing</span>
+              <div className="flex gap-0.5">
+                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
+                <div
+                  className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: '0.1s' }}
+                />
+                <div
+                  className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"
+                  style={{ animationDelay: '0.2s' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+
+    <CardContent className="border-t p-4 space-y-2">
+      <p className="text-[10px] text-gray-400 italic mb-2 text-center">
+        Note: This chat is for informational purposes only and does not constitute legal advice.
+      </p>
+      <div className="flex gap-2">
+        <Input
+          type="text"
+          placeholder={t.consultation?.inputPlaceholder || "Type a message..."}
+          value={messageInput}
+          onChange={handleInputChange}
+          onKeyPress={handleKeyPress}
+          disabled={!isConnected}
+          className="flex-1"
+        />
+        <Button
+          onClick={handleSendMessage}
+          disabled={!isConnected || !messageInput.trim()}
+          size="sm"
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+      {!isConnected && (
+        <p className="text-xs text-red-600 text-center">
+          {t.consultation?.connected === false ? t.consultation?.disconnected : "Connecting... Real-time messaging unavailable"}
+        </p>
+      )}
+    </CardContent>
+  </Card>
+);
 }

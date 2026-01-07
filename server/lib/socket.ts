@@ -173,9 +173,19 @@ export function setupSocketIO(httpServer: HTTPServer) {
         socket.emit('message_sent', payloadOut);
 
         ack?.({ success: true, messageId: savedMessage.id });
-      } catch (err) {
+      } catch (err: any) {
         logger.error({ err, payload }, "Failed to send message");
-        ack?.({ success: false, error: "Failed to send message" });
+        let errorMessage = "Failed to send message";
+
+        if (err.code === "23503") { // Foreign key violation
+          if (err.constraint === "messages_receiver_id_users_id_fk" || err.detail?.includes("receiver_id")) {
+            errorMessage = "Recipient user not found - they may have been deleted.";
+          } else if (err.constraint === "messages_sender_id_users_id_fk") {
+            errorMessage = "Sender account invalid.";
+          }
+        }
+
+        ack?.({ success: false, error: errorMessage });
       }
     };
 
