@@ -38,3 +38,12 @@ export function formatUzbekDate(date: string | Date): string {
   const year = d.getFullYear();
   return `${day}.${month}.${year}`;
 }
+export function formatUzbekCurrency(amount: number | string): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('uz-UZ', {
+    style: 'currency',
+    currency: 'UZS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(num);
+}

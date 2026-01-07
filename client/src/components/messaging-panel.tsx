@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
-import { Send, Loader2, MessageCircle, User, X, ChevronRight, Circle, MoreVertical, Trash2, Edit2, ArrowLeft } from "lucide-react";
+import { Send, Loader2, MessageCircle, User, X, ChevronRight, Circle, MoreVertical, Trash2, Edit2, ArrowLeft, Video } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
 import { debug, info as logInfo, error as logError } from "@/lib/logger";
 import { useWebSocket } from "@/hooks/use-websocket";
+import ConsultationPaymentCard from "./ConsultationPaymentCard";
 
 interface Message {
   id: string;
@@ -90,9 +91,9 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     socket
   } = useWebSocket({
     userId: user?.id,
-    userName: user?.firstName || user?.name,
-    userRole: user?.role,
-    token: localStorage.getItem("accessToken")
+    userName: (user?.firstName || user?.name) as string,
+    userRole: user?.role as string,
+    token: localStorage.getItem("accessToken") || ""
   });
 
   // Sync socket messages with local messages state for the selected conversation
@@ -114,7 +115,7 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
             receiverId: lastSocketMsg.recipientId!,
             content: lastSocketMsg.content,
             timestamp: new Date(lastSocketMsg.timestamp).toISOString(),
-            isRead: lastSocketMsg.isRead,
+            isRead: lastSocketMsg.isRead || false,
           }];
         });
       }
@@ -154,7 +155,7 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     };
 
     const onMessageReceived = (msg: Message) => {
-      setMessages((prev) => [
+      setMessages((prev: Message[]) => [
         ...prev,
         {
           id: msg.id,
@@ -170,12 +171,12 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
 
     // Online presence events
     const onOnlineUsers = (users: OnlineUser[]) => {
-      const ids = new Set(users.map(u => u.userId));
+      const ids = new Set(users.map((u: OnlineUser) => u.userId));
       setOnlineUsers(ids);
     };
 
     const onUserStatusChanged = (data: { userId: string, status: 'online' | 'offline' }) => {
-      setOnlineUsers(prev => {
+      setOnlineUsers((prev: Set<string>) => {
         const next = new Set(prev);
         if (data.status === 'online') {
           next.add(data.userId);
@@ -188,7 +189,7 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
 
     // Typing indicators
     const onUserTyping = (data: { senderId: string }) => {
-      setTypingUsers(prev => {
+      setTypingUsers((prev: Set<string>) => {
         const next = new Set(prev);
         next.add(data.senderId);
         return next;
@@ -196,7 +197,7 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     };
 
     const onUserStopTyping = (data: { senderId: string }) => {
-      setTypingUsers(prev => {
+      setTypingUsers((prev: Set<string>) => {
         const next = new Set(prev);
         next.delete(data.senderId);
         return next;
@@ -227,6 +228,12 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
 
     socket.on("connect:success", onConnectSuccess);
     socket.on("message:received", onMessageReceived);
+    socket.on("message_sent", (data: { id?: string }) => {
+      // Use the verified ID from server for the optimistic message
+      if (data.id) {
+        setMessages((prev: Message[]) => prev.map((m: Message) => m.id.startsWith('temp-') ? { ...m, id: data.id! } : m));
+      }
+    });
     socket.on("online_users", onOnlineUsers);
     socket.on("user_status_changed", onUserStatusChanged);
     socket.on("user_typing", onUserTyping);
@@ -238,6 +245,7 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     return () => {
       socket.off("connect:success", onConnectSuccess);
       socket.off("message:received", onMessageReceived);
+      socket.off("message_sent");
       socket.off("online_users", onOnlineUsers);
       socket.off("user_status_changed", onUserStatusChanged);
       socket.off("user_typing", onUserTyping);
@@ -409,7 +417,6 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     socket.emit("user_stop_typing", { recipientId: selectedParticipant });
 
     setIsSending(true);
-    const success = emitSendMessage(selectedParticipant, inputMessage);
 
     // Optimistic update
     const tempId = `temp-${Date.now()}`;
@@ -423,19 +430,13 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
-    setInputMessage("");
 
-    socket.emit("message:send", {
-      content: optimisticMessage.content,
-      receiverId: selectedParticipant,
-      applicationId: undefined,
-    }, (ack: SocketAck) => {
-      if (ack?.success) {
-        setMessages((prev) => prev.map(m => m.id === tempId ? { ...m, id: ack.messageId || m.id } : m));
-      } else {
+    // Send via emitSendMessage (uses emit('send_message'))
+    emitSendMessage(selectedParticipant, inputMessage).then((res) => {
+      if (!res.success) {
         toast({
           title: t.common.error,
-          description: ack?.error || t.messaging.sendError,
+          description: res.error || t.messaging.sendError,
           variant: "destructive",
         });
         // Revert on failure
@@ -444,6 +445,8 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
       }
       setIsSending(false);
     });
+
+    setInputMessage("");
   };
 
   const handleEditMessage = async (messageId: string, content: string) => {
@@ -487,6 +490,58 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
       toast({ title: t.common.success, description: "Conversation cleared" });
     } catch (err) {
       toast({ title: t.common.error, description: "Failed to clear conversation", variant: 'destructive' });
+    }
+  };
+
+  const handleSuggestConsultation = async () => {
+    if (!selectedParticipant || user?.role !== "lawyer") return;
+
+    try {
+      setIsSending(true);
+      const response = await apiRequest("/consultations", {
+        method: "POST",
+        body: JSON.stringify({
+          lawyerId: user.id,
+          userId: selectedParticipant,
+          scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Suggest for tomorrow
+          duration: 30,
+          notes: "Lawyer suggested a video consultation.",
+        }),
+      }) as Response;
+
+      const consultation = await response.json();
+
+      // Send a specialized message about the consultation
+      const messageContent = `[CONSULTATION_REQUEST] I would like to suggest a video consultation to discuss your case further. (ID: ${consultation.id})`;
+
+      emitSendMessage(selectedParticipant, messageContent);
+
+      // Add to local state optimistically
+      setMessages((prev: Message[]) => [
+        ...prev,
+        {
+          id: `temp-${Date.now()}`,
+          senderId: user.id,
+          receiverId: selectedParticipant,
+          content: messageContent,
+          timestamp: new Date().toISOString(),
+          isRead: false,
+        },
+      ]);
+
+      toast({
+        title: "Consultation Suggested",
+        description: "A payment link has been sent to the client.",
+      });
+    } catch (err) {
+      logError("Failed to suggest consultation:", err);
+      toast({
+        title: "Error",
+        description: "Could not suggest consultation.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -609,6 +664,17 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
               </div>
 
               <div className="flex items-center gap-3">
+                {user?.role === "lawyer" && (
+                  <LiveButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSuggestConsultation}
+                    className="hidden sm:flex items-center gap-2 text-brand-600 hover:bg-brand-50"
+                  >
+                    <Video size={18} className="text-brand-500" />
+                    <span className="font-black text-[10px] uppercase tracking-[0.2em]">Suggest Call</span>
+                  </LiveButton>
+                )}
                 <LiveButton
                   onClick={handleClearConversation}
                   variant="ghost"
@@ -677,7 +743,24 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
                           </div>
                         ) : (
                           <>
-                            <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                            {msg.content.startsWith('[CONSULTATION_REQUEST]') && user?.role === 'applicant' ? (
+                              <div className="space-y-3">
+                                <p className="leading-relaxed whitespace-pre-wrap">{msg.content.split('(ID:')[0].replace('[CONSULTATION_REQUEST]', '').trim()}</p>
+                                <ConsultationPaymentCard
+                                  consultationId={msg.content.match(/\(ID: ([^\)]+)\)/)?.[1] || ""}
+                                  onSuccess={() => {
+                                    // Optionally refresh messages or show a status update
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <p className="leading-relaxed whitespace-pre-wrap">
+                                {msg.content.startsWith('[CONSULTATION_REQUEST]')
+                                  ? msg.content.replace('[CONSULTATION_REQUEST]', 'PROPOSAL:').trim()
+                                  : msg.content
+                                }
+                              </p>
+                            )}
                             {msg.senderId === user?.id && (
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all scale-75 origin-top-right">
                                 <DropdownMenu>

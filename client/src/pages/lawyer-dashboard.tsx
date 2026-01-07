@@ -6,7 +6,7 @@ import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
   LogOut, TrendingUp, CheckCircle, XCircle, Clock, Eye, X,
   Filter, Calendar, FileText, Download, Code, Bell, CreditCard, Video,
-  Plus, MessageSquare, BrainCircuit, ArrowUpRight, Zap, Brain, Lock, Printer, Building, RefreshCw, Loader2
+  Plus, MessageSquare, BrainCircuit, ArrowUpRight, Zap, Brain, Lock, Printer, Building, RefreshCw, Loader2, FolderOpen
 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api";
 import { motion } from "framer-motion";
-import { DollarSign, TrendingUp, BarChart3, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, BarChart3, Calendar, Wallet } from "lucide-react";
 import { AnimatedCard } from "@/components/ui/live-elements";
+import { formatUzbekCurrency } from "@/lib/utils";
 
 interface RevenueDataPoint {
     name: string; // "Jan", "Feb" etc
@@ -58,7 +59,7 @@ export default function RevenueChart() {
                     <p className="text-xs text-slate-500">Monthly breakdown</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-white">${totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-white">{formatUzbekCurrency(totalRevenue)}</p>
                     <p className="text-xs text-emerald-400 flex items-center justify-end gap-1">
                         <TrendingUp size={12} /> Last 6 months
                     </p>
@@ -86,7 +87,7 @@ export default function RevenueChart() {
                                     >
                                         {/* Tooltip */}
                                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-700 pointer-events-none z-10">
-                                            ${item.value.toLocaleString()}
+                                            {formatUzbekCurrency(item.value)}
                                         </div>
                                     </motion.div>
                                 </div>

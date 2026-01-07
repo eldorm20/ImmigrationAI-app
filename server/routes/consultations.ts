@@ -358,6 +358,57 @@ router.patch(
       throw new AppError(403, "Access denied");
     }
 
+    // Generate meeting link if status is changing to accepted/scheduled and none exists
+    const isConfirmed = (body.status === "accepted" || body.status === "scheduled") && !consultation.meetingLink;
+    const meetingLink = isConfirmed
+      ? `https://meet.jit.si/ImmigrationAI-${id.substring(0, 8)}`
+      : (body.meetingLink || consultation.meetingLink);
+
+    // Transition lead to active if consultation is accepted
+    if (body.status === "accepted" && consultation.applicationId) {
+      await db.update(applications)
+        .set({ status: 'active', updatedAt: new Date() })
+        .where(eq(applications.id, consultation.applicationId));
+      logger.info({ id, applicationId: consultation.applicationId }, "Transitioned application to active status due to paid consultation");
+
+      // Automated Welcome Task
+      await db.insert(tasks).values({
+        lawyerId: consultation.lawyerId,
+        applicationId: consultation.applicationId,
+        title: "Initial Case Review & Onboarding",
+        description: "Review client's initial inquiry and prepare onboarding documents following successful consultation payment.",
+        status: "pending",
+        priority: "high",
+        dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Due in 1 day
+      });
+
+      // Automated Welcome Email
+      const applicant = await db.query.users.findFirst({
+        where: eq(users.id, consultation.userId)
+      });
+      const lawyer = await db.query.users.findFirst({
+        where: eq(users.id, consultation.lawyerId)
+      });
+
+      if (applicant && lawyer) {
+        await enqueueJob(consultation.lawyerId, "email", {
+          to: applicant.email,
+          subject: `Welcome to ${lawyer.firstName || 'your lawyer'}'s Practice`,
+          html: `
+            <h3>Welcome!</h3>
+            <p>Dear ${applicant.firstName},</p>
+            <p>Thank you for your payment. Your case has been officially activated.</p>
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+              <li>Attend our scheduled consultation at ${new Date(consultation.scheduledTime).toLocaleString()}</li>
+              <li>Upload your initial documents in the "Documents" section.</li>
+            </ul>
+            <p>Best regards,<br/>${lawyer.firstName} ${lawyer.lastName}</p>
+          `
+        });
+      }
+    }
+
     // Update consultation
     let updated;
     try {
@@ -366,7 +417,7 @@ router.patch(
         .set({
           status: body.status || consultation.status,
           notes: body.notes !== undefined ? body.notes : consultation.notes,
-          meetingLink: body.meetingLink || consultation.meetingLink,
+          meetingLink,
           updatedAt: new Date(),
         })
         .where(eq(consultations.id, id))

@@ -158,19 +158,17 @@ export function setupSocketIO(httpServer: HTTPServer) {
           isRead: false,
         };
 
-        // Emit to receiver's connected sockets (if they're online) using multiple event names
+        // Emit to receiver's connected sockets (if they're online)
         const receiverRoom = `user:${recipientId}`;
         logger.info({ receiverRoom, recipientId, senderId: userId }, "Emitting to receiver room");
-        io.to(receiverRoom).emit('new_message', payloadOut);
         io.to(receiverRoom).emit('message:received', payloadOut);
 
         // Also emit to all of SENDER's other sockets (so it appears on all their devices)
         logger.info({ senderRoom: `user:${userId}`, userId }, "Emitting to sender room (other sessions)");
-        socket.to(`user:${userId}`).emit('new_message', payloadOut);
-        socket.to(`user:${userId}`).emit('message_sent', payloadOut);
+        socket.to(`user:${userId}`).emit('message:received', payloadOut);
 
-        // Acknowledge back to sender with message_sent
-        socket.emit('message_sent', payloadOut);
+        // Acknowledge back to sender with message_sent (specifically for the current socket)
+        socket.emit('message_sent', { ...payloadOut, success: true });
 
         ack?.({ success: true, messageId: savedMessage.id });
       } catch (err: any) {

@@ -219,32 +219,39 @@ export const tasks = pgTable("tasks", {
   statusIdx: index("tasks_status_idx").on(table.status),
 }));
 
-// Invoices table for lawyer billing
-export const invoices = pgTable("invoices", {
+// Templates table
+export const templates = pgTable("templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  lawyerId: varchar("lawyer_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  applicantId: varchar("applicant_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  applicationId: varchar("application_id", { length: 255 }).references(() => applications.id, { onDelete: "set null" }),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 3 }).default("USD"),
-  status: invoiceStatusEnum("status").notNull().default("draft"),
-  dueDate: timestamp("due_date"),
-  items: jsonb("items"), // Array of { description, amount }
-  // Uzbekistan Financial Localization
-  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"), // e.g. 12.00 for VAT
-  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).default("0"),
-  legalEntityName: varchar("legal_entity_name", { length: 255 }),
-  inn: varchar("inn", { length: 20 }), // STIR
-  oked: varchar("oked", { length: 10 }),
-  mfo: varchar("mfo", { length: 10 }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 50 }).notNull().default("other"),
+  documentType: varchar("document_type", { length: 100 }).notNull(),
+  visaType: varchar("visa_type", { length: 100 }),
+  content: text("content").notNull(),
+  placeholders: jsonb("placeholders").$type<string[]>().notNull().default([]),
+  language: varchar("language", { length: 5 }).notNull().default("en"),
+  isSystem: boolean("is_system").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  lawyerIdIdx: index("invoices_lawyer_id_idx").on(table.lawyerId),
-  applicantIdIdx: index("invoices_applicant_id_idx").on(table.applicantId),
-  statusIdx: index("invoices_status_idx").on(table.status),
+  userIdIdx: index("templates_user_id_idx").on(table.userId),
+  docTypeIdx: index("templates_doc_type_idx").on(table.documentType),
 }));
+
+export const insertTemplateSchema = createInsertSchema(templates).pick({
+  name: true,
+  description: true,
+  category: true,
+  documentType: true,
+  visaType: true,
+  content: true,
+  language: true,
+  isSystem: true,
+});
+
+export type InsertTemplate = z.infer<typeof insertTemplateSchema>;
+export type Template = typeof templates.$inferSelect;
 
 // Audit logs table
 export const auditLogs = pgTable("audit_logs", {
@@ -1242,6 +1249,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   invoices: many(invoices),
   employerVerifications: many(employerVerifications),
   documentPacks: many(documentPacks),
+  templates: many(templates),
 }));
 
 export const applicationsRelations = relations(applications, ({ one, many }) => ({

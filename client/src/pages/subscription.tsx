@@ -49,7 +49,7 @@ const plans = [
   {
     id: "pro",
     name: "Professional",
-    price: 99,
+    price: 15000,
     period: "month",
     description: "For serious applicants",
     features: [
@@ -63,9 +63,9 @@ const plans = [
     popular: true,
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 299,
+    id: "premium",
+    name: "Premium",
+    price: 50000,
     period: "month",
     description: "For immigration firms",
     features: [
@@ -333,9 +333,10 @@ export default function SubscriptionPage() {
                   <div className="mb-6">
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
                     <p className="text-slate-600 dark:text-slate-400 text-sm">{plan.description}</p>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold text-slate-900 dark:text-white">${plan.price}</span>
-                      <span className="text-slate-600 dark:text-slate-400">/{plan.period}</span>
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-4xl font-bold text-slate-900 dark:text-white">{plan.price.toLocaleString()}</span>
+                      <span className="text-xl font-medium text-slate-500">UZS</span>
+                      <span className="text-slate-600 dark:text-slate-400">/{plan.period === "month" ? "mo" : "forever"}</span>
                     </div>
                   </div>
 

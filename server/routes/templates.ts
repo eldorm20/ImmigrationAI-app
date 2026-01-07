@@ -1,44 +1,14 @@
-/**
- * Templates Routes
- * API for managing document templates with placeholders
- */
-
 import { Router } from "express";
 import { db } from "../db";
-import { eq, and, or } from "drizzle-orm";
-import { authenticate } from "../middleware/auth";
+import { templates, insertTemplateSchema, users } from "@shared/schema";
+import { eq, and, or, sql } from "drizzle-orm";
+import { authenticate, requireRole } from "../middleware/auth";
 import { asyncHandler, AppError, ErrorCode } from "../middleware/errorHandler";
 import { logger } from "../lib/logger";
-import { z } from "zod";
 
 const router = Router();
 
-// In-memory templates table (can be moved to database later)
-interface Template {
-    id: string;
-    userId: string;
-    name: string;
-    documentType: string;
-    visaType?: string;
-    content: string;
-    placeholders: string[];
-    language: string;
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-const templates = new Map<string, Template>();
-
-// Validation schemas
-const createTemplateSchema = z.object({
-    name: z.string().min(1).max(255),
-    documentType: z.string().min(1).max(100),
-    visaType: z.string().max(100).optional(),
-    content: z.string().min(10),
-    language: z.string().length(2).default("en"),
-});
-
-const updateTemplateSchema = createTemplateSchema.partial();
+router.use(authenticate);
 
 // Extract placeholders from content (look for {{placeholder}} patterns)
 function extractPlaceholders(content: string): string[] {
@@ -47,45 +17,49 @@ function extractPlaceholders(content: string): string[] {
     return Array.from(new Set(Array.from(matches, m => m[1].trim())));
 }
 
-// Get all templates for user
+// Get all templates (System templates + User's own templates)
 router.get(
     "/",
-    authenticate,
     asyncHandler(async (req, res) => {
         const userId = req.user!.userId;
-        const { documentType, visaType } = req.query;
+        const { documentType, category } = req.query;
 
-        let userTemplates = Array.from(templates.values()).filter(
-            t => t.userId === userId
-        );
+        const results = await db.query.templates.findMany({
+            where: or(
+                eq(templates.isSystem, true),
+                eq(templates.userId, userId)
+            ),
+            orderBy: (templates, { desc }) => [desc(templates.createdAt)],
+        });
 
+        let filtered = results;
         if (documentType) {
-            userTemplates = userTemplates.filter(t => t.documentType === documentType);
+            filtered = filtered.filter(t => t.documentType === (documentType as string));
+        }
+        if (category) {
+            filtered = filtered.filter(t => t.category === (category as string));
         }
 
-        if (visaType) {
-            userTemplates = userTemplates.filter(t => !t.visaType || t.visaType === visaType);
-        }
-
-        res.json(userTemplates);
+        res.json(filtered);
     })
 );
 
 // Get single template
 router.get(
     "/:id",
-    authenticate,
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user!.userId;
 
-        const template = templates.get(id);
+        const template = await db.query.templates.findFirst({
+            where: eq(templates.id, id)
+        });
 
         if (!template) {
             throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
         }
 
-        if (template.userId !== userId) {
+        if (!template.isSystem && template.userId !== userId) {
             throw new AppError(403, "Access denied", ErrorCode.FORBIDDEN);
         }
 
@@ -93,34 +67,25 @@ router.get(
     })
 );
 
-// Create template
+// Create template (Lawyers only)
 router.post(
     "/",
-    authenticate,
+    requireRole("lawyer", "admin"),
     asyncHandler(async (req, res) => {
         const userId = req.user!.userId;
-        const data = createTemplateSchema.parse(req.body);
-
-        const id = `tpl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const data = insertTemplateSchema.parse(req.body);
         const placeholders = extractPlaceholders(data.content);
 
-        const template: Template = {
-            id,
-            userId,
-            name: data.name,
-            documentType: data.documentType,
-            visaType: data.visaType,
-            content: data.content,
-            placeholders,
-            language: data.language,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
+        const [template] = await db
+            .insert(templates)
+            .values({
+                ...data,
+                userId,
+                placeholders,
+            })
+            .returning();
 
-        templates.set(id, template);
-
-        logger.info({ templateId: id, userId }, "Template created");
-
+        logger.info({ templateId: template.id, userId }, "Template created");
         res.status(201).json(template);
     })
 );
@@ -128,83 +93,54 @@ router.post(
 // Update template
 router.patch(
     "/:id",
-    authenticate,
+    requireRole("lawyer", "admin"),
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user!.userId;
-        const updates = updateTemplateSchema.parse(req.body);
+        const updates = insertTemplateSchema.partial().parse(req.body);
 
-        const template = templates.get(id);
+        const existing = await db.query.templates.findFirst({
+            where: eq(templates.id, id)
+        });
 
-        if (!template) {
+        if (!existing) {
             throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
         }
 
-        if (template.userId !== userId) {
+        if (existing.userId !== userId && !req.user!.role.includes('admin')) {
             throw new AppError(403, "Access denied", ErrorCode.FORBIDDEN);
         }
 
-        const updated = {
-            ...template,
-            ...updates,
-            updatedAt: new Date(),
-        };
+        const placeholders = updates.content ? extractPlaceholders(updates.content) : existing.placeholders;
 
-        if (updates.content) {
-            updated.placeholders = extractPlaceholders(updates.content);
-        }
-
-        templates.set(id, updated);
-
-        logger.info({ templateId: id, userId }, "Template updated");
+        const [updated] = await db
+            .update(templates)
+            .set({
+                ...updates,
+                placeholders,
+                updatedAt: new Date(),
+            })
+            .where(eq(templates.id, id))
+            .returning();
 
         res.json(updated);
     })
 );
 
-// Delete template
-router.delete(
-    "/:id",
-    authenticate,
-    asyncHandler(async (req, res) => {
-        const { id } = req.params;
-        const userId = req.user!.userId;
-
-        const template = templates.get(id);
-
-        if (!template) {
-            throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
-        }
-
-        if (template.userId !== userId) {
-            throw new AppError(403, "Access denied", ErrorCode.FORBIDDEN);
-        }
-
-        templates.delete(id);
-
-        logger.info({ templateId: id, userId }, "Template deleted");
-
-        res.json({ message: "Template deleted successfully" });
-    })
-);
-
-// Use template (fill placeholders and generate document)
+// Use template
 router.post(
     "/:id/use",
-    authenticate,
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user!.userId;
-        const { values } = req.body; // { placeholder: value }
+        const { values } = req.body;
 
-        const template = templates.get(id);
+        const template = await db.query.templates.findFirst({
+            where: eq(templates.id, id)
+        });
 
         if (!template) {
             throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
-        }
-
-        if (template.userId !== userId) {
-            throw new AppError(403, "Access denied", ErrorCode.FORBIDDEN);
         }
 
         // Replace placeholders
@@ -217,9 +153,45 @@ router.post(
         res.json({
             content,
             originalTemplate: template.name,
-            missingPlaceholders: template.placeholders.filter(p => !values[p]),
+            missingPlaceholders: template.placeholders.filter(p => !values?.[p]),
         });
     })
 );
+
+// Seed specialized templates if they don't exist
+export async function seedSpecializedTemplates(lawyerId: string) {
+    const specialized = [
+        {
+            name: "Affidavit of Support (I-864)",
+            description: "Financial sponsorship verification for immigration cases.",
+            category: "contract",
+            documentType: "legal_affidavit",
+            content: "I, {{sponsor_name}}, residing at {{sponsor_address}}, do hereby swear and affirm that I will support {{applicant_name}} during their stay in the United States...",
+            isSystem: true
+        },
+        {
+            name: "Employment Verification Letter",
+            description: "Standardized format for verifying current employment status.",
+            category: "letter",
+            documentType: "employment_record",
+            content: "To whom it may concern,\n\nThis letter is to confirm that {{employee_name}} is currently employed at {{company_name}} as a {{job_title}} since {{start_date}}...",
+            isSystem: true
+        }
+    ];
+
+    for (const tpl of specialized) {
+        const existing = await db.query.templates.findFirst({
+            where: and(eq(templates.name, tpl.name), eq(templates.isSystem, true))
+        });
+
+        if (!existing) {
+            await db.insert(templates).values({
+                ...tpl,
+                userId: lawyerId,
+                placeholders: extractPlaceholders(tpl.content)
+            });
+        }
+    }
+}
 
 export default router;

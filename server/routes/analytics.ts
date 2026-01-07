@@ -54,57 +54,55 @@ router.get(
       // Helper to safely extract numeric values with defaults
       const safeNum = (val: number | null | undefined): number => val ?? 0;
 
-      // Get applications stats (filtered by lawyerId)
+      // Get applications/leads stats
       const applicationStats = await db
         .select({
           total: count(),
-          pending: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'pending' OR status = 'pending_documents' THEN 1 ELSE 0 END), 0) AS integer)`,
+          leads: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'pending' OR status = 'pending_documents' THEN 1 ELSE 0 END), 0) AS integer)`,
+          active: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'active' OR status = 'under_review' OR status = 'in_progress' OR status = 'submitted' THEN 1 ELSE 0 END), 0) AS integer)`,
           approved: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END), 0) AS integer)`,
-          rejected: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS integer)`,
-          inProgress: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'under_review' OR status = 'in_progress' OR status = 'submitted' THEN 1 ELSE 0 END), 0) AS integer)`,
         })
         .from(applications)
         .where(eq(applications.lawyerId, lawyerId));
 
-      // Get consultation stats (filtered by lawyerId)
-      const consultationStats = await db
-        .select({
-          total: count(),
-          scheduled: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END), 0) AS integer)`,
-          completed: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) AS integer)`,
-          cancelled: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END), 0) AS integer)`,
-        })
-        .from(consultations)
-        .where(eq(consultations.lawyerId, lawyerId));
+      const stats = applicationStats[0] || { total: 0, leads: 0, active: 0, approved: 0 };
+      const conversionRate = stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0;
 
-      // Get task stats (filtered by lawyerId)
+      // Get revenue stats with category breakdown
+      const revenueStats = await db
+        .select({
+          totalAmount: sql<number>`CAST(COALESCE(SUM(total_amount), 0) AS float)`,
+          paid: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) AS float)`,
+          outstanding: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN total_amount ELSE 0 END), 0) AS float)`,
+          consultationRevenue: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' AND EXISTS (
+            SELECT 1 FROM jsonb_array_elements(items) as item 
+            WHERE item->>'description' ILIKE '%consultation%'
+          ) THEN total_amount ELSE 0 END), 0) AS float)`,
+          serviceRevenue: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' AND NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(items) as item 
+            WHERE item->>'description' ILIKE '%consultation%'
+          ) THEN total_amount ELSE 0 END), 0) AS float)`,
+        })
+        .from(invoices)
+        .where(eq(invoices.lawyerId, lawyerId));
+
+      const rev = revenueStats[0] || { totalAmount: 0, paid: 0, outstanding: 0, consultationRevenue: 0, serviceRevenue: 0 };
+      const collectionRate = rev.totalAmount > 0 ? Math.round((rev.paid / rev.totalAmount) * 100) : 0;
+
+      // Get task stats
       const taskStats = await db
         .select({
           total: count(),
           pending: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS integer)`,
-          inProgress: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END), 0) AS integer)`,
           completed: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) AS integer)`,
         })
         .from(tasks)
         .where(eq(tasks.lawyerId, lawyerId));
 
-      // Get invoice/revenue stats (filtered by lawyerId)
-      const invoiceStats = await db
-        .select({
-          total: count(),
-          totalAmount: sql<number>`CAST(COALESCE(SUM(amount), 0) AS float)`,
-          paid: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS float)`,
-          outstanding: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN amount ELSE 0 END), 0) AS float)`,
-          drafts: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END), 0) AS integer)`,
-        })
-        .from(invoices)
-        .where(eq(invoices.lawyerId, lawyerId));
-
-      // Get upcoming consultations (next 7 days)
+      // Get upcoming consultations
       const now = new Date();
       const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      const upcomingConsultations = await db.query.consultations.findMany({
+      const upcoming = await db.query.consultations.findMany({
         where: and(
           eq(consultations.lawyerId, lawyerId),
           gte(consultations.scheduledTime, now),
@@ -112,50 +110,26 @@ router.get(
         ),
         orderBy: [consultations.scheduledTime],
         limit: 5,
+        with: {
+          applicant: true
+        }
       });
-
-      // Enrich with user details
-      const enrichedConsultations = await Promise.all(
-        upcomingConsultations.map(async (c) => {
-          const user = await db.query.users.findFirst({
-            where: eq(users.id, c.userId),
-            columns: { id: true, firstName: true, lastName: true, email: true }
-          });
-          return { ...c, applicant: user };
-        })
-      );
-
-      // Get overdue tasks
-      const overdueTasks = await db.query.tasks.findMany({
-        where: and(
-          eq(tasks.lawyerId, lawyerId),
-          lte(tasks.dueDate, now),
-          sql`${tasks.status} != 'completed'`
-        ),
-        limit: 5,
-      });
-
-      // Get recent activity (tasks completed in last 7 days)
-      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const recentCompletedTasks = await db
-        .select({ count: count() })
-        .from(tasks)
-        .where(
-          and(
-            eq(tasks.lawyerId, lawyerId),
-            eq(tasks.status, "completed"),
-            gte(tasks.updatedAt, lastWeek)
-          )
-        );
 
       res.json({
-        applications: applicationStats[0] || { total: 0, pending: 0, approved: 0, rejected: 0, inProgress: 0 },
-        consultations: consultationStats[0] || { total: 0, scheduled: 0, completed: 0, cancelled: 0 },
-        tasks: taskStats[0] || { total: 0, pending: 0, inProgress: 0, completed: 0 },
-        revenue: invoiceStats[0] || { total: 0, totalAmount: 0, paid: 0, outstanding: 0, drafts: 0 },
-        upcomingConsultations: enrichedConsultations,
-        overdueTasks,
-        weeklyCompletedTasks: recentCompletedTasks[0]?.count || 0,
+        applications: {
+          total: stats.total,
+          leads: stats.leads,
+          active: stats.active,
+          approved: stats.approved,
+          conversionRate,
+        },
+        revenue: {
+          ...rev,
+          collectionRate,
+        },
+        tasks: taskStats[0] || { total: 0, pending: 0, completed: 0 },
+        upcomingConsultations: upcoming,
+        weeklyCompletedTasks: 0, // Placeholder
       });
     } catch (error) {
       logger.error({ error, lawyerId }, "Failed to fetch lawyer dashboard analytics");

@@ -1438,6 +1438,22 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     };
 
     (fn as any).applications = { title: dict["applications.title"] || "Applications" };
+
+    (fn as any).roadmap = {
+      assessment: dict["roadmap.assessment"] || "Assessment",
+      visaSimulator: dict["roadmap.visaSimulator"] || "Visa Simulator",
+      documents: dict["roadmap.documents"] || "Documents",
+      aiReview: dict["roadmap.aiReview"] || "AI Review",
+      govChecks: dict["roadmap.govChecks"] || "Gov Checks",
+      interviewCoach: dict["roadmap.interviewCoach"] || "Interview Coach",
+      lawyerReview: dict["roadmap.lawyerReview"] || "Lawyer Review",
+      submission: dict["roadmap.submission"] || "Submission"
+    };
+
+    (fn as any).dashStatus = {
+      submitted_to_gov: dict["dashStatus.submitted_to_gov"] || "Officially Submitted"
+    };
+
     (fn as any).lawyer = {
       leads: {
         title: dict["lawyer.leads.title"] || "Client Inquiries",
@@ -1543,19 +1559,19 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     (fn as any).subscription = {
       price: dict["subscription.price"] || "Rate",
       billingCycle: dict["subscription.billingCycle"] || "Billing Frequency",
-      started: dict["subscription.started"] || "Activation Date",
-      renewal: dict["subscription.renewal"] || "Next Ledger Cycle",
-      upgradeYourPlan: dict["subscription.upgradeYourPlan"] || "Enhance Institutional Capacity",
-      mostPopular: dict["subscription.mostPopular"] || "Primary Choice",
-      currentPlan: dict["subscription.currentPlan"] || "Active Protocol",
-      upgrade: dict["subscription.upgrade"] || "Execute Upgrade",
-      billingHistory: dict["subscription.billingHistory"] || "Temporal Ledger",
-      noBillingHistory: dict["subscription.noBillingHistory"] || "No historical transactions discovered",
-      date: dict["subscription.date"] || "Temporal Stamp",
-      amount: dict["subscription.amount"] || "Quantum",
-      status: dict["subscription.status"] || "Execution Status",
-      invoice: dict["subscription.invoice"] || "Reference",
-      download: dict["subscription.download"] || "Archive Export"
+      started: dict["subscription.started"] || "Start Date",
+      renewal: dict["subscription.renewal"] || "Renewal Date",
+      upgradeYourPlan: dict["subscription.upgradeYourPlan"] || "Scale Your Capacity",
+      mostPopular: dict["subscription.mostPopular"] || "Recommended",
+      currentPlan: dict["subscription.currentPlan"] || "Current Plan",
+      upgrade: dict["subscription.upgrade"] || "Upgrade",
+      billingHistory: dict["subscription.billingHistory"] || "Transactional Archive",
+      noBillingHistory: dict["subscription.noBillingHistory"] || "No transaction records found",
+      date: dict["subscription.date"] || "Timestamp",
+      amount: dict["subscription.amount"] || "Value",
+      status: dict["subscription.status"] || "State",
+      invoice: dict["subscription.invoice"] || "Voucher",
+      download: dict["subscription.download"] || "Retrieve PDF"
     };
     (fn as any).lawyerDashboard = {
       title: dict["lawyerDashboard.title"] || "Lawyer Dashboard",

@@ -12,47 +12,50 @@ import {
     AlertTriangle,
     FileText,
     BarChart3,
+    PieChart,
+    ArrowUpRight,
 } from "lucide-react";
 import RevenueChart from "./revenue-chart";
+import { formatUzbekCurrency } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 interface DashboardAnalytics {
-    applications: {
-        total: number;
-        pending: number;
-        approved: number;
-        rejected: number;
-        inProgress: number;
-    };
-    consultations: {
-        total: number;
-        scheduled: number;
-        completed: number;
-        cancelled: number;
-    };
-    tasks: {
-        total: number;
-        pending: number;
-        inProgress: number;
-        completed: number;
-    };
-    revenue: {
-        total: number;
-        totalAmount: number;
-        paid: number;
-        outstanding: number;
-        drafts: number;
-    };
-    upcomingConsultations: Array<{
-        id: string;
-        scheduledTime: string;
-        applicant?: { firstName?: string; lastName?: string; email: string };
-    }>;
-    overdueTasks: Array<{
-        id: string;
-        title: string;
-        dueDate: string;
-    }>;
-    weeklyCompletedTasks: number;
+    rejected: number;
+    active: number;
+    leads: number;
+    conversionRate: number;
+};
+consultations: {
+    total: number;
+    scheduled: number;
+    completed: number;
+    cancelled: number;
+};
+tasks: {
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+};
+revenue: {
+    totalAmount: number;
+    paid: number;
+    outstanding: number;
+    consultationRevenue: number;
+    serviceRevenue: number;
+    collectionRate: number;
+};
+upcomingConsultations: Array<{
+    id: string;
+    scheduledTime: string;
+    applicant?: { firstName?: string; lastName?: string; email: string };
+}>;
+overdueTasks: Array<{
+    id: string;
+    title: string;
+    dueDate: string;
+}>;
+weeklyCompletedTasks: number;
 }
 
 interface StatCardProps {
@@ -200,34 +203,70 @@ export default function LawyerAnalytics() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Active Cases"
-                    value={analytics.applications.total}
+                    value={analytics.applications.active}
                     icon={<FileText className="text-white" size={24} />}
                     trend={{ value: 12, isPositive: true }}
                     color="blue"
-                    subtext={`${analytics.applications.pending} pending`}
+                    subtext={`${analytics.applications.leads} leads`}
                 />
                 <StatCard
                     title="Total Revenue"
-                    value={`$${analytics.revenue.paid.toLocaleString()}`}
+                    value={formatUzbekCurrency(analytics.revenue.paid)}
                     icon={<DollarSign className="text-white" size={24} />}
                     trend={{ value: 8, isPositive: true }}
                     color="green"
-                    subtext={`$${analytics.revenue.outstanding.toLocaleString()} outstanding`}
+                    subtext={`${formatUzbekCurrency(analytics.revenue.outstanding)} o/s`}
                 />
                 <StatCard
-                    title="Consultations"
-                    value={analytics.consultations.total}
-                    icon={<Calendar className="text-white" size={24} />}
+                    title="Conversion Rate"
+                    value={`${analytics.applications.conversionRate}%`}
+                    icon={<ArrowUpRight className="text-white" size={24} />}
                     color="purple"
-                    subtext={`${analytics.consultations.scheduled} scheduled`}
+                    subtext="Lead to Active Client"
                 />
                 <StatCard
-                    title="Tasks Completed"
-                    value={analytics.tasks.completed}
-                    icon={<CheckCircle className="text-white" size={24} />}
+                    title="Collection Rate"
+                    value={`${analytics.revenue.collectionRate}%`}
+                    icon={<PieChart className="text-white" size={24} />}
                     color="cyan"
-                    subtext={`${analytics.weeklyCompletedTasks} this week`}
+                    subtext="Paid vs Outstanding"
                 />
+            </div>
+
+            {/* Revenue breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50">
+                    <h3 className="text-sm font-medium text-slate-400 mb-4">Revenue Breakdown</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">Consultations</span>
+                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics.revenue.consultationRevenue)}</span>
+                        </div>
+                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div
+                                className="bg-blue-500 h-full"
+                                style={{ width: `${(analytics.revenue.consultationRevenue / (analytics.revenue.paid || 1)) * 100}%` }}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-300">Submissions & Services</span>
+                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics.revenue.serviceRevenue)}</span>
+                        </div>
+                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                            <div
+                                className="bg-emerald-500 h-full"
+                                style={{ width: `${(analytics.revenue.serviceRevenue / (analytics.revenue.paid || 1)) * 100}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex flex-col justify-center text-center">
+                    <p className="text-sm text-slate-400 mb-2">Total Practice Value</p>
+                    <p className="text-4xl font-black text-white">{formatUzbekCurrency(analytics.revenue.totalAmount)}</p>
+                    <p className="text-xs text-slate-500 mt-2 italic">Including all draft and sent invoices</p>
+                </div>
             </div>
 
             {/* Secondary Stats */}
