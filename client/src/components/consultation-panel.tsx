@@ -49,6 +49,7 @@ export default function ConsultationPanel() {
     notes: "",
   });
   const [activeCall, setActiveCall] = useState<{ roomName: string; displayName: string } | null>(null);
+  const [view, setView] = useState<"list" | "schedule" | "ask">("list");
 
   const handleJoinCall = (consultation: Consultation) => {
     if (!consultation.meetingLink) return;
@@ -256,7 +257,6 @@ export default function ConsultationPanel() {
     }
   };
 
-  const [view, setView] = useState<"list" | "schedule" | "ask">("list");
 
   const handleAskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
