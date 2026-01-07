@@ -74,19 +74,20 @@ router.get(
           totalAmount: sql<number>`CAST(COALESCE(SUM(total_amount), 0) AS float)`,
           paid: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) AS float)`,
           outstanding: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'sent' OR status = 'overdue' THEN total_amount ELSE 0 END), 0) AS float)`,
+          drafts: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END), 0) AS integer)`,
           consultationRevenue: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' AND EXISTS (
-            SELECT 1 FROM jsonb_array_elements(items) as item 
+            SELECT 1 FROM jsonb_array_elements(COALESCE(items, '[]'::jsonb)) as item 
             WHERE item->>'description' ILIKE '%consultation%'
           ) THEN total_amount ELSE 0 END), 0) AS float)`,
           serviceRevenue: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'paid' AND NOT EXISTS (
-            SELECT 1 FROM jsonb_array_elements(items) as item 
+            SELECT 1 FROM jsonb_array_elements(COALESCE(items, '[]'::jsonb)) as item 
             WHERE item->>'description' ILIKE '%consultation%'
           ) THEN total_amount ELSE 0 END), 0) AS float)`,
         })
         .from(invoices)
         .where(eq(invoices.lawyerId, lawyerId));
 
-      const rev = revenueStats[0] || { totalAmount: 0, paid: 0, outstanding: 0, consultationRevenue: 0, serviceRevenue: 0 };
+      const rev = revenueStats[0] || { totalAmount: 0, paid: 0, outstanding: 0, drafts: 0, consultationRevenue: 0, serviceRevenue: 0 };
       const collectionRate = rev.totalAmount > 0 ? Math.round((rev.paid / rev.totalAmount) * 100) : 0;
 
       // Get task stats
@@ -115,6 +116,19 @@ router.get(
         }
       });
 
+      // Get overdue tasks
+      const overdueTasks = await db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.lawyerId, lawyerId),
+            eq(tasks.status, "pending"),
+            lte(tasks.dueDate, now)
+          )
+        )
+        .limit(5);
+
       res.json({
         applications: {
           total: stats.total,
@@ -128,7 +142,8 @@ router.get(
           collectionRate,
         },
         tasks: taskStats[0] || { total: 0, pending: 0, completed: 0 },
-        upcomingConsultations: upcoming,
+        upcomingConsultations: upcoming || [],
+        overdueTasks: overdueTasks || [],
         weeklyCompletedTasks: 0, // Placeholder
       });
     } catch (error) {

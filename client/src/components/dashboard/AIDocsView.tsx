@@ -13,8 +13,9 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
     const { toast } = useToast();
     const { t, lang } = useI18n();
 
-    type TemplateKey = 'motivation' | 'cv' | 'reference' | 'student_visa' | 'tourist_visa' | 'generic';
-    const [docType, setDocType] = useState<TemplateKey>('motivation');
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [templateLoading, setTemplateLoading] = useState(true);
+    const [docType, setDocType] = useState<string>('Motivation Letter');
     const [generatedContent, setGeneratedContent] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [mode, setMode] = useState<'generate' | 'review'>('generate');
@@ -22,6 +23,24 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
     const [reviewResult, setReviewResult] = useState<{ score: number; feedback: string[]; flags: { type: 'red' | 'green' | 'amber'; message: string }[]; proposals?: { original: string; proposed: string; reason: string }[] } | null>(null);
     const [isReviewing, setIsReviewing] = useState(false);
     const [formData, setFormData] = useState({ role: '', company: '', skills: '', name: '', experience: '', education: '', achievements: '', visaType: '' });
+
+    React.useEffect(() => {
+        const fetchTemplates = async () => {
+            try {
+                setTemplateLoading(true);
+                const res = await apiRequest<{ templates: any[] }>("/ai/documents/templates");
+                setTemplates(res.templates || []);
+                if (res.templates?.length > 0) {
+                    setDocType(res.templates[0].id);
+                }
+            } catch (err) {
+                console.error("Failed to fetch templates", err);
+            } finally {
+                setTemplateLoading(false);
+            }
+        };
+        fetchTemplates();
+    }, []);
 
     // Helper for polling job status
     const pollJob = async (jobId: string): Promise<any> => {
@@ -40,37 +59,10 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
         throw new Error("Timeout waiting for job completion");
     };
 
-    const generateMotivationLetter = (data: Record<string, any>) => `Dear Hiring Manager,\n\nI am applying for ${data.role} at ${data.company}...`; // (Truncated for brevity in fallback, usually AI handles this)
-
-    // Simple maps for local fallback (kept simple as AI will be primary)
-    // We rely on backend fallback for complex templates if AI fails
-
-    // Keys for UI iteration
-    const templates: Record<TemplateKey, string> = {
-        'motivation': 'Motivation Letter',
-        'cv': 'CV Enhancement',
-        'reference': 'Reference Letter',
-        'student_visa': 'Student Visa App',
-        'tourist_visa': 'Tourist Visa App',
-        'generic': 'General Immigration Letter'
-    };
-
-    const keyToAITemplate = (key: TemplateKey) => {
-        const map: Record<TemplateKey, string> = {
-            'motivation': 'Motivation Letter',
-            'cv': 'CV Enhancement',
-            'reference': 'Reference Letter',
-            'student_visa': 'Student Visa App',
-            'tourist_visa': 'Tourist Visa App',
-            'generic': 'General Immigration Letter'
-        };
-        return map[key];
-    };
-
     const handleGenerate = async () => {
         // Validation
         if (!formData.name) {
-            toast({ title: t.tools.gen, description: t.docs.fillRequired + " (Name)", variant: "destructive" });
+            toast({ title: t.tools.gen, description: (t.docs.fillRequired || "Please fill required fields") + " (Name)", variant: "destructive" });
             return;
         }
 
@@ -82,7 +74,7 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
             const startRes = await apiRequest<{ jobId: string }>("/ai/documents/generate", {
                 method: "POST",
                 body: JSON.stringify({
-                    template: keyToAITemplate(docType),
+                    template: docType,
                     data: formData,
                     language: lang || 'en',
                     visaType: formData.visaType || 'General',
@@ -110,7 +102,7 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
                     });
                     return;
                 }
-                setGeneratedContent((prev) => prev + safeText.charAt(i));
+                setGeneratedContent((prev: string) => prev + safeText.charAt(i));
                 i++;
             }, 5);
 
@@ -134,7 +126,7 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
                 method: "POST",
                 body: JSON.stringify({
                     content: reviewContent,
-                    docType: keyToAITemplate(docType),
+                    docType: docType,
                     visaType: formData.visaType || "Skilled Worker",
                     applicationId
                 })
@@ -187,17 +179,26 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
 
                     <div className="space-y-3 mb-8 z-10">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 block pl-1">{t.docs.docType}</label>
-                        <div className="grid gap-2">
-                            {(Object.keys(templates) as TemplateKey[]).map(key => (
+                        <div className="grid gap-2 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
+                            {templateLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="animate-spin text-brand-600" size={24} />
+                                </div>
+                            ) : templates.filter(t => user?.role === 'lawyer' || user?.role === 'admin' || t.category !== 'legal').map(template => (
                                 <button
-                                    key={key}
-                                    onClick={() => setDocType(key)}
-                                    className={`p-4 rounded-2xl text-left text-sm font-black transition-all border-2 flex items-center justify-between group ${docType === key
+                                    key={template.id}
+                                    onClick={() => setDocType(template.id)}
+                                    className={`p-4 rounded-2xl text-left text-sm font-black transition-all border-2 flex items-center justify-between group ${docType === template.id
                                         ? 'bg-brand-600 border-brand-500 text-white shadow-lg shadow-brand-500/20'
                                         : 'border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 hover:border-brand-300 dark:hover:border-brand-800 text-slate-600 dark:text-slate-300'}`}
                                 >
-                                    {t.docs[key]}
-                                    {docType === key ? <CheckCircle size={18} className="text-white" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 group-hover:border-brand-300 transition-colors"></div>}
+                                    <div className="flex flex-col">
+                                        <span>{template.id}</span>
+                                        <span className={`text-[10px] uppercase tracking-tighter opacity-70 ${docType === template.id ? 'text-white' : 'text-slate-400'}`}>
+                                            {template.category}
+                                        </span>
+                                    </div>
+                                    {docType === template.id ? <CheckCircle size={18} className="text-white" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-700 group-hover:border-brand-300 transition-colors"></div>}
                                 </button>
                             ))}
                         </div>
@@ -323,7 +324,7 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
                                 <div className="w-3.5 h-3.5 rounded-full bg-green-500/80 shadow-inner"></div>
                             </div>
                             <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] flex items-center gap-3">
-                                {t.docs[docType]?.replace(' ', '_')}.pdf {isGenerating ? <Loader2 size={16} className="animate-spin text-brand-500" /> : <FileCheck size={16} className="text-brand-500" />}
+                                {docType?.replace(/\s+/g, '_')}.pdf {isGenerating ? <Loader2 size={16} className="animate-spin text-brand-500" /> : <FileCheck size={16} className="text-brand-500" />}
                             </span>
                         </div>
 

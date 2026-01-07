@@ -12,10 +12,16 @@ interface SubmissionStatusViewProps {
 export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ application }) => {
     const { t } = useI18n();
 
+    if (!application) return null;
+
+    const formattedDate = application.updatedAt
+        ? new Date(application.updatedAt).toLocaleDateString()
+        : new Date().toLocaleDateString();
+
     // Mapping steps for the timeline
     const steps = [
-        { title: t.roadmap.lawyerReview, date: new Date(application.updatedAt).toLocaleDateString(), status: 'completed', icon: ShieldCheck },
-        { title: t.roadmap.submission, date: new Date(application.updatedAt).toLocaleDateString(), status: 'completed', icon: Send },
+        { title: t?.roadmap?.lawyerReview || "Lawyer Review", date: formattedDate, status: 'completed', icon: ShieldCheck },
+        { title: t?.roadmap?.submission || "Submission", date: formattedDate, status: 'completed', icon: Send },
         { title: "Government Processing", date: "Ongoing", status: 'current', icon: Globe },
         { title: "Final Decision", date: "TBD", status: 'pending', icon: CheckCircle },
     ];
@@ -57,8 +63,8 @@ export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ appl
                                     <div className={`absolute left-5 top-10 w-0.5 h-10 ${step.status === 'completed' ? 'bg-green-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
                                 )}
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg ${step.status === 'completed' ? 'bg-green-500 text-white' :
-                                        step.status === 'current' ? 'bg-brand-500 text-white animate-pulse' :
-                                            'bg-slate-100 dark:bg-slate-900 text-slate-400'
+                                    step.status === 'current' ? 'bg-brand-500 text-white animate-pulse' :
+                                        'bg-slate-100 dark:bg-slate-900 text-slate-400'
                                     }`}>
                                     <step.icon size={20} />
                                 </div>

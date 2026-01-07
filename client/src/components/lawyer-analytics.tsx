@@ -20,42 +20,44 @@ import { formatUzbekCurrency } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 interface DashboardAnalytics {
-    rejected: number;
-    active: number;
-    leads: number;
-    conversionRate: number;
-};
-consultations: {
-    total: number;
-    scheduled: number;
-    completed: number;
-    cancelled: number;
-};
-tasks: {
-    total: number;
-    pending: number;
-    inProgress: number;
-    completed: number;
-};
-revenue: {
-    totalAmount: number;
-    paid: number;
-    outstanding: number;
-    consultationRevenue: number;
-    serviceRevenue: number;
-    collectionRate: number;
-};
-upcomingConsultations: Array<{
-    id: string;
-    scheduledTime: string;
-    applicant?: { firstName?: string; lastName?: string; email: string };
-}>;
-overdueTasks: Array<{
-    id: string;
-    title: string;
-    dueDate: string;
-}>;
-weeklyCompletedTasks: number;
+    applications: {
+        total: number;
+        leads: number;
+        active: number;
+        approved: number;
+        conversionRate: number;
+    };
+    consultations?: {
+        total: number;
+        scheduled: number;
+        completed: number;
+        cancelled: number;
+    };
+    tasks: {
+        total: number;
+        pending: number;
+        completed: number;
+    };
+    revenue: {
+        totalAmount: number;
+        paid: number;
+        outstanding: number;
+        drafts: number;
+        consultationRevenue: number;
+        serviceRevenue: number;
+        collectionRate: number;
+    };
+    upcomingConsultations: Array<{
+        id: string;
+        scheduledTime: string;
+        applicant?: { firstName?: string; lastName?: string; email: string };
+    }>;
+    overdueTasks: Array<{
+        id: string;
+        title: string;
+        dueDate: string;
+    }>;
+    weeklyCompletedTasks: number;
 }
 
 interface StatCardProps {
@@ -203,30 +205,30 @@ export default function LawyerAnalytics() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Active Cases"
-                    value={analytics.applications.active}
+                    value={analytics?.applications?.active ?? 0}
                     icon={<FileText className="text-white" size={24} />}
                     trend={{ value: 12, isPositive: true }}
                     color="blue"
-                    subtext={`${analytics.applications.leads} leads`}
+                    subtext={`${analytics?.applications?.leads ?? 0} leads`}
                 />
                 <StatCard
                     title="Total Revenue"
-                    value={formatUzbekCurrency(analytics.revenue.paid)}
+                    value={formatUzbekCurrency(analytics?.revenue?.paid ?? 0)}
                     icon={<DollarSign className="text-white" size={24} />}
                     trend={{ value: 8, isPositive: true }}
                     color="green"
-                    subtext={`${formatUzbekCurrency(analytics.revenue.outstanding)} o/s`}
+                    subtext={`${formatUzbekCurrency(analytics?.revenue?.outstanding ?? 0)} o/s`}
                 />
                 <StatCard
                     title="Conversion Rate"
-                    value={`${analytics.applications.conversionRate}%`}
+                    value={`${analytics?.applications?.conversionRate ?? 0}%`}
                     icon={<ArrowUpRight className="text-white" size={24} />}
                     color="purple"
                     subtext="Lead to Active Client"
                 />
                 <StatCard
                     title="Collection Rate"
-                    value={`${analytics.revenue.collectionRate}%`}
+                    value={`${analytics?.revenue?.collectionRate ?? 0}%`}
                     icon={<PieChart className="text-white" size={24} />}
                     color="cyan"
                     subtext="Paid vs Outstanding"
@@ -240,23 +242,23 @@ export default function LawyerAnalytics() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-slate-300">Consultations</span>
-                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics.revenue.consultationRevenue)}</span>
+                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics?.revenue?.consultationRevenue ?? 0)}</span>
                         </div>
                         <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
                             <div
                                 className="bg-blue-500 h-full"
-                                style={{ width: `${(analytics.revenue.consultationRevenue / (analytics.revenue.paid || 1)) * 100}%` }}
+                                style={{ width: `${((analytics?.revenue?.consultationRevenue ?? 0) / (analytics?.revenue?.paid || 1)) * 100}%` }}
                             />
                         </div>
 
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-slate-300">Submissions & Services</span>
-                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics.revenue.serviceRevenue)}</span>
+                            <span className="text-sm font-bold text-white">{formatUzbekCurrency(analytics?.revenue?.serviceRevenue ?? 0)}</span>
                         </div>
                         <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
                             <div
                                 className="bg-emerald-500 h-full"
-                                style={{ width: `${(analytics.revenue.serviceRevenue / (analytics.revenue.paid || 1)) * 100}%` }}
+                                style={{ width: `${((analytics?.revenue?.serviceRevenue ?? 0) / (analytics?.revenue?.paid || 1)) * 100}%` }}
                             />
                         </div>
                     </div>
@@ -264,7 +266,7 @@ export default function LawyerAnalytics() {
 
                 <div className="p-6 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex flex-col justify-center text-center">
                     <p className="text-sm text-slate-400 mb-2">Total Practice Value</p>
-                    <p className="text-4xl font-black text-white">{formatUzbekCurrency(analytics.revenue.totalAmount)}</p>
+                    <p className="text-4xl font-black text-white">{formatUzbekCurrency(analytics?.revenue?.totalAmount ?? 0)}</p>
                     <p className="text-xs text-slate-500 mt-2 italic">Including all draft and sent invoices</p>
                 </div>
             </div>
@@ -273,19 +275,19 @@ export default function LawyerAnalytics() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
                     title="Pending Tasks"
-                    value={analytics.tasks.pending}
+                    value={analytics?.tasks?.pending ?? 0}
                     icon={<Clock className="text-white" size={20} />}
                     color="orange"
                 />
                 <StatCard
                     title="Approved Cases"
-                    value={analytics.applications.approved}
+                    value={analytics?.applications?.approved ?? 0}
                     icon={<CheckCircle className="text-white" size={20} />}
                     color="green"
                 />
                 <StatCard
                     title="Draft Invoices"
-                    value={analytics.revenue.drafts}
+                    value={analytics?.revenue?.drafts ?? 0}
                     icon={<FileText className="text-white" size={20} />}
                     color="purple"
                 />
@@ -303,7 +305,7 @@ export default function LawyerAnalytics() {
                         <span className="text-xs text-slate-500">Next 7 days</span>
                     </div>
                     <div className="space-y-3">
-                        {analytics.upcomingConsultations.length === 0 ? (
+                        {(!analytics?.upcomingConsultations || analytics.upcomingConsultations.length === 0) ? (
                             <p className="text-sm text-slate-500 text-center py-4">No upcoming consultations</p>
                         ) : (
                             analytics.upcomingConsultations.map((consultation) => (
@@ -329,10 +331,10 @@ export default function LawyerAnalytics() {
                             <AlertTriangle size={20} className="text-amber-400" />
                             Overdue Tasks
                         </h3>
-                        <span className="text-xs text-red-400">{analytics.overdueTasks.length} overdue</span>
+                        <span className="text-xs text-red-400">{(analytics?.overdueTasks?.length ?? 0)} overdue</span>
                     </div>
                     <div className="space-y-3">
-                        {analytics.overdueTasks.length === 0 ? (
+                        {(!analytics?.overdueTasks || analytics.overdueTasks.length === 0) ? (
                             <p className="text-sm text-slate-500 text-center py-4">No overdue tasks 🎉</p>
                         ) : (
                             analytics.overdueTasks.map((task) => (
@@ -360,7 +362,7 @@ export default function LawyerAnalytics() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 rounded-xl bg-slate-800/50">
                         <p className="text-2xl font-bold text-emerald-400">
-                            {analytics.applications.approved > 0
+                            {analytics?.applications?.approved && analytics?.applications?.total
                                 ? Math.round((analytics.applications.approved / analytics.applications.total) * 100)
                                 : 0}%
                         </p>
@@ -368,7 +370,7 @@ export default function LawyerAnalytics() {
                     </div>
                     <div className="text-center p-4 rounded-xl bg-slate-800/50">
                         <p className="text-2xl font-bold text-blue-400">
-                            {analytics.consultations.completed > 0
+                            {analytics?.consultations?.completed && analytics?.consultations?.total
                                 ? Math.round((analytics.consultations.completed / analytics.consultations.total) * 100)
                                 : 0}%
                         </p>
@@ -376,7 +378,7 @@ export default function LawyerAnalytics() {
                     </div>
                     <div className="text-center p-4 rounded-xl bg-slate-800/50">
                         <p className="text-2xl font-bold text-purple-400">
-                            {analytics.tasks.completed > 0
+                            {analytics?.tasks?.completed && analytics?.tasks?.total
                                 ? Math.round((analytics.tasks.completed / analytics.tasks.total) * 100)
                                 : 0}%
                         </p>
@@ -384,7 +386,7 @@ export default function LawyerAnalytics() {
                     </div>
                     <div className="text-center p-4 rounded-xl bg-slate-800/50">
                         <p className="text-2xl font-bold text-amber-400">
-                            {analytics.revenue.paid > 0
+                            {analytics?.revenue?.paid && analytics?.revenue?.totalAmount
                                 ? Math.round((analytics.revenue.paid / analytics.revenue.totalAmount) * 100)
                                 : 0}%
                         </p>
