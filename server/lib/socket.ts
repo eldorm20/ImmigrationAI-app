@@ -181,7 +181,7 @@ export function setupSocketIO(httpServer: HTTPServer) {
           errorMessage = "Sender account invalid.";
         } else {
           // For other errors, append the system error message for debugging
-          errorMessage = `Failed to send message: ${err.message || "Unknown error"}`;
+          errorMessage = `Failed to send message: ${err.message || "Unknown error"} (Code: ${err.code || "N/A"})`;
         }
 
         ack?.({ success: false, error: errorMessage });

@@ -258,11 +258,11 @@ export function LawyerVideoConsultations() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4 flex-1">
                                             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-600 to-blue-500 flex items-center justify-center text-white font-bold text-xl">
-                                                {consultation.clientName.charAt(0)}
+                                                {consultation.clientName?.charAt(0) || '?'}
                                             </div>
                                             <div className="flex-1">
                                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                                                    {consultation.clientName}
+                                                    {consultation.clientName || 'Unknown Client'}
                                                 </h3>
                                                 <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400 mt-1">
                                                     <span className="flex items-center gap-1">

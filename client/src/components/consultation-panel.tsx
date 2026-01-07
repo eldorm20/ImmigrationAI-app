@@ -315,7 +315,7 @@ export default function ConsultationPanel() {
               )}
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
-                  {lawyer.firstName?.[0]}
+                  {lawyer.firstName?.[0] || '?'}
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-900 dark:text-white">

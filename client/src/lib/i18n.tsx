@@ -1595,6 +1595,25 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       desc: "Practice with AI"
     };
 
+    (fn as any).video = {
+      past: dict["video.past"] || "Past",
+      noConsultations: dict["video.noConsultations"] || "No consultations",
+      scheduleFirst: dict["video.scheduleFirst"] || "Schedule your first video consultation",
+      join: dict["video.join"] || "Join",
+      copyLink: dict["video.copyLink"] || "Copy Link",
+      linkCopied: dict["video.linkCopied"] || "Link Copied",
+      connecting: dict["video.connecting"] || "Connecting...",
+      pleaseWait: dict["video.pleaseWait"] || "Please wait...",
+      mute: dict["video.mute"] || "Mute",
+      unmute: dict["video.unmute"] || "Unmute",
+      cameraOff: dict["video.cameraOff"] || "Camera Off",
+      cameraOn: dict["video.cameraOn"] || "Camera On",
+      shareScreen: dict["video.shareScreen"] || "Share Screen",
+      toggleChat: dict["video.toggleChat"] || "Toggle Chat",
+      endCall: dict["video.endCall"] || "End Call",
+      participants: dict["video.participants"] || "Participants"
+    };
+
     (fn as any).consultation = {
       title: dict["consultation.title"] || "Consultations",
       submitError: "Failed to submit request",
