@@ -137,7 +137,7 @@ export function getAnnualPrice(tier: SubscriptionTier): number {
 }
 
 // Helper functions
-export function getSubscriptionTier(tierId: string): Subscription Tier | undefined {
+export function getSubscriptionTier(tierId: string): SubscriptionTier | undefined {
     return SUBSCRIPTION_TIERS.find(t => t.id === tierId);
 }
 
