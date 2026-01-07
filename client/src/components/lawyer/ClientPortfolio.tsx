@@ -33,7 +33,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ClientDocumentsModal } from "./ClientDocumentsModal";
-import ClientProfile from "./ClientProfile";
+import { ClientProfile } from "./ClientProfile";
 
 interface Client {
     id: string;
