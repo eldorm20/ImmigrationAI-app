@@ -181,10 +181,10 @@ export function setupSocketIO(httpServer: HTTPServer) {
           errorMessage = "Recipient user not found - they may have been deleted.";
         } else if (err.constraint === "messages_sender_id_users_id_fk") {
           errorMessage = "Sender account invalid.";
+        } else {
+          // For other errors, append the system error message for debugging
+          errorMessage = `Failed to send message: ${err.message || "Unknown error"}`;
         }
-      } else {
-        // For other errors, append the system error message for debugging
-        errorMessage = `Failed to send message: ${err.message || "Unknown error"}`;
       }
 
       ack?.({ success: false, error: errorMessage });
