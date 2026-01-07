@@ -2,10 +2,10 @@
 // Fully integrated for both clients and lawyers
 
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { apiRequest } from '@/lib/api';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/lib/useToast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {

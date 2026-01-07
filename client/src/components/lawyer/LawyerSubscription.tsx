@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { apiRequest } from '@/lib/api';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/lib/useToast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -163,8 +163,8 @@ export function LawyerSubscription() {
                 <button
                     onClick={() => setBillingPeriod('monthly')}
                     className={`px-6 py-2 rounded-full font-semibold transition-all ${billingPeriod === 'monthly'
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
                     Monthly
@@ -172,8 +172,8 @@ export function LawyerSubscription() {
                 <button
                     onClick={() => setBillingPeriod('annual')}
                     className={`px-6 py-2 rounded-full font-semibold transition-all relative ${billingPeriod === 'annual'
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
                     Annual
@@ -265,8 +265,8 @@ export function LawyerSubscription() {
                                     onClick={() => handleSelectTier(tier)}
                                     disabled={isCurrentPlan}
                                     className={`w-full py-6 text-lg font-bold ${tier.popular
-                                            ? 'bg-gradient-to-r from-brand-600 to-blue-500 hover:from-brand-700 hover:to-blue-600 text-white'
-                                            : ''
+                                        ? 'bg-gradient-to-r from-brand-600 to-blue-500 hover:from-brand-700 hover:to-blue-600 text-white'
+                                        : ''
                                         }`}
                                     variant={tier.popular ? 'default' : 'outline'}
                                 >

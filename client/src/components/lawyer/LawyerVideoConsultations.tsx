@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { apiRequest } from '@/lib/api';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/lib/useToast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -199,8 +199,8 @@ export function LawyerVideoConsultations() {
                 <button
                     onClick={() => setFilterStatus('all')}
                     className={`px-6 py-2 rounded-full font-semibold transition-all ${filterStatus === 'all'
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
                     All ({consultations.length})
@@ -208,8 +208,8 @@ export function LawyerVideoConsultations() {
                 <button
                     onClick={() => setFilterStatus('upcoming')}
                     className={`px-6 py-2 rounded-full font-semibold transition-all ${filterStatus === 'upcoming'
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
                     Upcoming ({consultations.filter(c => isFuture(new Date(c.scheduledAt)) && c.status !== 'completed').length})
@@ -217,8 +217,8 @@ export function LawyerVideoConsultations() {
                 <button
                     onClick={() => setFilterStatus('past')}
                     className={`px-6 py-2 rounded-full font-semibold transition-all ${filterStatus === 'past'
-                            ? 'bg-brand-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        ? 'bg-brand-600 text-white'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
                     Past ({consultations.filter(c => isPast(new Date(c.scheduledAt)) || c.status === 'completed').length})
