@@ -68,7 +68,10 @@ export default function AdminSubscriptionsPage() {
                   <div>
                     <div className="text-sm text-slate-500">User</div>
                     <div className="font-mono text-sm text-slate-800 dark:text-white">{r.userId}</div>
-                    <div className="text-xs text-slate-400">Created: {new Date(r.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-slate-400">Created: {(() => {
+                      const d = new Date(r.createdAt);
+                      return isNaN(d.getTime()) ? "N/A" : d.toLocaleString();
+                    })()}</div>
                   </div>
 
                   <div className="text-right">
@@ -86,7 +89,11 @@ export default function AdminSubscriptionsPage() {
 
                   <div className="max-w-xs text-sm text-slate-600">
                     <div>Current Period End:</div>
-                    <div className="font-mono">{r.currentPeriodEnd ? new Date(r.currentPeriodEnd).toLocaleString() : "-"}</div>
+                    <div className="font-mono">{(() => {
+                      if (!r.currentPeriodEnd) return "-";
+                      const d = new Date(r.currentPeriodEnd);
+                      return isNaN(d.getTime()) ? "-" : d.toLocaleString();
+                    })()}</div>
                     <details className="mt-2">
                       <summary className="cursor-pointer text-xs text-slate-500">Metadata</summary>
                       <pre className="text-xs overflow-auto max-h-40">{JSON.stringify(r.metadata || {}, null, 2)}</pre>

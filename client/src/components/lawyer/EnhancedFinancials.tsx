@@ -110,8 +110,8 @@ export function EnhancedFinancials() {
                                 key={range}
                                 onClick={() => setDateRange(range)}
                                 className={`px-4 py-2 rounded-md font-semibold text-sm transition-all ${dateRange === range
-                                        ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm'
-                                        : 'text-slate-600 dark:text-slate-400'
+                                    ? 'bg-white dark:bg-slate-700 text-brand-600 shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400'
                                     }`}
                             >
                                 {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -197,7 +197,10 @@ export function EnhancedFinancials() {
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="w-4 h-4 text-slate-400" />
                                                 <span className="text-sm text-slate-900 dark:text-white">
-                                                    {format(new Date(transaction.date), 'MMM d, yyyy')}
+                                                    {(() => {
+                                                        const d = new Date(transaction.date);
+                                                        return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM d, yyyy');
+                                                    })()}
                                                 </span>
                                             </div>
                                         </td>

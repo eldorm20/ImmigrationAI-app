@@ -276,7 +276,7 @@ export default function ClientPortfolio({ onMessageClient }: ClientPortfolioProp
                                             <div className="flex flex-col items-end">
                                                 <div className="flex items-center gap-1.5 text-sm font-bold text-slate-500">
                                                     <Calendar className="h-3.5 w-3.5" />
-                                                    {client.lastInteraction ? format(new Date(client.lastInteraction), 'MMM d, yyyy') : 'Never'}
+                                                    {client.lastInteraction && !isNaN(new Date(client.lastInteraction).getTime()) ? format(new Date(client.lastInteraction), 'MMM d, yyyy') : 'Never'}
                                                 </div>
                                             </div>
                                         </td>

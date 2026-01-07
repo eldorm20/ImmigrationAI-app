@@ -327,7 +327,10 @@ export default function LeadsManager() {
                                     >
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-slate-900 dark:text-white text-lg">{lead.firstName} {lead.lastName}</div>
-                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Registered {format(new Date(lead.createdAt), 'MMM d, yyyy')}</div>
+                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Registered {(() => {
+                                                const d = new Date(lead.createdAt);
+                                                return isNaN(d.getTime()) ? 'N/A' : format(d, 'MMM d, yyyy');
+                                            })()}</div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex flex-col gap-1.5">

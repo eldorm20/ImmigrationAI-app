@@ -96,13 +96,22 @@ export function LawyerVideoConsultations() {
     };
 
     const filteredConsultations = consultations.filter(consultation => {
-        if (filterStatus === 'upcoming') {
-            return isFuture(new Date(consultation.scheduledAt)) && consultation.status !== 'completed';
+        if (!consultation.scheduledAt) return false;
+        try {
+            const date = new Date(consultation.scheduledAt);
+            if (isNaN(date.getTime())) return false;
+
+            if (filterStatus === 'upcoming') {
+                return isFuture(date) && consultation.status !== 'completed';
+            }
+            if (filterStatus === 'past') {
+                return isPast(date) || consultation.status === 'completed';
+            }
+            return true;
+        } catch (e) {
+            console.error('Invalid date in consultation:', consultation);
+            return false;
         }
-        if (filterStatus === 'past') {
-            return isPast(new Date(consultation.scheduledAt)) || consultation.status === 'completed';
-        }
-        return true;
     });
 
     if (activeConsultation) {
@@ -154,7 +163,11 @@ export function LawyerVideoConsultations() {
                         <div>
                             <p className="text-sm text-slate-600 dark:text-slate-400">Upcoming</p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white">
-                                {consultations.filter(c => isFuture(new Date(c.scheduledAt)) && c.status !== 'completed').length}
+                                {consultations.filter(c => {
+                                    if (!c.scheduledAt) return false;
+                                    const d = new Date(c.scheduledAt);
+                                    return !isNaN(d.getTime()) && isFuture(d) && c.status !== 'completed';
+                                }).length}
                             </p>
                         </div>
                     </div>
@@ -183,7 +196,9 @@ export function LawyerVideoConsultations() {
                             <p className="text-sm text-slate-600 dark:text-slate-400">This Week</p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white">
                                 {consultations.filter(c => {
+                                    if (!c.scheduledAt) return false;
                                     const date = new Date(c.scheduledAt);
+                                    if (isNaN(date.getTime())) return false;
                                     const now = new Date();
                                     const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
                                     return date >= now && date <= weekFromNow;
@@ -212,7 +227,10 @@ export function LawyerVideoConsultations() {
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
-                    Upcoming ({consultations.filter(c => isFuture(new Date(c.scheduledAt)) && c.status !== 'completed').length})
+                    Upcoming ({consultations.filter(c => {
+                        const d = new Date(c.scheduledAt);
+                        return !isNaN(d.getTime()) && isFuture(d) && c.status !== 'completed';
+                    }).length})
                 </button>
                 <button
                     onClick={() => setFilterStatus('past')}
@@ -221,7 +239,10 @@ export function LawyerVideoConsultations() {
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                         }`}
                 >
-                    Past ({consultations.filter(c => isPast(new Date(c.scheduledAt)) || c.status === 'completed').length})
+                    Past ({consultations.filter(c => {
+                        const d = new Date(c.scheduledAt);
+                        return !isNaN(d.getTime()) && (isPast(d) || c.status === 'completed');
+                    }).length})
                 </button>
             </div>
 
@@ -239,7 +260,8 @@ export function LawyerVideoConsultations() {
                     </Card>
                 ) : (
                     filteredConsultations.map((consultation, idx) => {
-                        const isUpcoming = isFuture(new Date(consultation.scheduledAt));
+                        const d = new Date(consultation.scheduledAt);
+                        const isUpcoming = !isNaN(d.getTime()) && isFuture(d);
                         const statusColors = {
                             scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
                             'in-progress': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
@@ -267,11 +289,19 @@ export function LawyerVideoConsultations() {
                                                 <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400 mt-1">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="w-4 h-4" />
-                                                        {format(new Date(consultation.scheduledAt), 'MMM d, yyyy')}
+                                                        {(() => {
+                                                            try {
+                                                                return format(new Date(consultation.scheduledAt), 'MMM d, yyyy');
+                                                            } catch (e) { return 'Invalid Date'; }
+                                                        })()}
                                                     </span>
                                                     <span className="flex items-center gap-1">
                                                         <Clock className="w-4 h-4" />
-                                                        {format(new Date(consultation.scheduledAt), 'HH:mm')}
+                                                        {(() => {
+                                                            try {
+                                                                return format(new Date(consultation.scheduledAt), 'HH:mm');
+                                                            } catch (e) { return '--:--'; }
+                                                        })()}
                                                     </span>
                                                     <span>{consultation.duration} min</span>
                                                 </div>

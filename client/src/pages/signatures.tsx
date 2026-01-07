@@ -85,7 +85,10 @@ export default function SignaturesPage() {
                                             {req.documentId ? `Document #${req.documentId.slice(0, 8)}` : "General Authorization"}
                                         </h3>
                                         <p className="text-sm text-slate-500">
-                                            Created: {format(new Date(req.createdAt), "PPP")}
+                                            Created: {(() => {
+                                                const d = new Date(req.createdAt);
+                                                return isNaN(d.getTime()) ? 'N/A' : format(d, "PPP");
+                                            })()}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">

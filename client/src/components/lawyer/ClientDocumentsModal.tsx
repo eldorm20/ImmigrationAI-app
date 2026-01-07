@@ -82,7 +82,10 @@ export function ClientDocumentsModal({ clientId, clientName, isOpen, onClose }: 
                                             <span className="capitalize">{doc.documentType || "Other"}</span>
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                                            {(() => {
+                                                const d = new Date(doc.createdAt);
+                                                return isNaN(d.getTime()) ? 'N/A' : format(d, "MMM d, yyyy");
+                                            })()}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">

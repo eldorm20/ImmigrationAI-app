@@ -118,7 +118,10 @@ export default function AuditLogsPage() {
                                         logs.map((log) => (
                                             <TableRow key={log.id}>
                                                 <TableCell className="whitespace-nowrap font-mono text-xs">
-                                                    {format(new Date(log.timestamp), "yyyy-MM-dd HH:mm:ss")}
+                                                    {(() => {
+                                                        const d = new Date(log.timestamp);
+                                                        return isNaN(d.getTime()) ? 'N/A' : format(d, "yyyy-MM-dd HH:mm:ss");
+                                                    })()}
                                                 </TableCell>
                                                 <TableCell className="font-medium">{log.action}</TableCell>
                                                 <TableCell className="font-mono text-xs">{log.userId || "System"}</TableCell>

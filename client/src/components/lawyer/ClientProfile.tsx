@@ -150,7 +150,12 @@ export function ClientProfile({ clientId, onClose }: ClientProfileProps) {
 
                                     <span className="text-slate-500 dark:text-slate-400 font-medium">Application Date:</span>
                                     <span className="font-bold text-right text-slate-900 dark:text-white">
-                                        {client.date || client.createdAt ? format(new Date(client.date || client.createdAt), 'MMM d, yyyy') : "N/A"}
+                                        {(() => {
+                                            const dateStr = client.date || client.createdAt;
+                                            if (!dateStr) return "N/A";
+                                            const d = new Date(dateStr);
+                                            return isNaN(d.getTime()) ? "N/A" : format(d, 'MMM d, yyyy');
+                                        })()}
                                     </span>
 
                                     <span className="text-slate-500 dark:text-slate-400 font-medium">Cases:</span>
@@ -176,7 +181,12 @@ export function ClientProfile({ clientId, onClose }: ClientProfileProps) {
 
                                     <span className="text-slate-500 dark:text-slate-400 font-medium">Last Activity:</span>
                                     <span className="font-bold text-right text-slate-900 dark:text-white">
-                                        {client.lastActive || client.lastInteraction ? format(new Date(client.lastActive || client.lastInteraction), 'MMM d, yyyy') : "Recently"}
+                                        {(() => {
+                                            const dateStr = client.lastActive || client.lastInteraction;
+                                            if (!dateStr) return "Recently";
+                                            const d = new Date(dateStr);
+                                            return isNaN(d.getTime()) ? "Recently" : format(d, 'MMM d, yyyy');
+                                        })()}
                                     </span>
 
                                     <span className="text-slate-500 dark:text-slate-400 font-medium">Total Spent:</span>

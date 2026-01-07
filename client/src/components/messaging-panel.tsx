@@ -794,10 +794,13 @@ export default function MessagingPanel({ initialSelectedUserId }: MessagingPanel
                       </div>
                       <div className="flex items-center gap-2 px-1">
                         <span className="text-[10px] font-bold text-slate-400">
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {(() => {
+                            const d = new Date(msg.timestamp);
+                            return isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                          })()}
                         </span>
                         {msg.senderId === user?.id && (
                           <div className={`w-1.5 h-1.5 rounded-full ${msg.isRead ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"}`} />

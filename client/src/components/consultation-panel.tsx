@@ -206,8 +206,16 @@ export default function ConsultationPanel() {
           <div>
             <h3 className="font-semibold">{t.consultation?.consultationChat}</h3>
             <p className="text-xs text-slate-500">
-              {new Date(selectedConsultation.scheduledTime).toLocaleDateString()} at{" "}
-              {new Date(selectedConsultation.scheduledTime).toLocaleTimeString()}
+              {(() => {
+                try {
+                  return new Date(selectedConsultation.scheduledTime).toLocaleDateString();
+                } catch { return 'Invalid Date'; }
+              })()} at{" "}
+              {(() => {
+                try {
+                  return new Date(selectedConsultation.scheduledTime).toLocaleTimeString();
+                } catch { return '--:--'; }
+              })()}
             </p>
           </div>
         </div>
@@ -587,11 +595,23 @@ export default function ConsultationPanel() {
               <div className="grid grid-cols-2 gap-4 mb-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar size={16} className="text-brand-500" />
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(consultation.scheduledTime).toLocaleDateString()}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {(() => {
+                      try {
+                        return new Date(consultation.scheduledTime).toLocaleDateString();
+                      } catch { return 'Invalid Date'; }
+                    })()}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Clock size={16} className="text-brand-500" />
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{new Date(consultation.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {(() => {
+                      try {
+                        return new Date(consultation.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      } catch { return '--:--'; }
+                    })()}
+                  </span>
                 </div>
               </div>
 

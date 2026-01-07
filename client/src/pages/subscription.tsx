@@ -268,11 +268,17 @@ export default function SubscriptionPage() {
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.started || "Started"}</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.startDate ? new Date(subscription.startDate).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.startDate ? (() => {
+                    const d = new Date(subscription.startDate);
+                    return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
+                  })() : "N/A"}</p>
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold">{t.subscription?.renewal || "Renewal"}</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.plan === "starter" ? "N/A" : (subscription?.renewalDate ? new Date(subscription.renewalDate).toLocaleDateString() : "N/A")}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{subscription?.plan === "starter" ? "N/A" : (subscription?.renewalDate ? (() => {
+                    const d = new Date(subscription.renewalDate);
+                    return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
+                  })() : "N/A")}</p>
                 </div>
               </div>
 
@@ -393,7 +399,10 @@ export default function SubscriptionPage() {
                   <tbody>
                     {billingHistory.map((item) => (
                       <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="py-3 px-4 text-slate-900 dark:text-white">{new Date(item.date).toLocaleDateString()}</td>
+                        <td className="py-3 px-4 text-slate-900 dark:text-white">{(() => {
+                          const d = new Date(item.date);
+                          return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
+                        })()}</td>
                         <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">${item.amount}</td>
                         <td className="py-3 px-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${item.status === "paid" ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"}`}>
