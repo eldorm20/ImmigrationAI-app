@@ -197,8 +197,7 @@ const messages: Record<Locale, Record<string, string>> = {
     // analytics
     "analytics.summary": "Document Summary",
 
-    // tools
-    "tools.chatP": "Type your message...",
+
 
     // chat
     "chat.greeting": "Hello! How can I help you with your immigration questions?",
@@ -221,6 +220,47 @@ const messages: Record<Locale, Record<string, string>> = {
     "roadmap.interviewCoach": "Interview Coach",
     "roadmap.lawyerReview": "Lawyer Review",
     "roadmap.submission": "Submission",
+
+    // Pricing
+    "pricing.title": "Simple, Transparent Pricing",
+    "pricing.subtitle": "Choose the perfect plan for your immigration journey",
+    "pricing.starter": "Starter",
+    "pricing.free": "Free",
+    "pricing.forever": "forever",
+    "pricing.professional": "Professional",
+    "pricing.perMonth": "/ month",
+    "pricing.getStarted": "Get Started",
+    "pricing.startTrial": "Start Free Trial",
+    "pricing.enterprise": "Enterprise",
+    "pricing.contactUs": "Contact Us",
+    "pricing.contactSales": "Contact Sales",
+    "pricing.mostPopular": "Most Popular",
+    "pricing.faq": "Frequently Asked Questions",
+    "pricing.changePlans": "Can I change plans later?",
+    "pricing.changePlansA": "Yes, you can upgrade or downgrade at any time.",
+    "pricing.paymentMethods": "What payment methods do you accept?",
+    "pricing.paymentMethodsA": "We accept all major credit cards and PayPal.",
+    "pricing.freeTrial": "Is there a free trial?",
+    "pricing.freeTrialA": "Yes, the Professional plan comes with a 7-day free trial.",
+    "pricing.refunds": "What is the refund policy?",
+    "pricing.refundsA": "We offer a 30-day money-back guarantee.",
+
+    // Subscription
+    "subscription.price": "Price",
+    "subscription.billingCycle": "Billing Cycle",
+    "subscription.started": "Started",
+    "subscription.renewal": "Renewal Date",
+    "subscription.upgradeYourPlan": "Upgrade Your Plan",
+    "subscription.mostPopular": "Most Popular",
+    "subscription.currentPlan": "Current Plan",
+    "subscription.upgrade": "Upgrade",
+    "subscription.billingHistory": "Billing History",
+    "subscription.noBillingHistory": "No billing history found",
+    "subscription.date": "Date",
+    "subscription.amount": "Amount",
+    "subscription.status": "Status",
+    "subscription.invoice": "Invoice",
+    "subscription.download": "Download",
 
     // roadmap descriptions
     "roadmap.desc.assessment": "Initial profile assessment and eligibility scoring.",
@@ -310,21 +350,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "lawyer.clientsHub.addDesc": "Create a new client record in the database",
     "lawyer.clientsHub.loading": "Loading client data...",
     "lawyer.clientsHub.empty": "No clients found",
-    "subscription.price": "Rate",
-    "subscription.billingCycle": "Billing Frequency",
-    "subscription.started": "Activation Date",
-    "subscription.renewal": "Next Ledger Cycle",
-    "subscription.upgradeYourPlan": "Enhance Institutional Capacity",
-    "subscription.mostPopular": "Primary Choice",
-    "subscription.currentPlan": "Active Protocol",
-    "subscription.upgrade": "Execute Upgrade",
-    "subscription.billingHistory": "Temporal Ledger",
-    "subscription.noBillingHistory": "No historical transactions discovered",
-    "subscription.date": "Temporal Stamp",
-    "subscription.amount": "Quantum",
-    "subscription.status": "Execution Status",
-    "subscription.invoice": "Reference",
-    "subscription.download": "Archive Export",
+
 
     // Payment Gateway
     "payment.title": "Payment",
@@ -1302,7 +1328,50 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
     // Comprehensive namespaces to prevent "Cannot read properties of undefined (reading 'title')"
     (fn as any).features = { title: dict["features.title"] || "Features" };
-    (fn as any).pricing = { title: dict["pricing.title"] || "Pricing" };
+
+    (fn as any).pricing = {
+      title: dict["pricing.title"] || "Pricing",
+      subtitle: dict["pricing.subtitle"],
+      starter: dict["pricing.starter"],
+      free: dict["pricing.free"],
+      forever: dict["pricing.forever"],
+      professional: dict["pricing.professional"],
+      perMonth: dict["pricing.perMonth"],
+      getStarted: dict["pricing.getStarted"],
+      startTrial: dict["pricing.startTrial"],
+      enterprise: dict["pricing.enterprise"],
+      contactUs: dict["pricing.contactUs"],
+      contactSales: dict["pricing.contactSales"],
+      mostPopular: dict["pricing.mostPopular"],
+      faq: dict["pricing.faq"],
+      changePlans: dict["pricing.changePlans"],
+      changePlansA: dict["pricing.changePlansA"],
+      paymentMethods: dict["pricing.paymentMethods"],
+      paymentMethodsA: dict["pricing.paymentMethodsA"],
+      freeTrial: dict["pricing.freeTrial"],
+      freeTrialA: dict["pricing.freeTrialA"],
+      refunds: dict["pricing.refunds"],
+      refundsA: dict["pricing.refundsA"]
+    };
+
+    (fn as any).subscription = {
+      price: dict["subscription.price"],
+      billingCycle: dict["subscription.billingCycle"],
+      started: dict["subscription.started"],
+      renewal: dict["subscription.renewal"],
+      upgradeYourPlan: dict["subscription.upgradeYourPlan"],
+      mostPopular: dict["subscription.mostPopular"],
+      currentPlan: dict["subscription.currentPlan"],
+      upgrade: dict["subscription.upgrade"],
+      billingHistory: dict["subscription.billingHistory"],
+      noBillingHistory: dict["subscription.noBillingHistory"],
+      date: dict["subscription.date"],
+      amount: dict["subscription.amount"],
+      status: dict["subscription.status"],
+      invoice: dict["subscription.invoice"],
+      download: dict["subscription.download"]
+    };
+
     (fn as any).partner = { title: dict["partner.title"] || "Partner" };
     (fn as any).hero = { title: dict["hero.title"] || "Welcome" };
     (fn as any).research = { title: dict["research.title"] || "Research" };

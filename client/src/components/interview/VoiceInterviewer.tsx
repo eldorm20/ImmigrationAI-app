@@ -10,7 +10,10 @@ interface VoiceInterviewerProps {
     onSessionComplete?: () => void;
 }
 
-const vapi = new Vapi("2bef7e95-1052-4f7e-92fd-28aea3c3ff04"); // Public Token
+const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "2bef7e95-1052-4f7e-92fd-28aea3c3ff04"; // Fallback to demo key
+const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036";
+
+const vapi = new Vapi(VAPI_PUBLIC_KEY);
 
 export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceInterviewerProps) {
     const { toast } = useToast();
@@ -47,7 +50,7 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
             vapi.stop();
         } else {
             try {
-                await vapi.start("e61ced86-058c-4813-88e7-62ee549a0036"); // Assistant ID
+                await vapi.start(VAPI_ASSISTANT_ID); // Assistant ID
             } catch (err) {
                 toast({ title: "Error", description: "Could not start voice session", variant: "destructive" });
             }

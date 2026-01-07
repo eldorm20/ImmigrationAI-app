@@ -40,7 +40,19 @@ response_cache = LRUCache(100)
 app = FastAPI(title="ImmigrationAI RAG Backend")
 
 # Initialize Vector Store
-client = chromadb.PersistentClient(path="./vector_store")
+CHROMA_URL = os.getenv('CHROMA_URL')
+if CHROMA_URL:
+    # Parse host and port from URL (e.g. http://chromadb:8000)
+    from urllib.parse import urlparse
+    parsed = urlparse(CHROMA_URL)
+    host = parsed.hostname
+    port = parsed.port or 8000
+    client = chromadb.HttpClient(host=host, port=port)
+    print(f"Connected to external ChromaDB at {host}:{port}")
+else:
+    client = chromadb.PersistentClient(path="./vector_store")
+    print("Using local embedded ChromaDB")
+
 collection = client.get_or_create_collection(name="immigration_docs")
 
 @app.get("/")

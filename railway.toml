@@ -1,16 +1,21 @@
 # Railway Deployment Configuration for Immigration AI Platform
 
-# Build Configuration
+# Global Build Configuration
 [build]
 builder = "NIXPACKS"
 
 [build.env]
-NODE_VERSION = "18"
+NODE_VERSION = "20"
+PYTHON_VERSION = "3.10"
 
-# Service Configuration - Web Server
+# -----------------------------------------------------------------------------
+# Service: Web Server (Node.js + React)
+# -----------------------------------------------------------------------------
 [[services]]
 name = "web"
-startCommand = "npm run start"
+root = "."
+buildCommand = "npm run build"
+startCommand = "npm start"
 
 [services.web]
 healthcheckPath = "/health"
@@ -18,7 +23,26 @@ healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
-# Service Configuration - Ollama (AI Engine)
+# -----------------------------------------------------------------------------
+# Service: RAG Backend (Python FastAPI)
+# -----------------------------------------------------------------------------
+[[services]]
+name = "rag-service"
+root = "rag-backend"
+# Ensure we install dependencies
+buildCommand = "pip install -r requirements.txt"
+# Bind to $PORT (Railway assigns this dynamically)
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+[services.rag-service]
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
+numReplicas = 1
+
+# -----------------------------------------------------------------------------
+# Service: Ollama (AI Engine)
+# Note: For production, consider deploying this as a persistent Docker Image service in the dashboard
+# -----------------------------------------------------------------------------
 [[services]]
 name = "ollama"
 image = "ollama/ollama:latest"
@@ -27,7 +51,10 @@ startCommand = "ollama serve"
 [services.ollama]
 volumes = ["/root/.ollama:/root/.ollama"]
 
-# Service Configuration - ChromaDB (Vector Database)
+# -----------------------------------------------------------------------------
+# Service: ChromaDB (Vector Database)
+# Note: For production, consider deploying this as a persistent Docker Image service in the dashboard
+# -----------------------------------------------------------------------------
 [[services]]
 name = "chromadb"
 image = "chromadb/chroma:latest"
@@ -35,22 +62,23 @@ image = "chromadb/chroma:latest"
 [services.chromadb]
 volumes = ["/chroma/chroma:/chroma/chroma"]
 
-# Environment Variables (set in Railway dashboard)
-# REQUIRED:
-# - DATABASE_URL (provided by Railway Postgres)
-# - REDIS_URL (provided by Railway Redis)
-# - OLLAMA_URL=http://ollama:11434
-# - CHROMA_URL=http://chromadb:8000
+# -----------------------------------------------------------------------------
+# Deploy Configuration
+# -----------------------------------------------------------------------------
+[deploy]
+restartPolicy = "ON_FAILURE"
+
+# Environment Variables Reference (Set these in Railway Dashboard):
+#
+# Web Service:
+# - DATABASE_URL (from Postgres plugin)
+# - REDIS_URL (from Redis plugin)
+# - PORT (Railway sets this, usually 3000 or dynamic)
+# - RAG_SERVICE_URL=http://rag-service.railway.internal:8000
+# - OLLAMA_URL=http://ollama.railway.internal:11434
+# - CHROMA_URL=http://chromadb.railway.internal:8000
 # - NODE_ENV=production
-
-# Database (Postgres)
-[[plugins]]
-type = "postgresql"
-
-# Cache (Redis)
-[[plugins]]
-type = "redis"
-
-# Networking
-[network]
-enableIPv6 = false
+#
+# RAG Service:
+# - CHROMA_URL=http://chromadb.railway.internal:8000
+# - OLLAMA_URL=http://ollama.railway.internal:11434
