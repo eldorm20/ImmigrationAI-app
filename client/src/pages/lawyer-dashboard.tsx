@@ -29,7 +29,9 @@ import CompanySearch from "@/pages/lawyer/company-check";
 import MessagingPanel from "@/components/messaging-panel";
 import { LawyerVideoConsultations } from "@/components/lawyer/LawyerVideoConsultations";
 import { LawyerSubscription } from "@/components/lawyer/LawyerSubscription";
-import { Crown } from "lucide-react";
+import { AdvancedAnalytics } from "@/components/lawyer/AdvancedAnalytics";
+import { AIChatWithCitations } from "@/components/ai/AIChatWithCitations";
+import { Crown, BarChart3, Sparkles } from "lucide-react";
 
 export default function LawyerDashboard() {
   const { user, isLoading } = useAuth();
@@ -50,7 +52,9 @@ export default function LawyerDashboard() {
     { id: 'consultations', label: "Consultations", icon: Calendar },
     { id: 'video-consultations', label: "Video Calls", icon: Video },
     { id: 'financials', label: "Financials", icon: DollarSign },
+    { id: 'analytics', label: "Analytics", icon: BarChart3 },
     { id: 'subscription', label: "Subscription", icon: Crown },
+    { id: 'ai-assistant', label: "AI Assistant", icon: Sparkles },
     { id: 'documents', label: "Documents", icon: FileText },
     { id: 'templates', label: "Templates", icon: FolderOpen },
     { id: 'company-check', label: "Company Check", icon: Building },
@@ -85,6 +89,8 @@ export default function LawyerDashboard() {
           </div>
         )}
         {activeTab === 'subscription' && <LawyerSubscription />}
+        {activeTab === 'analytics' && <AdvancedAnalytics />}
+        {activeTab === 'ai-assistant' && <AIChatWithCitations />}
         {activeTab === 'documents' && <AIDocsView />}
         {activeTab === 'templates' && <DocumentTemplates />}
         {activeTab === 'company-check' && <CompanySearch />}
