@@ -9,6 +9,25 @@ import { useToast } from '@/lib/useToast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogDescription
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { VideoConsultation } from '@/components/consultation/VideoConsultation';
 import {
     Video,
@@ -20,10 +39,11 @@ import {
     Trash2,
     Link as LinkIcon,
     Copy,
-    CheckCircle2
+    CheckCircle2,
+    Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { format, isPast, isFuture } from 'date-fns';
+import { format, isPast, isFuture, addMinutes } from 'date-fns';
 
 interface Consultation {
     id: string;
@@ -36,6 +56,13 @@ interface Consultation {
     notes?: string;
 }
 
+interface Client {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+
 export function LawyerVideoConsultations() {
     const { user } = useAuth();
     const { t } = useI18n();
@@ -45,19 +72,36 @@ export function LawyerVideoConsultations() {
     const [activeConsultation, setActiveConsultation] = useState<Consultation | null>(null);
     const [filterStatus, setFilterStatus] = useState<'all' | 'upcoming' | 'past'>('all');
 
+    // Modal State
+    const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+    const [newMeeting, setNewMeeting] = useState({
+        clientId: '',
+        date: '',
+        time: '',
+        duration: '30',
+        notes: ''
+    });
+
     // Fetch consultations
     const { data: consultations = [], isLoading } = useQuery({
         queryKey: ['/consultations', 'lawyer'],
         queryFn: () => apiRequest<Consultation[]>('/consultations?role=lawyer'),
     });
 
+    // Fetch clients for dropdown
+    const { data: clients = [], isLoading: isLoadingClients } = useQuery({
+        queryKey: ['/clients'],
+        queryFn: () => apiRequest<Client[]>('/clients'),
+    });
+
     // Create consultation mutation
     const createMutation = useMutation({
-        mutationFn: (data: { clientId: string; scheduledAt: string; duration: number }) =>
-            apiRequest('/consultations', {
+        mutationFn: async (data: any) => {
+            return apiRequest('/consultations', {
                 method: 'POST',
                 body: JSON.stringify(data),
-            }),
+            });
+        },
         onSuccess: () => {
             toast({
                 title: t.common?.success || 'Success',
@@ -65,7 +109,22 @@ export function LawyerVideoConsultations() {
                 className: 'bg-green-50 text-green-900 border-green-200'
             });
             queryClient.invalidateQueries({ queryKey: ['/consultations'] });
+            setIsScheduleOpen(false);
+            setNewMeeting({
+                clientId: '',
+                date: '',
+                time: '',
+                duration: '30',
+                notes: ''
+            });
         },
+        onError: (err: any) => {
+            toast({
+                title: 'Error',
+                description: err.message || 'Failed to schedule consultation',
+                variant: 'destructive',
+            });
+        }
     });
 
     // Delete consultation mutation
@@ -80,6 +139,26 @@ export function LawyerVideoConsultations() {
             queryClient.invalidateQueries({ queryKey: ['/consultations'] });
         },
     });
+
+    const handleScheduleSubmit = () => {
+        if (!newMeeting.clientId || !newMeeting.date || !newMeeting.time) {
+            toast({
+                title: 'Validation Error',
+                description: 'Please fill in all required fields',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const scheduledAt = new Date(`${newMeeting.date}T${newMeeting.time}`).toISOString();
+
+        createMutation.mutate({
+            clientId: newMeeting.clientId,
+            scheduledAt,
+            duration: parseInt(newMeeting.duration),
+            notes: newMeeting.notes
+        });
+    };
 
     const copyMeetingLink = (meetingId: string) => {
         const link = `${window.location.origin}/consultation/${meetingId}`;
@@ -135,10 +214,96 @@ export function LawyerVideoConsultations() {
                         Manage your client meetings and video calls
                     </p>
                 </div>
-                <Button className="bg-gradient-to-r from-brand-600 to-blue-500 hover:from-brand-700 hover:to-blue-600 text-white font-bold">
-                    <Plus className="w-5 h-5 mr-2" />
-                    Schedule New
-                </Button>
+
+                <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-gradient-to-r from-brand-600 to-blue-500 hover:from-brand-700 hover:to-blue-600 text-white font-bold">
+                            <Plus className="w-5 h-5 mr-2" />
+                            Schedule New
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Schedule Consultation</DialogTitle>
+                            <DialogDescription>
+                                Create a new video meeting with a client.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="client">Client</Label>
+                                <Select
+                                    value={newMeeting.clientId}
+                                    onValueChange={(val) => setNewMeeting({ ...newMeeting, clientId: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a client" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {clients.map((client: Client) => (
+                                            <SelectItem key={client.id} value={client.id}>
+                                                {client.firstName} {client.lastName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="date">Date</Label>
+                                    <Input
+                                        id="date"
+                                        type="date"
+                                        value={newMeeting.date}
+                                        onChange={(e) => setNewMeeting({ ...newMeeting, date: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="time">Time</Label>
+                                    <Input
+                                        id="time"
+                                        type="time"
+                                        value={newMeeting.time}
+                                        onChange={(e) => setNewMeeting({ ...newMeeting, time: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="duration">Duration</Label>
+                                <Select
+                                    value={newMeeting.duration}
+                                    onValueChange={(val) => setNewMeeting({ ...newMeeting, duration: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select duration" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="15">15 Minutes</SelectItem>
+                                        <SelectItem value="30">30 Minutes</SelectItem>
+                                        <SelectItem value="45">45 Minutes</SelectItem>
+                                        <SelectItem value="60">1 Hour</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="notes">Notes (Optional)</Label>
+                                <Textarea
+                                    id="notes"
+                                    placeholder="Agenda or instructions..."
+                                    value={newMeeting.notes}
+                                    onChange={(e) => setNewMeeting({ ...newMeeting, notes: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="ghost" onClick={() => setIsScheduleOpen(false)}>Cancel</Button>
+                            <Button onClick={handleScheduleSubmit} disabled={createMutation.isPending}>
+                                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Schedule Meeting
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Stats */}
@@ -257,6 +422,12 @@ export function LawyerVideoConsultations() {
                         <p className="text-slate-600 dark:text-slate-400">
                             Schedule your first video consultation with a client
                         </p>
+                        <Button
+                            className="mt-4 bg-brand-600 text-white"
+                            onClick={() => setIsScheduleOpen(true)}
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Schedule Now
+                        </Button>
                     </Card>
                 ) : (
                     filteredConsultations.map((consultation, idx) => {
