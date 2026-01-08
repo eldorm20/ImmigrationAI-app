@@ -51,8 +51,9 @@ interface Consultation {
     clientName: string;
     scheduledAt: string;
     duration: number; // minutes
-    status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+    status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled-by-lawyer' | 'cancelled-by-client' | 'cancelled';
     meetingId: string;
+    meetingLink?: string;
     notes?: string;
 }
 
@@ -194,9 +195,15 @@ export function LawyerVideoConsultations() {
     });
 
     if (activeConsultation) {
+        // Extract room name from meetingLink if it's a URL, otherwise use meetingId
+        let roomName = activeConsultation.meetingId || activeConsultation.id;
+        if (activeConsultation.meetingLink && activeConsultation.meetingLink.includes('meet.jit.si/')) {
+            roomName = activeConsultation.meetingLink.split('meet.jit.si/')[1];
+        }
+
         return (
             <VideoConsultation
-                meetingId={activeConsultation.meetingId}
+                meetingId={roomName}
                 participantName={`${user?.firstName} ${user?.lastName}` || 'Lawyer'}
                 isLawyer={true}
                 onEnd={() => setActiveConsultation(null)}

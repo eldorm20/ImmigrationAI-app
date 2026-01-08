@@ -39,7 +39,7 @@ export function PaymentGateway({
 
     // Determine available payment methods based on currency
     const availableMethods = currency === 'UZS'
-        ? ['click', 'payme'] as PaymentMethod[]
+        ? ['click', 'payme', 'stripe'] as PaymentMethod[]
         : ['stripe'] as PaymentMethod[];
 
     const paymentMethodInfo = {
@@ -62,7 +62,7 @@ export function PaymentGateway({
             icon: Globe,
             color: 'from-purple-600 to-purple-500',
             description: 'International payment (Credit/Debit Card)',
-            supported: ['USD', 'EUR', 'GBP']
+            supported: ['USD', 'EUR', 'GBP', 'UZS']
         }
     };
 

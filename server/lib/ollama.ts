@@ -123,7 +123,7 @@ export async function generateOllamaEmbedding(text: string, url: string, model?:
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: model || "mistral",
+        model: model || process.env.OLLAMA_MODEL || "mistral",
         prompt: text
       })
     });
@@ -132,6 +132,8 @@ export async function generateOllamaEmbedding(text: string, url: string, model?:
       const json = await res.json();
       return json.embedding;
     }
+    const errText = await res.text().catch(() => "Unknown error");
+    logger.error({ status: res.status, error: errText }, "Ollama embedding request failed");
     return null;
   } catch (err) {
     logger.error({ err }, "Failed to generate Ollama embedding");

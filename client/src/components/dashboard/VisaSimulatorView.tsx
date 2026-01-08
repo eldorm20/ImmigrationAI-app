@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { apiRequest } from '@/lib/api';
+import { useI18n } from '@/lib/i18n';
 import { useToast } from '@/hooks/use-toast';
 import { Calculator, TrendingUp, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -34,6 +35,7 @@ interface SimulatorResult {
 }
 
 export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applicationId }) => {
+    const { t } = useI18n();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<SimulatorResult | null>(null);
@@ -59,8 +61,8 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
             setResult(data);
         } catch (error) {
             toast({
-                title: 'Calculation Failed',
-                description: 'Could not calculate visa probability. Please try again.',
+                title: t.simulator.fail,
+                description: t.simulator.failDesc,
                 variant: 'destructive',
             });
         } finally {
@@ -78,40 +80,40 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                     className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 mb-4"
                 >
                     <Calculator size={24} />
-                    <span className="font-black text-sm uppercase tracking-wider">Visa Success Calculator</span>
+                    <span className="font-black text-sm uppercase tracking-wider">{t.simulator.title}</span>
                 </motion.div>
                 <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
-                    Calculate Your Chances
+                    {t.simulator.calculate}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">
-                    Get an accurate probability score based on official visa requirements and your profile
+                    {t.simulator.desc}
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Input Form */}
                 <GlassCard className="p-8">
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6">Your Profile</h2>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6">{t.simulator.yourProfile}</h2>
 
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                Visa Type
+                                {t.simulator.visaType}
                             </label>
                             <select
                                 value={inputs.visaType}
                                 onChange={(e) => setInputs({ ...inputs, visaType: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                             >
-                                <option value="Skilled Worker">UK Skilled Worker</option>
-                                <option value="Student">Student Visa</option>
-                                <option value="Family">Family Visa</option>
+                                <option value="Skilled Worker">{t.simulator.options.visaTypes.skilled_worker}</option>
+                                <option value="Student">{t.simulator.options.visaTypes.student}</option>
+                                <option value="Visitor">{t.simulator.options.visaTypes.visitor}</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                Age: {inputs.age}
+                                {t.simulator.age}: {inputs.age}
                             </label>
                             <input
                                 type="range"
@@ -125,40 +127,40 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                Education Level
+                                {t.simulator.education_level}
                             </label>
                             <select
                                 value={inputs.education}
                                 onChange={(e) => setInputs({ ...inputs, education: e.target.value as any })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                             >
-                                <option value="high_school">High School</option>
-                                <option value="bachelors">Bachelor's Degree</option>
-                                <option value="masters">Master's Degree</option>
-                                <option value="phd">PhD/Doctorate</option>
+                                <option value="high_school">{t.simulator.options.education.high_school}</option>
+                                <option value="bachelors">{t.simulator.options.education.bachelors}</option>
+                                <option value="masters">{t.simulator.options.education.masters}</option>
+                                <option value="phd">{t.simulator.options.education.phd}</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                English Level
+                                {t.simulator.language}
                             </label>
                             <select
                                 value={inputs.englishLevel}
                                 onChange={(e) => setInputs({ ...inputs, englishLevel: e.target.value as any })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-brand-500 outline-none"
                             >
-                                <option value="none">None</option>
-                                <option value="basic">Basic (A1-A2)</option>
-                                <option value="intermediate">Intermediate (B1-B2)</option>
-                                <option value="advanced">Advanced (C1)</option>
-                                <option value="native">Native (C2)</option>
+                                <option value="none">{t.simulator.options.language.none}</option>
+                                <option value="basic">{t.simulator.options.language.basic}</option>
+                                <option value="intermediate">{t.simulator.options.language.intermediate}</option>
+                                <option value="advanced">{t.simulator.options.language.advanced}</option>
+                                <option value="native">{t.simulator.options.language.native}</option>
                             </select>
                         </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                Work Experience (years): {inputs.workExperience}
+                                {t.simulator.experience}: {inputs.workExperience}
                             </label>
                             <input
                                 type="range"
@@ -179,14 +181,14 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                                     className="w-5 h-5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                                 />
                                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                    I have a job offer with Certificate of Sponsorship
+                                    {t.simulator.jobOffer}
                                 </span>
                             </label>
                         </div>
 
                         <div>
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                Available Funds ($)
+                                {t.simulator.fundsLabel}
                             </label>
                             <input
                                 type="number"
@@ -205,12 +207,12 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                             {loading ? (
                                 <>
                                     <Loader2 className="animate-spin mr-2" size={20} />
-                                    Calculating...
+                                    {t.simulator.calculating}
                                 </>
                             ) : (
                                 <>
                                     <Calculator className="mr-2" size={20} />
-                                    Calculate Probability
+                                    {t.simulator.calculate}
                                 </>
                             )}
                         </GradientButton>
@@ -227,7 +229,7 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                         {/* Score Card */}
                         <GlassCard className="p-8 text-center">
                             <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-4">
-                                Success Probability
+                                {t.simulator.probability}
                             </h3>
                             <div className="relative w-48 h-48 mx-auto mb-6">
                                 <svg className="transform -rotate-90 w-48 h-48">
@@ -263,7 +265,7 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                                         <div className="text-5xl font-black text-slate-900 dark:text-white">
                                             {Math.round(result.probability)}%
                                         </div>
-                                        <div className="text-xs font-bold text-slate-500">SCORE</div>
+                                        <div className="text-xs font-bold text-slate-500 uppercase">{t.simulator.score}</div>
                                     </div>
                                 </div>
                             </div>
@@ -275,9 +277,9 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                             <GlassCard className="p-6">
                                 <h4 className="flex items-center gap-2 text-lg font-black text-green-600 mb-4">
                                     <CheckCircle size={20} />
-                                    Your Strengths
+                                    {t.simulator.strengths}
                                 </h4>
-                                <ul className="space-y-2">
+                                鼓                                <ul className="space-y-2">
                                     {result.strengths.map((strength, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
                                             <span className="text-green-500 mt-0.5">✓</span>
@@ -293,7 +295,7 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                             <GlassCard className="p-6">
                                 <h4 className="flex items-center gap-2 text-lg font-black text-amber-600 mb-4">
                                     <AlertCircle size={20} />
-                                    Areas to Improve
+                                    {t.simulator.weaknesses}
                                 </h4>
                                 <ul className="space-y-2">
                                     {result.weaknesses.map((weakness, i) => (
@@ -311,7 +313,7 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                             <GlassCard className="p-6">
                                 <h4 className="flex items-center gap-2 text-lg font-black text-brand-600 mb-4">
                                     <TrendingUp size={20} />
-                                    Recommendations
+                                    {t.simulator.recommendations}
                                 </h4>
                                 <ul className="space-y-3">
                                     {result.recommendations.map((rec, i) => (
@@ -332,8 +334,8 @@ export const VisaSimulatorView: React.FC<{ applicationId?: string }> = ({ applic
                     <div className="flex items-center justify-center">
                         <div className="text-center text-slate-400">
                             <Calculator size={64} className="mx-auto mb-4 opacity-20" />
-                            <p className="text-lg font-bold">Enter your details and calculate</p>
-                            <p className="text-sm">Results will appear here</p>
+                            <p className="text-lg font-bold">{t.simulator.enterDetails}</p>
+                            <p className="text-sm">{t.simulator.resultsAppear}</p>
                         </div>
                     </div>
                 )}

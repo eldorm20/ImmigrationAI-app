@@ -76,7 +76,7 @@ export default function UserDash() {
 
   const handleSubmitToLawyer = async () => {
     if (!activeApp) {
-      toast({ title: t.dash?.noActiveApp || "No active application", description: "Start an application first", variant: "destructive" });
+      toast({ title: t.dash.startAppFirst, description: t.dash.startAppFirst, variant: "destructive" });
       return;
     }
 
@@ -87,15 +87,15 @@ export default function UserDash() {
         body: JSON.stringify({ status: 'submitted' })
       });
       toast({
-        title: t.dash?.submittedSuccess || "Application Submitted",
-        description: "Your application has been sent to our legal team.",
+        title: t.dash.submittedSuccess,
+        description: t.dash.submittedDesc,
         className: "bg-green-50 text-green-900 border-green-200"
       });
       // Refresh apps
       const updated = await apiRequest<any[]>("/applications");
       setApplications(updated);
     } catch (err: any) {
-      toast({ title: "Submission Failed", description: err.message || "Could not submit application", variant: "destructive" });
+      toast({ title: t.dash.submission_failed, description: err.message || t.dash.submission_error, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -116,10 +116,10 @@ export default function UserDash() {
     { id: 'chat', icon: MessageSquare, label: t?.dash?.chat || "AI Lawyer" },
     { id: 'messages', icon: Send, label: t?.dash?.messages || "Messages" },
     { id: 'lawyer', icon: Briefcase, label: t?.dash?.lawyer || "Consultation" },
-    { id: 'finances', icon: CreditCard, label: "Finances" },
-    { id: 'subscription', icon: Shield, label: "Billing & Subscription" },
+    { id: 'finances', icon: CreditCard, label: t.dash.finances },
+    { id: 'subscription', icon: Shield, label: t.dash.billing },
     { id: 'research', icon: Book, label: t?.dash?.research || "Research" },
-    { id: 'companies', icon: Building, label: "Companies" },
+    { id: 'companies', icon: Building, label: t.dash.companies },
     { id: 'submission', icon: Send, label: t?.dash?.submission || "Submission" }
   ];
 
@@ -131,7 +131,7 @@ export default function UserDash() {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       title={currentNavItem?.label || "Dashboard"}
-      subtitle={activeApp ? `${activeApp.visaType || 'General'} Application • ${activeApp.status}` : "Welcome to ImmigrationAI"}
+      subtitle={activeApp ? `${activeApp.visaType || t.dash.generalApp} Application • ${t.dashStatus[activeApp.status] || activeApp.status}` : t.dash.welcome_msg}
       actions={
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-1 bg-white/20 dark:bg-black/20 p-1 rounded-xl">
@@ -186,7 +186,7 @@ export default function UserDash() {
         {activeTab === 'templates' && <TemplatesView />}
         {activeTab === 'simulator' && <VisaSimulatorView applicationId={activeApp?.id} />}
         {activeTab === 'trainer' && <InterviewTrainerView applicationId={activeApp?.id} />}
-        {activeTab === 'submission' && <SubmissionStatusView application={activeApp} />}
+        {activeTab === 'submission' && <SubmissionStatusView application={activeApp} onContactLegal={() => setActiveTab('messages')} />}
       </div>
     </AppLayout>
   );

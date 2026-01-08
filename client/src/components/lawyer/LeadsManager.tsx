@@ -111,23 +111,20 @@ export default function LeadsManager() {
 
         try {
             const payload = {
-                firstName: newLead.firstName.trim(),
-                lastName: newLead.lastName.trim(),
-                email: newLead.email.trim().toLowerCase(),
+                firstName: newLead.firstName?.trim(),
+                lastName: newLead.lastName?.trim(),
+                email: newLead.email?.trim().toLowerCase(),
                 phone: newLead.phone?.trim() || undefined,
                 visaInterest: newLead.visaInterest || 'UK Skilled Worker',
                 country: newLead.country || 'United Kingdom',
                 stage: newLead.stage || 'inquiry',
                 source: newLead.source || 'Website',
-                estimatedValue: Number(newLead.estimatedValue) || 0
+                estimatedValue: newLead.estimatedValue ? String(newLead.estimatedValue) : "0"
             };
 
             await apiRequest('/leads', {
                 method: 'POST',
-                body: JSON.stringify(payload),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                body: JSON.stringify(payload)
             });
 
             toast({
@@ -362,17 +359,19 @@ export default function LeadsManager() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            {lead.stage !== 'converted' && (
-                                                <LiveButton
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="opacity-0 group-hover:opacity-100 transition-all font-black text-[10px] uppercase tracking-wider"
-                                                    onClick={() => handleConvert(lead.id)}
-                                                    icon={ArrowRight}
-                                                >
-                                                    {t.lawyer?.leads?.promote || "Advance Case"}
-                                                </LiveButton>
-                                            )}
+                                            <div className="flex justify-end gap-2">
+                                                {lead.stage !== 'converted' && (
+                                                    <LiveButton
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="opacity-0 group-hover:opacity-100 transition-all font-black text-[10px] uppercase tracking-wider"
+                                                        onClick={() => handleConvert(lead.id)}
+                                                        icon={ArrowRight}
+                                                    >
+                                                        {t.lawyer?.leads?.promote || "Advance Case"}
+                                                    </LiveButton>
+                                                )}
+                                            </div>
                                         </td>
                                     </motion.tr>
                                 );

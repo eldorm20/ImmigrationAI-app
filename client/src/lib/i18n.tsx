@@ -88,9 +88,42 @@ const messages: Record<Locale, Record<string, string>> = {
     "interview.progress": "Progress",
     "interview.textPractice": "Text Practice",
     "interview.voiceMode": "Voice Mode",
+    "interview.desc": "AI-guided training sessions for embassy or consulate interviews.",
+    "interview.options.visaType.0": "Skilled Worker",
+    "interview.options.visaType.1": "Student",
+    "interview.options.visaType.2": "Family",
+    "interview.options.visaType.3": "Visitor",
+    "interview.options.country.0": "UK",
+    "interview.options.country.1": "USA",
+    "interview.options.country.2": "Canada",
+    "interview.options.country.3": "Australia",
+    "interview.options.country.4": "Germany",
 
-
-
+    // simulator
+    "simulator.title": "Visa Success Calculator",
+    "simulator.desc": "Get an accurate probability score based on official visa requirements and your profile",
+    "simulator.yourProfile": "Your Profile",
+    "simulator.visaType": "Visa Type",
+    "simulator.age": "Age",
+    "simulator.education": "Education Level",
+    "simulator.english": "English Level",
+    "simulator.experience": "Work Experience (years)",
+    "simulator.jobOffer": "I have a job offer with Certificate of Sponsorship",
+    "simulator.funds": "Available Funds ($)",
+    "simulator.calculate": "Calculate Probability",
+    "simulator.calculating": "Calculating...",
+    "simulator.probability": "Success Probability",
+    "simulator.strengths": "Your Strengths",
+    "simulator.weaknesses": "Areas to Improve",
+    "simulator.recommendations": "Recommendations",
+    "simulator.enterDetails": "Enter your details and calculate",
+    "simulator.resultsAppear": "Results will appear here",
+    "simulator.fail": "Calculation Failed",
+    "simulator.failDesc": "Could not calculate visa probability. Please try again.", "simulator.country": "Country",
+    "simulator.score": "SCORE",
+    "simulator.language": "English Level",
+    "simulator.education_level": "Education Level",
+    "simulator.fundsLabel": "Available Funds ($)",
 
     // upload
     "upload.title": "Upload Documents",
@@ -221,6 +254,27 @@ const messages: Record<Locale, Record<string, string>> = {
     "roadmap.lawyerReview": "Lawyer Review",
     "roadmap.submission": "Submission",
 
+    // dashStatus
+    "dashStatus.journey": "Journey Progress",
+    "dashStatus.submitted_to_gov": "Official Government Submission",
+    "dashStatus.under_review": "Under Legal Review",
+    "dashStatus.pending_documents": "Documents Required",
+    "dashStatus.case_prep": "Case Preparation",
+
+    // next steps
+    "next.submitted_to_gov.1": "Monitor your email for official government correspondence or requests for biometric data.",
+    "next.submitted_to_gov.2": "Our legal team will continue to monitor the case status and notify you of any updates.",
+    "next.submitted_to_gov.3": "Estimated processing time: 4-8 weeks (Subject to government backlogs).",
+    "next.review.1": "A dedicated lawyer is currently reviewing your documents for legal compliance.",
+    "next.review.2": "Wait for the 'Ready for Submission' notification or requests for clarifications.",
+    "next.review.3": "Check the messaging panel for any direct questions from your legal representative.",
+    "next.pending_docs.1": "Upload the remaining required documents in the Documents tab.",
+    "next.pending_docs.2": "Ensure all scans are clear and readable to avoid processing delays.",
+    "next.pending_docs.3": "Once complete, click 'Submit Case' to send everything to the law firm.",
+    "next.default.1": "Complete your profile and visa assessment details.",
+    "next.default.2": "Start collecting necessary documents using our smart checklist.",
+    "next.default.3": "You can chat with our AI assistant if you have questions about the process.",
+
     // Pricing
     "pricing.title": "Simple, Transparent Pricing",
     "pricing.subtitle": "Choose the perfect plan for your immigration journey",
@@ -278,19 +332,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "lawyer.financials.stats.overdue": "Overdue",
     "lawyer.financials.stats.active": "Active Invoices",
     "lawyer.financials.form.title": "Issue New Invoice",
-    "lawyer.financials.form.client": "Selection Portfolio",
-    "lawyer.financials.form.number": "Invoice Reference",
-    "lawyer.financials.form.notes": "Fiscal Notes",
-    "lawyer.financials.form.summary": "Financial Summary",
-    "lawyer.financials.form.create": "Generate & Dispatch",
-    "lawyer.financials.table.invoice": "Reference",
-    "lawyer.financials.table.client": "Entity",
-    "lawyer.financials.table.date": "Issue Date",
-    "lawyer.financials.table.amount": "Balance",
-    "lawyer.financials.table.status": "Fiscal Status",
-    "lawyer.financials.table.actions": "Control",
-    "dashStatus.submitted_to_gov": "Official Government Submission",
-    "dash.submission": "Submission",
     "lawyer.templates.title": "Strategy Bank",
     "lawyer.templates.subtitle": "Standardized templates and legal protocols",
     "lawyer.templates.search": "Search institutional archives...",
@@ -392,7 +433,26 @@ const messages: Record<Locale, Record<string, string>> = {
     "video.shareScreen": "Share screen",
     "video.toggleChat": "Toggle chat",
     "video.endCall": "End Call",
-    "video.participants": "Participants"
+    "video.participants": "Participants",
+    "dash.finances": "Finances",
+    "dash.billing": "Billing & Subscription",
+    "dash.companies": "Companies",
+    "dash.generalApp": "General Application",
+    "dash.welcome_msg": "Welcome to ImmigrationAI",
+    "dash.submission_failed": "Submission Failed",
+    "dash.submission_error": "Could not submit application",
+    "dash.submittedDesc": "Your application has been sent to our legal team.",
+    "dash.startAppFirst": "Start an application first",
+    "dash.dashboard": "Dashboard",
+    "dash.nextSteps": "Next Steps",
+    "dash.needAssistance": "Need Assistance?",
+    "dash.legalHelpDesc": "Our lawyers are available via the messaging panel for any queries regarding your application or legal status.",
+    "dash.contactLegal": "Contact Legal Team",
+    "dashStatus.final_decision": "Final Decision",
+    "dashStatus.prep_desc": "You are in the early stages of your immigration journey. Follow the roadmap to complete your submission.",
+    "dashStatus.under_review_desc": "Expert lawyers are currently cross-referencing your documents with the latest immigration regulations.",
+    "dashStatus.pending_docs_desc": "We need a few more items before our lawyers can finalize your case submission.",
+    "dashStatus.submitted_gov_desc": "Your application has been officially submitted to the government authorities. Our legal team has verified all details.",
   },
   uz: {
     // nav
@@ -406,11 +466,61 @@ const messages: Record<Locale, Record<string, string>> = {
     "nav.features": "Xususiyatlar",
     "nav.pricing": "Narxlar",
     "nav.partner": "Hamkor",
+    "interview.title": "Intervyu murabbiyi",
+    "interview.ready": "Mashq qilishga tayyormisiz?",
+    "interview.readyDesc": "Maxsus intervyu savollarini yaratish uchun viza turi va boradigan davlatni tanlang",
+    "interview.startSession": "Sessiyani boshlash",
+    "interview.question": "Savol",
+    "interview.category": "Turkum",
+    "interview.answerPlaceholder": "Javobingizni shu yerga yozing...",
+    "interview.evaluate": "Baholash",
+    "interview.feedback": "AI fikr-mulohazasi",
+    "interview.strengths": "Kuchli tomonlar",
+    "interview.weaknesses": "Yaxshilash kerak bo'lgan sohalar",
+    "interview.suggestions": "Tavsiyalar",
+    "interview.next": "Keyingi savol",
+    "interview.finish": "Sessiyani yakunlash",
+    "interview.sessionComplete": "Sessiya yakunlandi",
+    "interview.allQuestions": "Siz barcha savollarni yakunladingiz!",
+    "interview.progress": "Jarayon",
+    "interview.textPractice": "Matnli mashq",
+    "interview.voiceMode": "Ovozli rejim",
+    "interview.desc": "Elchixona yoki konsullik suhbatlari uchun sun'iy intellekt tomonidan boshqariladigan trening mashg'ulotlari.",
+    "interview.options.visaType.0": "Malakali ishchi",
+    "interview.options.visaType.1": "Talaba",
+    "interview.options.visaType.2": "Oila",
+    "interview.options.visaType.3": "Mehmon",
+    "interview.options.country.0": "Buyuk Britaniya",
+    "interview.options.country.1": "AQSh",
+    "interview.options.country.2": "Kanada",
+    "interview.options.country.3": "Avstraliya",
+    "interview.options.country.4": "Germaniya",
 
-    // auth
-    "auth.signIn": "Kirish",
-    "auth.register": "Ro'yxatdan o'tish",
-    "auth.applicantLogin": "Arizachi Kirishi",
+    // simulator
+    "simulator.title": "Visa muvaffaqiyati kalkulyatori",
+    "simulator.desc": "Rasmiy viza talablari va profilingizga asoslangan aniq ehtimollik ballini oling",
+    "simulator.yourProfile": "Sizning profilingiz",
+    "simulator.visaType": "Viza turi",
+    "simulator.age": "Yosh",
+    "simulator.education": "Ta'lim darajasi",
+    "simulator.english": "Ingliz tili darajasi",
+    "simulator.experience": "Ish tajribasi (yil)",
+    "simulator.jobOffer": "Sponsorship sertifikatiga ega ish taklifim bor",
+    "simulator.funds": "Mavjud mablag'lar ($)",
+    "simulator.calculate": "Ehtimolni hisoblash",
+    "simulator.calculating": "Hisoblanmoqda...",
+    "simulator.probability": "Muvaffaqiyat ehtimoli",
+    "simulator.strengths": "Sizning kuchli tomonlaringiz",
+    "simulator.weaknesses": "Yaxshilash kerak bo'lgan sohalar",
+    "simulator.recommendations": "Tavsiyalar",
+    "simulator.enterDetails": "Ma'lumotlaringizni kiriting va hisoblang",
+    "simulator.resultsAppear": "Natijalar shu yerda ko'rinadi",
+    "simulator.fail": "Hisoblash muvaffaqiyatsiz tugadi",
+    "simulator.country": "Mamlakat",
+    "simulator.score": "BALL",
+    "simulator.language": "Ingliz tili darajasi",
+    "simulator.education_level": "Ta'lim darajasi",
+    "simulator.fundsLabel": "Mavjud mablag'lar ($)",
     "auth.enterDetails": "Portalga kirish uchun ma'lumotlarni kiriting.",
     "auth.email": "Email",
     "auth.password": "Parol",
@@ -456,27 +566,19 @@ const messages: Record<Locale, Record<string, string>> = {
 
     // dash
     "dash.welcome": "Xush kelibsiz,",
-
-    // interview
-    "interview.title": "Intervyu Mashqlari",
-    "interview.ready": "Mashq qilishga tayyormisiz?",
-    "interview.readyDesc": "Maxsus intervyu savollarini yaratish uchun viza turini va manzilni tanlang",
-    "interview.startSession": "Boshla",
-    "interview.question": "Savol",
-    "interview.category": "Turkum",
-    "interview.answerPlaceholder": "Javobingizni yozing...",
-    "interview.evaluate": "Baholash",
-    "interview.feedback": "AI Fikri",
-    "interview.strengths": "Kuchli tomonlar",
-    "interview.weaknesses": "Yaxshilanishi kerak",
-    "interview.suggestions": "Takliflar",
-    "interview.next": "Keyingi Savol",
-    "interview.finish": "Tugatish",
-    "interview.sessionComplete": "Mashg'ulot tugadi",
-    "interview.allQuestions": "Barcha savollarni tugatdingiz!",
-    "interview.progress": "Jarayon",
-    "interview.textPractice": "Matn Mashqi",
-    "interview.voiceMode": "Ovozli Rejim",
+    "dash.roadmap": "Yo'l xaritasi",
+    "dash.checklist": "Nazorat ro'yxati",
+    "dash.docs": "Hujjatlar",
+    "dash.templates": "Shablonlar",
+    "dash.simulator": "Viza Simulyatori",
+    "dash.agency": "Agentlik",
+    "dash.gov": "Davlat Tekshiruvi",
+    "dash.trainer": "Intervyu Murabbiyi",
+    "dash.upload": "Yuklash",
+    "dash.translate": "Tarjima",
+    "dash.chat": "AI Yurist",
+    "dash.messages": "Xabarlar",
+    "dash.submitToLawyer": "Yuristga topshirish",
 
     // upload
     "upload.title": "Hujjatlarni yuklash",
@@ -551,7 +653,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "docs.analyzingDesc": "Bizning AI hujjatingizni qonuniy muvofiqlik va aniqlik bo'yicha tekshirmoqda.",
     "docs.readyReview": "Ko'rib chiqishga tayyor",
     "docs.readyReviewDesc": "Hujjat matnini joylashtiring yoki AI fikrini olish uchun yangi yarating.",
-    "docs.fillRequired": "Barcha majburiy maydonlarni to'ldiring",
+    "docs.fillRequired": "Ballar majburiy maydonlarni to'ldiring",
     "docs.fillForm": "Hujjat yaratish uchun shaklni to'ldiring",
     "docs.fullName": "To'liq ism",
     "docs.role": "Maqsadli lavozim",
@@ -573,6 +675,7 @@ const messages: Record<Locale, Record<string, string>> = {
     "tools.gen": "Yaratish",
     "tools.typing": "Yaratilmoqda...",
     "tools.clear": "Tozalash",
+    "tools.chatP": "Xabaringizni yozing...",
 
     // review
     "review.title": "AI Tekshiruv",
@@ -582,9 +685,6 @@ const messages: Record<Locale, Record<string, string>> = {
 
     // analytics
     "analytics.summary": "Hujjat xulosasi",
-
-    // tools
-    "tools.chatP": "Xabaringizni yozing...",
 
     // chat
     "chat.greeting": "Salom! Immigratsiya bo'yicha savollaringizga qanday yordam bera olaman?",
@@ -624,19 +724,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "lawyer.financials.stats.overdue": "Muddati o'tgan",
     "lawyer.financials.stats.active": "Faol hisob-fakturalar",
     "lawyer.financials.form.title": "Yangi hisob-faktura chiqarish",
-    "lawyer.financials.form.client": "Mijoz portfeli",
-    "lawyer.financials.form.number": "Hisob-faktura raqami",
-    "lawyer.financials.form.notes": "Fiskal eslatmalar",
-    "lawyer.financials.form.summary": "Moliyaviy qisqacha ma'lumot",
-    "lawyer.financials.form.create": "Yaratish va jo'natish",
-    "lawyer.financials.table.invoice": "Ma'lumotnoma",
-    "lawyer.financials.table.client": "Tuzilma",
-    "lawyer.financials.table.date": "Sana",
-    "lawyer.financials.table.amount": "Balans",
-    "lawyer.financials.table.status": "Fiskal holat",
-    "lawyer.financials.table.actions": "Boshqarish",
-    "dashStatus.submitted_to_gov": "Rasmiy Davlat Topshiruvi",
-    "dash.submission": "Yuborish",
     "lawyer.templates.title": "Strategiya banki",
     "lawyer.templates.subtitle": "Standartlashtirilgan shablonlar va huquqiy protokollar",
     "lawyer.templates.search": "Arxivdan qidirish...",
@@ -752,7 +839,68 @@ const messages: Record<Locale, Record<string, string>> = {
     "video.shareScreen": "Ekranni ulashish",
     "video.toggleChat": "Chatni o'zgartirish",
     "video.endCall": "Qo'ng'iroqni tugatish",
-    "video.participants": "Ishtirokchilar"
+    "video.participants": "Ishtirokchilar",
+
+    // pricing
+    "pricing.title": "Oddiy va shaffof narxlar",
+    "pricing.subtitle": "Immigratsiya sayohatingiz uchun mukammal rejani tanlang",
+    "pricing.starter": "Boshlang'ich",
+    "pricing.free": "Bepul",
+    "pricing.forever": "abadiy",
+    "pricing.professional": "Professional",
+    "pricing.perMonth": "/ oyiga",
+    "pricing.getStarted": "Boshlash",
+    "pricing.startTrial": "Bepul sinovni boshlash",
+    "pricing.enterprise": "Korxona",
+    "pricing.contactUs": "Biz bilan bog'laning",
+    "pricing.contactSales": "Sotuvlar bo'limi",
+    "pricing.mostPopular": "Eng mashhur",
+    "pricing.faq": "Ko'p beriladigan savollar",
+    "pricing.changePlans": "Keyinchalik rejani o'zgartira olamanmi?",
+    "pricing.changePlansA": "Ha, istalgan vaqtda yangilashingiz yoki pasaytirishingiz mumkin.",
+    "pricing.paymentMethods": "Qanday to'lov usullarini qabul qilasiz?",
+    "pricing.paymentMethodsA": "Biz barcha asosiy kredit kartalari va PayPal/Payme ni qabul qilamiz.",
+    "pricing.freeTrial": "Bepul sinov muddati bormi?",
+    "pricing.freeTrialA": "Ha, Professional reja 7 kunlik bepul sinov muddati bilan keladi.",
+    "pricing.refunds": "Qaytarib berish siyosati qanday?",
+    "pricing.refundsA": "Biz 30 kunlik pulni qaytarib berish kafolatini taqdim etamiz.",
+
+    // dashStatus
+    "dashStatus.journey": "Sayohat jarayoni",
+    "dashStatus.submitted_to_gov": "Rasmiy davlat topshirig'i",
+    "dashStatus.under_review": "Huquqiy ko'rib chiqish",
+    "dashStatus.pending_documents": "Hujjatlar talab qilinadi",
+    "dashStatus.case_prep": "Ishni tayyorlash",
+
+    // next steps
+    "next.submitted_to_gov.1": "Rasmiy davlat yozishmalari yoki biometrik ma'lumotlar so'rovlari uchun elektron pochtangizni kuzatib boring.",
+    "next.submitted_to_gov.2": "Bizning huquqiy jamoamiz ish holatini kuzatishda davom etadi va yangilanishlar haqida xabar beradi.",
+    "next.submitted_to_gov.3": "Taxminiy ishlov berish vaqti: 4-8 hafta (Davlat ish hajmidan kelib chiqib).",
+    "next.review.1": "Maxsus advokat hozirda hujjatlaringizni qonun hujjatlariga muvofiqligini tekshirmoqda.",
+    "next.review.2": "‘Topshirishga tayyor’ bildirishnomasini yoki aniqlik kiritish so'rovlarini kuting.",
+    "next.review.3": "Yuristik vakilingizning to'g'ridan-to'g'ri savollari uchun xabarlar panelini tekshiring.",
+    "next.pending_docs.1": "Qolgan kerakli hujjatlarni Hujjatlar yorlig'iga yuklang.",
+    "next.pending_docs.2": "Ishlov berishda kechikishlarga yo'l qo'ymaslik uchun barcha skanerlar aniq bo'lishini ta'minlang.",
+    "next.default.3": "Jarayon haqida savollaringiz bo'lsa, AI yordamchimiz bilan suhbatlashishingiz mumkin.",
+    "dash.finances": "Moliya",
+    "dash.billing": "Hisob-kitob va obuna",
+    "dash.companies": "Kompaniyalar",
+    "dash.generalApp": "Umumiy ariza",
+    "dash.welcome_msg": "ImmigrationAI-ga xush kelibsiz",
+    "dash.submission_failed": "Topshirish muvaffaqiyatsiz",
+    "dash.submission_error": "Arizani topshirib bo'lmadi",
+    "dash.submittedDesc": "Arizangiz yuridik jamoamizga yuborildi.",
+    "dash.startAppFirst": "Avval ariza boshlang",
+    "dash.dashboard": "Panel",
+    "dash.nextSteps": "Keyingi qadamlar",
+    "dash.needAssistance": "Yordam kerakmi?",
+    "dash.legalHelpDesc": "Yuristlarimiz arizangiz yoki huquqiy maqomingiz bo'yicha har qanday savollar uchun xabarlar paneli orqali tayyor.",
+    "dash.contactLegal": "Yuridik jamoa bilan bog'lanish",
+    "dashStatus.final_decision": "Yakuniy qaror",
+    "dashStatus.prep_desc": "Siz immigratsiya sayohatingizning dastlabki bosqichidasiz. Topshirishni yakunlash uchun yo'l xaritasiga amal qiling.",
+    "dashStatus.under_review_desc": "Mutaxassis yuristlar hozirda hujjatlaringizni so'nggi immigratsiya qoidalariga muvofiqligini tekshirmoqdalar.",
+    "dashStatus.pending_docs_desc": "Yuristlarimiz ishni topshirishni yakunlashlari uchun yana bir nechta narsa kerak.",
+    "dashStatus.submitted_gov_desc": "Arizangiz rasman davlat organlariga topshirildi. Yuridik jamoamiz barcha tafsilotlarni tasdiqladi."
   },
   ru: {
     // nav
@@ -766,6 +914,63 @@ const messages: Record<Locale, Record<string, string>> = {
     "nav.features": "Возможности",
     "nav.pricing": "Цены",
     "nav.partner": "Партнер",
+    "interview.title": "Тренер по интервью",
+    "interview.ready": "Готовы практиковаться?",
+    "interview.readyDesc": "Выберите тип визы и страну назначения, чтобы создать индивидуальные вопросы для интервью",
+    "interview.startSession": "Начать сессию",
+    "interview.question": "Вопрос",
+    "interview.category": "Категория",
+    "interview.answerPlaceholder": "Введите ваш ответ здесь...",
+    "interview.evaluate": "Оценить",
+    "interview.feedback": "Отзыв ИИ",
+    "interview.strengths": "Сильные стороны",
+    "interview.weaknesses": "Области для улучшения",
+    "interview.suggestions": "Предложения",
+    "interview.next": "Следующий вопрос",
+    "interview.finish": "Завершить сессию",
+    "interview.sessionComplete": "Сессия завершена",
+    "interview.allQuestions": "Вы ответили на все вопросы!",
+    "interview.progress": "Прогресс",
+    "interview.textPractice": "Текстовая практика",
+    "interview.voiceMode": "Голосовой режим",
+    "interview.desc": "Тренировочные занятия под руководством ИИ для собеседований в посольстве или консульстве.",
+    "interview.options.visaType.0": "Квалифицированный работник",
+    "interview.options.visaType.1": "Студент",
+    "interview.options.visaType.2": "Семья",
+    "interview.options.visaType.3": "Посетитель",
+    "interview.options.country.0": "Великобритания",
+    "interview.options.country.1": "США",
+    "interview.options.country.2": "Канада",
+    "interview.options.country.3": "Австралия",
+    "interview.options.country.4": "Германия",
+
+    // simulator
+    "simulator.title": "Калькулятор успеха визы",
+    "simulator.desc": "Получите точную оценку вероятности на основе официальных визовых требований и вашего профиля",
+    "simulator.yourProfile": "Ваш профиль",
+    "simulator.visaType": "Тип визы",
+    "simulator.age": "Возраст",
+    "simulator.education": "Уровень образования",
+    "simulator.english": "Уровень английского",
+    "simulator.experience": "Опыт работы (лет)",
+    "simulator.jobOffer": "У меня есть предложение о работе с сертификатом спонсорства",
+    "simulator.funds": "Доступные средства ($)",
+    "simulator.calculate": "Рассчитать вероятность",
+    "simulator.calculating": "Расчет...",
+    "simulator.probability": "Вероятность успеха",
+    "simulator.strengths": "Ваши сильные стороны",
+    "simulator.weaknesses": "Области для улучшения",
+    "simulator.recommendations": "Рекомендации",
+    "simulator.enterDetails": "Введите свои данные и рассчитайте",
+    "simulator.resultsAppear": "Результаты появятся здесь",
+    "simulator.fail": "Ошибка расчета",
+    "simulator.failDesc": "Не удалось рассчитать вероятность получения визы. Пожалуйста, попробуйте еще раз.",
+
+    "simulator.country": "Страна",
+    "simulator.score": "БАЛЛ",
+    "simulator.language": "Уровень английского",
+    "simulator.education_level": "Уровень образования",
+    "simulator.fundsLabel": "Доступные средства ($)",
 
     // auth
     "auth.signIn": "Войти",
@@ -816,27 +1021,33 @@ const messages: Record<Locale, Record<string, string>> = {
 
     // dash
     "dash.welcome": "Привет,",
-
-    // interview
-    "interview.title": "Тренер Интервью",
-    "interview.ready": "Готовы к практике?",
-    "interview.readyDesc": "Выберите тип визы и страну назначения для генерации индивидуальных вопросов",
-    "interview.startSession": "Начать Сессию",
-    "interview.question": "Вопрос",
-    "interview.category": "Категория",
-    "interview.answerPlaceholder": "Введите ваш ответ...",
-    "interview.evaluate": "Оценить",
-    "interview.feedback": "Обратная связь AI",
-    "interview.strengths": "Сильные стороны",
-    "interview.weaknesses": "Области для улучшения",
-    "interview.suggestions": "Предложения",
-    "interview.next": "Следующий Вопрос",
-    "interview.finish": "Завершить Сессию",
-    "interview.sessionComplete": "Сессия завершена",
-    "interview.allQuestions": "Вы ответили на все вопросы!",
-    "interview.progress": "Прогресс",
-    "interview.textPractice": "Текстовая Практика",
-    "interview.voiceMode": "Голосовой Режим",
+    "dash.roadmap": "Дорожная карта",
+    "dash.checklist": "Контрольный список",
+    "dash.docs": "Документы",
+    "dash.templates": "Шаблоны",
+    "dash.simulator": "Симулятор визы",
+    "dash.agency": "Агентство",
+    "dash.gov": "Гос. Проверка",
+    "dash.trainer": "Тренер интервью",
+    "dash.upload": "Загрузка",
+    "dash.translate": "Перевод",
+    "dash.chat": "ИИ Юрист",
+    "dash.messages": "Сообщения",
+    "dash.submitToLawyer": "Отправить юристу",
+    "dash.finances": "Финансы",
+    "dash.billing": "Оплата и подписки",
+    "dash.companies": "Компании",
+    "dash.generalApp": "Общая заявка",
+    "dash.welcome_msg": "Добро пожаловать в ImmigrationAI",
+    "dash.submission_failed": "Ошибка подачи",
+    "dash.submission_error": "Не удалось отправить заявку",
+    "dash.submittedDesc": "Ваша заявка отправлена в юридический отдел.",
+    "dash.startAppFirst": "Сначала создайте заявку",
+    "dash.dashboard": "Панель",
+    "dash.nextSteps": "Следующие шаги",
+    "dash.needAssistance": "Нужна помощь?",
+    "dash.legalHelpDesc": "Наши юристы доступны через панель сообщений для любых вопросов по вашему заявлению или статусу.",
+    "dash.contactLegal": "Связаться с юристами",
 
     // upload
     "upload.title": "Загрузка документов",
@@ -875,7 +1086,7 @@ const messages: Record<Locale, Record<string, string>> = {
     // translate
     "translate.title": "Переводчик документов",
     "translate.aiComplete": "AI Перевод",
-    "translate.error": "Ошибка перевода",
+    "translate.error": "Перевод ошибки",
     "translate.enterTextError": "Введите текст для перевода",
     "translate.complete": "Перевод завершен",
     "translate.certifiedReady": "Сертифицированный перевод готов",
@@ -929,23 +1140,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "docs.generic": "Общее письмо",
     "docs.print": "Печать / Сохранить PDF",
 
-    // tools
-    "tools.gen": "Создать",
-    "tools.typing": "Генерация...",
-    "tools.clear": "Очистить",
-
-    // review
-    "review.title": "AI Проверка",
-    "review.desc": "Вставьте текст для проверки...",
-    "review.reviewing": "Проверка...",
-    "review.check": "Проверить документ",
-
-    // analytics
-    "analytics.summary": "Резюме документа",
-
-    // tools
-    "tools.chatP": "Введите ваше сообщение...",
-
     // chat
     "chat.greeting": "Здравствуйте! Чем могу помочь с вашими иммиграционными вопросами?",
     "chat.error": "Произошла ошибка. Пожалуйста, попробуйте снова.",
@@ -977,142 +1171,6 @@ const messages: Record<Locale, Record<string, string>> = {
     "roadmap.desc.interviewCoach": "Тренировки с ИИ для интервью в посольстве или консульстве.",
     "roadmap.desc.lawyerReview": "Окончательная проверка и авторизация дела иммиграционным консультантом.",
     "roadmap.desc.submission": "Официальная подача в иммиграционные органы.",
-    "lawyer.financials.title": "Финансовый контроль",
-    "lawyer.financials.description": "Управление счетами клиентов, платежами и фискальными отчетами.",
-    "lawyer.financials.stats.totalPaid": "Всего оплачено",
-    "lawyer.financials.stats.pending": "Ожидается",
-    "lawyer.financials.stats.overdue": "Просрочено",
-    "lawyer.financials.stats.active": "Активные счета",
-    "lawyer.financials.form.title": "Выставить новый счет",
-    "lawyer.financials.form.client": "Портфель клиентов",
-    "lawyer.financials.form.number": "Номер счета",
-    "lawyer.financials.form.notes": "Фискальные заметки",
-    "lawyer.financials.form.summary": "Финансовое резюме",
-    "lawyer.financials.form.create": "Создать и отправить",
-    "lawyer.financials.table.invoice": "Справка",
-    "lawyer.financials.table.client": "Субъект",
-    "lawyer.financials.table.date": "Дата",
-    "lawyer.financials.table.amount": "Баланс",
-    "lawyer.financials.table.status": "Фискальный статус",
-    "lawyer.financials.table.actions": "Управление",
-    "dashStatus.submitted_to_gov": "Официальная Подача в Госорганы",
-    "dash.submission": "Подача",
-    "lawyer.templates.title": "Банк стратегий",
-    "lawyer.templates.subtitle": "Стандартизированные шаблоны и правовые протоколы",
-    "lawyer.templates.search": "Поиск в архивах...",
-    "lawyer.templates.publish": "Опубликовать шаблон",
-    "lawyer.templates.empty": "Архив пуст",
-    "lawyer.leads.title": "Запросы клиентов",
-    "lawyer.leads.subtitle": "Отслеживание и управление потенциальными клиентами",
-    "lawyer.leads.add": "Регистрация лида",
-    "lawyer.leads.sync": "Синхронизация инфраструктуры...",
-    "lawyer.leads.search": "Поиск запросов...",
-    "lawyer.leads.filter": "Фильтр",
-    "lawyer.leads.empty": "Нет активных запросов",
-    "lawyer.leads.promote": "Продвинуть дело",
-    "lawyer.leads.register": "Протокол приема",
-    "lawyer.leads.capture": "Первичный прием клиента",
-    "lawyer.leads.stages.all": "Глобальный вид",
-    "lawyer.leads.stages.inquiry": "Новый запрос",
-    "lawyer.leads.stages.new": "Новый запрос",
-    "lawyer.leads.stages.contacted": "Связались",
-    "lawyer.leads.stages.consultation_scheduled": "Консультация",
-    "lawyer.leads.stages.proposal_sent": "Предложение",
-    "lawyer.leads.stages.converted": "Конвертировано",
-    "lawyer.leads.stages.lost": "Архивировано",
-    "lawyer.leads.stats.potential": "Стоимость портфеля",
-    "lawyer.leads.table.client": "Личность",
-    "lawyer.leads.table.contact": "Коммуникации",
-    "lawyer.leads.table.objective": "Стратегия",
-    "lawyer.leads.table.stage": "Статус",
-    "lawyer.leads.table.value": "Оценка",
-    "lawyer.leads.table.action": "Команда",
-    "lawyer.leads.form.firstName": "Имя",
-    "lawyer.leads.form.lastName": "Фамилия",
-    "lawyer.leads.form.email": "Электронная почта",
-    "lawyer.leads.form.visa": "Стратегическая цель",
-    "lawyer.leads.form.val": "Ожидаемая стоимость",
-    "lawyer.leads.form.source": "Канал происхождения",
-    "lawyer.leads.form.discard": "Отмена",
-    "lawyer.leads.form.deploy": "Отправить в пайплайн",
-    "lawyer.clientsHub.title": "Портфель клиентов",
-    "lawyer.clientsHub.subtitle": "Управление всеми активными клиентами",
-    "lawyer.clientsHub.register": "Добавить нового клиента",
-    "lawyer.clientsHub.totalNetwork": "Общая сеть",
-    "lawyer.clientsHub.activeMandates": "Активные дела",
-    "lawyer.clientsHub.potentialValue": "Стоимость пайплайна",
-    "lawyer.clientsHub.practiceRevenue": "Общий доход",
-    "lawyer.clientsHub.search": "Поиск клиентов...",
-    "lawyer.clientsHub.table.identity": "Имя клиента",
-    "lawyer.clientsHub.table.contact": "Связь",
-    "lawyer.clientsHub.table.engagement": "Вовлеченность",
-    "lawyer.clientsHub.table.acquisition": "Источник",
-    "lawyer.clientsHub.table.lastSync": "Последнее обновление",
-    "lawyer.clientsHub.actions.copy": "Копировать ID клиента",
-    "lawyer.clientsHub.actions.profile": "Профиль клиента",
-    "lawyer.clientsHub.actions.file": "Доступ к файлам дела",
-    "lawyer.clientsHub.actions.msg": "Отправить сообщение",
-    "lawyer.clientsHub.newClient": "Регистрация клиента",
-    "lawyer.clientsHub.addDesc": "Создать новую запись клиента в базе данных",
-    "lawyer.clientsHub.loading": "Загрузка данных клиента...",
-    "lawyer.clientsHub.empty": "Клиенты не найдены",
-    "subscription.price": "Тариф",
-    "subscription.billingCycle": "Цикл оплаты",
-    "subscription.started": "Дата активации",
-    "subscription.renewal": "Следующий цикл",
-    "subscription.upgradeYourPlan": "Расширить возможности",
-    "subscription.mostPopular": "Основной выбор",
-    "subscription.currentPlan": "Активный протокол",
-    "subscription.upgrade": "Выполнить апгрейд",
-    "subscription.billingHistory": "Журнал транзакций",
-    "subscription.noBillingHistory": "Исторических транзакций не обнаружено",
-    "subscription.date": "Дата",
-    "subscription.amount": "Сумма",
-    "subscription.status": "Статус выполнения",
-    "subscription.invoice": "Справка",
-    "subscription.download": "Экспорт архива",
-
-    // Payment Gateway
-    "payment.title": "Оплата",
-    "payment.details": "Детали платежа",
-    "payment.description": "Описание",
-    "payment.amount": "Сумма",
-    "payment.selectMethod": "Выберите способ оплаты",
-    "payment.processing": "Обработка платежа...",
-    "payment.complete": "Пожалуйста, завершите платеж в открывшемся окне",
-    "payment.success": "Платеж успешен!",
-    "payment.successDesc": "Ваш платеж успешно обработан",
-    "payment.failed": "Платеж не удался",
-    "payment.failedDesc": "Произошла ошибка при обработке платежа",
-    "payment.tryAgain": "Попробовать снова",
-    "payment.cancel": "Отмена",
-    "payment.pay": "Оплатить",
-
-    // Video Consultations
-    "video.title": "Видеоконсультации",
-    "video.manage": "Управление встречами и видеозвонками с клиентами",
-    "video.scheduleNew": "Запланировать новую",
-    "video.total": "Всего",
-    "video.upcoming": "Предстоящие",
-    "video.completed": "Завершенные",
-    "video.thisWeek": "На этой неделе",
-    "video.all": "Все",
-    "video.past": "Прошедшие",
-    "video.noConsultations": "Нет консультаций",
-    "video.scheduleFirst": "Запланируйте первую видеоконсультацию с клиентом",
-    "video.join": "Присоединиться",
-    "video.copyLink": "Копировать ссылку",
-    "video.linkCopied": "Ссылка скопирована в буфер обмена",
-    "video.connecting": "Подключение к консультации...",
-    "video.pleaseWait": "Пожалуйста, подождите, пока мы настраиваем видеозвонок",
-    "video.mute": "Отключить звук",
-    "video.unmute": "Включить звук",
-    "video.cameraOff": "Выключить камеру",
-    "video.cameraOn": "Включить камеру",
-    "video.shareScreen": "Поделиться экраном",
-    "video.toggleChat": "Переключить чат",
-    "video.endCall": "Завершить звонок",
-    "video.participants": "Участники"
   },
 };
 
@@ -1154,10 +1212,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const fn = (key: string, params?: Record<string, string | number>) => {
       const dict = messages[locale] || messages[DEFAULT_LOCALE];
       const fallbackDict = messages[DEFAULT_LOCALE];
-      const raw = dict[key] ?? fallbackDict[key] ?? key;
+      const raw = (dict as Record<string, string>)[key] ?? (fallbackDict as Record<string, string>)[key] ?? key;
       return interpolate(raw, params);
     };
-    const dict = messages[locale] || messages[DEFAULT_LOCALE];
+    const dict = (messages[locale] || messages[DEFAULT_LOCALE]) as Record<string, string>;
 
     // Lang names and basic nav/dash
     (fn as any).langNames = { en: "English", uz: "O'zbekcha", ru: "Русский" } as Record<Locale, string>;
@@ -1502,64 +1560,101 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       summary: dict["analytics.summary"]
     };
 
-    (fn as any).roadmap = {
-      title: "Roadmap",
-      assessment: dict["roadmap.assessment"],
-      simulator: dict["roadmap.simulator"],
-      documents: dict["roadmap.documents"],
-      aiReview: dict["roadmap.aiReview"],
-      govChecks: dict["roadmap.govChecks"],
-      interviewCoach: dict["roadmap.interviewCoach"],
-      lawyerReview: dict["roadmap.lawyerReview"],
-      submission: dict["roadmap.submission"],
-      completionLabel: "Completion",
-      nextStepLabel: "Next Step",
-      applicationReference: "Ref",
-      defaults: {
-        assessmentDesc: dict["roadmap.desc.assessment"],
-        simulatorDesc: dict["roadmap.desc.simulator"],
-        documentsDesc: dict["roadmap.desc.documents"],
-        aiReviewDesc: dict["roadmap.desc.aiReview"],
-        govChecksDesc: dict["roadmap.desc.govChecks"],
-        interviewCoachDesc: dict["roadmap.desc.interviewCoach"],
-        lawyerReviewDesc: dict["roadmap.desc.lawyerReview"],
-        submissionDesc: dict["roadmap.desc.submission"]
-      }
-    };
-
     (fn as any).simulator = {
-      title: "Visa Simulator",
-      desc: "Simulate your visa application success",
-      config: "Configuration",
-      country: "Country",
-      education: "Education",
-      experience: "Experience",
-      language: "Language",
-      salary: "Salary",
-      simulate: "Simulate",
-      analyzing: "Analyzing...",
-      results: "Results",
-      likelihood: "Likelihood",
-      score: "Score",
-      processing: "Processing Time",
-      tips: "Improvement Tips",
-      tryAnother: "Try Another",
+      title: dict["simulator.title"] || "Visa Simulator",
+      desc: dict["simulator.desc"] || "Simulate your visa application success",
+      yourProfile: dict["simulator.yourProfile"] || "Your Profile",
+      visaType: dict["simulator.visaType"] || "Visa Type",
+      age: dict["simulator.age"] || "Age",
+      education: dict["simulator.education"] || "Education",
+      english: dict["simulator.english"] || "English",
+      experience: dict["simulator.experience"] || "Experience",
+      jobOffer: dict["simulator.jobOffer"] || "Job Offer",
+      country: dict["simulator.country"] || "Country",
+      funds: dict["simulator.funds"] || "Funds",
+      fundsLabel: dict["simulator.fundsLabel"] || "Available Funds ($)",
+      score: dict["simulator.score"] || "SCORE",
+      language: dict["simulator.language"] || "English Level",
+      education_level: dict["simulator.education_level"] || "Education Level",
+      calculate: dict["simulator.calculate"] || "Calculate",
+      calculating: dict["simulator.calculating"] || "Calculating...",
+      probability: dict["simulator.probability"] || "Probability",
+      strengths: dict["simulator.strengths"] || "Strengths",
+      weaknesses: dict["simulator.weaknesses"] || "Weaknesses",
+      recommendations: dict["simulator.recommendations"] || "Recommendations",
+      enterDetails: dict["simulator.enterDetails"] || "Enter Details",
+      resultsAppear: dict["simulator.resultsAppear"] || "Results Appear Here",
+      fail: dict["simulator.fail"] || "Fail",
+      failDesc: dict["simulator.failDesc"] || "Fail Desc",
       options: {
-        countries: { uk: "United Kingdom", us: "USA", ca: "Canada", au: "Australia" },
-        visaTypes: { skilled_worker: "Skilled Worker", student: "Student", visitor: "Visitor" },
-        education: { high_school: "High School", bachelors: "Bachelors", masters: "Masters", phd: "PhD" },
-        experience: { '0-2': "0-2 years", '3-5': "3-5 years", '5-10': "5-10 years", '10+': "10+ years" },
-        language: { none: "None", basic: "Basic", intermediate: "Intermediate", advanced: "Advanced" },
-        salary: { under_50k: "< $50k", '50k_80k': "$50k - $80k", '80k_120k': "$80k - $120k", '120k_plus': "$120k+" }
+        countries: {
+          uk: dict["interview.options.country.0"] || "UK",
+          us: dict["interview.options.country.1"] || "USA",
+          ca: dict["interview.options.country.2"] || "Canada",
+          au: dict["interview.options.country.3"] || "Australia"
+        },
+        visaTypes: {
+          skilled_worker: dict["interview.options.visaType.0"] || "Skilled Worker",
+          student: dict["interview.options.visaType.1"] || "Student",
+          visitor: dict["interview.options.visaType.3"] || "Visitor"
+        },
+        education: {
+          high_school: "High School",
+          bachelors: "Bachelors",
+          masters: "Masters",
+          phd: "PhD"
+        },
+        experience: {
+          '0-2': "0-2 years",
+          '3-5': "3-5 years",
+          '5-10': "5-10 years",
+          '10+': "10+ years"
+        },
+        language: {
+          none: "None",
+          basic: "Basic",
+          intermediate: "Intermediate",
+          advanced: "Advanced",
+          native: "Native"
+        }
       }
     };
 
     (fn as any).interview = {
-      title: "Interview Coach",
-      desc: "Practice with AI",
+      title: dict["interview.title"] || "Interview Coach",
+      desc: dict["interview.desc"] || "Practice with AI",
+      ready: dict["interview.ready"] || "Ready to Practice?",
+      readyDesc: dict["interview.readyDesc"] || "Select your visa type and destination",
+      startSession: dict["interview.startSession"] || "Start Session",
+      question: dict["interview.question"] || "Question",
+      category: dict["interview.category"] || "Category",
+      answerPlaceholder: dict["interview.answerPlaceholder"] || "Type your answer here...",
+      evaluate: dict["interview.evaluate"] || "Evaluate",
+      feedback: dict["interview.feedback"] || "AI Feedback",
+      strengths: dict["interview.strengths"] || "Strengths",
+      weaknesses: dict["interview.weaknesses"] || "Areas to Improve",
+      suggestions: dict["interview.suggestions"] || "Suggestions",
+      next: dict["interview.next"] || "Next Question",
+      finish: dict["interview.finish"] || "Finish Session",
+      sessionComplete: dict["interview.sessionComplete"] || "Session Complete",
+      allQuestions: dict["interview.allQuestions"] || "All questions completed",
+      progress: dict["interview.progress"] || "Progress",
+      textPractice: dict["interview.textPractice"] || "Text Practice",
+      voiceMode: dict["interview.voiceMode"] || "Voice Mode",
       options: {
-        visaTypes: ["Skilled Worker", "Student Visa", "Family Visa", "Business Visa"],
-        countries: ["United States", "United Kingdom", "Canada", "Australia", "Germany"]
+        visaTypes: [
+          dict["interview.options.visaType.0"] || "Skilled Worker",
+          dict["interview.options.visaType.1"] || "Student",
+          dict["interview.options.visaType.2"] || "Family",
+          dict["interview.options.visaType.3"] || "Visitor"
+        ],
+        countries: [
+          dict["interview.options.country.0"] || "UK",
+          dict["interview.options.country.1"] || "USA",
+          dict["interview.options.country.2"] || "Canada",
+          dict["interview.options.country.3"] || "Australia",
+          dict["interview.options.country.4"] || "Germany"
+        ]
       }
     };
 
@@ -1578,16 +1673,16 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     };
 
     (fn as any).review = {
-      title: "AI Review",
-      desc: "Instant AI document analysis",
+      title: dict["review.title"] || "AI Review",
+      desc: dict["review.desc"] || "Instant AI document analysis",
       reviewing: dict["review.reviewing"] || "Reviewing...",
       check: dict["review.check"] || "Check Document"
     };
 
     (fn as any).gov = {
-      title: "Gov Checks",
-      desc: "Official status monitoring",
-      visaType: "Visa Type"
+      title: dict["roadmap.govChecks"] || "Gov Checks",
+      desc: dict["roadmap.desc.govChecks"] || "Official status monitoring",
+      visaType: dict["simulator.visaType"] || "Visa Type"
     };
 
     (fn as any).voice = {
@@ -1651,162 +1746,41 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       missingInfo: "Please fill in all required fields"
     };
 
-    (fn as any).applications = { title: dict["applications.title"] || "Applications" };
+    (fn as any).dashStatus = {
+      label: dict["dashStatus.label"] || "Status",
+      active: dict["dashStatus.active"] || "Active",
+      journey: dict["dashStatus.journey"] || "Journey Progress",
+      submitted_to_gov: dict["dashStatus.submitted_to_gov"] || "Submitted to Government",
+      under_review: dict["dashStatus.under_review"] || "Under Legal Review",
+      pending_documents: dict["dashStatus.pending_documents"] || "Pending Documents",
+      case_prep: dict["dashStatus.case_prep"] || "Case Preparation",
+    };
 
     (fn as any).roadmap = {
+      title: "Roadmap",
       assessment: dict["roadmap.assessment"] || "Assessment",
-      visaSimulator: dict["roadmap.visaSimulator"] || "Visa Simulator",
+      simulator: dict["roadmap.simulator"] || "Visa Simulator",
       documents: dict["roadmap.documents"] || "Documents",
       aiReview: dict["roadmap.aiReview"] || "AI Review",
       govChecks: dict["roadmap.govChecks"] || "Gov Checks",
       interviewCoach: dict["roadmap.interviewCoach"] || "Interview Coach",
       lawyerReview: dict["roadmap.lawyerReview"] || "Lawyer Review",
-      submission: dict["roadmap.submission"] || "Submission"
-    };
-
-    (fn as any).dashStatus = {
-      submitted_to_gov: dict["dashStatus.submitted_to_gov"] || "Officially Submitted"
-    };
-
-    (fn as any).lawyer = {
-      leads: {
-        title: dict["lawyer.leads.title"] || "Client Inquiries",
-        subtitle: dict["lawyer.leads.subtitle"] || "Track and manage potential clients",
-        add: dict["lawyer.leads.add"] || "Register Lead",
-        sync: dict["lawyer.leads.sync"] || "Syncing infrastructure...",
-        search: dict["lawyer.leads.search"] || "Search inquiries...",
-        filter: dict["lawyer.leads.filter"] || "Refine",
-        empty: dict["lawyer.leads.empty"] || "No active inquiries",
-        promote: dict["lawyer.leads.promote"] || "Advance Case",
-        register: dict["lawyer.leads.register"] || "Intake Protocol",
-        capture: dict["lawyer.leads.capture"] || "Initial Client Ingestion",
-        stages: {
-          all: dict["lawyer.leads.stages.all"] || "Global View",
-          inquiry: dict["lawyer.leads.stages.inquiry"] || "New Inquiry",
-          new: dict["lawyer.leads.stages.new"] || "New Inquiry",
-          contacted: dict["lawyer.leads.stages.contacted"] || "Contacted",
-          consultation_scheduled: dict["lawyer.leads.stages.consultation_scheduled"] || "Consultation",
-          proposal_sent: dict["lawyer.leads.stages.proposal_sent"] || "Proposal",
-          converted: dict["lawyer.leads.stages.converted"] || "Converted",
-          lost: dict["lawyer.leads.stages.lost"] || "Archived"
-        },
-        stats: {
-          potential: dict["lawyer.leads.stats.potential"] || "Portfolio Value"
-        },
-        table: {
-          client: dict["lawyer.leads.table.client"] || "Identity",
-          contact: dict["lawyer.leads.table.contact"] || "Communications",
-          objective: dict["lawyer.leads.table.objective"] || "Strategy",
-          stage: dict["lawyer.leads.table.stage"] || "Status",
-          value: dict["lawyer.leads.table.value"] || "Valuation",
-          action: dict["lawyer.leads.table.action"] || "Command"
-        },
-        form: {
-          firstName: dict["lawyer.leads.form.firstName"] || "Given Name",
-          lastName: dict["lawyer.leads.form.lastName"] || "Surname",
-          email: dict["lawyer.leads.form.email"] || "Electronic Mail",
-          visa: dict["lawyer.leads.form.visa"] || "Strategic Objective",
-          val: dict["lawyer.leads.form.val"] || "Expected Valuation",
-          source: dict["lawyer.leads.form.source"] || "Origin Channel",
-          discard: dict["lawyer.leads.form.discard"] || "Abort",
-          deploy: dict["lawyer.leads.form.deploy"] || "Deploy to Pipeline"
-        }
-      },
-      clientsHub: {
-        title: dict["lawyer.clientsHub.title"] || "Practice Portfolio",
-        subtitle: dict["lawyer.clientsHub.subtitle"] || "Institutional client management bank",
-        register: dict["lawyer.clientsHub.register"] || "Onboard Principal",
-        totalNetwork: dict["lawyer.clientsHub.totalNetwork"] || "Universal Network",
-        activeMandates: dict["lawyer.clientsHub.activeMandates"] || "Active Mandates",
-        potentialValue: dict["lawyer.clientsHub.potentialValue"] || "Pipeline Velocity",
-        practiceRevenue: dict["lawyer.clientsHub.practiceRevenue"] || "AUM Revenue",
-        search: dict["lawyer.clientsHub.search"] || "Search portfolio archives...",
-        table: {
-          identity: dict["lawyer.clientsHub.table.identity"] || "Principal Identity",
-          contact: dict["lawyer.clientsHub.table.contact"] || "Channel Status",
-          engagement: dict["lawyer.clientsHub.table.engagement"] || "Engagement Level",
-          acquisition: dict["lawyer.clientsHub.table.acquisition"] || "Origin Protocol",
-          lastSync: dict["lawyer.clientsHub.table.lastSync"] || "Temporal Sync"
-        },
-        actions: {
-          copy: dict["lawyer.clientsHub.actions.copy"] || "Copy Identity Reference",
-          profile: dict["lawyer.clientsHub.actions.profile"] || "Executive Profile",
-          file: dict["lawyer.clientsHub.actions.file"] || "Dossier Access",
-          msg: dict["lawyer.clientsHub.actions.msg"] || "Encrypted Uplink"
-        },
-        newClient: dict["lawyer.clientsHub.newClient"] || "Register Principal",
-        addDesc: dict["lawyer.clientsHub.addDesc"] || "Initialize new client record in institutional bank",
-        loading: dict["lawyer.clientsHub.loading"] || "Accessing archives...",
-        empty: dict["lawyer.clientsHub.empty"] || "Portfolio empty"
-      },
-      financials: {
-        title: dict["lawyer.financials.title"] || "Financial Control",
-        description: dict["lawyer.financials.description"] || "Manage client billing",
-        stats: {
-          totalPaid: dict["lawyer.financials.stats.totalPaid"] || "Total Paid",
-          pending: dict["lawyer.financials.stats.pending"] || "Pending",
-          overdue: dict["lawyer.financials.stats.overdue"] || "Overdue",
-          active: dict["lawyer.financials.stats.active"] || "Active"
-        },
-        form: {
-          client: dict["lawyer.financials.form.client"] || "Client",
-          number: dict["lawyer.financials.form.number"] || "Invoice #"
-        },
-        table: {
-          invoice: dict["lawyer.financials.table.invoice"] || "Invoice",
-          client: dict["lawyer.financials.table.client"] || "Client",
-          date: dict["lawyer.financials.table.date"] || "Date",
-          amount: dict["lawyer.financials.table.amount"] || "Amount",
-          status: dict["lawyer.financials.table.status"] || "Status",
-          actions: dict["lawyer.financials.table.actions"] || "Actions"
-        }
-      },
-      templates: {
-        title: dict["lawyer.templates.title"] || "Strategy Bank",
-        subtitle: dict["lawyer.templates.subtitle"] || "Standardized templates",
-        search: dict["lawyer.templates.search"] || "Search...",
-        publish: dict["lawyer.templates.publish"] || "Publish Template",
-        empty: dict["lawyer.templates.empty"] || "Archive Empty"
+      submission: dict["roadmap.submission"] || "Submission",
+      completionLabel: dict["roadmap.completionLabel"] || "Completion",
+      nextStepLabel: dict["roadmap.nextStepLabel"] || "Next Step",
+      applicationReference: dict["roadmap.applicationReference"] || "Ref",
+      defaults: {
+        assessmentDesc: dict["roadmap.desc.assessment"] || "Initial profile assessment",
+        simulatorDesc: dict["roadmap.desc.simulator"] || "AI success check",
+        documentsDesc: dict["roadmap.desc.documents"] || "Document collection",
+        aiReviewDesc: dict["roadmap.desc.aiReview"] || "AI audit",
+        govChecksDesc: dict["roadmap.desc.govChecks"] || "Official verification",
+        interviewCoachDesc: dict["roadmap.desc.interviewCoach"] || "Mock session",
+        lawyerReviewDesc: dict["roadmap.desc.lawyerReview"] || "Legal verification",
+        submissionDesc: dict["roadmap.desc.submission"] || "Official filing"
       }
     };
 
-    (fn as any).subscription = {
-      price: dict["subscription.price"] || "Rate",
-      billingCycle: dict["subscription.billingCycle"] || "Billing Frequency",
-      started: dict["subscription.started"] || "Start Date",
-      renewal: dict["subscription.renewal"] || "Renewal Date",
-      upgradeYourPlan: dict["subscription.upgradeYourPlan"] || "Scale Your Capacity",
-      mostPopular: dict["subscription.mostPopular"] || "Recommended",
-      currentPlan: dict["subscription.currentPlan"] || "Current Plan",
-      upgrade: dict["subscription.upgrade"] || "Upgrade",
-      billingHistory: dict["subscription.billingHistory"] || "Transactional Archive",
-      noBillingHistory: dict["subscription.noBillingHistory"] || "No transaction records found",
-      date: dict["subscription.date"] || "Timestamp",
-      amount: dict["subscription.amount"] || "Value",
-      status: dict["subscription.status"] || "State",
-      invoice: dict["subscription.invoice"] || "Voucher",
-      download: dict["subscription.download"] || "Retrieve PDF"
-    };
-    (fn as any).lawyerDashboard = {
-      title: dict["lawyerDashboard.title"] || "Lawyer Dashboard",
-      consultations: "Consultations",
-      pending: "Pending",
-      scheduled: "Scheduled",
-      completed: "Completed",
-      cancelled: "Cancelled",
-      all: "All",
-      typeResponse: "Type your response here...",
-      suggestConsultation: "Suggest scheduling a consultation call",
-      sendResponse: "Send Response",
-      replyToInquiry: "Reply to Inquiry"
-    };
-    (fn as any).dashStatus = {
-      label: dict["dashStatus.label"] || "Status",
-      active: dict["dashStatus.active"] || "Active",
-      submitted_to_gov: dict["dashStatus.submitted_to_gov"] || "Government Submission",
-    };
-
-    // Fill out dash keys to avoid empty labels
     (fn as any).dash = {
       welcome: dict["dash.welcome"] || "Welcome,",
       logout: dict["nav.logout"] || "Logout",
@@ -1828,6 +1802,23 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       tabSwitched: dict["dash.tabSwitched"] || "Tab Switched",
       noActiveApp: dict["dash.noActiveApp"] || "No active application",
       submittedSuccess: dict["dash.submittedSuccess"] || "Application Submitted",
+    };
+
+    (fn as any).applications = { title: dict["applications.title"] || "Applications" };
+
+    // Final Lawyer Dashboard Overrides (if any specific ones needed)
+    (fn as any).lawyerDashboard = {
+      title: dict["lawyerDashboard.title"] || "Lawyer Dashboard",
+      consultations: "Consultations",
+      pending: "Pending",
+      scheduled: "Scheduled",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      all: "All",
+      typeResponse: "Type your response here...",
+      suggestConsultation: "Suggest scheduling a consultation call",
+      sendResponse: "Send Response",
+      replyToInquiry: "Reply to Inquiry"
     };
 
     return fn;

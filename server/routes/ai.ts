@@ -611,6 +611,20 @@ router.post(
         messageText = parsed.message;
       }
 
+      // Check if Ollama is reachable before proceeding
+      try {
+        const healthCheck = await fetch(`${process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || 'http://localhost:11434'}/api/tags`);
+        if (!healthCheck.ok) {
+          throw new Error("Ollama service unhealthy");
+        }
+      } catch (e) {
+        logger.error({ error: e }, "Ollama service is not reachable");
+        return res.status(503).json({
+          message: "AI Service Unavailable. Please ensure Ollama is running.",
+          details: "The local AI model server is offline."
+        });
+      }
+
       // Fetch user context (active application and profile)
       const userProfile = await db.query.users.findFirst({
         where: eq(users.id, userId)

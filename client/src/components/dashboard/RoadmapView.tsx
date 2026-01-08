@@ -82,14 +82,14 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
     }
 
     const items = roadmapItems.length > 0 ? roadmapItems : [
-        { title: t.roadmap?.assessment || 'Assessment', status: 'done', description: t.roadmap?.defaults?.assessmentDesc || 'Eligibility score calculated' },
-        { title: t.simulator?.title || 'Visa Simulator', status: 'done', description: t.simulator?.desc || 'Success probability check' },
-        { title: t.roadmap?.documents || 'Documents', status: 'done', description: t.roadmap?.defaults?.documentsDesc || 'Essential documentation' },
-        { title: t.review?.title || 'AI Review', status: 'current', description: t.review?.desc || 'Automated compliance check' },
-        { title: t.gov?.title || 'Gov Checks', status: 'pending', description: t.gov?.desc || 'Official status verification' },
-        { title: t.voice?.title || 'Interview Coach', status: 'pending', description: t.voice?.desc || 'AI-guided mock interviews' },
-        { title: t.roadmap?.lawyerReview || 'Lawyer Review', status: 'pending', description: t.roadmap?.defaults?.lawyerReviewDesc || 'Professional case review' },
-        { title: t.roadmap?.submission || 'Submission', status: 'pending', description: t.roadmap?.defaults?.submissionDesc || 'Final submission' }
+        { title: t.roadmap.assessment, status: 'done', description: t.roadmap.defaults.assessmentDesc },
+        { title: t.roadmap.simulator, status: 'done', description: t.roadmap.defaults.simulatorDesc },
+        { title: t.roadmap.documents, status: 'done', description: t.roadmap.defaults.documentsDesc },
+        { title: t.roadmap.aiReview, status: 'current', description: t.roadmap.defaults.aiReviewDesc },
+        { title: t.roadmap.govChecks, status: 'pending', description: t.roadmap.defaults.govChecksDesc },
+        { title: t.roadmap.interviewCoach, status: 'pending', description: t.roadmap.defaults.interviewCoachDesc },
+        { title: t.roadmap.lawyerReview, status: 'pending', description: t.roadmap.defaults.lawyerReviewDesc },
+        { title: t.roadmap.submission, status: 'pending', description: t.roadmap.defaults.submissionDesc }
     ];
 
     const currentStep = items.find(i => i.status === 'current') || items[0];
@@ -107,7 +107,7 @@ export const RoadmapView = ({ setActiveTab }: { setActiveTab: (tab: string) => v
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 relative z-10">
                     <div className="space-y-2">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 font-black text-[10px] uppercase tracking-widest mb-2 border border-brand-500/10">
-                            <Sparkles size={14} /> {application?.status || t.dashStatus.active}
+                            <Sparkles size={14} /> {application?.status ? (t.dashStatus[application.status as keyof typeof t.dashStatus] || application.status) : t.dashStatus.active}
                         </div>
                         <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                             {application?.visaType || 'Skilled Worker Visa'}
