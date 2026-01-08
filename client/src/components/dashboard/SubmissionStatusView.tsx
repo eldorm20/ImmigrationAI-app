@@ -13,7 +13,21 @@ interface SubmissionStatusViewProps {
 export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ application, onContactLegal }) => {
     const { t } = useI18n();
 
-    if (!application) return null;
+    if (!application) {
+        return (
+            <div className="max-w-4xl mx-auto space-y-8 py-16 px-4 text-center">
+                <AnimatedCard className="p-12 glass-panel border-brand-500/20 shadow-2xl">
+                    <div className="mx-auto w-20 h-20 bg-brand-500/10 rounded-full flex items-center justify-center mb-6">
+                        <Send className="text-brand-500" size={40} />
+                    </div>
+                    <h1 className="text-3xl font-black mb-4">{t.dash.dashboard}</h1>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 max-w-lg mx-auto mb-8">
+                        {t.dash.startAppFirst}
+                    </p>
+                </AnimatedCard>
+            </div>
+        );
+    }
 
     const status = application.status || 'new';
 

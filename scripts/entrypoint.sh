@@ -46,15 +46,15 @@ if [ -z "$SKIP_OLLAMA_INIT" ]; then
   
   # Check if LOCAL_AI_URL is set
   if [ -n "$LOCAL_AI_URL" ]; then
-    # Run initialization in background to not block app startup
-    bash /app/scripts/init-ollama.sh &
+    # Run initialization in background but redirect output to stdout for visibility
+    bash /app/scripts/init-ollama.sh > /proc/1/fd/1 2>&1 &
     INIT_PID=$!
     
     # Give it a few seconds to start, but don't wait forever
-    sleep 5
+    sleep 2
     
     if kill -0 $INIT_PID 2>/dev/null; then
-      echo "  (Ollama initialization running in background)"
+      echo "  (Ollama initialization running in background, check logs for details)"
     fi
   else
     echo "  ⚠️  LOCAL_AI_URL not set - Ollama will not be initialized"

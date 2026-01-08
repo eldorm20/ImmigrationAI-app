@@ -34,10 +34,11 @@ echo "✅ Ollama is ready!"
 echo ""
 echo "Checking for $MODEL model..."
 
-MODEL_CHECK=$(curl -s "$OLLAMA_URL/api/tags" | grep -c "\"name\":\"$MODEL\"" || true)
+# Improved check: look for model name without strict quoting for tags
+MODEL_CHECK=$(curl -s "$OLLAMA_URL/api/tags" | grep -i "\"name\":\"$MODEL" || true)
 
-if [ $MODEL_CHECK -gt 0 ]; then
-  echo "✅ Model '$MODEL' is already available"
+if [ -n "$MODEL_CHECK" ]; then
+  echo "✅ Model '$MODEL' is already available: $MODEL_CHECK"
 else
   echo "📥 Pulling model '$MODEL' (this may take a few minutes)..."
   
