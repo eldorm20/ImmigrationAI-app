@@ -3,8 +3,8 @@ import { agentsManager, AIAgentsManager } from "./agents";
 import { RagClient } from "./rag-client";
 // import Tesseract from "tesseract.js";
 
-// Re-export agents manager for use across the application
-export { agentsManager, AIAgentsManager } from "./agents";
+// Re-export agents manager and orchestrator for use across the application
+export { agentsManager, AIAgentsManager, orchestrator } from "./agents";
 
 // Visa Eligibility Checker
 export interface EligibilityQuestion {
@@ -687,53 +687,21 @@ export async function translateText(
 // Chat responder specialized for immigration assistance
 export async function chatRespond(message: string, language = "en", context: any = {}): Promise<string> {
   try {
-    const langNames: Record<string, string> = {
-      uz: "Uzbek",
-      ru: "Russian",
-      en: "English",
-      de: "German",
-      fr: "French",
-      es: "Spanish"
-    };
+    const { orchestrator } = await import("./agents");
 
-    const targetLang = langNames[language] || "English";
-
-    // Detect if this is a support query (account, login, bug, loading, payment, dashboard)
-    const lowerMessage = message.toLowerCase();
-    const supportKeywords = [
-      'login', 'account', 'password', 'payment', 'subscription', 'bug', 'error',
-      'not loading', 'dashboard', 'settings', 'profile', 'billing', 'invoice',
-      'help with the app', 'tech support', 'how to use', 'where is'
-    ];
-
-    const isSupportQuery = context.type === 'support' || supportKeywords.some(kw => lowerMessage.includes(kw));
-
-    // Choose the most appropriate agent based on context
-    const agentType = isSupportQuery ? "customer-service" : "immigration-law";
-
-    const response = await agentsManager.processRequest(
-      agentType,
-      "handleUserQuery",
-      [
-        message,
-        {
-          ...context,
-          language: targetLang,
-          jurisdiction: context.jurisdiction || "UK"
-        }
-      ]
-    );
+    const response = await orchestrator.execute(message, {
+      ...context,
+      language
+    });
 
     if (!response.success) {
-      throw new Error(response.error || "Chat service unavailable");
+      throw new Error(response.error || "Agent execution failed");
     }
 
-    return (
-      response.data || "I'm here to help with your immigration journey and platform support."
-    );
+    return response.data;
   } catch (error) {
-    logger.error({ error, message }, "Chat response failed");
-    throw new Error("Failed to generate chat response");
+    logger.error({ error, message }, "chatRespond failed, using fallback");
+    throw error;
   }
 }
 

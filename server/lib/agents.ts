@@ -82,7 +82,7 @@ Fallback responses if uncertain: ${this.fallbacks.join("; ")}.`;
     return fallback;
   }
 
-  async process(input: string): Promise<AgentResponse> {
+  async process(input: string, context?: any): Promise<AgentResponse> {
     try {
       const response = await this.generateResponse(input);
       return {
@@ -91,7 +91,7 @@ Fallback responses if uncertain: ${this.fallbacks.join("; ")}.`;
         source: this.name,
       };
     } catch (err) {
-      logger.error({ err, agent: this.name }, `Error in ${this.name}`);
+      logger.error({ err, agent: this.name, context }, `Error in ${this.name}`);
       return {
         success: false,
         error: `Agent ${this.name} failed: ${err instanceof Error ? err.message : "Unknown error"}`,
@@ -333,6 +333,63 @@ Instructions:
       logger.warn({ error: e }, "Failed to parse document review JSON");
     }
     return result;
+  }
+
+  /**
+   * Specialist method for multi-step case strategy development
+   * (Dify-inspired Iterative Reasoning)
+   */
+  async developCaseStrategy(query: string, context?: any): Promise<AgentResponse> {
+    logger.info({ agent: this.name, query }, "Developing complex case strategy");
+
+    // Step 1: Planning - Identify what we need to know
+    const planPrompt = `User Query: "${query}"
+Analyze this immigration query and identify:
+1. The likely visa routes involved.
+2. 3 critical pieces of legal information we need to retrieve.
+3. The specific jurisdiction (UK, Germany, etc.).
+
+Return JSON: { "routes": [], "infoNeeded": [], "jurisdiction": "string" }`;
+
+    const planRes = await this.process(planPrompt);
+    let planData: any = { routes: ["general"], infoNeeded: [query], jurisdiction: "UK" };
+
+    try {
+      if (planRes.success) {
+        const raw = planRes.data.replace(/```json\n?/, "").replace(/```\s*$/, "").trim();
+        planData = JSON.parse(raw);
+      }
+    } catch (e) {
+      logger.warn({ error: e }, "Failed to parse initial case plan");
+    }
+
+    // Step 2: Search - Execute RAG for each info need
+    let legalBase = "";
+    for (const need of planData.infoNeeded) {
+      try {
+        const ragRes = await RagClient.getAnswer(need, planData.jurisdiction);
+        legalBase += `\n--- Research for "${need}" ---\n${ragRes.answer}\n`;
+      } catch (err) {
+        logger.warn({ err, need }, "Iterative RAG search failed");
+      }
+    }
+
+    // Step 3: Synthesis - Final specialized answer
+    const finalPrompt = `Legal Framework:
+${legalBase}
+
+User Request: "${query}"
+
+Based on the legal framework above, develop a comprehensive immigration strategy for the user.
+Include:
+1. Recommended Visa Route
+2. Success Likelihood
+3. Key Mandatory Documents
+4. Potential Challenges (Red Flags)
+
+Respond in a professional, legally-structured format.`;
+
+    return this.process(finalPrompt, { iterative: true });
   }
 }
 
@@ -602,7 +659,8 @@ export class AIAgentsManager {
   async processRequest(
     agentType: string,
     method: string,
-    params: any[]
+    params: any[],
+    context?: any
   ): Promise<AgentResponse> {
     const agent = this.getAgent(agentType);
 
@@ -622,6 +680,11 @@ export class AIAgentsManager {
         };
       }
 
+      // If method is handleUserQuery, use context
+      if (method === "handleUserQuery" && context) {
+        return await agentMethod.call(agent, params[0], context);
+      }
+
       const result = await agentMethod.apply(agent, params);
       return result;
     } catch (err) {
@@ -633,6 +696,10 @@ export class AIAgentsManager {
     }
   }
 }
+
+// Export singleton instance
+export const agentsManager = new AIAgentsManager();
+
 
 /**
  * Helper function to generate text with provider
@@ -826,5 +893,6 @@ async function generateWithHuggingFace(prompt: string): Promise<string> {
   throw new Error("Hugging Face generation failed");
 }
 
-// Export singleton instance
-export const agentsManager = new AIAgentsManager();
+// Orchestrator instance
+import { AgentOrchestrator } from "./orchestrator";
+export const orchestrator = new AgentOrchestrator(agentsManager);
