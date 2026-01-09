@@ -8,6 +8,18 @@ import { logger } from "./logger";
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-me-in-production";
 const REFRESH_SECRET = process.env.REFRESH_SECRET || "change-me-in-production-refresh";
+
+// Verification logs at startup
+if (process.env.NODE_ENV === "production") {
+  if (JWT_SECRET === "change-me-in-production") {
+    logger.error("🛑 CRITICAL: JWT_SECRET is using fallback value in production!");
+  } else {
+    logger.info(`✅ JWT_SECRET loaded from env (length: ${JWT_SECRET.length}, prefix: ${JWT_SECRET.slice(0, 3)}...)`);
+  }
+} else {
+  logger.info("ℹ️ Running in development mode, using dev secrets");
+}
+
 const JWT_EXPIRES_IN = "15m";
 const REFRESH_EXPIRES_IN = "7d";
 

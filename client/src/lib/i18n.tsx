@@ -1767,6 +1767,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       under_review: dict["dashStatus.under_review"] || "Under Legal Review",
       pending_documents: dict["dashStatus.pending_documents"] || "Pending Documents",
       case_prep: dict["dashStatus.case_prep"] || "Case Preparation",
+      final_decision: dict["dashStatus.final_decision"] || "Final Decision",
+      prep_desc: dict["dashStatus.prep_desc"] || "Initial preparation phase",
+      under_review_desc: dict["dashStatus.under_review_desc"] || "Your case is being reviewed",
+      pending_docs_desc: dict["dashStatus.pending_docs_desc"] || "Additional documents needed",
+      submitted_gov_desc: dict["dashStatus.submitted_gov_desc"] || "Case submitted to government",
     };
 
     (fn as any).roadmap = {
@@ -1811,6 +1816,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       messages: dict["dash.messages"] || "Messages",
       lawyer: dict["nav.lawyer"] || "Lawyer",
       research: dict["nav.research"] || "Research",
+      finances: dict["dash.finances"] || "Finances",
+      billing: dict["dash.billing"] || "Billing",
+      companies: dict["dash.companies"] || "Companies",
+      submission: dict["dash.submission"] || "Submission",
       submitToLawyer: dict["dash.submitToLawyer"] || "Submit to Lawyer",
       tabSwitched: dict["dash.tabSwitched"] || "Tab Switched",
       noActiveApp: dict["dash.noActiveApp"] || "No active application",

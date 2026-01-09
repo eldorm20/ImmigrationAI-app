@@ -7,6 +7,7 @@ import { logger } from './logger';
 import { db } from '../db';
 import { researchArticles, documents } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
+import { generateOllamaEmbedding, probeOllamaEndpoint } from './ollama';
 
 interface EmbeddingResponse {
     embedding: number[];
@@ -26,7 +27,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
         // 2. Try Local AI (Ollama) if URL is configured
         if (process.env.LOCAL_AI_URL || process.env.OLLAMA_URL) {
-            return await generateOllamaEmbedding(text);
+            return await generateOllamaEmbeddingInternal(text);
         }
 
         // 3. Fallback to simple embedding
@@ -40,30 +41,15 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 /**
  * Generate embedding using Ollama (Local AI)
  */
-async function generateOllamaEmbedding(text: string): Promise<number[]> {
+async function generateOllamaEmbeddingInternal(text: string): Promise<number[]> {
     const baseUrl = process.env.LOCAL_AI_URL || process.env.OLLAMA_URL || 'http://localhost:11434';
-    // Ensure URL ends with /api/embeddings
-    const apiEndpoint = baseUrl.includes('/api/')
-        ? baseUrl.replace(/\/api\/.*$/, '/api/embeddings')
-        : `${baseUrl.replace(/\/+$/, '')}/api/embeddings`;
-
     const model = process.env.OLLAMA_MODEL || 'mistral';
 
-    const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model,
-            prompt: text
-        }),
-    });
-
-    if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.statusText}`);
+    const embedding = await generateOllamaEmbedding(text, baseUrl, model);
+    if (!embedding) {
+        throw new Error('Ollama embedding generation failed');
     }
-
-    const data = await response.json();
-    return data.embedding;
+    return embedding;
 }
 
 /**

@@ -116,10 +116,10 @@ export default function UserDash() {
     { id: 'chat', icon: MessageSquare, label: t?.dash?.chat || "AI Assistant" },
     { id: 'messages', icon: Send, label: t?.dash?.messages || "Messages" },
     { id: 'lawyer', icon: Briefcase, label: t?.dash?.lawyer || "Consultation" },
-    { id: 'finances', icon: CreditCard, label: t.dash.finances },
-    { id: 'subscription', icon: Shield, label: t.dash.billing },
+    { id: 'finances', icon: CreditCard, label: t?.dash?.finances || "Finances" },
+    { id: 'subscription', icon: Shield, label: t?.dash?.billing || "Billing" },
     { id: 'research', icon: Book, label: t?.dash?.research || "Research" },
-    { id: 'companies', icon: Building, label: t.dash.companies },
+    { id: 'companies', icon: Building, label: t?.dash?.companies || "Companies" },
     { id: 'submission', icon: Send, label: t?.dash?.submission || "Submission" }
   ];
 

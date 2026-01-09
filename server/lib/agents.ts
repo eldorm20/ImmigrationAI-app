@@ -756,8 +756,23 @@ async function generateTextWithProvider(
           clearTimeout(timeoutId);
 
           if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`Local AI provider returned ${res.status}: ${text}`);
+            const errorBody = await res.text().catch(() => "Could not read error body");
+            logger.error({
+              status: res.status,
+              statusText: res.statusText,
+              url: fetchUrl,
+              body: errorBody
+            }, "Ollama request failed with error status");
+
+            if (res.status === 404) {
+              logger.warn("Ollama returned 404. This often means the model is not found or the endpoint path is incorrect.");
+            }
+
+            if (attempt === 1) {
+              logger.info("Local AI request failed, retrying...");
+              continue;
+            }
+            throw new Error(`AI Provider configured but failed to respond. Status: ${res.status}`);
           }
 
           // Try parse JSON

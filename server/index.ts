@@ -150,18 +150,19 @@ app.get("/health", async (_req, res) => {
           if (aiProbe.hasModel === false || aiProbe.status === 404) {
             logger.warn({ url: process.env.LOCAL_AI_URL, model: modelName }, "⚠️ Local AI reachable but model NOT FOUND or not pulled. Triggering automatic pull...");
 
-            // Trigger pull asynchronously so we don't block startup
+            // Trigger pull and await completion to ensure server is ready
             const pullUrl = (process.env.LOCAL_AI_URL as string).replace(/\/+$/, "") + "/api/pull";
-            fetch(pullUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: modelName })
-            }).then(r => {
-              if (r.ok) logger.info(`✅ Automatic model pull (${modelName}) initiated successfully`);
-              else logger.error({ status: r.status }, `❌ Automatic model pull (${modelName}) failed to initiate`);
-            }).catch(err => {
-              logger.error({ err }, `❌ Error initiating automatic model pull (${modelName})`);
-            });
+            try {
+              const r = await fetch(pullUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: modelName, stream: false })
+              });
+              if (r.ok) logger.info(`✅ Automatic model pull (${modelName}) completed successfully`);
+              else logger.error({ status: r.status }, `❌ Automatic model pull (${modelName}) failed`);
+            } catch (err) {
+              logger.error({ err }, `❌ Error during automatic model pull (${modelName})`);
+            }
 
             aiProviderAvailable = true; // Mark as available (will be soon)
           } else {
