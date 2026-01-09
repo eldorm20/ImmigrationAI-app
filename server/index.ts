@@ -143,27 +143,29 @@ app.get("/health", async (_req, res) => {
     let aiProviderAvailable = false;
     if (process.env.LOCAL_AI_URL) {
       try {
-        const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, process.env.OLLAMA_MODEL, 3000);
+        const modelName = process.env.OLLAMA_MODEL || "mistral";
+        const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, modelName, 5000);
+
         if (aiProbe.reachable) {
-          if (aiProbe.status === 404) {
-            logger.warn({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL }, "⚠️ Local AI reachable but model NOT FOUND (404). Triggering automatic pull...");
+          if (aiProbe.hasModel === false || aiProbe.status === 404) {
+            logger.warn({ url: process.env.LOCAL_AI_URL, model: modelName }, "⚠️ Local AI reachable but model NOT FOUND or not pulled. Triggering automatic pull...");
 
             // Trigger pull asynchronously so we don't block startup
             const pullUrl = (process.env.LOCAL_AI_URL as string).replace(/\/+$/, "") + "/api/pull";
             fetch(pullUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: process.env.OLLAMA_MODEL || "mistral" })
+              body: JSON.stringify({ name: modelName })
             }).then(r => {
-              if (r.ok) logger.info("✅ Automatic model pull initiated successfully");
-              else logger.error({ status: r.status }, "❌ Automatic model pull failed to initiate");
+              if (r.ok) logger.info(`✅ Automatic model pull (${modelName}) initiated successfully`);
+              else logger.error({ status: r.status }, `❌ Automatic model pull (${modelName}) failed to initiate`);
             }).catch(err => {
-              logger.error({ err }, "❌ Error initiating automatic model pull");
+              logger.error({ err }, `❌ Error initiating automatic model pull (${modelName})`);
             });
 
             aiProviderAvailable = true; // Mark as available (will be soon)
           } else {
-            logger.info({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable and ready");
+            logger.info({ url: process.env.LOCAL_AI_URL, model: modelName, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable and ready");
             aiProviderAvailable = true;
           }
         } else {

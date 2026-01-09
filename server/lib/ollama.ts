@@ -76,34 +76,65 @@ export function parseOllamaResponse(json: any): string | null {
   }
 }
 
-export async function probeOllamaEndpoint(url: string, model?: string, timeoutMs = 2500) {
+export async function probeOllamaEndpoint(url: string, model: string = "mistral", timeoutMs = 5000) {
   if (typeof (globalThis as any).fetch !== "function") {
     return { reachable: false, reason: "fetch not available" };
   }
+
+  const baseUrl = url.replace(/\/+$/, "");
 
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      // Try an OPTIONS first
-      const opts = { method: "OPTIONS", signal: controller.signal } as any;
-      const r = await (globalThis as any).fetch(url, opts).catch(() => null);
-      if (r && r.status < 500) return { reachable: true, status: r.status };
+      // 1. First, check /api/tags to see if the model is already pulled
+      const tagsUrl = `${baseUrl}/api/tags`;
+      const tagsRes = await (globalThis as any).fetch(tagsUrl, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: controller.signal
+      }).catch(() => null);
 
-      // Try GET
-      const r2 = await (globalThis as any).fetch(url, { method: "GET", signal: controller.signal }).catch(() => null);
-      if (r2 && r2.status < 500) return { reachable: true, status: r2.status };
+      if (tagsRes && tagsRes.ok) {
+        const data = await tagsRes.json();
+        const models = data.models || [];
+        const hasModel = models.some((m: any) => m.name === model || m.name.startsWith(`${model}:`));
 
-      // Try a small POST probe
-      let probeUrl = url;
-      if (!probeUrl.includes("/api/") && !probeUrl.includes("/v1/")) {
-        probeUrl = probeUrl.replace(/\/+$/, "") + "/api/generate";
+        if (hasModel) {
+          return { reachable: true, status: 200, hasModel: true };
+        } else {
+          // Model not found in tags
+          return { reachable: true, status: 404, hasModel: false, reason: "model_not_pulled" };
+        }
       }
 
-      const body = JSON.stringify(buildOllamaPayload("health-check", undefined, model));
-      const r3 = await (globalThis as any).fetch(probeUrl, { method: "POST", body, headers: { "Content-Type": "application/json" }, signal: controller.signal }).catch(() => null);
-      if (r3) return { reachable: r3.status < 500, status: r3.status };
-      return { reachable: false, reason: "no response" };
+      // 2. If /api/tags fails, try the root with OPTIONS to check if server is alive
+      const opts = { method: "OPTIONS", signal: controller.signal } as any;
+      const r = await (globalThis as any).fetch(baseUrl, opts).catch(() => null);
+      if (r && r.status < 500) {
+        // Server exists but /api/tags failed. Could be a non-Ollama server or proxy.
+        return { reachable: true, status: r.status, reason: "server_responded_but_no_tags" };
+      }
+
+      // 3. Fallback to /api/generate probe
+      let generateUrl = baseUrl;
+      if (!generateUrl.includes("/api/") && !generateUrl.includes("/v1/")) {
+        generateUrl += "/api/generate";
+      }
+
+      const body = JSON.stringify({ model, prompt: "health-check", stream: false });
+      const r3 = await (globalThis as any).fetch(generateUrl, {
+        method: "POST",
+        body,
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal
+      }).catch(() => null);
+
+      if (r3) {
+        return { reachable: r3.status < 500, status: r3.status };
+      }
+
+      return { reachable: false, reason: "no response from any endpoint" };
     } finally {
       clearTimeout(id);
     }
@@ -114,9 +145,13 @@ export async function probeOllamaEndpoint(url: string, model?: string, timeoutMs
 
 export async function generateOllamaEmbedding(text: string, url: string, model?: string): Promise<number[] | null> {
   try {
-    let embedUrl = url;
-    if (!embedUrl.includes("/api/") && !embedUrl.includes("/v1/")) {
-      embedUrl = embedUrl.replace(/\/+$/, "") + "/api/embeddings";
+    let embedUrl = url.replace(/\/+$/, "");
+    if (embedUrl.endsWith("/api/embeddings")) {
+      // already correct
+    } else if (embedUrl.endsWith("/api")) {
+      embedUrl = `${embedUrl}/embeddings`;
+    } else if (!embedUrl.includes("/api/") && !embedUrl.includes("/v1/")) {
+      embedUrl = `${embedUrl}/api/embeddings`;
     }
 
     const res = await fetch(embedUrl, {

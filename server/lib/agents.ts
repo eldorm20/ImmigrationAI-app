@@ -727,13 +727,16 @@ async function generateTextWithProvider(
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, model);
 
-      // FIX: Ensure URL ends with /api/generate only if it doesn't already have a path component
+      // FIX: Ensure URL ends with the correct endpoint
       let fetchUrl = localAIUrl as string;
-      if (!fetchUrl.includes("/api/") && !fetchUrl.includes("/v1/")) {
-        fetchUrl = fetchUrl.replace(/\/+$/, "") + "/api/generate";
-      } else if (fetchUrl.endsWith("/v1/chat/completions")) {
-        // Support OpenAI-compatible local endpoints
-        // Adapt payload if needed, or assume the user configured it correctly
+      const baseUrl = fetchUrl.replace(/\/+$/, "");
+
+      if (baseUrl.endsWith("/api/generate") || baseUrl.endsWith("/api/chat")) {
+        fetchUrl = baseUrl;
+      } else if (baseUrl.endsWith("/api")) {
+        fetchUrl = `${baseUrl}/generate`;
+      } else if (!baseUrl.includes("/api/") && !baseUrl.includes("/v1/")) {
+        fetchUrl = `${baseUrl}/api/generate`;
       }
 
       // Retry logic: Try up to 2 times
