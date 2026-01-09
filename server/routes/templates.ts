@@ -24,23 +24,31 @@ router.get(
         const userId = req.user!.userId;
         const { documentType, category } = req.query;
 
-        const results = await db.query.templates.findMany({
-            where: or(
-                eq(templates.isSystem, true),
-                eq(templates.userId, userId)
-            ),
-            orderBy: (templates, { desc }) => [desc(templates.createdAt)],
-        });
+        try {
+            const results = await db.query.templates.findMany({
+                where: or(
+                    eq(templates.isSystem, true),
+                    eq(templates.userId, userId)
+                ),
+                orderBy: (templates, { desc }) => [desc(templates.createdAt)],
+            });
 
-        let filtered = results;
-        if (documentType) {
-            filtered = filtered.filter(t => t.documentType === (documentType as string));
-        }
-        if (category) {
-            filtered = filtered.filter(t => t.category === (category as string));
-        }
+            let filtered = results;
+            if (documentType) {
+                filtered = filtered.filter(t => t.documentType === (documentType as string));
+            }
+            if (category) {
+                filtered = filtered.filter(t => t.category === (category as string));
+            }
 
-        res.json(filtered);
+            res.json(filtered);
+        } catch (error) {
+            logger.error({ error, userId, documentType, category }, "Failed to fetch templates");
+            res.status(500).json({
+                error: "Failed to fetch templates",
+                details: error instanceof Error ? error.message : "Unknown error"
+            });
+        }
     })
 );
 

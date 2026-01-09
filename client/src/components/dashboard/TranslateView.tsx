@@ -35,7 +35,7 @@ export const TranslateView = () => {
         try {
 
 
-            const resp = await apiRequest<{ translation: string }>("/api/ai/translate", {
+            const resp = await apiRequest<{ translation: string }>("/ai/translate", {
                 method: "POST",
                 body: JSON.stringify({ text, fromLang, toLang }),
             });

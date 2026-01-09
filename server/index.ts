@@ -145,8 +145,27 @@ app.get("/health", async (_req, res) => {
       try {
         const aiProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, process.env.OLLAMA_MODEL, 3000);
         if (aiProbe.reachable) {
-          logger.info({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable");
-          aiProviderAvailable = true;
+          if (aiProbe.status === 404) {
+            logger.warn({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL }, "⚠️ Local AI reachable but model NOT FOUND (404). Triggering automatic pull...");
+
+            // Trigger pull asynchronously so we don't block startup
+            const pullUrl = (process.env.LOCAL_AI_URL as string).replace(/\/+$/, "") + "/api/pull";
+            fetch(pullUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: process.env.OLLAMA_MODEL || "mistral" })
+            }).then(r => {
+              if (r.ok) logger.info("✅ Automatic model pull initiated successfully");
+              else logger.error({ status: r.status }, "❌ Automatic model pull failed to initiate");
+            }).catch(err => {
+              logger.error({ err }, "❌ Error initiating automatic model pull");
+            });
+
+            aiProviderAvailable = true; // Mark as available (will be soon)
+          } else {
+            logger.info({ url: process.env.LOCAL_AI_URL, model: process.env.OLLAMA_MODEL, status: aiProbe.status }, "✅ Local AI provider (Ollama) reachable and ready");
+            aiProviderAvailable = true;
+          }
         } else {
           logger.error({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "❌ Local AI provider (Ollama) NOT reachable - AI features will fail");
         }

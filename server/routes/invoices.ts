@@ -52,7 +52,10 @@ router.get(
             res.json(enriched);
         } catch (error) {
             logger.error({ error, userId, role }, "Failed to fetch invoices");
-            throw error;
+            res.status(500).json({
+                error: "Failed to fetch invoices",
+                details: error instanceof Error ? error.message : "Unknown error"
+            });
         }
     })
 );

@@ -536,10 +536,6 @@ router.post(
 
     const { question } = z.object({ question: z.string().min(1) }).parse(req.body);
 
-    // Reuse existing chat logic but format for frontend
-    // In a real implementation, we would extract citations from the RAG context or Agent response
-    const reply = await chatRespond(question, 'en', { type: 'legal', jurisdiction: 'UK' });
-
     // Mock citations if not present (to satisfy frontend interface)
     // The "chatRespond" function uses RAG internally so the text might contain info, but we need structured data
     const citations = [
@@ -552,11 +548,26 @@ router.post(
       }
     ];
 
-    res.json({
-      answer: reply,
-      citations: citations,
-      confidence: 0.92
-    });
+    try {
+      // Reuse existing chat logic but format for frontend
+      const reply = await chatRespond(question, 'en', { type: 'legal', jurisdiction: 'UK' });
+
+      res.json({
+        answer: reply,
+        citations: citations,
+        confidence: 0.92
+      });
+    } catch (aiError) {
+      logger.warn({ aiError, question }, "Legal AI chat failed, using fallback");
+
+      const fallbackReply = "I'm currently having difficulty processing your specific legal inquiry. As a general guide for UK immigration, most routes require a job offer, sponsorship, and meeting financial/English requirements. Please consult a licensed lawyer for verified advice.";
+
+      res.json({
+        answer: fallbackReply,
+        citations: citations,
+        confidence: 0.5
+      });
+    }
   })
 );
 

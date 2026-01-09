@@ -42,7 +42,7 @@ export default function LeadsManager() {
         email: '',
         phone: '',
         visaInterest: 'UK Skilled Worker',
-        country: 'United Kingdom',
+        country: 'GB',
         stage: 'inquiry',
         source: 'Website',
         estimatedValue: 0
@@ -116,7 +116,7 @@ export default function LeadsManager() {
                 email: newLead.email?.trim().toLowerCase(),
                 phone: newLead.phone?.trim() || undefined,
                 visaInterest: newLead.visaInterest || 'UK Skilled Worker',
-                country: newLead.country || 'United Kingdom',
+                country: newLead.country || 'GB',
                 stage: newLead.stage || 'inquiry',
                 source: newLead.source || 'Website',
                 estimatedValue: newLead.estimatedValue ? String(newLead.estimatedValue) : "0"
@@ -143,7 +143,7 @@ export default function LeadsManager() {
                 estimatedValue: 0,
                 source: 'Website',
                 visaInterest: 'UK Skilled Worker',
-                country: 'United Kingdom'
+                country: 'GB'
             });
 
             fetchLeads();
