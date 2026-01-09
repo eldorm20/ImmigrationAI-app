@@ -119,7 +119,7 @@ export function AIChatWithCitations() {
             <div className="p-4 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-brand-600" />
-                    <h3 className="font-bold text-lg">AI Legal Assistant</h3>
+                    <h3 className="font-bold text-lg">{t?.dash?.chat || "AI Assistant"}</h3>
                     <span className="ml-auto text-xs text-slate-500 flex items-center gap-1">
                         <Shield className="w-3 h-3" />
                         Cited from official sources
@@ -168,8 +168,8 @@ export function AIChatWithCitations() {
                                                 >
                                                     <div className="flex items-start gap-2">
                                                         <span className={`px-2 py-0.5 rounded text-xs font-bold ${citation.authority === 'primary'
-                                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                                                                : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                                                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
                                                             }`}>
                                                             {citation.authority === 'primary' ? 'PRIMARY' : 'SECONDARY'}
                                                         </span>

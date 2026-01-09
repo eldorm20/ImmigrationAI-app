@@ -53,11 +53,13 @@ router.get(
 router.post(
     "/right-to-work",
     asyncHandler(async (req, res) => {
-        const { shareCode, dateOfBirth, applicationId } = z.object({
-            shareCode: z.string().min(9).max(9),
+        const { shareCode: rawShareCode, dateOfBirth, applicationId } = z.object({
+            shareCode: z.string().min(9).max(15), // Allow for spaces during entry
             dateOfBirth: z.string(), // Format: YYYY-MM-DD
             applicationId: z.string().optional()
         }).parse(req.body);
+
+        const shareCode = rawShareCode.replace(/\s/g, '');
 
         try {
             const result = await govCheck.checkRightToWork(shareCode, dateOfBirth);

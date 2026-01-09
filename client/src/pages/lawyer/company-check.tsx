@@ -29,7 +29,7 @@ export default function CompanySearch() {
         queryKey: ["companies", debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery) return { items: [] };
-            return await apiRequest<any>(`/api/companies/search?q=${encodeURIComponent(debouncedQuery)}`);
+            return await apiRequest<any>(`/companies/search?q=${encodeURIComponent(debouncedQuery)}`);
         },
         enabled: debouncedQuery.length > 2,
     });

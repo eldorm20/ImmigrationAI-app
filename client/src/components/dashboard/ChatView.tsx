@@ -2,14 +2,26 @@ import React, { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { apiRequest } from "@/lib/api";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
-import { Send, Sparkles, User, Download, RefreshCw, Trash2 } from "lucide-react";
+import { Send, Sparkles, User, Download, RefreshCw, Trash2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 
 export const ChatView = ({ applicationId }: { applicationId?: string }) => {
     const { t, lang } = useI18n();
     const { toast } = useToast();
-    const [messages, setMessages] = useState<{ role: string; text: string; ts: string }[]>([]);
+    const [messages, setMessages] = useState<{
+        role: string;
+        text: string;
+        ts: string;
+        citations?: Array<{
+            source: string;
+            url: string;
+            authority: 'primary' | 'secondary';
+            relevance: number;
+            excerpt: string;
+        }>;
+        confidence?: number;
+    }[]>([]);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isTyping, setIsTyping] = useState(false);
@@ -61,7 +73,7 @@ export const ChatView = ({ applicationId }: { applicationId?: string }) => {
                     content: m.text
                 }));
 
-                const resp = await apiRequest<{ reply: string }>("/ai/chat", {
+                const resp = await apiRequest<{ answer: string; citations: any[]; confidence: number }>("/ai/chat", {
                     method: "POST",
                     body: JSON.stringify({
                         message: userMsg,
@@ -71,7 +83,13 @@ export const ChatView = ({ applicationId }: { applicationId?: string }) => {
                     }),
                 });
                 setIsTyping(false);
-                setMessages(prev => [...prev, { role: 'ai', text: resp.reply, ts: new Date().toISOString() }]);
+                setMessages(prev => [...prev, {
+                    role: 'ai',
+                    text: resp.answer,
+                    ts: new Date().toISOString(),
+                    citations: resp.citations,
+                    confidence: resp.confidence
+                }]);
             } catch (err: any) {
                 setIsTyping(false);
                 const errorMsg = err?.message || t.chat.error;
@@ -176,7 +194,38 @@ export const ChatView = ({ applicationId }: { applicationId?: string }) => {
                                         ? 'bg-brand-600 border-brand-500 text-white rounded-br-none'
                                         : 'bg-white dark:bg-slate-800 border-white/20 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-bl-none'
                                         }`}>
-                                        <p className="text-[15px] leading-relaxed font-medium whitespace-pre-wrap">{m.text}</p>
+                                        <div className="flex items-center justify-between mb-2 gap-4">
+                                            <p className="text-[15px] leading-relaxed font-medium whitespace-pre-wrap">{m.text}</p>
+                                            {m.role === 'ai' && m.confidence && (
+                                                <div className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${m.confidence > 0.8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30'}`}>
+                                                    {m.confidence > 0.8 ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+                                                    {Math.round(m.confidence * 100)}%
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Citations Section */}
+                                        {m.role === 'ai' && m.citations && m.citations.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/50 space-y-2">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Sources & References</p>
+                                                {m.citations.map((cit, idx) => (
+                                                    <div key={idx} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 group/cit">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="flex-1">
+                                                                <a href={cit.url} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
+                                                                    {cit.source} <ExternalLink size={10} />
+                                                                </a>
+                                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{cit.excerpt}</p>
+                                                            </div>
+                                                            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${cit.authority === 'primary' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'}`}>
+                                                                {cit.authority}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <div className={`text-[10px] mt-3 font-black uppercase tracking-[0.1em] opacity-50 ${m.role === 'user' ? 'text-white' : 'text-slate-400'}`}>
                                             {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </div>

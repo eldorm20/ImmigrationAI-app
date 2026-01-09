@@ -113,7 +113,7 @@ export default function UserDash() {
     { id: 'trainer', icon: BrainCircuit, label: t?.dash?.trainer || "Trainer" },
     { id: 'upload', icon: Upload, label: t?.dash?.upload || "Upload" },
     { id: 'translate', icon: Globe, label: t?.dash?.translate || "Translate" },
-    { id: 'chat', icon: MessageSquare, label: t?.dash?.chat || "AI Lawyer" },
+    { id: 'chat', icon: MessageSquare, label: t?.dash?.chat || "AI Assistant" },
     { id: 'messages', icon: Send, label: t?.dash?.messages || "Messages" },
     { id: 'lawyer', icon: Briefcase, label: t?.dash?.lawyer || "Consultation" },
     { id: 'finances', icon: CreditCard, label: t.dash.finances },

@@ -105,7 +105,7 @@ export function AppLayout({
                                     />
                                 )}
                                 {item.icon && <item.icon size={20} className="relative z-10 shrink-0" />}
-                                <span className="relative z-5 font-medium tracking-wide text-sm">{item.label}</span>
+                                <span className="relative z-10 font-medium tracking-wide text-sm">{item.label}</span>
                                 {isActive && (
                                     <motion.div
                                         initial={{ opacity: 0, x: -10 }}
