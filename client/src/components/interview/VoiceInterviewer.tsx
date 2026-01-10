@@ -36,7 +36,7 @@ const VAPI_ASSISTANT_CONFIG = {
     "endCallMessage": "Thank you for scheduling with Wellness Partners. Your appointment is confirmed, and we look forward to seeing you soon. Have a wonderful day!",
     "transcriber": {
         "model": "nova-3",
-        "language": "en",
+        "language": "en" as const,
         "numerals": true,
         "provider": "deepgram" as const,
         "endpointing": 150
