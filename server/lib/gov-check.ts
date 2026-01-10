@@ -76,10 +76,17 @@ export class GovCheckService {
                 })
             });
 
-            if (!res.ok) throw new Error(`HO RTW API returned ${res.status}`);
+            if (!res.ok) {
+                const errorText = await res.text().catch(() => "No error body");
+                logger.warn({ status: res.status, errorText, shareCode }, "Home Office RTW API error response");
+                throw new Error(`HO RTW API returned ${res.status}: ${errorText}`);
+            }
             return await res.json();
         } catch (error) {
-            logger.error({ error, shareCode }, "RTW check failed");
+            logger.error({
+                error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+                shareCode
+            }, "RTW check failed");
             return null;
         }
     }

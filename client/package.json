@@ -4,9 +4,9 @@
   "private": true,
   "main": "index.tsx",
   "scripts": {
-    "dev": "vite --config ../vite.config.ts",
-    "build": "vite build --config ../vite.config.ts",
-    "preview": "vite preview --config ../vite.config.ts",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "echo \"No tests defined\""
   }
   ,

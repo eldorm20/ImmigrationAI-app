@@ -80,7 +80,7 @@ export function VideoConsultation({
             if (!jitsiContainerRef.current || !window.JitsiMeetExternalAPI) return;
 
             const displayName = participantName || `${user?.firstName} ${user?.lastName}` || 'Guest';
-            const roomName = `ImmigrationAI_${meetingId}`;
+            const roomName = meetingId.startsWith('ImmigrationAI_') ? meetingId : `ImmigrationAI_${meetingId}`;
 
             const options = {
                 roomName: roomName,
@@ -142,8 +142,7 @@ export function VideoConsultation({
                 setIsLoading(false);
                 toast({
                     title: t.common?.success || 'Success',
-                    description: 'Joined consultation successfully',
-                    className: 'bg-green-50 text-green-900 border-green-200'
+                    description: 'Joined consultation successfully'
                 });
 
                 // Log consultation start

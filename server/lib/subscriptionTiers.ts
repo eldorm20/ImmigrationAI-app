@@ -3,7 +3,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 
-export type SubscriptionTier = "starter" | "pro" | "premium" | "enterprise";
+export type SubscriptionTier = "starter" | "professional" | "premium" | "enterprise";
 
 export interface TierFeatures {
   tier: SubscriptionTier;
@@ -20,6 +20,7 @@ export interface TierFeatures {
     advancedAnalytics: boolean;
     customReports: boolean;
     lawyerDirectory: boolean;
+    commissionRate?: number; // Extra for lawyers
   };
 }
 
@@ -39,47 +40,50 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: false,
       customReports: false,
       lawyerDirectory: true,
+      commissionRate: 15,
     },
   },
-  pro: {
-    tier: "pro",
+  professional: {
+    tier: "professional",
     name: "Professional",
-    monthlyPrice: 375000, // ~ $29 in UZS
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID || "price_pro_uzs_375k",
+    monthlyPrice: 375000, // Balanced for applicants
+    stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID || "price_professional_uzs_375k",
     features: {
-      documentUploadLimit: 100,
-      aiDocumentGenerations: 50,
-      aiMonthlyRequests: 5000,
-      consultationsPerMonth: 20,
+      documentUploadLimit: 150,
+      aiDocumentGenerations: 75,
+      aiMonthlyRequests: 7500,
+      consultationsPerMonth: 30,
       researchLibraryAccess: true,
       prioritySupport: true,
       advancedAnalytics: true,
       customReports: false,
       lawyerDirectory: true,
+      commissionRate: 12,
     },
   },
   premium: {
     tier: "premium",
     name: "Premium",
-    monthlyPrice: 3850000, // ~ $299 in UZS
-    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_premium_uzs_3m8",
+    monthlyPrice: 1200000, // Matches Lawyer Professional price
+    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_premium_uzs_1m2",
     features: {
       documentUploadLimit: 500,
-      aiDocumentGenerations: 200,
-      aiMonthlyRequests: 20000,
+      aiDocumentGenerations: 250,
+      aiMonthlyRequests: 25000,
       consultationsPerMonth: 100,
       researchLibraryAccess: true,
       prioritySupport: true,
       advancedAnalytics: true,
       customReports: true,
       lawyerDirectory: true,
+      commissionRate: 10,
     },
   },
   enterprise: {
     tier: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 1280000, // ~ $99 in UZS
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_uzs_1m2",
+    monthlyPrice: 3850000, // Heavy/Firm tier
+    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_uzs_3m8",
     features: {
       documentUploadLimit: 10000,
       aiDocumentGenerations: 10000,
@@ -90,6 +94,7 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: true,
       customReports: true,
       lawyerDirectory: true,
+      commissionRate: 5,
     },
   },
 };

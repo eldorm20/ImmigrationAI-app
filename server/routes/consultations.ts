@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "../db";
-import { users, consultations, applications, tasks } from "@shared/schema";
+import { users, consultations, applications, tasks, auditLogs } from "@shared/schema";
 import { eq, and, or, desc, gte, lt, sql } from "drizzle-orm";
 import { authenticate } from "../middleware/auth";
 import { asyncHandler, AppError } from "../middleware/errorHandler";
@@ -146,8 +146,6 @@ router.post(
       throw new AppError(409, "The selected time slot is already booked. Please choose another time.");
     }
 
-    // Generate Jitsi Meet link for video consultation
-    const meetingLink = generateJitsiMeetLink(`consult-${body.lawyerId}-${user.userId}`);
 
     // Create consultation request
     const [consultation] = await db
@@ -160,9 +158,19 @@ router.post(
         duration: body.duration,
         notes: body.notes,
         status: "pending",
-        meetingLink: meetingLink,
+        meetingLink: "", // Will update with ID
       })
       .returning();
+
+    // Standardize room name: ImmigrationAI_<consultationId>
+    const meetingLink = `https://meet.jit.si/ImmigrationAI_${consultation.id}`;
+
+    await db.update(consultations)
+      .set({ meetingLink })
+      .where(eq(consultations.id, consultation.id));
+
+    // Update local object for the response
+    consultation.meetingLink = meetingLink;
 
     // Email lawyer about new consultation request
     try {
@@ -361,13 +369,13 @@ router.patch(
     // Generate meeting link if status is changing to accepted/scheduled and none exists
     const isConfirmed = (body.status === "accepted" || body.status === "scheduled") && !consultation.meetingLink;
     const meetingLink = isConfirmed
-      ? `https://meet.jit.si/ImmigrationAI-${id.substring(0, 8)}`
+      ? `https://meet.jit.si/ImmigrationAI_${id}`
       : (body.meetingLink || consultation.meetingLink);
 
     // Transition lead to active if consultation is accepted
     if (body.status === "accepted" && consultation.applicationId) {
       await db.update(applications)
-        .set({ status: 'active', updatedAt: new Date() })
+        .set({ status: 'in_progress', updatedAt: new Date() })
         .where(eq(applications.id, consultation.applicationId));
       logger.info({ id, applicationId: consultation.applicationId }, "Transitioned application to active status due to paid consultation");
 
@@ -622,6 +630,37 @@ router.post(
       })
       .where(eq(consultations.id, id));
 
+    res.json({ success: true });
+  })
+);
+
+// Log consultation events (join/leave) from the video consultation component
+router.post(
+  "/log",
+  asyncHandler(async (req, res) => {
+    const { meetingId, event, role } = z.object({
+      meetingId: z.string().min(1),
+      event: z.enum(['joined', 'left']),
+      role: z.enum(['lawyer', 'client'])
+    }).parse(req.body);
+
+    const userId = req.user!.userId;
+
+    // Log to audit_logs
+    await db.insert(auditLogs).values({
+      userId,
+      action: `consultation.${event}`,
+      resourceType: 'consultation',
+      resourceId: meetingId,
+      metadata: {
+        role,
+        timestamp: new Date().toISOString()
+      },
+      ipAddress: req.ip || req.get('x-forwarded-for') || req.socket.remoteAddress,
+      userAgent: req.get('user-agent')
+    });
+
+    logger.info({ userId, meetingId, event }, "Consultation event logged");
     res.json({ success: true });
   })
 );

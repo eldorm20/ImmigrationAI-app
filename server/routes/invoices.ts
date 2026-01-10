@@ -141,7 +141,8 @@ router.post(
             }
 
             const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
-            const amount = Math.round(parseFloat(invoice.totalAmount || invoice.amount) * 1); // UZS is zero-decimal in Stripe
+            const isZeroDecimal = (invoice.currency || 'UZS').toUpperCase() === 'UZS';
+            const amount = Math.round(parseFloat(invoice.totalAmount || invoice.amount) * (isZeroDecimal ? 1 : 100));
 
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ["card"],
@@ -202,7 +203,8 @@ router.post(
             }
 
             const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
-            const amount = Math.round(parseFloat(invoice.totalAmount || invoice.amount) * 1); // UZS is zero-decimal
+            const isZeroDecimal = (invoice.currency || 'UZS').toUpperCase() === 'UZS';
+            const amount = Math.round(parseFloat(invoice.totalAmount || invoice.amount) * (isZeroDecimal ? 1 : 100));
 
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ["card"],

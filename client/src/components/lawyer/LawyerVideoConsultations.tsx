@@ -107,7 +107,6 @@ export function LawyerVideoConsultations() {
             toast({
                 title: t.common?.success || 'Success',
                 description: 'Consultation scheduled successfully!',
-                className: 'bg-green-50 text-green-900 border-green-200'
             });
             queryClient.invalidateQueries({ queryKey: ['/consultations'] });
             setIsScheduleOpen(false);
@@ -162,12 +161,11 @@ export function LawyerVideoConsultations() {
     };
 
     const copyMeetingLink = (meetingId: string) => {
-        const link = `${window.location.origin}/consultation/${meetingId}`;
+        const link = `${window.location.origin}/video-call/${meetingId}`;
         navigator.clipboard.writeText(link);
         toast({
             title: t.common?.success || 'Copied',
             description: 'Meeting link copied to clipboard',
-            className: 'bg-green-50 text-green-900 border-green-200'
         });
     };
 
@@ -204,7 +202,7 @@ export function LawyerVideoConsultations() {
         return (
             <VideoConsultation
                 meetingId={roomName}
-                participantName={`${user?.firstName} ${user?.lastName}` || 'Lawyer'}
+                participantName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Lawyer'}
                 isLawyer={true}
                 onEnd={() => setActiveConsultation(null)}
             />
@@ -468,11 +466,13 @@ export function LawyerVideoConsultations() {
                     filteredConsultations.map((consultation: Consultation, idx: number) => {
                         const d = new Date(consultation.scheduledAt);
                         const isUpcoming = !isNaN(d.getTime()) && isFuture(d);
-                        const statusColors = {
+                        const statusColors: Record<string, string> = {
                             scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
                             'in-progress': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
                             completed: 'bg-slate-100 text-slate-800 dark:bg-slate-900/20 dark:text-slate-400',
                             cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+                            'cancelled-by-lawyer': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+                            'cancelled-by-client': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
                         };
 
                         return (

@@ -43,7 +43,16 @@ router.get(
 
             res.json(filtered);
         } catch (error) {
-            logger.error({ error, userId, documentType, category }, "Failed to fetch templates");
+            logger.error({
+                error: error instanceof Error ? {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                } : error,
+                userId,
+                documentType,
+                category
+            }, "Failed to fetch templates");
             res.status(500).json({
                 error: "Failed to fetch templates",
                 details: error instanceof Error ? error.message : "Unknown error"

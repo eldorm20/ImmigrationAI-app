@@ -34,14 +34,14 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
         name: 'Starter',
         nameUz: 'Boshlang\'ich',
         nameRu: 'Начальный',
-        price: 500000, // 500,000 UZS (~$40/month)
+        price: 0,
         currency: 'UZS',
         billingPeriod: 'monthly',
-        commission: 15, // 15% commission on client payments
+        commission: 15,
         features: [
             { name: 'Client Management Portal', included: true },
-            { name: 'Document Generation (AI)', included: true, details: '50/month' },
-            { name: 'Video Consultations', included: true, details: '20/month' },
+            { name: 'Document Generation (AI)', included: true, details: '20/month' },
+            { name: 'Video Consultations', included: true, details: '5/month' },
             { name: 'Payment Processing', included: true },
             { name: 'Email Support', included: true },
             { name: 'Basic Analytics', included: true },
@@ -56,7 +56,7 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
             maxClients: 50,
             maxCases: 100,
             maxDocuments: 50,
-            maxVideoConsultations: 20,
+            maxVideoConsultations: 5,
             maxTemplates: 10,
         },
         color: 'from-blue-600 to-blue-500',
@@ -66,65 +66,81 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
         name: 'Professional',
         nameUz: 'Professional',
         nameRu: 'Профессиональный',
-        price: 1200000, // 1,200,000 UZS (~$95/month)
+        price: 375000,
         currency: 'UZS',
         billingPeriod: 'monthly',
-        commission: 12, // 12% commission
-        popular: true,
+        commission: 12,
         features: [
             { name: 'Everything in Starter', included: true },
-            { name: 'Document Generation (AI)', included: true, details: 'Unlimited' },
-            { name: 'Video Consultations', included: true, details: 'Unlimited' },
-            { name: 'Priority Email & Chat Support', included: true },
-            { name: 'Advanced Analytics & Reports', included: true },
-            { name: 'Custom Document Templates', included: true, details: 'Up to 50' },
-            { name: 'Team Collaboration', included: true, details: 'Up to 3 members' },
-            { name: 'Automated Workflows', included: true },
-            { name: 'Export & Backup', included: true },
+            { name: 'Document Generation (AI)', included: true, details: '75/month' },
+            { name: 'Video Consultations', included: true, details: '30/month' },
+            { name: 'Priority Support', included: true },
+            { name: 'Advanced Analytics', included: true },
+            { name: 'Custom Document Templates', included: false },
             { name: 'White Label Branding', included: false },
             { name: 'API Access', included: false },
-            { name: 'Dedicated Account Manager', included: false },
         ],
         limits: {
             maxClients: 200,
             maxCases: 500,
-            maxDocuments: -1, // unlimited
-            maxVideoConsultations: -1, // unlimited
+            maxDocuments: 150,
+            maxVideoConsultations: 30,
             maxTemplates: 50,
         },
         color: 'from-purple-600 to-purple-500',
+    },
+    {
+        id: 'premium',
+        name: 'Premium',
+        nameUz: 'Premium',
+        nameRu: 'Премиум',
+        price: 1200000,
+        currency: 'UZS',
+        billingPeriod: 'monthly',
+        commission: 10,
+        popular: true,
+        features: [
+            { name: 'Everything in Professional', included: true },
+            { name: 'Document Generation (AI)', included: true, details: '250/month' },
+            { name: 'Video Consultations', included: true, details: '100/month' },
+            { name: 'Custom Reports', included: true },
+            { name: 'Lawyer Directory Listing', included: true },
+            { name: 'White Label Branding', included: false },
+            { name: 'API Access', included: false },
+        ],
+        limits: {
+            maxClients: 500,
+            maxCases: 1000,
+            maxDocuments: 500,
+            maxVideoConsultations: 100,
+            maxTemplates: 100,
+        },
+        color: 'from-brand-600 to-blue-500',
     },
     {
         id: 'enterprise',
         name: 'Enterprise',
         nameUz: 'Korxona',
         nameRu: 'Корпоративный',
-        price: 3000000, // 3,000,000 UZS (~$240/month)
+        price: 3850000,
         currency: 'UZS',
         billingPeriod: 'monthly',
-        commission: 8, // 8% commission (best rate)
+        commission: 5,
         features: [
-            { name: 'Everything in Professional', included: true },
-            { name: 'White Label Branding', included: true, details: 'Full customization' },
-            { name: 'API Access', included: true, details: 'Full REST API' },
+            { name: 'Everything in Premium', included: true },
+            { name: 'White Label Branding', included: true },
+            { name: 'API Access', included: true },
             { name: 'Dedicated Account Manager', included: true },
-            { name: '24/7 Priority Support', included: true },
             { name: 'Custom Integrations', included: true },
-            { name: 'Team Collaboration', included: true, details: 'Unlimited members' },
-            { name: 'Advanced Security & Compliance', included: true },
-            { name: 'Custom Training & Onboarding', included: true },
-            { name: 'SLA Guarantee', included: true, details: '99.9% uptime' },
-            { name: 'Data Migration Support', included: true },
-            { name: 'Custom Feature Development', included: true, details: 'On request' },
         ],
         limits: {
-            maxClients: -1, // unlimited
-            maxCases: -1, // unlimited
-            maxDocuments: -1, // unlimited
-            maxVideoConsultations: -1, // unlimited
-            maxTemplates: -1, // unlimited
+            maxClients: -1,
+            maxCases: -1,
+            maxDocuments: -1,
+            maxVideoConsultations: -1,
+            maxTemplates: -1,
         },
-        color: 'from-gradient-to-br-brand-600 to-gold-500',
+        color: 'from-slate-900 to-slate-800',
     },
 ];
 
@@ -147,28 +163,4 @@ export function calculateCommission(tier: SubscriptionTier, amount: number): num
 
 export function getNetPayment(tier: SubscriptionTier, amount: number): number {
     return amount - calculateCommission(tier, amount);
-}
-
-// Feature comparison helper
-export function compareFeatures(features: string[]): Record<string, Record<string, boolean>> {
-    const comparison: Record<string, Record<string, boolean>> = {};
-
-    features.forEach(featureName => {
-        comparison[featureName] = {};
-        SUBSCRIPTION_TIERS.forEach(tier => {
-            const feature = tier.features.find(f => f.name === featureName);
-            comparison[featureName][tier.id] = feature?.included || false;
-        });
-    });
-
-    return comparison;
-}
-
-// All unique features across tiers
-export function getAllFeatures(): string[] {
-    const featuresSet = new Set<string>();
-    SUBSCRIPTION_TIERS.forEach(tier => {
-        tier.features.forEach(feature => featuresSet.add(feature.name));
-    });
-    return Array.from(featuresSet);
 }

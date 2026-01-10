@@ -8,8 +8,10 @@ import rateLimit from "express-rate-limit";
 
 const DEFAULT_ORIGINS = [
   "http://localhost:5000",
+  "http://localhost:5173", // Vite dev server
   "http://localhost:3000",
   "http://127.0.0.1:5000",
+  "http://127.0.0.1:5173", // Vite dev server (127.0.0.1)
   // Allow Railway preview/production domains by default (wildcard)
   "https://*.railway.app",
   "https://*.up.railway.app",

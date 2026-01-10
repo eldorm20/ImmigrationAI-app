@@ -62,13 +62,23 @@ router.post(
         const shareCode = rawShareCode.replace(/\s/g, '');
 
         try {
+            logger.info({ shareCode, dateOfBirth, applicationId }, "Processing Right to Work check request");
             const result = await govCheck.checkRightToWork(shareCode, dateOfBirth);
-            if (!result) throw new AppError(400, "Could not verify Right to Work. Please check your share code and DOB.");
+
+            if (!result) {
+                logger.warn({ shareCode, dateOfBirth }, "Right to Work verification returned no result");
+                throw new AppError(400, "Could not verify Right to Work. Please check your share code and DOB.");
+            }
+
             if (applicationId) {
+                await updateRoadmapProgress(applicationId);
                 await updateMilestone(applicationId, 'govChecks');
             }
+
+            logger.info({ shareCode, success: true }, "Right to Work verification successful");
             res.json(result);
         } catch (error: any) {
+            logger.error({ error: error instanceof Error ? error.message : error, shareCode }, "Right to Work check route error");
             if (error.status === 400) throw error;
             throw new AppError(503, "Right to Work check service temporarily unavailable. Please try again later.");
         }

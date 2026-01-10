@@ -1,6 +1,6 @@
 import React from "react";
 import { useI18n } from "@/lib/i18n";
-import { CheckCircle, Globe, Send, Clock, ShieldCheck, Mail } from "lucide-react";
+import { CheckCircle, Globe, Send, Clock, ShieldCheck, Mail, FileText } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { AnimatedCard } from "@/components/ui/live-elements";
 import { motion } from "framer-motion";
@@ -186,6 +186,31 @@ export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ appl
                 </GlassCard>
 
                 <div className="space-y-6">
+                    <GlassCard className="p-8">
+                        <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
+                            <FileText className="text-brand-500" size={24} />
+                            {t.dashStatus?.app_details || "Application Summary"}
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                                <span className="text-slate-500">{t.dashStatus?.visa_type || "Visa Type"}</span>
+                                <span className="font-bold">{application.visaType}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                                <span className="text-slate-500">{t.dashStatus?.destination || "Destination"}</span>
+                                <span className="font-bold">{application.country || "United Kingdom"}</span>
+                            </div>
+                            <div className="flex justify-between py-2 border-b border-slate-100 dark:border-slate-800">
+                                <span className="text-slate-500">{t.dashStatus?.reference || "Case Reference"}</span>
+                                <span className="font-mono font-bold text-xs">#{application.id?.slice(0, 8).toUpperCase()}</span>
+                            </div>
+                            <div className="flex justify-between py-2">
+                                <span className="text-slate-500">{t.dashStatus?.last_update || "Last Update"}</span>
+                                <span className="font-bold">{formattedDate}</span>
+                            </div>
+                        </div>
+                    </GlassCard>
+
                     <GlassCard className="p-8 border-brand-500/10">
                         <h3 className="font-bold text-xl mb-4 flex items-center gap-2">
                             <Mail className="text-brand-500" size={24} />

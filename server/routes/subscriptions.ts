@@ -12,7 +12,7 @@ import {
 } from "../lib/subscriptionTiers";
 import { createSubscription, getSubscriptionStatus } from "../lib/subscription";
 import { getUsageRemaining } from "../lib/aiUsage";
-import { users, subscriptions } from "@shared/schema";
+import { users, subscriptions, payments } from "@shared/schema";
 import { logger } from "../lib/logger";
 import { eq, desc, and, or } from "drizzle-orm";
 
@@ -275,13 +275,23 @@ router.get(
     const userId = req.user!.userId;
 
     try {
-      // For now, return empty billing history
-      // In production, this would fetch from Stripe
-      const billingHistory: any[] = [];
+      // Fetch from payments table
+      const history = await db.query.payments.findMany({
+        where: eq(payments.userId, userId),
+        orderBy: [desc(payments.createdAt)],
+      });
 
-      res.json(billingHistory);
+      res.json(history.map(p => ({
+        id: p.id,
+        date: p.createdAt,
+        amount: p.amount,
+        currency: p.currency,
+        status: p.status,
+        provider: p.provider,
+        description: (p.metadata as any)?.description || (p.amount ? "Service Payment" : "Consultation")
+      })));
     } catch (error) {
-      console.error("Error fetching billing history:", error);
+      logger.error({ error, userId }, "Error fetching billing history");
       res.status(500).json({ message: "Failed to fetch billing history" });
     }
   })

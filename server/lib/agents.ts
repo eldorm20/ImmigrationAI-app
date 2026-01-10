@@ -731,11 +731,13 @@ async function generateTextWithProvider(
       let fetchUrl = localAIUrl as string;
       const baseUrl = fetchUrl.replace(/\/+$/, "");
 
-      if (baseUrl.endsWith("/api/generate") || baseUrl.endsWith("/api/chat")) {
+      if (baseUrl.endsWith("/api/generate") || baseUrl.endsWith("/api/chat") || baseUrl.endsWith("/v1/chat/completions")) {
         fetchUrl = baseUrl;
       } else if (baseUrl.endsWith("/api")) {
         fetchUrl = `${baseUrl}/generate`;
-      } else if (!baseUrl.includes("/api/") && !baseUrl.includes("/v1/")) {
+      } else if (baseUrl.endsWith("/v1")) {
+        fetchUrl = `${baseUrl}/chat/completions`;
+      } else if (!baseUrl.includes("/api") && !baseUrl.includes("/v1")) {
         fetchUrl = `${baseUrl}/api/generate`;
       }
 

@@ -146,11 +146,13 @@ export async function probeOllamaEndpoint(url: string, model: string = "mistral"
 export async function generateOllamaEmbedding(text: string, url: string, model?: string): Promise<number[] | null> {
   try {
     let embedUrl = url.replace(/\/+$/, "");
-    if (embedUrl.endsWith("/api/embeddings")) {
+    if (embedUrl.endsWith("/api/embeddings") || embedUrl.endsWith("/v1/embeddings")) {
       // already correct
     } else if (embedUrl.endsWith("/api")) {
       embedUrl = `${embedUrl}/embeddings`;
-    } else if (!embedUrl.includes("/api/") && !embedUrl.includes("/v1/")) {
+    } else if (embedUrl.endsWith("/v1")) {
+      embedUrl = `${embedUrl}/embeddings`;
+    } else if (!embedUrl.includes("/api") && !embedUrl.includes("/v1")) {
       embedUrl = `${embedUrl}/api/embeddings`;
     }
 
