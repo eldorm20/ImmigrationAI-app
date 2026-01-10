@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-    SUBSCRIPTION_TIERS,
+    LAWYER_SUBSCRIPTION_TIERS,
     getAnnualPrice,
     ANNUAL_DISCOUNT,
     type SubscriptionTier
@@ -55,7 +55,6 @@ export function LawyerSubscription() {
             toast({
                 title: t.common?.success || 'Success',
                 description: 'Subscription activated successfully!',
-                className: 'bg-green-50 text-green-900 border-green-200'
             });
             queryClient.invalidateQueries({ queryKey: ['/subscriptions/current'] });
             setShowPayment(false);
@@ -185,7 +184,7 @@ export function LawyerSubscription() {
 
             {/* Pricing Cards */}
             <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-                {SUBSCRIPTION_TIERS.map((tier, index) => {
+                {LAWYER_SUBSCRIPTION_TIERS.map((tier, index) => {
                     const price = getTierPrice(tier);
                     const isCurrentPlan = currentSubscription?.tier.toLowerCase() === tier.id;
 
