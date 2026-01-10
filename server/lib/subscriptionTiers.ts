@@ -24,12 +24,12 @@ export interface TierFeatures {
   };
 }
 
-export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
+export const CLIENT_TIERS: Record<SubscriptionTier, TierFeatures> = {
   starter: {
     tier: "starter",
     name: "Starter",
     monthlyPrice: 0,
-    stripePriceId: process.env.STRIPE_STARTER_PRICE_ID || "price_starter",
+    stripePriceId: "price_starter_free",
     features: {
       documentUploadLimit: 50,
       aiDocumentGenerations: 20,
@@ -40,14 +40,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: false,
       customReports: false,
       lawyerDirectory: true,
-      commissionRate: 15,
     },
   },
   professional: {
     tier: "professional",
     name: "Professional",
-    monthlyPrice: 375000, // Balanced for applicants
-    stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID || "price_professional_uzs_375k",
+    monthlyPrice: 15000, // 15,000 UZS for Clients
+    stripePriceId: process.env.STRIPE_CLIENT_PRO_PRICE_ID || "price_client_pro_15k",
     features: {
       documentUploadLimit: 150,
       aiDocumentGenerations: 75,
@@ -58,14 +57,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: true,
       customReports: false,
       lawyerDirectory: true,
-      commissionRate: 12,
     },
   },
   premium: {
     tier: "premium",
     name: "Premium",
-    monthlyPrice: 1200000, // Matches Lawyer Professional price
-    stripePriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "price_premium_uzs_1m2",
+    monthlyPrice: 50000, // 50,000 UZS for Clients
+    stripePriceId: process.env.STRIPE_CLIENT_PREMIUM_PRICE_ID || "price_client_premium_50k",
     features: {
       documentUploadLimit: 500,
       aiDocumentGenerations: 250,
@@ -76,14 +74,13 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: true,
       customReports: true,
       lawyerDirectory: true,
-      commissionRate: 10,
     },
   },
   enterprise: {
     tier: "enterprise",
     name: "Enterprise",
-    monthlyPrice: 3850000, // Heavy/Firm tier
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise_uzs_3m8",
+    monthlyPrice: 200000, // Balanced for power clients/family
+    stripePriceId: process.env.STRIPE_CLIENT_ENTERPRISE_PRICE_ID || "price_client_ent_200k",
     features: {
       documentUploadLimit: 10000,
       aiDocumentGenerations: 10000,
@@ -94,10 +91,89 @@ export const TIER_CONFIGURATIONS: Record<SubscriptionTier, TierFeatures> = {
       advancedAnalytics: true,
       customReports: true,
       lawyerDirectory: true,
+    },
+  },
+};
+
+export const LAWYER_TIERS: Record<SubscriptionTier, TierFeatures> = {
+  starter: {
+    tier: "starter",
+    name: "Lawyer Starter",
+    monthlyPrice: 0,
+    stripePriceId: "price_lawyer_starter_free",
+    features: {
+      documentUploadLimit: 100,
+      aiDocumentGenerations: 50,
+      aiMonthlyRequests: 1000,
+      consultationsPerMonth: 10,
+      researchLibraryAccess: true,
+      prioritySupport: false,
+      advancedAnalytics: true,
+      customReports: false,
+      lawyerDirectory: true,
+      commissionRate: 15,
+    },
+  },
+  professional: {
+    tier: "professional",
+    name: "Lawyer Professional",
+    monthlyPrice: 375000, // 375,000 UZS for Lawyers
+    stripePriceId: process.env.STRIPE_LAWYER_PRO_PRICE_ID || "price_lawyer_pro_375k",
+    features: {
+      documentUploadLimit: 500,
+      aiDocumentGenerations: 200,
+      aiMonthlyRequests: 15000,
+      consultationsPerMonth: 50,
+      researchLibraryAccess: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      customReports: true,
+      lawyerDirectory: true,
+      commissionRate: 12,
+    },
+  },
+  premium: {
+    tier: "premium",
+    name: "Lawyer Premium",
+    monthlyPrice: 1200000, // 1,200,000 UZS for Lawyers
+    stripePriceId: process.env.STRIPE_LAWYER_PREMIUM_PRICE_ID || "price_lawyer_premium_1m2",
+    features: {
+      documentUploadLimit: 2000,
+      aiDocumentGenerations: 1000,
+      aiMonthlyRequests: 50000,
+      consultationsPerMonth: 200,
+      researchLibraryAccess: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      customReports: true,
+      lawyerDirectory: true,
+      commissionRate: 10,
+    },
+  },
+  enterprise: {
+    tier: "enterprise",
+    name: "Lawyer Enterprise",
+    monthlyPrice: 3850000, // 3,850,000 UZS for Law Firms
+    stripePriceId: process.env.STRIPE_LAWYER_ENTERPRISE_PRICE_ID || "price_lawyer_ent_3m8",
+    features: {
+      documentUploadLimit: 50000,
+      aiDocumentGenerations: 10000,
+      aiMonthlyRequests: -1, // Unlimited
+      consultationsPerMonth: -1, // Unlimited
+      researchLibraryAccess: true,
+      prioritySupport: true,
+      advancedAnalytics: true,
+      customReports: true,
+      lawyerDirectory: true,
       commissionRate: 5,
     },
   },
 };
+
+// For backward compatibility and shared logic, we provide a getter based on role
+export function getTierConfig(role: string = "applicant"): Record<SubscriptionTier, TierFeatures> {
+  return role === "lawyer" ? LAWYER_TIERS : CLIENT_TIERS;
+}
 
 export async function getUserSubscriptionTier(userId: string): Promise<SubscriptionTier> {
   try {
@@ -111,9 +187,10 @@ export async function getUserSubscriptionTier(userId: string): Promise<Subscript
 
     const metadata = user.metadata && typeof user.metadata === "object" ? (user.metadata as any) : {};
     const tier = metadata?.subscriptionTier as SubscriptionTier | undefined;
+    const config = getTierConfig(user.role);
 
     // If user has explicit tier in metadata, respect it
-    if (tier && Object.keys(TIER_CONFIGURATIONS).includes(tier)) {
+    if (tier && Object.keys(config).includes(tier)) {
       return tier;
     }
 
@@ -166,9 +243,18 @@ export async function setUserSubscriptionTier(
   }
 }
 
-export function getTierFeatures(tier: SubscriptionTier): TierFeatures {
-  // Default to starter if tier not found
-  return TIER_CONFIGURATIONS[tier] || TIER_CONFIGURATIONS.starter;
+export async function getTierFeaturesForUser(userId: string): Promise<TierFeatures> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+  const tier = await getUserSubscriptionTier(userId);
+  const config = getTierConfig(user?.role || "applicant");
+  return config[tier] || config.starter;
+}
+
+export function getTierFeatures(tier: SubscriptionTier, role: string = "applicant"): TierFeatures {
+  const config = getTierConfig(role);
+  return config[tier] || config.starter;
 }
 
 export async function checkFeatureAccess(
@@ -176,8 +262,7 @@ export async function checkFeatureAccess(
   feature: keyof TierFeatures["features"]
 ): Promise<boolean> {
   try {
-    const tier = await getUserSubscriptionTier(userId);
-    const features = getTierFeatures(tier).features;
+    const features = (await getTierFeaturesForUser(userId)).features;
 
     // For boolean features
     if (typeof features[feature] === "boolean") {
@@ -201,8 +286,8 @@ export async function getFeatureLimit(
   feature: keyof TierFeatures["features"]
 ): Promise<number> {
   try {
-    const tier = await getUserSubscriptionTier(userId);
-    const featureValue = getTierFeatures(tier).features[feature];
+    const features = (await getTierFeaturesForUser(userId)).features;
+    const featureValue = features[feature];
 
     if (typeof featureValue === "number") {
       return featureValue;

@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { apiRequest } from "@/lib/api";
 import { error as logError } from "@/lib/logger";
 import { trackEvent } from "../lib/analytics";
+import { CLIENT_SUBSCRIPTION_TIERS, LAWYER_SUBSCRIPTION_TIERS, type SubscriptionTier as TierType } from "@/lib/subscriptionTiers";
 
 interface Subscription {
   id: string;
@@ -32,67 +33,7 @@ interface BillingHistory {
   invoice: string;
 }
 
-const plans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 0,
-    period: "forever",
-    description: "Ideal for basic immigration needs",
-    features: [
-      "50 Document Uploads / Month",
-      "20 AI Document Generations",
-      "500 AI Monthly Requests",
-      "5 Consultations / Month",
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 375000,
-    period: "month",
-    description: "For active solo applicants",
-    features: [
-      "150 Document Uploads / Month",
-      "75 AI Document Generations",
-      "7,500 AI Monthly Requests",
-      "30 Consultations / Month",
-      "Priority Support",
-      "Advanced Analytics",
-    ],
-    popular: true,
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 1200000,
-    period: "month",
-    description: "For power users & families",
-    features: [
-      "500 Document Uploads / Month",
-      "250 AI Document Generations",
-      "25,000 AI Monthly Requests",
-      "100 Consultations / Month",
-      "Lawyer Directory Access",
-      "Custom Reports",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 3850000,
-    period: "month",
-    description: "For large firms & organizations",
-    features: [
-      "10,000+ Document Uploads",
-      "1,000+ AI Generations",
-      "Unlimited AI Requests",
-      "Full API Access",
-      "White Label Options",
-      "Dedicated AM",
-    ],
-  },
-];
+// Local plan definitions removed in favor of shared library configs
 
 export default function SubscriptionPage() {
   const { user, logout, isLoading } = useAuth();
@@ -202,6 +143,8 @@ export default function SubscriptionPage() {
 
   if (!user) return null;
 
+  const role = user.role || "applicant";
+  const plans = role === "lawyer" ? LAWYER_SUBSCRIPTION_TIERS : CLIENT_SUBSCRIPTION_TIERS;
   const currentPlan = subscription?.plan || "starter";
   const currentPlanData = plans.find(p => p.id === currentPlan);
 
@@ -356,8 +299,8 @@ export default function SubscriptionPage() {
                     <p className="text-slate-600 dark:text-slate-400 text-sm">{plan.description}</p>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="text-4xl font-bold text-slate-900 dark:text-white">{plan.price.toLocaleString()}</span>
-                      <span className="text-xl font-medium text-slate-500">UZS</span>
-                      <span className="text-slate-600 dark:text-slate-400">/{plan.period === "month" ? "mo" : "forever"}</span>
+                      <span className="text-xl font-medium text-slate-500">{plan.currency || "UZS"}</span>
+                      <span className="text-slate-600 dark:text-slate-400">/{plan.billingPeriod === "monthly" ? "mo" : "forever"}</span>
                     </div>
                   </div>
 
@@ -366,7 +309,9 @@ export default function SubscriptionPage() {
                       {plan.features.map((feature, j) => (
                         <div key={j} className="flex items-start gap-3">
                           <Check size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-slate-600 dark:text-slate-400 text-sm">{feature}</span>
+                          <span className="text-slate-600 dark:text-slate-400 text-sm">
+                            {feature.name} {feature.details ? `(${feature.details})` : ""}
+                          </span>
                         </div>
                       ))}
                     </div>

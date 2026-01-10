@@ -5,7 +5,7 @@ import { db } from "../db";
 import {
   getUserSubscriptionTier,
   getTierFeatures,
-  TIER_CONFIGURATIONS,
+  getTierConfig,
   checkFeatureAccess,
   getFeatureLimit,
   type SubscriptionTier,
@@ -22,7 +22,9 @@ const router = Router();
 router.get(
   "/plans",
   asyncHandler(async (req, res) => {
-    const plans = Object.values(TIER_CONFIGURATIONS).map((config) => ({
+    const role = req.user?.role || "applicant";
+    const config = getTierConfig(role);
+    const plans = Object.values(config).map((config) => ({
       tier: config.tier,
       name: config.name,
       monthlyPrice: config.monthlyPrice,
@@ -40,8 +42,9 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
+    const role = req.user!.role;
     const tier = await getUserSubscriptionTier(userId);
-    const tierFeatures = getTierFeatures(tier);
+    const tierFeatures = getTierFeatures(tier, role);
     const now = new Date();
 
     res.json({
@@ -120,26 +123,19 @@ router.post(
       return res.status(400).json({ message: "Please specify a tier or planId" });
     }
 
-    // Validate tier
-    if (!Object.keys(TIER_CONFIGURATIONS).includes(requestedTier)) {
-      return res.status(400).json({
-        message: `Invalid subscription tier: ${requestedTier}. Valid options: ${Object.keys(TIER_CONFIGURATIONS).join(", ")}`
-      });
-    }
-
-    // Starter (free) tier doesn't need Stripe
-    if (requestedTier === "starter") {
-      return res.json({
-        success: true,
-        message: "Switched to Starter tier",
-        tier: "starter",
-      });
-    }
-
-
     // For paid tiers, use Stripe Checkout Session to collect payment details
     const user = req.user!;
-    const tierConfig = TIER_CONFIGURATIONS[requestedTier as SubscriptionTier];
+    const role = user.role;
+    const config = getTierConfig(role);
+
+    // Validate tier
+    if (!Object.keys(config).includes(requestedTier)) {
+      return res.status(400).json({
+        message: `Invalid subscription tier: ${requestedTier}. Valid options: ${Object.keys(config).join(", ")}`
+      });
+    }
+
+    const tierConfig = config[requestedTier as SubscriptionTier];
 
     // Check if tier has valid Stripe configuration
     if (!tierConfig.stripePriceId || tierConfig.stripePriceId.includes('_placeholder') || tierConfig.stripePriceId.includes('_99')) {
@@ -238,9 +234,10 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     const userId = req.user!.userId;
+    const role = req.user!.role;
 
     const tier = await getUserSubscriptionTier(userId);
-    const tierFeatures = getTierFeatures(tier);
+    const tierFeatures = getTierFeatures(tier, role);
 
     // Attempt to return Stripe-backed subscription status if available in user metadata
     let subscriptionStatus = null;
