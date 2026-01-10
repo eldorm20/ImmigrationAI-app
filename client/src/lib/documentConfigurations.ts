@@ -17,6 +17,22 @@ export interface DocumentConfig {
     description: string;
 }
 
+// Mapping from server template IDs to DOCUMENT_CONFIGS keys
+const TEMPLATE_ID_TO_CONFIG_KEY: Record<string, string> = {
+    'motivation_letter': 'Motivation Letter',
+    'cover_letter': 'Cover Letter',
+    'employer_reference': 'Employer Reference Letter',
+    'visa_form_helper': 'Visa Application Form',
+    'student_personal_statement': 'Student Visa Personal Statement',
+    'family_relationship_proof': 'Family Relationship Letter',
+    'tourist_itinerary': 'Tourist Visa Itinerary',
+    'sponsorship_support': 'Sponsorship Letter',
+    'business_plan_exec': 'Business Plan Summary',
+    'global_talent_cv': 'Global Talent CV',
+    'refusal_appeal_letter': 'Appeal Letter',
+    'uk_student_visa': 'UK Student Visa Cover Letter',
+};
+
 // Document configurations mapped by document type
 export const DOCUMENT_CONFIGS: Record<string, DocumentConfig> = {
     'Bank Statement': {
@@ -301,7 +317,9 @@ export const DOCUMENT_CONFIGS: Record<string, DocumentConfig> = {
 
 // Helper function to get fields for a specific document type
 export function getDocumentFields(documentType: string): DocumentField[] {
-    const config = DOCUMENT_CONFIGS[documentType];
+    // Try to map template ID to config key
+    const configKey = TEMPLATE_ID_TO_CONFIG_KEY[documentType] || documentType;
+    const config = DOCUMENT_CONFIGS[configKey];
     return config ? config.fields : [];
 }
 
