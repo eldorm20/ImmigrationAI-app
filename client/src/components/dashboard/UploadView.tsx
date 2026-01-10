@@ -316,6 +316,38 @@ export const UploadView: React.FC<UploadViewProps> = ({
                         </div>
                     )}
                 </div>
+
+                {/* What's Next Guidance */}
+                {files.length > 0 && !uploading && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-8 p-6 bg-gradient-to-r from-brand-50 to-blue-50 dark:from-brand-900/20 dark:to-blue-900/20 rounded-2xl border border-brand-200 dark:border-brand-800"
+                    >
+                        <h4 className="text-lg font-black text-brand-900 dark:text-brand-100 mb-3 flex items-center gap-2">
+                            <Sparkles className="text-brand-600" size={20} />
+                            What's Next?
+                        </h4>
+                        <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                            <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-600 mt-2" />
+                                <span><strong>Review your documents</strong> in the list below to ensure they uploaded correctly</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-600 mt-2" />
+                                <span><strong>Use OCR scanning</strong> on images to extract text and get AI summaries</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-600 mt-2" />
+                                <span><strong>Navigate to Documents tab</strong> to generate AI-powered immigration documents</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-brand-600 mt-2" />
+                                <span><strong>Check your Roadmap</strong> to see updated progress and next milestones</span>
+                            </li>
+                        </ul>
+                    </motion.div>
+                )}
             </AnimatedCard>
 
             {files.length > 0 && (
