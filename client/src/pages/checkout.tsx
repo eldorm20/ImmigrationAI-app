@@ -18,7 +18,7 @@ declare global {
 export default function Checkout() {
   const [location, setLocation] = useLocation();
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
 
   const [stripe, setStripe] = useState<Stripe | null>(null);
@@ -29,9 +29,14 @@ export default function Checkout() {
 
   const params = new URLSearchParams(location.split('?')[1]);
   const clientSecret = params.get('clientSecret');
-  const planId = params.get('planId');
+  // PlanId might be 'tier' in mock flow or 'planId' in stripe flow
+  const planId = params.get('planId') || params.get('tier');
+  const isMock = params.get('mock') === 'true';
+  const sessionId = params.get('session_id');
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!user) {
       setLocation('/auth');
       return;
@@ -59,9 +64,20 @@ export default function Checkout() {
       return;
     }
 
+    // MOCK FLOW: If this is a mock checkout, we don't need Stripe initialization
+    if (isMock && sessionId) {
+      // We can just stay on this page and let the user click "Pay" to "confirm" the mock payment
+      // Or we could auto-confirm. Let's let them click "Pay" for UX consistency, 
+      // but we won't load Stripe.
+      return;
+    }
+
     if (!clientSecret) {
-      // No clientSecret means user navigated here directly - go back to dashboard
-      setLocation('/dashboard');
+      // No clientSecret and not a mock session -> invalid state
+      // check planId just in case they navigated manually to /checkout
+      if (!planId) {
+        setLocation('/dashboard');
+      }
       return;
     }
 
@@ -86,19 +102,46 @@ export default function Checkout() {
       }
     };
     loadStripe();
-  }, [user, clientSecret]);
+  }, [user, isLoading, clientSecret, isMock, sessionId]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Loader className="w-8 h-8 animate-spin text-brand-600" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !clientSecret) return;
-
     setProcessing(true);
     setError(null);
 
+    // MOCK FLOW SUBMISSION
+    if (isMock) {
+      // Simulate processing delay
+      setTimeout(() => {
+        setPaymentComplete(true);
+        toast({
+          title: "Mock Payment Successful",
+          description: "This was a simulated transaction.",
+          className: "bg-blue-50 text-blue-900 border-blue-200"
+        });
+        setTimeout(() => setLocation('/dashboard'), 2000);
+        setProcessing(false);
+      }, 1500);
+      return;
+    }
+
+    if (!stripe || !clientSecret) return;
+
     try {
-      // Mock payment confirmation
-      // In production, this would use Stripe Elements
+      // Mock payment confirmation logic for when clientSecret IS present but we want to confirm via API?
+      // Actually standard Stripe Elements flow usually uses stripe.confirmPayment() 
+      // but here the existing code used /stripe/confirm endpoint.
+      // We'll stick to existing logic for non-mock.
+
       const response = await apiRequest<any>('/stripe/confirm', {
         method: 'POST',
         body: JSON.stringify({
@@ -127,7 +170,7 @@ export default function Checkout() {
         className: 'bg-red-50 text-red-900 border-red-200'
       });
     } finally {
-      setProcessing(false);
+      if (!isMock) setProcessing(false);
     }
   };
 
