@@ -257,17 +257,17 @@ router.post(
         const amount = parseFloat(payment.amount);
         let newTier = 'starter'; // Default fallback
 
-        // ... (Mock Tier Logic)
-        if (amount >= 299) newTier = 'agency';
-        else if (amount >= 99) newTier = 'professional';
-        else if (amount >= 50) newTier = 'premium'; // Client premium
-        else if (amount >= 29) newTier = 'starter'; // Lawyer starter
-        else if (amount >= 15) newTier = 'standard'; // Client Pro (fixed name)
+        // Mock Tier Logic (UZS based)
+        // Client: 15,000 (Pro), 50,000 (Premium), 200,000 (Enterprise)
+        // Lawyer: 150,000 (Pro), 450,000 (Premium), 1,000,000 (Enterprise)
 
-        // Override for Lawyer specific known prices
-        if (Math.abs(amount - 29) < 1 || Math.abs(amount - 290) < 10) newTier = 'starter';
-        if (Math.abs(amount - 99) < 1 || Math.abs(amount - 990) < 10) newTier = 'professional';
-        if (Math.abs(amount - 299) < 1 || Math.abs(amount - 2990) < 10) newTier = 'agency';
+        if (amount >= 950000) newTier = 'enterprise'; // Lawyer Enterprise ~1m
+        else if (amount >= 400000) newTier = 'premium'; // Lawyer Premium ~450k
+        else if (amount >= 190000) newTier = 'enterprise'; // Client Enterprise ~200k
+        else if (amount >= 140000) newTier = 'professional'; // Lawyer Professional ~150k
+        else if (amount >= 45000) newTier = 'premium'; // Client Premium ~50k
+        else if (amount >= 14000) newTier = 'professional'; // Client Professional ~15k
+        else newTier = 'starter';
 
         await db.update(require("@shared/schema").users)
           .set({

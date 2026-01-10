@@ -15,6 +15,8 @@ declare global {
   }
 }
 
+import { getSubscriptionTier } from "@/lib/subscriptionTiers";
+
 export default function Checkout() {
   const [location, setLocation] = useLocation();
   const { t } = useI18n();
@@ -27,12 +29,27 @@ export default function Checkout() {
   const [error, setError] = useState<string | null>(null);
   const [paymentComplete, setPaymentComplete] = useState(false);
 
-  const params = new URLSearchParams(location.split('?')[1]);
-  const clientSecret = params.get('clientSecret');
-  // PlanId might be 'tier' in mock flow or 'planId' in stripe flow
-  const planId = params.get('planId') || params.get('tier');
-  const isMock = params.get('mock') === 'true';
-  const sessionId = params.get('session_id');
+  // Parse query params
+  const params = new URLSearchParams(typeof location === 'string' ? location.split('?')[1] : '');
+  // Wouter hook might return location as path string
+  // If location doesn't have query string, we might need window.location.search?
+  // Actually wouter doesn't include query params in the first return value usually. 
+  // Let's use window.location.search for params to be safe.
+  const queryParams = new URLSearchParams(window.location.search);
+  const clientSecret = queryParams.get('clientSecret');
+  const planId = queryParams.get('planId') || queryParams.get('tier');
+  const isMock = queryParams.get('mock') === 'true';
+  const sessionId = queryParams.get('session_id');
+
+  // Determine tier details
+  const role = user?.role || 'applicant';
+  const tierDetails = getSubscriptionTier(planId || 'professional', role);
+
+  const displayPrice = tierDetails
+    ? new Intl.NumberFormat('uz-UZ', { style: 'currency', currency: 'UZS', maximumFractionDigits: 0 }).format(tierDetails.price)
+    : '15,000 UZS';
+
+  const displayName = tierDetails?.name || 'Professional';
 
   useEffect(() => {
     if (isLoading) return;
@@ -174,12 +191,6 @@ export default function Checkout() {
     }
   };
 
-  const planNames: Record<string, string> = {
-    starter: 'Starter - Free',
-    professional: 'Professional - $99/month',
-    enterprise: 'Enterprise - Custom'
-  };
-
   if (paymentComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-brand-50 to-slate-50 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-4">
@@ -244,21 +255,21 @@ export default function Checkout() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">
-                    {planNames[planId || 'professional']}
+                    {displayName}
                   </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
                     Monthly subscription
                   </p>
                 </div>
                 <p className="font-bold text-slate-900 dark:text-white">
-                  {planId === 'professional' ? '$99.00' : 'Free'}
+                  {displayPrice}
                 </p>
               </div>
             </div>
             <div className="flex justify-between items-center font-bold text-lg">
               <span className="text-slate-900 dark:text-white">Total</span>
               <span className="text-brand-600 dark:text-brand-400">
-                {planId === 'professional' ? '$99.00' : '$0.00'}
+                {displayPrice}
               </span>
             </div>
 
@@ -354,7 +365,7 @@ export default function Checkout() {
                 ) : (
                   <>
                     <Lock size={18} />
-                    Pay {planId === 'professional' ? '$99.00' : 'Now'}
+                    Pay {displayPrice}
                   </>
                 )}
               </LiveButton>

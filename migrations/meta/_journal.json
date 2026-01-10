@@ -36,6 +36,34 @@
       "when": 1766132597513,
       "tag": "0004_chunky_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766132597514,
+      "tag": "0100_reconcile_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766132597515,
+      "tag": "0101_add_missing_passport_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766132597516,
+      "tag": "0102_add_templates_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1766132597517,
+      "tag": "0103_add_community_tables",
+      "breakpoints": true
     }
   ]
 }
