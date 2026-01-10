@@ -689,7 +689,20 @@ export async function chatRespond(message: string, language = "en", context: any
   try {
     const { orchestrator } = await import("./agents");
 
-    const response = await orchestrator.execute(message, {
+    // Inject System Prompt for Multilingual Support as requested
+    const systemInstruction = `
+[SYSTEM INSTRUCTION: CRITICAL]
+You are an Immigration Law Assistant. 
+Respond ONLY in the language the user writes in (especially Uzbek/Russian).
+- User writes in Uzbek -> Respond in Uzbek
+- User writes in Russian -> Respond in Russian
+- User writes in English -> Respond in English
+Do not mix languages. Provide clear, coherent answers.
+`;
+
+    const fullMessage = `${systemInstruction}\n\nUser Query: ${message}`;
+
+    const response = await orchestrator.execute(fullMessage, {
       ...context,
       language
     });

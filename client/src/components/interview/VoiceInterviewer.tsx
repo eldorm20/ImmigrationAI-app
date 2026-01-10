@@ -13,6 +13,80 @@ interface VoiceInterviewerProps {
 const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84"; // User's actual public key
 const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036";
 
+const VAPI_ASSISTANT_CONFIG = {
+    "name": "ImmigrationAi",
+    "voice": {
+        "voiceId": "Elliot",
+        "provider": "vapi"
+    },
+    "model": {
+        "model": "gemini-3-flash-preview",
+        "messages": [
+            {
+                "role": "system",
+                "content": "[Identity]  \nYou are Alex, an Immigration Interview Preparation Assistant for Immigration AI. Your primary role is to guide users through the process of preparing for different types of immigration interviews, providing clear and helpful information on necessary documents, typical questions, and preparation tips.\n\n[Style]  \n- Use an empathetic and supportive tone throughout the interaction.\n- Speak with clarity and reassuring confidence, especially when addressing potentially stressful topics.\n- Maintain a formal and respectful demeanor, acknowledging cultural sensitivities.\n\n[Response Guidelines]  \n- Keep responses focused and informative, ensuring clarity for each step.\n- Break complex information into manageable pieces, using simple language.\n- Verify with the user that they understand key points before proceeding.\n\n[Task & Goals]  \n1. Greet the user warmly and introduce your role.\n2. Determine the type of immigration interview the user is preparing for.\n3. Provide an overview of required documents and any specific preparation tips.\n4. Offer typical questions that might be encountered during the interview and suggest strategies for answering them.\n5. <wait for user response> \n6. If the user seeks more detailed advice, direct them to additional resources or offer further assistance.\n7. Ask if there are other topics the user would like to cover before concluding.\n\n[Error Handling / Fallback]  \n- If the user’s input is unclear, ask clarifying questions to better understand their needs.\n- If a user asks a question beyond your scope, suggest they consult an immigration advisor or refer to official guidelines.\n- Politely apologize and suggest alternative actions if system errors occur."
+            }
+        ],
+        "provider": "google",
+        "temperature": 0.5
+    },
+    "firstMessage": "Thank you for calling Immigration AI. This is Alex, your Interview Preparation Assistant. How may I help you today?",
+    "voicemailMessage": "Hello, this is Riley from Wellness Partners. I'm calling about your appointment. Please call us back at your earliest convenience so we can confirm your scheduling details.",
+    "endCallFunctionEnabled": true,
+    "endCallMessage": "Thank you for scheduling with Wellness Partners. Your appointment is confirmed, and we look forward to seeing you soon. Have a wonderful day!",
+    "transcriber": {
+        "model": "nova-3",
+        "language": "en",
+        "numerals": true,
+        "provider": "deepgram" as const,
+        "endpointing": 150
+    },
+    "clientMessages": [
+        "conversation-update",
+        "function-call",
+        "hang",
+        "model-output",
+        "speech-update",
+        "status-update",
+        "transfer-update",
+        "transcript",
+        "tool-calls",
+        "user-interrupted",
+        "voice-input",
+        "workflow.node.started",
+        "assistant.started"
+    ],
+    "serverMessages": [
+        "conversation-update",
+        "end-of-call-report",
+        "function-call",
+        "hang",
+        "speech-update",
+        "status-update",
+        "tool-calls",
+        "transfer-destination-request",
+        "handoff-destination-request",
+        "user-interrupted",
+        "assistant.started"
+    ],
+    "endCallPhrases": [
+        "goodbye",
+        "talk to you soon"
+    ],
+    "backgroundDenoisingEnabled": true,
+    "startSpeakingPlan": {
+        "waitSeconds": 0.4,
+        "smartEndpointingEnabled": "livekit",
+        "smartEndpointingPlan": {
+            "provider": "vapi"
+        }
+    },
+    "compliancePlan": {
+        "hipaaEnabled": true,
+        "pciEnabled": false
+    }
+};
+
 const vapi = new Vapi(VAPI_PUBLIC_KEY);
 
 export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceInterviewerProps) {
@@ -62,8 +136,8 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                     return;
                 }
 
-                // Start VAPI session
-                await vapi.start(VAPI_ASSISTANT_ID);
+                // Start VAPI session with override config
+                await vapi.start(VAPI_ASSISTANT_ID, VAPI_ASSISTANT_CONFIG);
                 toast({
                     title: "Connected",
                     description: "Voice interview started. You can begin speaking."
