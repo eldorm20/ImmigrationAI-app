@@ -137,14 +137,53 @@ router.post(
 
     const tierConfig = config[requestedTier as SubscriptionTier];
 
-    // Check if tier has valid Stripe configuration
-    if (!tierConfig.stripePriceId || tierConfig.stripePriceId.includes('_placeholder') || tierConfig.stripePriceId.includes('_99')) {
-      logger.warn({ tier: requestedTier, priceId: tierConfig.stripePriceId }, "Tier not configured with valid Stripe price ID");
-      return res.status(400).json({
-        success: false,
-        message: `The ${tierConfig.name} plan is not available for direct purchase. Please contact our sales team for custom pricing.`,
-        error: "TIER_NOT_CONFIGURED",
-        contactEmail: "sales@immigrationai.com"
+    // Check if we're using placeholder/test price IDs (not real Stripe IDs)
+    const isPlaceholderPrice = !tierConfig.stripePriceId ||
+      tierConfig.stripePriceId.startsWith('price_client_') ||
+      tierConfig.stripePriceId.startsWith('price_lawyer_') ||
+      tierConfig.stripePriceId.includes('_placeholder');
+
+    // For starter (free) tier, just update directly
+    if (requestedTier === "starter") {
+      await db
+        .update(users)
+        .set({
+          metadata: { subscriptionTier: "starter" } as any,
+        })
+        .where(eq(users.id, userId));
+
+      logger.info({ userId, tier: "starter" }, "User downgraded to starter tier");
+      return res.json({
+        success: true,
+        message: "Switched to Starter (Free) tier successfully",
+        tier: "starter",
+      });
+    }
+
+    // If using placeholder IDs or Stripe not configured, use MOCK checkout
+    if (isPlaceholderPrice) {
+      logger.info({ tier: requestedTier, priceId: tierConfig.stripePriceId, userId }, "Using mock checkout - Stripe not configured");
+
+      const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
+      const mockSessionId = `mock_session_${Date.now()}_${requestedTier}`;
+
+      // Create a mock payment record
+      await db.insert(payments).values({
+        userId,
+        applicationId: null,
+        amount: tierConfig.monthlyPrice.toString(),
+        currency: "UZS",
+        provider: "payme", // Using payme as mock/demo provider
+        providerTransactionId: mockSessionId,
+        status: "pending",
+      });
+
+      // Return mock checkout URL
+      return res.json({
+        success: true,
+        checkoutUrl: `${clientUrl}/checkout?session_id=${mockSessionId}&tier=${requestedTier}&mock=true`,
+        sessionId: mockSessionId,
+        message: "DEMO MODE: Redirecting to mock checkout",
       });
     }
 
