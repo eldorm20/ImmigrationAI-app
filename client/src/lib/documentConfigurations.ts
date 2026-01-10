@@ -30,7 +30,7 @@ const TEMPLATE_ID_TO_CONFIG_KEY: Record<string, string> = {
     'business_plan_exec': 'Business Plan Summary',
     'global_talent_cv': 'Global Talent CV',
     'refusal_appeal_letter': 'Appeal Letter',
-    'uk_student_visa': 'UK Student Visa Cover Letter',
+    'uk_student_visa': 'UK Student Visa - Tier 4/Student Route Cover Letter',
 };
 
 // Document configurations mapped by document type
@@ -312,7 +312,104 @@ export const DOCUMENT_CONFIGS: Record<string, DocumentConfig> = {
             { name: 'tiesToHomeCountry', label: 'Ties to Home Country', type: 'textarea', required: true },
             { name: 'financialSupport', label: 'Financial Support', type: 'text', required: true },
         ]
-    }
+    },
+
+    // Missing configurations added
+    'Student Visa Personal Statement': {
+        name: 'Student Visa Personal Statement',
+        category: 'visa',
+        description: 'Personal statement text for student visa application',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'courseName', label: 'Course Name', type: 'text', required: true },
+            { name: 'university', label: 'University/Institution', type: 'text', required: true },
+            { name: 'reasonForCourse', label: 'Why this course?', type: 'textarea', required: true },
+            { name: 'careerGoals', label: 'Career Goals', type: 'textarea', required: true },
+            { name: 'academicBackground', label: 'Academic Background', type: 'textarea', required: true },
+        ]
+    },
+
+    'Family Relationship Letter': {
+        name: 'Family Relationship Letter',
+        category: 'visa',
+        description: 'Letter proving family relationship for visa purposes',
+        fields: [
+            { name: 'applicantName', label: 'Applicant Name', type: 'text', required: true },
+            { name: 'sponsorName', label: 'Sponsor/Family Member Name', type: 'text', required: true },
+            { name: 'relationshipType', label: 'Relationship', type: 'select', required: true, options: ['Spouse', 'Parent', 'Child', 'Sibling'] },
+            { name: 'historyOfRelationship', label: 'History of Relationship', type: 'textarea', required: true },
+            { name: 'evidenceProvided', label: 'Evidence Provided', type: 'textarea', required: true, placeholder: 'Photos, certificates, chats...' },
+        ]
+    },
+
+    'Tourist Visa Itinerary': {
+        name: 'Tourist Visa Itinerary',
+        category: 'visa',
+        description: 'Detailed travel itinerary for tourist visa',
+        fields: [
+            { name: 'travelerName', label: 'Traveler Name', type: 'text', required: true },
+            { name: 'dates', label: 'Travel Dates', type: 'text', required: true },
+            { name: 'cities', label: 'Cities to Visit', type: 'textarea', required: true },
+            { name: 'accommodation', label: 'Accommodation Details', type: 'textarea', required: true },
+            { name: 'activities', label: 'Planned Activities', type: 'textarea', required: true },
+            { name: 'flights', label: 'Flight Details', type: 'textarea', required: true },
+        ]
+    },
+
+    'Sponsorship Letter': {
+        name: 'Sponsorship Letter',
+        category: 'financial',
+        description: 'Letter sponsoring a visitor or student',
+        fields: [
+            { name: 'sponsorName', label: 'Sponsor Name', type: 'text', required: true },
+            { name: 'applicantName', label: 'Applicant Name', type: 'text', required: true },
+            { name: 'relationship', label: 'Relationship', type: 'text', required: true },
+            { name: 'financialCommitment', label: 'Financial Commitment Details', type: 'textarea', required: true },
+            { name: 'accommodation', label: 'Accommodation Provided?', type: 'select', required: true, options: ['Yes', 'No'] },
+        ]
+    },
+
+    'Business Plan Summary': {
+        name: 'Business Plan Summary',
+        category: 'employment',
+        description: 'Executive summary of a business plan for visa',
+        fields: [
+            { name: 'businessName', label: 'Business Name', type: 'text', required: true },
+            { name: 'industry', label: 'Industry', type: 'text', required: true },
+            { name: 'concept', label: 'Business Concept', type: 'textarea', required: true },
+            { name: 'targetMarket', label: 'Target Market', type: 'textarea', required: true },
+            { name: 'investment', label: 'Investment Amount', type: 'number', required: true },
+            { name: 'jobCreation', label: 'Jobs to be Created', type: 'number', required: true },
+        ]
+    },
+
+    'Global Talent CV': {
+        name: 'Global Talent CV',
+        category: 'employment',
+        description: 'CV tailored for Global Talent/Tech Nation visa',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'professionalSummary', label: 'Professional Summary', type: 'textarea', required: true },
+            { name: 'keyAchievements', label: 'Key Achievements (Impact)', type: 'textarea', required: true },
+            { name: 'skills', label: 'Technical/Business Skills', type: 'textarea', required: true },
+            { name: 'awards', label: 'Awards & Recognition', type: 'textarea', required: true },
+            { name: 'publications', label: 'Speaking/Publications', type: 'textarea', required: false },
+        ]
+    },
+
+    'Appeal Letter': {
+        name: 'Appeal Letter',
+        category: 'legal',
+        description: 'Letter appealing a visa refusal',
+        fields: [
+            { name: 'applicantName', label: 'Applicant Name', type: 'text', required: true },
+            { name: 'refusalReference', label: 'Refusal Reference Number', type: 'text', required: true },
+            { name: 'refusalDate', label: 'Date of Refusal', type: 'date', required: true },
+            { name: 'reasonsForRefusal', label: 'Reasons Stated in Refusal', type: 'textarea', required: true },
+            { name: 'groundsForAppeal', label: 'Grounds for Appeal', type: 'textarea', required: true },
+            { name: 'newEvidence', label: 'New Evidence (if allowed)', type: 'textarea', required: false },
+        ]
+    },
 };
 
 // Helper function to get fields for a specific document type
