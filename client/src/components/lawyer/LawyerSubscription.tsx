@@ -1,11 +1,9 @@
-// Lawyer Subscription Management Component
-
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { apiRequest } from '@/lib/api';
-import { useToast } from '@/lib/useToast';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,15 +13,12 @@ import {
     ANNUAL_DISCOUNT,
     type SubscriptionTier
 } from '@/lib/subscriptionTiers';
-import { PaymentGateway } from '@/components/payment/PaymentGateway';
 import {
     Check,
     X,
     Crown,
     Zap,
     TrendingUp,
-    Calendar,
-    CreditCard,
     AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -35,50 +30,38 @@ export function LawyerSubscription() {
     const queryClient = useQueryClient();
 
     const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
-    const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
-    const [showPayment, setShowPayment] = useState(false);
 
-    // Fetch current subscription
+    // Fetch current subscription - usage normalized to /subscription/current (singular)
     const { data: currentSubscription } = useQuery({
-        queryKey: ['/subscriptions/current'],
-        queryFn: () => apiRequest<{ tier: string; expiresAt: string; status: string }>('/subscriptions/current'),
+        queryKey: ['/subscription/current'],
+        queryFn: () => apiRequest<{ tier: string; expiresAt: string; status: string; id: string; plan: string }>('/subscription/current'),
     });
 
-    // Subscribe mutation
-    const subscribeMutation = useMutation({
-        mutationFn: (data: { tierId: string; billingPeriod: 'monthly' | 'annual' }) =>
-            apiRequest('/subscriptions/subscribe', {
-                method: 'POST',
-                body: JSON.stringify(data),
-            }),
-        onSuccess: () => {
-            toast({
-                title: t.common?.success || 'Success',
-                description: 'Subscription activated successfully!',
+    const handleUpgrade = async (tier: SubscriptionTier) => {
+        try {
+            const response = await apiRequest<{ checkoutUrl?: string; message?: string }>("/subscription/upgrade", {
+                method: "POST",
+                body: JSON.stringify({
+                    tier: tier.id, // using 'tier' to match server expectation
+                    planId: tier.id // sending both for compatibility
+                }),
             });
-            queryClient.invalidateQueries({ queryKey: ['/subscriptions/current'] });
-            setShowPayment(false);
-            setSelectedTier(null);
-        },
-        onError: (error: any) => {
+
+            if (response.checkoutUrl) {
+                window.location.href = response.checkoutUrl;
+            } else {
+                toast({
+                    title: "Success",
+                    description: response.message || "Subscription updated",
+                    className: "bg-green-50 text-green-900 border-green-200"
+                });
+                queryClient.invalidateQueries({ queryKey: ['/subscription/current'] });
+            }
+        } catch (error: any) {
             toast({
-                title: t.common?.error || 'Error',
-                description: error.message || 'Failed to activate subscription',
-                variant: 'destructive'
-            });
-        },
-    });
-
-    const handleSelectTier = (tier: SubscriptionTier) => {
-        setSelectedTier(tier);
-        setShowPayment(true);
-    };
-
-    const handlePaymentSuccess = (transactionId: string) => {
-        if (selectedTier) {
-            subscribeMutation.mutate({
-                tierId: selectedTier.id,
-                billingPeriod,
+                title: "Error",
+                description: error.message || "Failed to initiate upgrade",
+                variant: "destructive"
             });
         }
     };
@@ -92,42 +75,6 @@ export function LawyerSubscription() {
         if (lang === 'ru') return tier.nameRu;
         return tier.name;
     };
-
-    if (showPayment && selectedTier) {
-        const price = getTierPrice(selectedTier);
-        return (
-            <div className="max-w-2xl mx-auto py-8">
-                <Button
-                    onClick={() => setShowPayment(false)}
-                    variant="ghost"
-                    className="mb-6"
-                >
-                    ← Back to plans
-                </Button>
-
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
-                    Subscribe to {getTierName(selectedTier)}
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-8">
-                    {billingPeriod === 'annual' && `Save ${(ANNUAL_DISCOUNT * 100).toFixed(0)}% with annual billing!`}
-                </p>
-
-                <PaymentGateway
-                    amount={price}
-                    currency={selectedTier.currency}
-                    description={`${getTierName(selectedTier)} Subscription - ${billingPeriod === 'annual' ? 'Annual' : 'Monthly'}`}
-                    onSuccess={handlePaymentSuccess}
-                    onCancel={() => setShowPayment(false)}
-                    metadata={{
-                        priceId: selectedTier.stripeId || `price_${selectedTier.id}`, // specific or fallback
-                        mode: 'subscription',
-                        tierId: selectedTier.id,
-                        billingPeriod
-                    }}
-                />
-            </div>
-        );
-    }
 
     return (
         <div className="py-8 space-y-8">
@@ -153,9 +100,11 @@ export function LawyerSubscription() {
                                 Active Subscription
                             </h3>
                             <p className="text-slate-600 dark:text-slate-400 text-sm">
-                                You're currently on the <span className="font-semibold">{currentSubscription.tier}</span> plan.
-                                {currentSubscription.expiresAt && (
-                                    <> Renews on {new Date(currentSubscription.expiresAt).toLocaleDateString()}.</>
+                                You're currently on the <span className="font-semibold">{currentSubscription.plan || currentSubscription.tier}</span> plan.
+                                {currentSubscription.status === 'active' && (
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        Active
+                                    </span>
                                 )}
                             </p>
                         </div>
@@ -192,7 +141,8 @@ export function LawyerSubscription() {
             <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                 {LAWYER_SUBSCRIPTION_TIERS.map((tier, index) => {
                     const price = getTierPrice(tier);
-                    const isCurrentPlan = currentSubscription?.tier.toLowerCase() === tier.id;
+                    // Check logic: current tier might be returned as 'professional' string
+                    const isCurrentPlan = (currentSubscription?.plan || currentSubscription?.tier || '').toLowerCase() === tier.id;
 
                     return (
                         <motion.div
@@ -267,7 +217,7 @@ export function LawyerSubscription() {
 
                                 {/* CTA */}
                                 <Button
-                                    onClick={() => handleSelectTier(tier)}
+                                    onClick={() => handleUpgrade(tier)}
                                     disabled={isCurrentPlan}
                                     className={`w-full py-6 text-lg font-bold ${tier.popular
                                         ? 'bg-gradient-to-r from-brand-600 to-blue-500 hover:from-brand-700 hover:to-blue-600 text-white'

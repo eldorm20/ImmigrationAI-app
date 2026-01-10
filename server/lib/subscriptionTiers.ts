@@ -117,8 +117,8 @@ export const LAWYER_TIERS: Record<SubscriptionTier, TierFeatures> = {
   professional: {
     tier: "professional",
     name: "Lawyer Professional",
-    monthlyPrice: 375000, // 375,000 UZS for Lawyers
-    stripePriceId: process.env.STRIPE_LAWYER_PRO_PRICE_ID || "price_lawyer_pro_375k",
+    monthlyPrice: 150000, // Reduced from 375k to 150k
+    stripePriceId: process.env.STRIPE_LAWYER_PRO_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || "price_lawyer_pro_150k",
     features: {
       documentUploadLimit: 500,
       aiDocumentGenerations: 200,
@@ -135,8 +135,8 @@ export const LAWYER_TIERS: Record<SubscriptionTier, TierFeatures> = {
   premium: {
     tier: "premium",
     name: "Lawyer Premium",
-    monthlyPrice: 1200000, // 1,200,000 UZS for Lawyers
-    stripePriceId: process.env.STRIPE_LAWYER_PREMIUM_PRICE_ID || "price_lawyer_premium_1m2",
+    monthlyPrice: 450000, // Reduced from 1.2m to 450k
+    stripePriceId: process.env.STRIPE_LAWYER_PREMIUM_PRICE_ID || "price_lawyer_premium_450k",
     features: {
       documentUploadLimit: 2000,
       aiDocumentGenerations: 1000,
@@ -153,8 +153,8 @@ export const LAWYER_TIERS: Record<SubscriptionTier, TierFeatures> = {
   enterprise: {
     tier: "enterprise",
     name: "Lawyer Enterprise",
-    monthlyPrice: 3850000, // 3,850,000 UZS for Law Firms
-    stripePriceId: process.env.STRIPE_LAWYER_ENTERPRISE_PRICE_ID || "price_lawyer_ent_3m8",
+    monthlyPrice: 1000000, // Reduced from 3.85m to 1m
+    stripePriceId: process.env.STRIPE_LAWYER_ENTERPRISE_PRICE_ID || process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_lawyer_ent_1m",
     features: {
       documentUploadLimit: 50000,
       aiDocumentGenerations: 10000,

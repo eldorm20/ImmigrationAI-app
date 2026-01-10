@@ -1,6 +1,8 @@
 ﻿import React, { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import {
   Users, DollarSign, Briefcase, Search, MoreHorizontal,
@@ -38,8 +40,38 @@ export default function LawyerDashboard() {
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
   const { t } = useI18n();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('leads');
   const [selectedClientIdForMessage, setSelectedClientIdForMessage] = useState<string | null>(null);
+
+  // Initial tab loading from URL 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) setActiveTab(tab);
+
+    const sessionId = params.get('session_id');
+    if (sessionId && tab === 'subscription') {
+      // Verify payment session
+      apiRequest('/stripe/verify-session', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId })
+      })
+        .then(() => {
+          toast({
+            title: "Subscription Updated",
+            description: "Your payment was successful and your plan has been upgraded!",
+            className: "bg-green-50 text-green-900 border-green-200"
+          });
+          // Clear query params
+          window.history.replaceState({}, '', '/lawyer-dashboard?tab=subscription');
+        })
+        .catch((err) => {
+          console.error("Verification failed", err);
+          // Maybe it was already verified or mock; don't show error if it works
+        });
+    }
+  }, []);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand-500" /></div>;
   if (!user || (user.role !== 'lawyer' && user.role !== 'admin')) {

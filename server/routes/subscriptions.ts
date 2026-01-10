@@ -202,10 +202,15 @@ router.post(
 
       const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || req.get("origin") || "http://localhost:5173";
 
+      // Determine success URL based on user role
+      const successUrl = role === 'lawyer'
+        ? `${clientUrl}/lawyer-dashboard?tab=subscription&session_id={CHECKOUT_SESSION_ID}`
+        : `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`;
+
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: tierConfig.stripePriceId, quantity: 1 }],
-        success_url: `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: successUrl,
         cancel_url: `${clientUrl}/subscription`,
         metadata: {
           userId,

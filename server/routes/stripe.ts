@@ -10,21 +10,24 @@ import { getTierConfig, type SubscriptionTier } from "../lib/subscriptionTiers";
 
 const router = Router();
 
-let stripe: any;
-(async () => {
-  try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      logger.warn("STRIPE_SECRET_KEY not set - Stripe features will be disabled");
-    } else {
-      const StripePkg = await import("stripe");
-      const Stripe = (StripePkg && (StripePkg as any).default) || StripePkg;
-      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-08-16" });
-      logger.info("Stripe initialized successfully");
-    }
-  } catch (err) {
-    logger.warn({ err }, "Stripe initialization failed - payment features disabled");
+import Stripe from "stripe";
+
+// Initialize Stripe synchronously
+let stripe: Stripe | undefined;
+
+try {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    logger.warn("STRIPE_SECRET_KEY not set - Stripe features will be disabled");
+  } else {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-08-16",
+      typescript: true,
+    });
+    logger.info("Stripe initialized successfully");
   }
-})();
+} catch (err) {
+  logger.error({ err }, "Stripe initialization failed");
+}
 
 // Create payment intent
 router.post(
@@ -140,15 +143,17 @@ router.post(
     if (!tierCfg.stripePriceId) {
       throw new AppError(400, "Invalid pricing tier configuration");
     }
+    const successPath = role === 'lawyer' ? '/lawyer-dashboard?tab=subscription&session_id={CHECKOUT_SESSION_ID}' : '/subscription?session_id={CHECKOUT_SESSION_ID}';
+    const cancelPath = role === 'lawyer' ? '/lawyer-dashboard?tab=subscription' : '/subscription';
 
     let session: any;
     try {
       session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: tierCfg.stripePriceId, quantity: 1 }],
-        success_url: `${clientUrl}/subscription?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${clientUrl}/subscription`,
-        metadata: { userId },
+        success_url: `${clientUrl}${successPath}`,
+        cancel_url: `${clientUrl}${cancelPath}`,
+        metadata: { userId, tier, role }, // Add tier and role to metadata
       });
     } catch (err: any) {
       logger.error({ err, userId, tier }, "Failed to create checkout session");
@@ -174,7 +179,56 @@ router.post(
   })
 );
 
-// Confirm payment
+// Verify Checkout Session (For real data confirmation without webhooks)
+router.post(
+  "/verify-session",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { sessionId } = z.object({ sessionId: z.string() }).parse(req.body);
+
+    if (!stripe) throw new AppError(503, "Stripe not configured");
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch (err) {
+      logger.error({ err, sessionId }, "Failed to retrieve checkout session");
+      throw new AppError(400, "Invalid session ID");
+    }
+
+    if (session.payment_status !== "paid") {
+      throw new AppError(400, "Payment not completed");
+    }
+
+    const userId = session.metadata?.userId || req.user!.userId;
+    const tier = session.metadata?.tier;
+
+    // Update specific payment record
+    await db
+      .update(payments)
+      .set({ status: "completed" })
+      .where(eq(payments.providerTransactionId, sessionId));
+
+    // Update user subscription
+    if (tier) {
+      await db.update(require("@shared/schema").users)
+        .set({
+          subscriptionTier: tier,
+          subscriptionStatus: 'active'
+        })
+        .where(eq(require("@shared/schema").users.id, userId));
+
+      logger.info({ userId, tier }, "User subscription updated via session verification");
+    } else {
+      // Fallback logic if metadata missing (infer from amount logic could go here, but metadata is safer)
+      logger.warn({ userId, sessionId }, "Tier metadata missing in session, skipping subscription update");
+    }
+
+    res.json({ status: "success", tier });
+  })
+);
+
+// Confirm payment intent (Legacy/Direct Intent)
 router.post(
   "/confirm",
   authenticate,
@@ -203,20 +257,12 @@ router.post(
         const amount = parseFloat(payment.amount);
         let newTier = 'starter'; // Default fallback
 
-        // Determine tier based on amount (Naive check based on known prices)
-        // Client Tiers: Basic 0, Pro 15, Premium 50
-        // Lawyer Tiers: Starter 29, Professional 99, Agency 299
-
+        // ... (Mock Tier Logic)
         if (amount >= 299) newTier = 'agency';
         else if (amount >= 99) newTier = 'professional';
         else if (amount >= 50) newTier = 'premium'; // Client premium
-        else if (amount >= 29) newTier = 'starter';
-        else if (amount >= 15) newTier = 'professional'; // Client pro mapped to professional name internally? check types
-        // Actually client tiers are "basic", "standard", "premium" usually. 
-        // Let's stick to safe defaults or check role.
-
-        if (Math.abs(amount - 15) < 1) newTier = 'standard'; // Client Pro
-        if (Math.abs(amount - 50) < 1) newTier = 'premium'; // Client Premium
+        else if (amount >= 29) newTier = 'starter'; // Lawyer starter
+        else if (amount >= 15) newTier = 'standard'; // Client Pro (fixed name)
 
         // Override for Lawyer specific known prices
         if (Math.abs(amount - 29) < 1 || Math.abs(amount - 290) < 10) newTier = 'starter';
@@ -226,7 +272,7 @@ router.post(
         await db.update(require("@shared/schema").users)
           .set({
             subscriptionTier: newTier,
-            subscriptionStatus: 'active' // Ensure functionality is unlocked
+            subscriptionStatus: 'active'
           })
           .where(eq(require("@shared/schema").users.id, req.user!.userId));
       }
@@ -256,6 +302,10 @@ router.post(
         .update(payments)
         .set({ status: "completed" })
         .where(eq(payments.providerTransactionId, paymentIntent.id));
+
+      // NOTE: For Real Payments here, we usually rely on Webhooks or the Session Verification above.
+      // But if we wanted to support direct PI confirmation updates:
+      // We'd need to know the Tier. PI metadata might not have it unless we set it.
 
       logger.info(
         { paymentIntentId: paymentIntent.id, userId: req.user!.userId },

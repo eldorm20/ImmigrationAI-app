@@ -86,6 +86,33 @@ export default function SubscriptionPage() {
     loadSubscription();
   }, [user, setLocation]);
 
+  // Check for session verification (redirect from Stripe)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    if (sessionId) {
+      apiRequest('/stripe/verify-session', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId })
+      })
+        .then(() => {
+          toast({
+            title: "Subscription Updated",
+            description: "Payment verified successfully! Your plan has been upgraded.",
+            className: "bg-green-50 text-green-900 border-green-200"
+          });
+          // Clear query params
+          window.history.replaceState({}, '', '/subscription');
+          // Reload page data after a slight delay
+          setTimeout(() => window.location.reload(), 2000);
+        })
+        .catch((err) => {
+          console.error("Verification failed", err);
+        });
+    }
+  }, []);
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
