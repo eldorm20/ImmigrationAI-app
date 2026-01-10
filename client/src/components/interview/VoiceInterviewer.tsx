@@ -10,7 +10,7 @@ interface VoiceInterviewerProps {
     onSessionComplete?: () => void;
 }
 
-const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "2bef7e95-1052-4f7e-92fd-28aea3c3ff04"; // Fallback to demo key
+const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84"; // User's actual public key
 const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036";
 
 const vapi = new Vapi(VAPI_PUBLIC_KEY);
@@ -50,9 +50,41 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
             vapi.stop();
         } else {
             try {
-                await vapi.start(VAPI_ASSISTANT_ID); // Assistant ID
-            } catch (err) {
-                toast({ title: "Error", description: "Could not start voice session", variant: "destructive" });
+                // Request microphone permission first
+                try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                } catch (permErr) {
+                    toast({
+                        title: "Microphone Access Required",
+                        description: "Please allow microphone access to use the voice interview feature.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+
+                // Start VAPI session
+                await vapi.start(VAPI_ASSISTANT_ID);
+                toast({
+                    title: "Connected",
+                    description: "Voice interview started. You can begin speaking."
+                });
+            } catch (err: any) {
+                console.error("VAPI Connection Error:", err);
+                let errorMsg = "Could not start voice session. ";
+
+                if (err.message?.includes("API key")) {
+                    errorMsg += "Invalid API key. Please check your VAPI configuration.";
+                } else if (err.message?.includes("assistant")) {
+                    errorMsg += "Assistant not found. Please verify the assistant ID.";
+                } else {
+                    errorMsg += err.message || "Please check your internet connection and try again.";
+                }
+
+                toast({
+                    title: "Connection Error",
+                    description: errorMsg,
+                    variant: "destructive"
+                });
             }
         }
     };
