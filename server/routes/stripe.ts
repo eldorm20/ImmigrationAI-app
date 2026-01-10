@@ -6,7 +6,7 @@ import { db } from "../db";
 import { payments, applications } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { TIER_CONFIGURATIONS } from "../lib/subscriptionTiers";
+import { getTierConfig, type SubscriptionTier } from "../lib/subscriptionTiers";
 
 const router = Router();
 
@@ -104,12 +104,12 @@ router.post(
     const userId = req.user!.userId;
     const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
 
-    // Find price id from server-side config
-    const tierKey = tier as keyof typeof TIER_CONFIGURATIONS;
-    const tierCfg = TIER_CONFIGURATIONS[tierKey];
+    const role = req.user!.role;
+    const config = getTierConfig(role);
+    const tierCfg = config[tier as SubscriptionTier];
 
     if (!tierCfg) {
-      throw new AppError(400, "Invalid pricing tier");
+      throw new AppError(400, `Invalid pricing tier: ${tier}. Valid options for ${role}: ${Object.keys(config).join(", ")}`);
     }
 
     // MOCK MODE: If Stripe config missing or explicitly "mock" requested
