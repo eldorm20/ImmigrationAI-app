@@ -1,9 +1,12 @@
 import React from "react";
 import { useI18n } from "@/lib/i18n";
-import { CheckCircle, Globe, Send, Clock, ShieldCheck, Mail, FileText } from "lucide-react";
+import { CheckCircle, Globe, Send, Clock, ShieldCheck, Mail, FileText, Loader2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { AnimatedCard } from "@/components/ui/live-elements";
+import { AnimatedCard, LiveButton } from "@/components/ui/live-elements";
 import { motion } from "framer-motion";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface SubmissionStatusViewProps {
     application: any;
@@ -12,6 +15,27 @@ interface SubmissionStatusViewProps {
 
 export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ application, onContactLegal }) => {
     const { t } = useI18n();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const handleSubmit = async () => {
+        try {
+            setIsSubmitting(true);
+            await apiRequest(`/applications/${application.id}/submit`, { method: "POST" });
+            toast({ title: t.dash.submission || "Submitted", description: "Application sent for review!" });
+            queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}`] });
+            queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
+        } catch (err: any) {
+            toast({
+                title: "Submission Failed",
+                description: err.message || "Please complete all required documents first.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (!application) {
         return (
@@ -144,9 +168,21 @@ export const SubmissionStatusView: React.FC<SubmissionStatusViewProps> = ({ appl
                 <h1 className={`text-4xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r ${activeHeader.color} relative z-10`}>
                     {activeHeader.title}
                 </h1>
-                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto relative z-10">
+                <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto relative z-10 mb-8">
                     {activeHeader.desc}
                 </p>
+
+                {(status === 'new' || status === 'pending') && (
+                    <div className="relative z-10 flex justify-center">
+                        <LiveButton
+                            onClick={handleSubmit}
+                            disabled={isSubmitting}
+                            className="px-12 py-5 rounded-2xl text-xl font-black bg-gradient-to-r from-brand-600 to-blue-600 text-white shadow-2xl hover:scale-105 active:scale-95 transition-all"
+                        >
+                            {isSubmitting ? <><Loader2 className="animate-spin mr-3" size={24} /> {t.tools.submitting || "Submitting..."}</> : <><Send className="mr-3" size={24} /> {t.dash.submitForReview || "Submit for Review"}</>}
+                        </LiveButton>
+                    </div>
+                )}
 
                 {/* Decorative Elements */}
                 <div className={`absolute -top-24 -right-24 w-64 h-64 opacity-10 rounded-full blur-3xl ${activeHeader.bg}`} />

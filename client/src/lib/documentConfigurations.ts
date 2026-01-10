@@ -35,8 +35,8 @@ export const DOCUMENT_CONFIGS: Record<string, DocumentConfig> = {
         ]
     },
 
-    'Employment Reference': {
-        name: 'Employment Reference',
+    'Employer Reference Letter': {
+        name: 'Employer Reference Letter',
         category: 'employment',
         description: 'Letter from employer confirming employment details',
         fields: [
@@ -166,6 +166,137 @@ export const DOCUMENT_CONFIGS: Record<string, DocumentConfig> = {
             { name: 'nextSteps', label: 'Next Steps', type: 'textarea', required: true },
         ]
     },
+
+    // Uzbekistan -> UK Specific
+    'TB Test Certificate Request (Tashkent)': {
+        name: 'TB Test Certificate Request (Tashkent)',
+        category: 'visa',
+        description: 'Letter to IOM/Clinic in Tashkent requesting TB screening appointment.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'passportDetails', label: 'Passport Number & Exp. Date', type: 'text', required: true },
+            { name: 'intendedTravelDate', label: 'Intended Travel Date', type: 'date', required: true },
+            { name: 'ukVisasApplicationNumber', label: 'GWF Reference Number', type: 'text', required: true },
+        ]
+    },
+
+    'Bank Statement Verification (Uzbek Banks)': {
+        name: 'Bank Statement Verification (Uzbek Banks)',
+        category: 'financial',
+        description: 'Template for Uzbek banks to verify funds for UKVI.',
+        fields: [
+            { name: 'bankName', label: 'Bank Name', type: 'text', required: true },
+            { name: 'accountHolderName', label: 'Account Holder Name', type: 'text', required: true },
+            { name: 'accountNumber', label: 'Account Number', type: 'text', required: true },
+            { name: 'balanceAmountLCY', label: 'Balance in UZS', type: 'number', required: true },
+            { name: 'exchangeRate', label: 'Current Exchange Rate (to GBP)', type: 'number', required: true },
+            { name: 'fundsHeldDate', label: 'Date Funds Held Since', type: 'date', required: true },
+        ]
+    },
+
+    'Employment Reference (Uzbek Employer for UKVI)': {
+        name: 'Employment Reference (Uzbek Employer for UKVI)',
+        category: 'employment',
+        description: 'Employer reference meeting UK Skilled Worker standards.',
+        fields: [
+            { name: 'employerName', label: 'Company Name', type: 'text', required: true },
+            { name: 'employeeName', label: 'Employee Full Name', type: 'text', required: true },
+            { name: 'role', label: 'Job Title', type: 'text', required: true },
+            { name: 'salaryUZS', label: 'Monthly Salary (UZS)', type: 'number', required: true },
+            { name: 'taxIdSTIR', label: 'Employer STIR/INN', type: 'text', required: true },
+            { name: 'employmentDates', label: 'Employment Dates', type: 'text', required: true },
+            { name: 'contactDetails', label: 'HR Contact Details', type: 'textarea', required: true },
+        ]
+    },
+
+    'Parental Consent Affidavit (Uzbek Notary)': {
+        name: 'Parental Consent Affidavit (Uzbek Notary)',
+        category: 'legal',
+        description: 'Notarized affidavit for minor traveling to UK.',
+        fields: [
+            { name: 'parentName', label: 'Parent Full Name', type: 'text', required: true },
+            { name: 'childName', label: 'Child Full Name', type: 'text', required: true },
+            { name: 'childPassport', label: 'Child Passport Number', type: 'text', required: true },
+            { name: 'accompanyingAdult', label: 'Accompanying Adult Name', type: 'text', required: true },
+            { name: 'travelDates', label: 'Intended Travel Dates', type: 'text', required: true },
+            { name: 'ukAddress', label: 'Intended UK Address', type: 'textarea', required: true },
+        ]
+    },
+
+    // International Student & Work
+    'UK Student Visa - Tier 4/Student Route Cover Letter': {
+        name: 'UK Student Visa - Tier 4/Student Route Cover Letter',
+        category: 'visa',
+        description: 'Cover letter for UK Student Visa with CAS.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'casNumber', label: 'CAS Number', type: 'text', required: true },
+            { name: 'university', label: 'University Name', type: 'text', required: true },
+            { name: 'course', label: 'Course Title', type: 'text', required: true },
+            { name: 'startDate', label: 'Course Start Date', type: 'date', required: true },
+            { name: 'fundingSource', label: 'Funding Source', type: 'text', required: true },
+            { name: 'englishProficiency', label: 'English Test Result', type: 'text', required: true },
+        ]
+    },
+
+    'UK Skilled Worker Visa Support Letter': {
+        name: 'UK Skilled Worker Visa Support Letter',
+        category: 'visa',
+        description: 'Application support letter for UK Skilled Worker visa.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'cosNumber', label: 'CoS Number', type: 'text', required: true },
+            { name: 'employer', label: 'Employer Name', type: 'text', required: true },
+            { name: 'jobTitle', label: 'Job Title', type: 'text', required: true },
+            { name: 'salary', label: 'Annual Salary', type: 'number', required: true },
+            { name: 'soc2020Code', label: 'SOC Code', type: 'text', required: true },
+            { name: 'startDate', label: 'Employment Start Date', type: 'date', required: true },
+        ]
+    },
+
+    'Schengen Tourist Visa Application Letter': {
+        name: 'Schengen Tourist Visa Application Letter',
+        category: 'visa',
+        description: 'Cover letter for Schengen area short-stay visa.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'passportNumber', label: 'Passport Number', type: 'text', required: true },
+            { name: 'countriesVisiting', label: 'Main Countries of Visit', type: 'text', required: true },
+            { name: 'travelDates', label: 'Travel Dates', type: 'text', required: true },
+            { name: 'itinerary', label: 'Brief Itinerary', type: 'textarea', required: true },
+            { name: 'financialMeans', label: 'Means of Support', type: 'text', required: true },
+        ]
+    },
+
+    'UK Standard Visitor Visa Cover Letter': {
+        name: 'UK Standard Visitor Visa Cover Letter',
+        category: 'visa',
+        description: 'Cover letter for UK tourist visa explaining travel purpose.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'travelDates', label: 'Travel Dates', type: 'text', required: true },
+            { name: 'destinationsInUK', label: 'Destinations', type: 'text', required: true },
+            { name: 'accommodationType', label: 'Accommodation', type: 'text', required: true },
+            { name: 'financialProof', label: 'Financial Proof', type: 'text', required: true },
+            { name: 'employment', label: 'Current Employment', type: 'text', required: true },
+            { name: 'familyTies', label: 'Family Ties', type: 'text', required: true },
+        ]
+    },
+
+    'US F-1 Student Visa - DS-160 Support Letter': {
+        name: 'US F-1 Student Visa - DS-160 Support Letter',
+        category: 'visa',
+        description: 'Statement for F-1 visa interview.',
+        fields: [
+            { name: 'fullName', label: 'Full Name', type: 'text', required: true },
+            { name: 'i20Number', label: 'I-20 Number', type: 'text', required: true },
+            { name: 'sevisId', label: 'SEVIS ID', type: 'text', required: true },
+            { name: 'university', label: 'University', type: 'text', required: true },
+            { name: 'major', label: 'Major', type: 'text', required: true },
+            { name: 'tiesToHomeCountry', label: 'Ties to Home Country', type: 'textarea', required: true },
+            { name: 'financialSupport', label: 'Financial Support', type: 'text', required: true },
+        ]
+    }
 };
 
 // Helper function to get fields for a specific document type

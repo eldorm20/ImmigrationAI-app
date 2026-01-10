@@ -78,9 +78,15 @@ router.post(
             logger.info({ shareCode, success: true }, "Right to Work verification successful");
             res.json(result);
         } catch (error: any) {
-            logger.error({ error: error instanceof Error ? error.message : error, shareCode }, "Right to Work check route error");
+            logger.error({ error: error.message, shareCode }, "Right to Work check route error");
             if (error.status === 400) throw error;
-            throw new AppError(503, "Right to Work check service temporarily unavailable. Please try again later.");
+
+            // Provide more specific message if available from HO API
+            const message = error.message?.includes("HO RTW API returned")
+                ? error.message
+                : "Right to Work check service temporarily unavailable. Please try again later.";
+
+            throw new AppError(503, message);
         }
     })
 );

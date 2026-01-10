@@ -42,20 +42,17 @@ router.get(
             }
 
             res.json(filtered);
-        } catch (error) {
+        } catch (error: any) {
             logger.error({
-                error: error instanceof Error ? {
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name
-                } : error,
+                msg: "Failed to fetch templates",
+                error: error.message,
+                stack: error.stack,
                 userId,
-                documentType,
-                category
-            }, "Failed to fetch templates");
+                query: req.query
+            });
             res.status(500).json({
                 error: "Failed to fetch templates",
-                details: error instanceof Error ? error.message : "Unknown error"
+                details: error.message
             });
         }
     })

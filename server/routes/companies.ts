@@ -12,6 +12,30 @@ const router = Router();
 // Mock data for company search
 const MOCK_COMPANIES = [
     {
+        company_number: "00000001",
+        title: "APPLE RETAIL UK LTD",
+        company_status: "active",
+        address_snippet: "1 Hanover Street, London, W1S 1YZ",
+        date_of_creation: "2003-12-16",
+        sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
+    },
+    {
+        company_number: "00000002",
+        title: "GOOGLE UK LIMITED",
+        company_status: "active",
+        address_snippet: "6 Pancras Square, London, N1C 4AG",
+        date_of_creation: "2003-02-04",
+        sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
+    },
+    {
+        company_number: "00000003",
+        title: "AMAZON UK SERVICES LTD",
+        company_status: "active",
+        address_snippet: "1 Principal Place, Worship Street, London, EC2A 2FA",
+        date_of_creation: "2008-05-15",
+        sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
+    },
+    {
         company_number: "12345678",
         title: "MOCK IMMIGRATION SERVICES LTD",
         company_status: "active",
@@ -26,22 +50,6 @@ const MOCK_COMPANIES = [
         address_snippet: "456 Tech Park, Manchester, UK",
         date_of_creation: "2019-05-15",
         sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
-    },
-    {
-        company_number: "09876543",
-        title: "LONDON TECH SOLUTIONS LTD",
-        company_status: "active",
-        address_snippet: "789 Innovation Way, Shoreditch, London",
-        date_of_creation: "2018-11-20",
-        sponsor_license: { status: "not_licensed", type: "None", rating: "N/A" }
-    },
-    {
-        company_number: "11223344",
-        title: "BRITISH EDUCATION GROUP",
-        company_status: "active",
-        address_snippet: "10 University Rd, Oxford, UK",
-        date_of_creation: "2015-03-10",
-        sponsor_license: { status: "licensed", type: "Student Sponor", rating: "Highly Trusted" }
     }
 ];
 
@@ -136,7 +144,7 @@ router.get("/search", async (req, res) => {
     const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
 
     try {
-        if (!apiKey) {
+        if (!apiKey || apiKey === "") {
             // logger.warn("COMPANIES_HOUSE_API_KEY not set. Returning mock data.");
             // Filter mock data
             const results = MOCK_COMPANIES.filter(c =>
