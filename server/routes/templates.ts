@@ -25,6 +25,11 @@ router.get(
         const { documentType, category } = req.query;
 
         try {
+            if (!db.query.templates) {
+                console.error("Templates schema not found in db.query");
+                throw new Error("Database schema for templates is missing");
+            }
+
             const results = await db.query.templates.findMany({
                 where: or(
                     eq(templates.isSystem, true),

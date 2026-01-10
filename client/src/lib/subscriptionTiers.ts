@@ -27,6 +27,7 @@ export interface SubscriptionTier {
     popular?: boolean;
     color: string;
     description?: string;
+    stripeId?: string; // Stripe Price ID
 }
 
 export const CLIENT_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
@@ -138,6 +139,7 @@ export const LAWYER_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
             maxTemplates: 10,
         },
         color: 'from-blue-600 to-blue-500',
+        stripeId: 'price_mock_lawyer_starter'
     },
     {
         id: 'professional',
@@ -164,6 +166,7 @@ export const LAWYER_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
             maxTemplates: 50,
         },
         color: 'from-purple-600 to-purple-500',
+        stripeId: 'price_mock_lawyer_professional'
     },
     {
         id: 'premium',
@@ -191,6 +194,7 @@ export const LAWYER_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
             maxTemplates: 100,
         },
         color: 'from-brand-600 to-blue-500',
+        stripeId: 'price_mock_lawyer_premium'
     },
     {
         id: 'enterprise',
@@ -217,6 +221,7 @@ export const LAWYER_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
             maxTemplates: -1,
         },
         color: 'from-slate-900 to-slate-800',
+        stripeId: 'price_mock_lawyer_enterprise'
     },
 ];
 

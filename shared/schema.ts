@@ -790,6 +790,67 @@ export type InsertJob = z.infer<typeof insertJobSchema>;
 
 export type Job = typeof jobs.$inferSelect;
 
+// Community Feature Tables
+
+export const communityPosts = pgTable("community_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  category: varchar("category", { length: 50 }).notNull().default("general"), // news, marketplace, forum, jobs
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(), // Markdown supported
+  images: jsonb("images"), // Array of image URLs
+  status: varchar("status", { length: 50 }).notNull().default("published"), // draft, published, flagged, removed
+  likes: integer("likes").default(0),
+  views: integer("views").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("community_posts_user_id_idx").on(table.userId),
+  categoryIdx: index("community_posts_category_idx").on(table.category),
+  statusIdx: index("community_posts_status_idx").on(table.status),
+}));
+
+export const communityComments = pgTable("community_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id", { length: 255 }).notNull().references(() => communityPosts.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  parentId: varchar("parent_id", { length: 255 }), // For threaded comments
+  content: text("content").notNull(),
+  likes: integer("likes").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  postIdIdx: index("community_comments_post_id_idx").on(table.postId),
+  userIdIdx: index("community_comments_user_id_idx").on(table.userId),
+}));
+
+export const insertCommunityPostSchema = createInsertSchema(communityPosts, {
+  title: z.string().min(5).max(255),
+  content: z.string().min(10),
+  category: z.enum(["general", "news", "marketplace", "forum", "jobs", "announcements"]),
+}).pick({
+  userId: true,
+  category: true,
+  title: true,
+  content: true,
+  images: true,
+  status: true,
+});
+
+export const insertCommunityCommentSchema = createInsertSchema(communityComments, {
+  content: z.string().min(1).max(2000),
+}).pick({
+  postId: true,
+  userId: true,
+  parentId: true,
+  content: true,
+});
+
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+export type CommunityComment = typeof communityComments.$inferSelect;
+export type InsertCommunityComment = z.infer<typeof insertCommunityCommentSchema>;
+
 // Referrals
 export const referrals = pgTable("referrals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

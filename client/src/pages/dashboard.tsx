@@ -7,7 +7,9 @@ import { apiRequest } from "@/lib/api";
 import {
   LayoutDashboard, FileText, MessageSquare, Book, Users,
   Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical,
-  Shield, BrainCircuit, Building, CheckCircle, CreditCard
+  Shield, BrainCircuit, Search,
+  Building,
+  CheckCircle, CreditCard
 } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -26,6 +28,7 @@ import { TranslateView } from "@/components/dashboard/TranslateView";
 import { ChatView } from "@/components/dashboard/ChatView";
 import { GovChecksView } from "@/components/dashboard/GovChecksView";
 import { TemplatesView } from "@/components/dashboard/TemplatesView";
+import CommunityFeed from "@/pages/community/Feed";
 import { VisaSimulatorView } from "@/components/dashboard/VisaSimulatorView";
 import { InterviewTrainerView } from "@/components/dashboard/InterviewTrainerView";
 import { DocumentChecklistView } from "@/components/dashboard/DocumentChecklistView";
@@ -118,6 +121,7 @@ export default function UserDash() {
     { id: 'finances', icon: CreditCard, label: t?.dash?.finances || "Finances" },
     { id: 'subscription', icon: Shield, label: t?.dash?.billing || "Billing" },
     { id: 'research', icon: Book, label: t?.dash?.research || "Research" },
+    { id: 'community', icon: Users, label: t?.dash?.community || "Community" },
     { id: 'companies', icon: Building, label: t?.dash?.companies || "Companies" },
     { id: 'submission', icon: Send, label: t?.dash?.submission || "Submission" }
   ];
@@ -183,6 +187,7 @@ export default function UserDash() {
         {activeTab === 'research' && <ResearchView />}
         {activeTab === 'gov' && <GovChecksView applicationId={activeApp?.id} />}
         {activeTab === 'templates' && <TemplatesView />}
+        {activeTab === 'community' && <CommunityFeed />}
         {activeTab === 'simulator' && <VisaSimulatorView applicationId={activeApp?.id} />}
         {activeTab === 'trainer' && <InterviewTrainerView applicationId={activeApp?.id} />}
         {activeTab === 'submission' && <SubmissionStatusView application={activeApp} onContactLegal={() => setActiveTab('messages')} />}

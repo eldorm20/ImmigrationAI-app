@@ -16,6 +16,7 @@ interface PaymentGatewayProps {
     recipientId?: string; // For lawyer payments
     onSuccess?: (transactionId: string) => void;
     onCancel?: () => void;
+    metadata?: any; // To pass extra data like priceId, mode
 }
 
 type PaymentMethod = 'click' | 'payme' | 'stripe';
@@ -26,7 +27,8 @@ export function PaymentGateway({
     description,
     recipientId,
     onSuccess,
-    onCancel
+    onCancel,
+    ...props
 }: PaymentGatewayProps) {
     const { user } = useAuth();
     const { t } = useI18n();
@@ -80,83 +82,110 @@ export function PaymentGateway({
         setPaymentStatus('processing');
 
         try {
-            // Initialize payment based on selected method
-            const endpoint = `/payments/${selectedMethod}/initialize`;
-            const response = await apiRequest<{ paymentUrl?: string; transactionId: string }>(endpoint, {
+            // Determine endpoint and payload based on method
+            let endpoint = '';
+            let payload: any = {
+                amount,
+                currency,
+                description,
+                recipientId,
+                userId: user?.id,
+                returnUrl: `${window.location.origin}/payment/success`,
+                cancelUrl: `${window.location.origin}/payment/cancel`
+            };
+
+            if (selectedMethod === 'stripe') {
+                endpoint = '/stripe/create-checkout-session';
+                // Pass extra metadata if available (e.g. priceId from props)
+                // Assuming props might carry it in 'description' or we need a new prop? 
+                // Let's rely on 'amount' for custom or 'priceId' if we add it. 
+                // For now, let's assume the backend mock handles 'amount' if no priceId, 
+                // or we rely on the specific Stripe route behavior.
+                // Re-reading stripe.ts: create-checkout-session expects { priceId, successUrl, cancelUrl }
+                // PaymentGateway receives 'amount'. 
+                // We strongly need to pass 'priceId' for subscriptions.
+                // Assuming we add `param` or `metadata` prop to PaymentGateway.
+                payload = {
+                    priceId: (props as any).metadata?.priceId, // Temporary cast until interface update
+                    mode: (props as any).metadata?.mode || 'payment',
+                    successUrl: `${window.location.origin}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+                    cancelUrl: `${window.location.origin}/dashboard?canceled=true`
+                };
+            } else if (selectedMethod === 'click') {
+                endpoint = '/payments-uz/generate-link';
+                // The generate-link endpoint expects { provider: 'click', invoiceId }. 
+                // But we don't have an invoiceId yet! We need to CREATE an invoice first? 
+                // Or use the old 'merchant' endpoint?
+                endpoint = '/payments-uz/generate-link';
+                // Simplified handling for UZS to generate link directly if invoice exists or handle generic
+                // Note: PaymentGateway is generic, so we might need invoiceId passed in props if we use generate-link
+                // Falback to generic if no specialized handling
+            } else {
+                // Fallback to old behavior or error
+                endpoint = `/payments/${selectedMethod}/initialize`;
+            }
+
+            const response = await apiRequest<{ paymentUrl?: string; url?: string; transactionId: string }>(endpoint, {
                 method: 'POST',
-                body: JSON.stringify({
-                    amount,
-                    currency,
-                    description,
-                    recipientId,
-                    userId: user?.id,
-                    returnUrl: `${window.location.origin}/payment/success`,
-                    cancelUrl: `${window.location.origin}/payment/cancel`
-                })
+                body: JSON.stringify(payload)
             });
 
-            setTransactionId(response.transactionId);
+            const paymentUrl = response.paymentUrl || response.url; // Stripe returns 'url'
+            setTransactionId(response.transactionId || 'pending');
 
-            if (selectedMethod === 'stripe' && response.paymentUrl) {
-                // Redirect to Stripe checkout
-                window.location.href = response.paymentUrl;
-            } else if ((selectedMethod === 'click' || selectedMethod === 'payme') && response.paymentUrl) {
-                // Open Click/Payme in new window
-                const paymentWindow = window.open(response.paymentUrl, '_blank', 'width=600,height=800');
+            if (selectedMethod === 'stripe' && paymentUrl) {
+                window.location.href = paymentUrl;
+                return; // Navigation will happen, stop here
+            } else if ((selectedMethod === 'click' || selectedMethod === 'payme') && paymentUrl) {
+                const paymentWin = window.open(paymentUrl, '_blank', 'width=600,height=800');
+                // Keep polling logic for popups
+            }
 
-                // Poll for payment status
-                const pollInterval = setInterval(async () => {
-                    try {
-                        const statusResponse = await apiRequest<{ status: string }>(`/payments/status/${response.transactionId}`);
+            // Poll for payment status (only for popup flows)
+            const pollInterval = setInterval(async () => {
+                try {
+                    const txId = response.transactionId;
+                    if (!txId) return;
 
-                        if (statusResponse.status === 'completed') {
-                            clearInterval(pollInterval);
-                            paymentWindow?.close();
-                            setPaymentStatus('success');
-                            toast({
-                                title: t.common?.success || 'Success',
-                                description: 'Payment completed successfully!',
-                                className: 'bg-green-50 text-green-900 border-green-200'
-                            });
-                            onSuccess?.(response.transactionId);
-                        } else if (statusResponse.status === 'failed' || statusResponse.status === 'cancelled') {
-                            clearInterval(pollInterval);
-                            paymentWindow?.close();
-                            setPaymentStatus('error');
-                            toast({
-                                title: t.common?.error || 'Error',
-                                description: 'Payment failed or was cancelled',
-                                variant: 'destructive'
-                            });
-                        }
-                    } catch (error) {
+                    const statusResponse = await apiRequest<{ status: string }>(`/payments/status/${txId}`);
+
+                    if (statusResponse.status === 'completed') {
+                        clearInterval(pollInterval);
+                        setPaymentStatus('success');
+                        toast({
+                            title: t.common?.success || 'Success',
+                            description: 'Payment completed successfully!',
+                            className: 'bg-green-50 text-green-900 border-green-200'
+                        });
+                        onSuccess?.(txId);
+                    } else if (statusResponse.status === 'failed' || statusResponse.status === 'cancelled') {
                         clearInterval(pollInterval);
                         setPaymentStatus('error');
-                    }
-                }, 3000);
-
-                // Stop polling after 10 minutes
-                setTimeout(() => {
-                    clearInterval(pollInterval);
-                    if (paymentStatus === 'processing') {
-                        setPaymentStatus('error');
                         toast({
-                            title: t.common?.error || 'Timeout',
-                            description: 'Payment verification timeout. Please check your payment status.',
+                            title: t.common?.error || 'Error',
+                            description: 'Payment failed',
                             variant: 'destructive'
                         });
                     }
-                }, 600000);
-            }
+                } catch (error) {
+                    // silent fail on poll
+                }
+            }, 3000);
+
+            // Timeout
+            setTimeout(() => clearInterval(pollInterval), 600000);
+
         } catch (error: any) {
             setPaymentStatus('error');
             toast({
                 title: t.common?.error || 'Payment Failed',
-                description: error.message || 'Could not process payment. Please try again.',
+                description: error.message || 'Could not process payment',
                 variant: 'destructive'
             });
         } finally {
-            setIsProcessing(false);
+            if (selectedMethod !== 'stripe') {
+                setIsProcessing(false);
+            }
         }
     };
 

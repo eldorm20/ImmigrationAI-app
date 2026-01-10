@@ -118,6 +118,12 @@ export function LawyerSubscription() {
                     description={`${getTierName(selectedTier)} Subscription - ${billingPeriod === 'annual' ? 'Annual' : 'Monthly'}`}
                     onSuccess={handlePaymentSuccess}
                     onCancel={() => setShowPayment(false)}
+                    metadata={{
+                        priceId: selectedTier.stripeId || `price_${selectedTier.id}`, // specific or fallback
+                        mode: 'subscription',
+                        tierId: selectedTier.id,
+                        billingPeriod
+                    }}
                 />
             </div>
         );

@@ -34,7 +34,10 @@ import PartnerPage from "@/pages/partner";
 import NotFound from "@/pages/not-found";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import VisaComparison from "@/pages/visa-comparison";
-import CommunityForum from "@/pages/forum";
+import CommunityFeed from "@/pages/community/Feed";
+
+// ... inside App function ...
+
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSubscriptions from "@/pages/admin/subscriptions";
 import AdminUsersPage from "@/pages/admin/users";
@@ -161,8 +164,8 @@ function Router() {
             <VideoCallPage />
           </Route>
 
-          <Route path="/forum">
-            <CommunityForum />
+          <Route path="/community">
+            <ProtectedRoute component={CommunityFeed} />
           </Route>
 
           <Route path="/admin">

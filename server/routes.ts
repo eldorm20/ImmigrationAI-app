@@ -71,6 +71,7 @@ import simulatorRoutes from "./routes/simulator";
 // New modules (Static Imports)
 import checklistsRoutes from "./routes/checklists";
 import templatesRoutes from "./routes/templates";
+import communityRoutes from "./routes/community";
 
 export async function registerRoutes(app: Express) {
   try {
@@ -87,6 +88,50 @@ export async function registerRoutes(app: Express) {
     app.use("/api/documents", documentRoutes);
     app.use("/api/ai", aiRoutes);
     app.use("/api/stats", statsRoutes);
+    app.use("/api/health", healthRoutes);
+    app.use("/api/research", researchRoutes);
+    app.use("/api/roadmap", roadmapRoutes);
+    app.use("/api/stripe", stripeRoutes);
+    app.use("/api/notifications", notificationRoutes);
+    app.use("/api/reports", reportsRoutes);
+    app.use("/api/subscription", subscriptionsRoutes);
+    app.use("/api/messages", messagesRoutes);
+    app.use("/api/translate", translateRoutes);
+    app.use("/api/users", settingsRoutes);
+    app.use("/api/admin", adminRoutes);
+    app.use("/api/visa", visaRoutes);
+    app.use("/api/analytics", analyticsRoutes);
+    app.use("/api/debug", debugRoutes);
+
+    // New: Simulator Route
+    app.use("/api/simulator", simulatorRoutes);
+
+    // New/Consolidated Routes
+    app.use("/api/canada", canadaRoutes);
+    app.use("/api/ukrtwchecker", ukRtwRoutes);
+    app.use("/api/tasks", tasksRoutes);
+    app.use("/api/invoices", invoicesRoutes);
+    app.use("/api/clients", clientsRoutes);
+    app.use("/api/predictive", predictiveRoutes);
+    app.use("/api/voice", voiceRoutes);
+    app.use("/api/agents", agentsRoutes);
+
+    app.use("/api/gov-check", govCheckRoutes);
+    app.use("/api/lawyer/automation", lawyerAutomationRoutes);
+    app.use("/api/companies", companyRouter);
+
+    // Phase 5: SAP-like Platform Routes
+    app.use("/api/leads", leadsRoutes);
+    app.use("/api/time-entries", timeEntriesRoutes);
+    app.use("/api/forms", formsRouter);
+    app.use("/api/payments-uz", paymentsUzRoutes);
+
+    // New Feature Routes (Checklists, Templates)
+    app.use("/api/checklists", checklistsRoutes);
+    app.use("/api/templates", templatesRoutes);
+
+    // New Feature Routes (Community)
+    app.use("/api/community", communityRoutes);
     app.use("/api/health", healthRoutes);
     app.use("/api/research", researchRoutes);
     app.use("/api/roadmap", roadmapRoutes);
