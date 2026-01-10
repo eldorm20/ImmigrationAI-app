@@ -109,7 +109,6 @@ export default function UserDash() {
     { id: 'docs', icon: FileText, label: t?.dash?.docs || "Documents" },
     { id: 'templates', icon: FolderOpen, label: t?.dash?.templates || "Templates" },
     { id: 'simulator', icon: FlaskConical, label: t?.dash?.simulator || "Simulator" },
-    { id: 'gov', icon: Shield, label: t?.dash?.gov || "Gov Check" },
     { id: 'trainer', icon: BrainCircuit, label: t?.dash?.trainer || "Trainer" },
     { id: 'upload', icon: Upload, label: t?.dash?.upload || "Upload" },
     { id: 'translate', icon: Globe, label: t?.dash?.translate || "Translate" },
