@@ -32,6 +32,7 @@ import { LawyerSubscription } from "@/components/lawyer/LawyerSubscription";
 import { AdvancedAnalytics } from "@/components/lawyer/AdvancedAnalytics";
 import { AIChatWithCitations } from "@/components/ai/AIChatWithCitations";
 import { Crown, BarChart3, Sparkles } from "lucide-react";
+import CommunityFeed from "@/pages/community/Feed";
 
 export default function LawyerDashboard() {
   const { user, isLoading } = useAuth();
@@ -51,6 +52,7 @@ export default function LawyerDashboard() {
     { id: 'applications', label: "Applications", icon: Briefcase },
     { id: 'consultations', label: "Consultations", icon: Calendar },
     { id: 'video-consultations', label: "Video Calls", icon: Video },
+    { id: 'community', label: "Community", icon: Users },
     { id: 'financials', label: "Financials", icon: DollarSign },
     { id: 'analytics', label: "Analytics", icon: BarChart3 },
     { id: 'subscription', label: "Subscription", icon: Crown },
@@ -82,6 +84,7 @@ export default function LawyerDashboard() {
         }} />}
         {activeTab === 'consultations' && <LawyerConsultations />}
         {activeTab === 'video-consultations' && <LawyerVideoConsultations />}
+        {activeTab === 'community' && <CommunityFeed />}
         {activeTab === 'financials' && (
           <div className="space-y-8">
             <BillingManager />

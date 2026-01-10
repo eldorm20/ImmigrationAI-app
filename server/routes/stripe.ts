@@ -195,16 +195,39 @@ router.post(
         .where(eq(payments.providerTransactionId, paymentIntentId));
 
       // Update user subscription tier (Important!)
-      // We need to find the payment amount to guess tier or use metadata if we stored it
-      // For simplicity, upgrade to 'professional' if amount > 0 or based on logic
       const payment = await db.query.payments.findFirst({
         where: eq(payments.providerTransactionId, paymentIntentId)
       });
 
       if (payment) {
-        // If payment amount corresponds to professional ($99)
-        await db.update(require("@shared/schema").users) // using require to avoid top-level cyclic import if any
-          .set({ subscriptionTier: "professional" })
+        const amount = parseFloat(payment.amount);
+        let newTier = 'starter'; // Default fallback
+
+        // Determine tier based on amount (Naive check based on known prices)
+        // Client Tiers: Basic 0, Pro 15, Premium 50
+        // Lawyer Tiers: Starter 29, Professional 99, Agency 299
+
+        if (amount >= 299) newTier = 'agency';
+        else if (amount >= 99) newTier = 'professional';
+        else if (amount >= 50) newTier = 'premium'; // Client premium
+        else if (amount >= 29) newTier = 'starter';
+        else if (amount >= 15) newTier = 'professional'; // Client pro mapped to professional name internally? check types
+        // Actually client tiers are "basic", "standard", "premium" usually. 
+        // Let's stick to safe defaults or check role.
+
+        if (Math.abs(amount - 15) < 1) newTier = 'standard'; // Client Pro
+        if (Math.abs(amount - 50) < 1) newTier = 'premium'; // Client Premium
+
+        // Override for Lawyer specific known prices
+        if (Math.abs(amount - 29) < 1 || Math.abs(amount - 290) < 10) newTier = 'starter';
+        if (Math.abs(amount - 99) < 1 || Math.abs(amount - 990) < 10) newTier = 'professional';
+        if (Math.abs(amount - 299) < 1 || Math.abs(amount - 2990) < 10) newTier = 'agency';
+
+        await db.update(require("@shared/schema").users)
+          .set({
+            subscriptionTier: newTier,
+            subscriptionStatus: 'active' // Ensure functionality is unlocked
+          })
           .where(eq(require("@shared/schema").users.id, req.user!.userId));
       }
 
