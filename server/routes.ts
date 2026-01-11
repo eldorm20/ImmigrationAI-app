@@ -72,6 +72,7 @@ import simulatorRoutes from "./routes/simulator";
 import checklistsRoutes from "./routes/checklists";
 import templatesRoutes from "./routes/templates";
 import communityRoutes from "./routes/community";
+import visionRoutes from "./routes/vision";
 
 export async function registerRoutes(app: Express) {
   try {
@@ -132,6 +133,9 @@ export async function registerRoutes(app: Express) {
 
     // New Feature Routes (Community)
     app.use("/api/community", communityRoutes);
+
+    // Vision AI Routes (LLAVA Document Analysis)
+    app.use("/api/vision", visionRoutes);
     app.use("/api/health", healthRoutes);
     app.use("/api/research", researchRoutes);
     app.use("/api/roadmap", roadmapRoutes);
