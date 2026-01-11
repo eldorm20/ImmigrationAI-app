@@ -28,6 +28,11 @@ import invoicesRoutes from "./routes/invoices";
 import clientsRoutes from "./routes/clients";
 import predictiveRoutes from "./routes/predictive";
 import voiceRoutes from "./routes/voice";
+
+// ... existing code ...
+
+// Voice AI Routes
+app.use("/api/voice", voiceRoutes);
 import agentsRoutes from "./routes/agents";
 import paymentsUzRoutes from "./routes/payments-uz";
 import govCheckRoutes from "./routes/gov-check";
@@ -74,6 +79,9 @@ import templatesRoutes from "./routes/templates";
 import communityRoutes from "./routes/community";
 import visionRoutes from "./routes/vision";
 import sttRoutes from "./routes/stt";
+import crmRoutes from "./routes/crm";
+import calendarRoutes from "./routes/calendar";
+import workflowRoutes from "./routes/workflow";
 
 export async function registerRoutes(app: Express) {
   try {
@@ -140,47 +148,11 @@ export async function registerRoutes(app: Express) {
 
     // Speech-to-Text Routes (Whisper STT)
     app.use("/api/stt", sttRoutes);
-    app.use("/api/health", healthRoutes);
-    app.use("/api/research", researchRoutes);
-    app.use("/api/roadmap", roadmapRoutes);
-    app.use("/api/stripe", stripeRoutes);
-    app.use("/api/notifications", notificationRoutes);
-    app.use("/api/reports", reportsRoutes);
-    app.use("/api/subscription", subscriptionsRoutes);
-    app.use("/api/messages", messagesRoutes);
-    app.use("/api/translate", translateRoutes);
-    app.use("/api/users", settingsRoutes);
-    app.use("/api/admin", adminRoutes);
-    app.use("/api/visa", visaRoutes);
-    app.use("/api/analytics", analyticsRoutes);
-    app.use("/api/debug", debugRoutes);
 
-    // New: Simulator Route
-    app.use("/api/simulator", simulatorRoutes);
-
-    // New/Consolidated Routes
-    app.use("/api/canada", canadaRoutes);
-    app.use("/api/ukrtwchecker", ukRtwRoutes);
-    app.use("/api/tasks", tasksRoutes);
-    app.use("/api/invoices", invoicesRoutes);
-    app.use("/api/clients", clientsRoutes);
-    app.use("/api/predictive", predictiveRoutes);
-    app.use("/api/voice", voiceRoutes);
-    app.use("/api/agents", agentsRoutes);
-
-    app.use("/api/gov-check", govCheckRoutes);
-    app.use("/api/lawyer/automation", lawyerAutomationRoutes);
-    app.use("/api/companies", companyRouter);
-
-    // Phase 5: SAP-like Platform Routes
-    app.use("/api/leads", leadsRoutes);
-    app.use("/api/time-entries", timeEntriesRoutes);
-    app.use("/api/forms", formsRouter);
-    app.use("/api/payments-uz", paymentsUzRoutes);
-
-    // New Feature Routes (Checklists, Templates)
-    app.use("/api/checklists", checklistsRoutes);
-    app.use("/api/templates", templatesRoutes);
+    // Business & CRM Routes (Phase C)
+    app.use("/api/crm", crmRoutes);
+    app.use("/api/calendar", calendarRoutes);
+    app.use("/api/workflow", workflowRoutes);
 
     // HEAD Routes preserved
     app.use("/api/predict", predictRoutes);

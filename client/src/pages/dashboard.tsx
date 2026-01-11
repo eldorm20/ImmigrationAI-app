@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   LayoutDashboard, FileText, MessageSquare, Book, Users,
   Globe, Send, Briefcase, Upload, FolderOpen, FlaskConical,
-  Shield, BrainCircuit, Search, Scan,
+  Shield, BrainCircuit, Search, Scan, Mic,
   Building,
   CheckCircle, CreditCard
 } from "lucide-react";
@@ -39,6 +39,7 @@ import { FinancesView } from "@/components/dashboard/FinancesView";
 import Subscription from "@/pages/subscription";
 import { SubmissionStatusView } from "@/components/dashboard/SubmissionStatusView";
 import DocumentScannerView from "@/components/dashboard/DocumentScannerView";
+import VoiceAssistantView from "@/components/dashboard/VoiceAssistantView";
 
 export default function UserDash() {
   const { user } = useAuth();
@@ -116,6 +117,7 @@ export default function UserDash() {
     { id: 'trainer', icon: BrainCircuit, label: t?.dash?.trainer || "Trainer" },
     { id: 'upload', icon: Upload, label: t?.dash?.upload || "Upload" },
     { id: 'scanner', icon: Scan, label: t?.dash?.scanner || "Scan Document" },
+    { id: 'voice', icon: Mic, label: "Voice Assistant" },
     { id: 'translate', icon: Globe, label: t?.dash?.translate || "Translate" },
     { id: 'chat', icon: MessageSquare, label: t?.dash?.chat || "AI Assistant" },
     { id: 'messages', icon: Send, label: t?.dash?.messages || "Messages" },
@@ -179,6 +181,7 @@ export default function UserDash() {
         {activeTab === 'docs' && <AIDocsView applicationId={activeApp?.id} />}
         {activeTab === 'upload' && <UploadView initialChecklistItem={pendingChecklistItem} onUploadComplete={() => setPendingChecklistItem(null)} />}
         {activeTab === 'scanner' && <DocumentScannerView />}
+        {activeTab === 'voice' && <VoiceAssistantView />}
         {activeTab === 'translate' && <TranslateView />}
         {activeTab === 'chat' && <ChatView applicationId={activeApp?.id} />}
         {activeTab === 'messages' && <MessagingPanel />}

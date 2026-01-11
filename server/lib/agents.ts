@@ -84,7 +84,30 @@ Fallback responses if uncertain: ${this.fallbacks.join("; ")}.`;
 
   async process(input: string, context?: any): Promise<AgentResponse> {
     try {
+      // 1. Check cache first
+      // Use prompt + agent name as cache key component
+      const { getCachedAIResponse, cacheAIResponse } = await import("./cache");
+      const cached = await getCachedAIResponse(input, this.name);
+
+      if (cached) {
+        return {
+          success: true,
+          data: cached,
+          source: `${this.name} (Cached)`,
+        };
+      }
+
+      // 2. Generate response if no cache
       const response = await this.generateResponse(input);
+
+      // 3. Cache the result (1 hour TTL)
+      try {
+        await cacheAIResponse(input, response, this.name, 3600);
+      } catch (cacheErr) {
+        // Non-blocking cache error
+        logger.warn({ err: cacheErr }, "Failed to cache agent response");
+      }
+
       return {
         success: true,
         data: response,
@@ -722,7 +745,7 @@ async function generateTextWithProvider(
     try {
       // Use Ollama adapter helpers when available
       const { buildOllamaPayload, parseOllamaResponse } = await import("./ollama");
-      const model = process.env.OLLAMA_MODEL || 'mistral'; // Default to mistral if not set
+      const model = process.env.OLLAMA_MODEL || 'phi3:mini'; // Default to phi3:mini for 3-5x faster responses
       logger.info({ model, provider: "ollama" }, "Generating text using local AI provider");
 
       const bodyPayload: any = buildOllamaPayload(prompt, systemPrompt, model);

@@ -1,4 +1,6 @@
 import { logger } from "./logger";
+import { getCachedDocumentAnalysis, cacheDocumentAnalysis } from "./cache";
+import crypto from "crypto";
 
 const OLLAMA_URL = process.env.OLLAMA_BASE_URL || "http://ollama:11434";
 
@@ -17,6 +19,7 @@ export interface DocumentAnalysisResult {
     };
     error?: string;
     confidence?: number;
+    source?: string;
 }
 
 /**
@@ -28,61 +31,71 @@ export async function analyzeDocumentImage(
     documentType: "passport" | "visa" | "id_card" | "bank_statement" | "general" = "general"
 ): Promise<DocumentAnalysisResult> {
     try {
-        logger.info({ documentType }, "Starting LLAVA document analysis");
+        // 1. Generate hash of the image for caching
+        const imageHash = crypto.createHash("md5").update(imageBase64).digest("hex");
+
+        // 2. Check cache (24 hour TTL for documents)
+        const cached = await getCachedDocumentAnalysis(imageHash);
+        if (cached) {
+            return {
+                success: true,
+                data: cached,
+                confidence: 1.0,
+                source: "cache"
+            };
+        }
+
+        logger.info({ documentType, imageHash: imageHash.substring(0, 8) }, "Starting LLAVA document analysis");
 
         // Prepare prompt based on document type
         const prompts = {
-            passport: `Analyze this passport image carefully. Extract the following information and return ONLY valid JSON (no markdown, no explanations):
-{
-  "fullName": "full name as shown",
-  "passportNumber": "passport number",
-  "dateOfBirth": "YYYY-MM-DD format",
-  "nationality": "country name",
-  "expiryDate": "YYYY-MM-DD format",
-  "issueDate": "YYYY-MM-DD format",
-  "placeOfBirth": "place of birth if visible",
-  "documentType": "passport"
-}
+            passport: `You are a precise data extraction AI. Analyze this passport image and extract the following fields into a JSON object:
+- fullName: The full name of the passport holder.
+- passportNumber: The passport number.
+- dateOfBirth: Date of birth in YYYY-MM-DD format.
+- nationality: The nationality/country code.
+- expiryDate: Date of expiry in YYYY-MM-DD format.
+- issueDate: Date of issue in YYYY-MM-DD format.
+- placeOfBirth: Place of birth.
+- documentType: Always return "passport".
 
-If any field is not visible or unclear, use null for that field.`,
+Return ONLY the raw JSON object. Do not include markdown formatting (like \`\`\`json). If a field is not visible, use null.`,
 
-            visa: `Analyze this visa document. Extract and return ONLY valid JSON:
-{
-  "fullName": "applicant name",
-  "visaNumber": "visa number",
-  "visaType": "type of visa",
-  "issueDate": "YYYY-MM-DD format",
-  "expiryDate": "YYYY-MM-DD format",
-  "nationality": "nationality",
-  "documentType": "visa"
-}`,
+            visa: `You are a precise data extraction AI. Analyze this visa image and extract the following fields into a JSON object:
+- fullName: The full name of the visa holder.
+- visaNumber: The visa number.
+- dateOfBirth: Date of birth in YYYY-MM-DD format.
+- passportNumber: The associated passport number.
+- expiryDate: Date of expiry in YYYY-MM-DD format.
+- issueDate: Date of issue in YYYY-MM-DD format.
+- type: The type of visa (e.g., Student, Work, Tourist).
+- documentType: Always return "visa".
 
-            id_card: `Analyze this ID card. Extract and return ONLY valid JSON:
-{
-  "fullName": "full name",
-  "idNumber": "ID number",
-  "dateOfBirth": "YYYY-MM-DD format",
-  "nationality": "nationality",
-  "expiryDate": "YYYY-MM-DD format if present",
-  "documentType": "id_card"
-}`,
+Return ONLY the raw JSON object. Do not include markdown formatting.`,
 
-            bank_statement: `Analyze this bank statement. Extract and return ONLY valid JSON:
-{
-  "accountHolder": "account holder name",
-  "accountNumber": "last 4 digits of account if visible",
-  "bankName": "bank name",
-  "statementDate": "YYYY-MM-DD format",
-  "balance": "closing balance if visible",
-  "documentType": "bank_statement"
-}`,
+            id_card: `You are a precise data extraction AI. Analyze this ID card and extract the following fields into a JSON object:
+- fullName: The full name.
+- idNumber: The ID number.
+- dateOfBirth: Date of birth in YYYY-MM-DD format.
+- nationality: The nationality.
+- expiryDate: Date of expiry in YYYY-MM-DD format.
+- documentType: Always return "id_card".
 
-            general: `Analyze this document carefully. Extract all visible text and key information. Return ONLY valid JSON:
-{
-  "documentType": "type of document",
-  "extractedText": "main text content",
-  "keyInformation": {}
-}`
+Return ONLY the raw JSON object. Do not include markdown formatting.`,
+
+            bank_statement: `You are a financial data AI. Analyze this bank statement header/summary and extract:
+- bankName: The name of the bank.
+- accountHolder: The name of the account holder.
+- accountNumber: The account number (if visible, partially masked is ok).
+- statementDate: The date of the statement.
+- documentType: Always return "bank_statement".
+
+Return ONLY the raw JSON object.`,
+
+            general: `Analyze this document and extract key information into a JSON object with meaningful keys (e.g., title, date, namesFound).
+Include a "summary" field with a brief description.
+Set "documentType" to "general".
+Return ONLY the raw JSON object.`
         };
 
         const prompt = prompts[documentType];
@@ -98,8 +111,9 @@ If any field is not visible or unclear, use null for that field.`,
                 prompt: prompt,
                 images: [imageBase64],
                 stream: false,
+                format: "json", // Enforce JSON mode
                 options: {
-                    temperature: 0.1, // Low temperature for accurate extraction
+                    temperature: 0.1, // Low temperature for factual extraction
                     num_predict: 512,
                 },
             }),
@@ -132,10 +146,20 @@ If any field is not visible or unclear, use null for that field.`,
             };
         }
 
+        // Cache the result
+        if (extractedData) {
+            try {
+                await cacheDocumentAnalysis(imageHash, extractedData, 86400);
+            } catch (cacheErr) {
+                logger.warn({ err: cacheErr }, "Failed to cache document analysis");
+            }
+        }
+
         return {
             success: true,
             data: extractedData,
             confidence: 0.85, // LLAVA typically has high confidence
+            source: "llava"
         };
     } catch (error: any) {
         logger.error({ error: error.message }, "Document analysis failed");

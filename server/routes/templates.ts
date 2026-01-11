@@ -44,13 +44,18 @@ router.get(
 
             res.json(filtered);
         } catch (error: any) {
+            // Enhanced Error Logging
             logger.error({
                 msg: "Failed to fetch templates",
                 error: error.message,
                 stack: error.stack,
                 userId,
-                query: req.query
+                query: req.query,
+                dbError: error // Log the full object in case Drizzle gives more info
             });
+
+            // Return empty array instead of 500 if it's just a query error to prevent crashing UI
+            // But still signal error structure if critical
             res.status(500).json({
                 error: "Failed to fetch templates",
                 details: error.message

@@ -1,6 +1,6 @@
 import { logger } from "./logger";
 
-const WHISPER_URL = process.env.WHISPER_URL || "http://whisper:9000";
+const WHISPER_URL = process.env.WHISPER_URL || "http://localhost:9000";
 
 export interface TranscriptionResult {
     success: boolean;
