@@ -73,6 +73,7 @@ import checklistsRoutes from "./routes/checklists";
 import templatesRoutes from "./routes/templates";
 import communityRoutes from "./routes/community";
 import visionRoutes from "./routes/vision";
+import sttRoutes from "./routes/stt";
 
 export async function registerRoutes(app: Express) {
   try {
@@ -136,6 +137,9 @@ export async function registerRoutes(app: Express) {
 
     // Vision AI Routes (LLAVA Document Analysis)
     app.use("/api/vision", visionRoutes);
+
+    // Speech-to-Text Routes (Whisper STT)
+    app.use("/api/stt", sttRoutes);
     app.use("/api/health", healthRoutes);
     app.use("/api/research", researchRoutes);
     app.use("/api/roadmap", roadmapRoutes);
