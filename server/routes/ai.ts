@@ -73,9 +73,9 @@ router.post(
     const userId = req.user!.userId;
     const role = req.user!.role;
 
-    const document = await db.query.documents.findFirst({
-      where: eq(documents.id, documentId),
-    });
+    const [document] = await db.select().from(documents)
+      .where(eq(documents.id, documentId))
+      .limit(1);
 
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
@@ -642,22 +642,20 @@ router.post(
       }
 
       // Fetch user context (active application and profile)
-      const userProfile = await db.query.users.findFirst({
-        where: eq(users.id, userId)
-      });
+      const [userProfile] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       // Prefer explicitly passed applicationId
       const passedAppId = (req.body as any).applicationId;
 
-      const activeApplication = await db.query.applications.findFirst({
-        where: passedAppId
+      const activeApplication = (await db.select().from(applications)
+        .where(passedAppId
           ? and(eq(applications.id, passedAppId), eq(applications.userId, userId))
           : and(
             eq(applications.userId, userId),
             gte(applications.updatedAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // Recent application
-          ),
-        orderBy: [desc(applications.updatedAt)]
-      });
+          ))
+        .orderBy(desc(applications.updatedAt))
+        .limit(1))[0];
 
       const chatContext = {
         userName: userProfile ? `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() : "User",

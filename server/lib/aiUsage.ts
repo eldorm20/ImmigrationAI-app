@@ -13,7 +13,7 @@ function currentMonthKey() {
 }
 
 export async function getUsageForUser(userId: string) {
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const metadata = user?.metadata && typeof user.metadata === 'object' ? (user.metadata as any) : {};
   const month = currentMonthKey();
   const usage = metadata?.aiUsage || {};
@@ -28,7 +28,7 @@ export async function incrementUsage(userId: string, category: string, amount = 
   const limit = await getFeatureLimit(userId, category as any);
 
   // Read current usage
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new AppError(404, "User not found");
   const metadata = user.metadata && typeof user.metadata === 'object' ? (user.metadata as any) : {};
   const usage = metadata.aiUsage && typeof metadata.aiUsage === 'object' ? (metadata.aiUsage as any) : {};
@@ -88,7 +88,7 @@ export async function incrementUsage(userId: string, category: string, amount = 
 
           // Queue email if user has email configured
           try {
-            const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+            const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             if (user && user.email && user.emailVerified) {
               const subject = "Almost at your AI usage limit";
               const html = `<p>Hi ${user.firstName || ""},</p><p>You have <strong>${remaining}</strong> ${category} remaining for ${month}. Consider upgrading your subscription to increase your monthly AI allowance.</p><p>Thank you,<br/>ImmigrationAI</p>`;
@@ -113,7 +113,7 @@ export async function incrementUsage(userId: string, category: string, amount = 
 export async function getUsageRemaining(userId: string, category: string) {
   const limit = await getFeatureLimit(userId, category as any);
   const month = currentMonthKey();
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const metadata = user?.metadata && typeof user.metadata === 'object' ? (user.metadata as any) : {};
   const usage = metadata.aiUsage && typeof metadata.aiUsage === 'object' ? (metadata.aiUsage as any) : {};
   const monthUsage = usage[month] && typeof usage[month] === 'object' ? (usage[month] as any) : {};

@@ -76,8 +76,16 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
 
     const handleGenerate = async () => {
         // Validation
-        if (!formData.name) {
-            toast({ title: t.tools.gen, description: (t.docs.fillRequired || "Please fill required fields") + " (Name)", variant: "destructive" });
+        const configFields = getDocumentFields(docType);
+        const missingFields = configFields.filter(f => f.required && !formData[f.name]);
+
+        if (missingFields.length > 0) {
+            const firstMissing = missingFields[0].label;
+            toast({
+                title: t.tools.gen,
+                description: `${(t.docs.fillRequired || "Please fill required fields")} (${firstMissing})`,
+                variant: "destructive"
+            });
             return;
         }
 

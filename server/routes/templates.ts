@@ -25,18 +25,14 @@ router.get(
         const { documentType, category } = req.query;
 
         try {
-            if (!db.query.templates) {
-                console.error("Templates schema not found in db.query");
-                throw new Error("Database schema for templates is missing");
-            }
-
-            const results = await db.query.templates.findMany({
-                where: or(
+            // Robust selection using the table directly instead of db.query
+            const results = await db.select()
+                .from(templates)
+                .where(or(
                     eq(templates.isSystem, true),
                     eq(templates.userId, userId)
-                ),
-                orderBy: (templates, { desc }) => [desc(templates.createdAt)],
-            });
+                ))
+                .orderBy(sql`${templates.createdAt} DESC`);
 
             let filtered = results;
             if (documentType) {
@@ -118,9 +114,9 @@ router.patch(
         const userId = req.user!.userId;
         const updates = insertTemplateSchema.partial().parse(req.body);
 
-        const existing = await db.query.templates.findFirst({
-            where: eq(templates.id, id)
-        });
+        const [existing] = await db.select().from(templates)
+            .where(eq(templates.id, id))
+            .limit(1);
 
         if (!existing) {
             throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
@@ -154,9 +150,9 @@ router.post(
         const userId = req.user!.userId;
         const { values } = req.body;
 
-        const template = await db.query.templates.findFirst({
-            where: eq(templates.id, id)
-        });
+        const [template] = await db.select().from(templates)
+            .where(eq(templates.id, id))
+            .limit(1);
 
         if (!template) {
             throw new AppError(404, "Template not found", ErrorCode.NOT_FOUND);
@@ -199,9 +195,9 @@ export async function seedSpecializedTemplates(lawyerId: string) {
     ];
 
     for (const tpl of specialized) {
-        const existing = await db.query.templates.findFirst({
-            where: and(eq(templates.name, tpl.name), eq(templates.isSystem, true))
-        });
+        const [existing] = await db.select().from(templates)
+            .where(and(eq(templates.name, tpl.name), eq(templates.isSystem, true)))
+            .limit(1);
 
         if (!existing) {
             await db.insert(templates).values({

@@ -745,7 +745,7 @@ async function generateTextWithProvider(
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for CPU inference
+          const timeoutId = setTimeout(() => controller.abort(), 300000); // 5min timeout for CPU inference
 
           const res = await fetch(fetchUrl, {
             method: "POST",
