@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { verifyToken } from "../middleware/auth";
+import { authenticate } from "../middleware/auth";
 import { analyzeDocumentImage, analyzeMultipleDocuments, validateDocumentImage } from "../lib/vision-ai";
 import { logger } from "../lib/logger";
 import multer from "multer";
@@ -26,7 +26,7 @@ const upload = multer({
  * POST /api/vision/analyze
  * Analyze a single document image
  */
-router.post("/analyze", verifyToken, upload.single("image"), async (req, res) => {
+router.post("/analyze", authenticate, upload.single("image"), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: "No image file provided" });
@@ -83,7 +83,7 @@ router.post("/analyze", verifyToken, upload.single("image"), async (req, res) =>
  * POST /api/vision/analyze-batch
  * Analyze multiple documents at once
  */
-router.post("/analyze-batch", verifyToken, upload.array("images", 10), async (req, res) => {
+router.post("/analyze-batch", authenticate, upload.array("images", 10), async (req, res) => {
     try {
         const files = req.files as Express.Multer.File[];
 
@@ -132,7 +132,7 @@ router.post("/analyze-batch", verifyToken, upload.array("images", 10), async (re
  * POST /api/vision/validate
  * Quick validation - is this a valid document?
  */
-router.post("/validate", verifyToken, upload.single("image"), async (req, res) => {
+router.post("/validate", authenticate, upload.single("image"), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: "No image file provided" });
