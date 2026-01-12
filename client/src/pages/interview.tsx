@@ -5,9 +5,10 @@ import { useI18n } from "@/lib/i18n";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
-    Mic, Square, Play, Save, ChevronRight, AlertCircle, Bot, User, Globe
+    Mic, Square, Play, Save, ChevronRight, AlertCircle, Bot, User, Globe, Phone
 } from "lucide-react";
 import { LiveButton, AnimatedCard } from "@/components/ui/live-elements";
+import VoiceInterviewer from "@/components/interview/VoiceInterviewer";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -58,6 +59,7 @@ export default function InterviewPage() {
     const [speechLang, setSpeechLang] = useState<string>('en-US');
     const [interimText, setInterimText] = useState<string>('');
     const [speechSupported, setSpeechSupported] = useState<boolean>(true);
+    const [voiceMode, setVoiceMode] = useState<boolean>(false); // Toggle for VAPI
     const recognitionRef = useRef<SpeechRecognition | null>(null);
 
     // Check for browser support on mount
@@ -241,6 +243,27 @@ export default function InterviewPage() {
         }
     };
 
+    if (voiceMode) {
+        return (
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-12 pt-24">
+                <div className="max-w-4xl mx-auto space-y-8">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                                <Phone className="text-brand-600 w-8 h-8" /> AI Voice Interview
+                            </h1>
+                            <p className="text-slate-500 mt-2">Real-time voice conversation with AI Officer.</p>
+                        </div>
+                        <LiveButton variant="secondary" onClick={() => setVoiceMode(false)}>
+                            Switch to Text/Standard
+                        </LiveButton>
+                    </div>
+                    <VoiceInterviewer visaType="General" onSessionComplete={() => setVoiceMode(false)} />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 md:p-12 pt-24">
             <div className="max-w-4xl mx-auto space-y-8">
@@ -252,9 +275,22 @@ export default function InterviewPage() {
                         </h1>
                         <p className="text-slate-500 mt-2">Practice your visa interview with an AI officer.</p>
                     </div>
-                    {activeSession && (
-                        <LiveButton variant="danger" icon={Square} onClick={endSession}>End Session</LiveButton>
-                    )}
+                    {/* Add Toggle for Voice Mode */}
+                    <div className="flex gap-4">
+                        {!activeSession && (
+                            <LiveButton
+                                variant="outline"
+                                icon={Phone}
+                                onClick={() => setVoiceMode(true)}
+                                className="border-brand-200 text-brand-700 hover:bg-brand-50"
+                            >
+                                Voice Mode
+                            </LiveButton>
+                        )}
+                        {activeSession && (
+                            <LiveButton variant="danger" icon={Square} onClick={endSession}>End Session</LiveButton>
+                        )}
+                    </div>
                 </div>
 
                 {!activeSession ? (
