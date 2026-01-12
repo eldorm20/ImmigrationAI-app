@@ -151,6 +151,20 @@ router.get("/search", async (req, res) => {
                 c.title.toLowerCase().includes(query.toLowerCase()) ||
                 c.company_number.includes(query)
             );
+
+            // If no match in static mocks, generate a dynamic one for demo purposes
+            if (results.length === 0) {
+                results.push({
+                    company_number: "99999999",
+                    title: query.toUpperCase() + " LTD (DEMO)",
+                    company_status: "active",
+                    address_snippet: "123 Demo Street, Innovation Park, UK",
+                    date_of_creation: new Date().toISOString().split('T')[0],
+                    sponsor_license: { status: "licensed", type: "Skilled Worker", rating: "A-rated" }
+                });
+            }
+
+            logger.info({ query, count: results.length }, "Returning mock company results");
             return res.json({ items: results, total_results: results.length });
         }
 

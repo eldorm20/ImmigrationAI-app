@@ -825,8 +825,8 @@ export const communityComments = pgTable("community_comments", {
 }));
 
 export const insertCommunityPostSchema = createInsertSchema(communityPosts, {
-  title: z.string().min(5).max(255),
-  content: z.string().min(10),
+  title: z.string().min(3).max(255),
+  content: z.string().min(5),
   category: z.enum(["general", "news", "marketplace", "forum", "jobs", "announcements"]),
 }).pick({
   userId: true,

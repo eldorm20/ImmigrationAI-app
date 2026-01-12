@@ -669,6 +669,8 @@ export class AIAgentsManager {
     this.agents.set("document-analysis", new DocumentAnalysisAgent());
     this.agents.set("legal-compliance", new LegalComplianceAgent());
     this.agents.set("translation", new LanguageTranslationAgent());
+    // Use CustomerServiceAgent as a generic helper for simple tasks like basic translation fallback
+    this.agents.set("helper", new CustomerServiceAgent());
   }
 
   getAgent(agentType: string): Agent | null {

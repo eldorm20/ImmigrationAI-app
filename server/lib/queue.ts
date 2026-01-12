@@ -60,7 +60,8 @@ export async function processJobs() {
       if (job.type === "document_generation") {
         const ai = await import("./ai");
         const { documentType, userDetails, visaType } = job.payload as any;
-        result = await ai.generateDocument(documentType, visaType, userDetails);
+        const generatedDoc = await ai.generateDocument(documentType, visaType, userDetails);
+        result = { document: generatedDoc };
 
       } else if (job.type === "document_review") {
         const ai = await import("./ai");
