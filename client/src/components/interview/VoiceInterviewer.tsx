@@ -10,7 +10,7 @@ interface VoiceInterviewerProps {
     onSessionComplete?: () => void;
 }
 
-const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84"; // User's actual public key
+const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "";
 const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036";
 
 const VAPI_ASSISTANT_CONFIG = {
@@ -131,6 +131,18 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                     toast({
                         title: "Microphone Access Required",
                         description: "Please allow microphone access to use the voice interview feature.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+
+                // Debug logging (masked)
+                console.log("Initializing VAPI with Key:", VAPI_PUBLIC_KEY ? `${VAPI_PUBLIC_KEY.substring(0, 5)}...` : "MISSING");
+
+                if (!VAPI_PUBLIC_KEY || VAPI_PUBLIC_KEY === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84") {
+                    toast({
+                        title: "Configuration Error",
+                        description: "VAPI Public Key is missing or invalid. Please check your .env file for VITE_VAPI_PUBLIC_KEY.",
                         variant: "destructive"
                     });
                     return;
