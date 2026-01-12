@@ -74,6 +74,7 @@ export default function DocumentScannerView() {
             const response = await fetch("/api/vision/analyze", {
                 method: "POST",
                 body: formData,
+                credentials: "include", // Ensure cookies are sent
             });
 
             if (!response.ok) {

@@ -78,7 +78,7 @@ router.post(
     "/posts",
     asyncHandler(async (req, res) => {
         const userId = req.user!.userId;
-        const data = insertCommunityPostSchema.parse(req.body);
+        const data = insertCommunityPostSchema.omit({ userId: true, status: true, images: true }).parse(req.body);
 
         const [post] = await db
             .insert(communityPosts)

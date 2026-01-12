@@ -92,4 +92,12 @@ router.post(
     })
 );
 
+// Serve VAPI Configuration to Client (Solves VITE_ env var issue on Railway)
+router.get("/config", (req, res) => {
+    res.json({
+        publicKey: process.env.VAPI_PUBLIC_KEY || process.env.VITE_VAPI_PUBLIC_KEY || "",
+        assistantId: process.env.VAPI_ASSISTANT_ID || process.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036"
+    });
+});
+
 export default router;
