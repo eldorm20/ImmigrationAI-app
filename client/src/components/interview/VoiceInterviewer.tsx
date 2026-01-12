@@ -10,7 +10,7 @@ interface VoiceInterviewerProps {
     onSessionComplete?: () => void;
 }
 
-const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "";
+const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY || "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84";
 const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID || "e61ced86-058c-4813-88e7-62ee549a0036";
 
 const VAPI_ASSISTANT_CONFIG = {
