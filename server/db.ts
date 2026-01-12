@@ -12,6 +12,11 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Configure PostgreSQL connection pool
+import Redis from 'ioredis';
+
+// Configure Redis connection
+export const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20, // Maximum number of clients in the pool
