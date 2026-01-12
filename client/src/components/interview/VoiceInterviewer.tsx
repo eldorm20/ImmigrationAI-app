@@ -149,7 +149,7 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                 }
 
                 // Start VAPI session with override config
-                await vapi.start(VAPI_ASSISTANT_ID, VAPI_ASSISTANT_CONFIG as any);
+                await vapi.start(assistantId, VAPI_ASSISTANT_CONFIG as any);
                 toast({
                     title: "Connected",
                     description: "Voice interview started. You can begin speaking."
