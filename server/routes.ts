@@ -32,7 +32,7 @@ import voiceRoutes from "./routes/voice";
 // ... existing code ...
 
 // Voice AI Routes
-app.use("/api/voice", voiceRoutes);
+
 import agentsRoutes from "./routes/agents";
 import paymentsUzRoutes from "./routes/payments-uz";
 import govCheckRoutes from "./routes/gov-check";
