@@ -162,7 +162,7 @@ router.post(
     asyncHandler(async (req, res) => {
         const { id } = req.params;
         const userId = req.user!.userId;
-        const data = insertCommunityCommentSchema.parse(req.body);
+        const data = insertCommunityCommentSchema.pick({ content: true, parentId: true }).parse(req.body);
 
         // Verify post exists
         const post = await db.query.communityPosts.findFirst({

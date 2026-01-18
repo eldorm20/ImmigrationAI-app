@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 import { AnimatedCard, LiveButton, GlassSelect, GlassInput } from "@/components/ui/live-elements";
 import {
     Upload, Scan, FileText, Download, Copy, Shield, ShieldCheck,
@@ -90,18 +91,10 @@ export default function DocumentScannerView() {
             formData.append("image", selectedFile);
             formData.append("documentType", documentType);
 
-            const response = await fetch("/api/vision/analyze", {
+            const result = await apiRequest<any>("/api/vision/analyze", {
                 method: "POST",
                 body: formData,
-                credentials: "include",
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || errorData.message || "Failed to analyze document");
-            }
-
-            const result = await response.json();
 
             if (result.success) {
                 setExtractedData(result.data);
@@ -160,8 +153,8 @@ export default function DocumentScannerView() {
 
                             <div
                                 className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${previewUrl
-                                        ? "border-brand-500/50 bg-brand-500/5"
-                                        : "border-slate-700 hover:border-brand-500/30 hover:bg-slate-800/50"
+                                    ? "border-brand-500/50 bg-brand-500/5"
+                                    : "border-slate-700 hover:border-brand-500/30 hover:bg-slate-800/50"
                                     }`}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => {
