@@ -82,6 +82,10 @@ import sttRoutes from "./routes/stt";
 import crmRoutes from "./routes/crm";
 import calendarRoutes from "./routes/calendar";
 import workflowRoutes from "./routes/workflow";
+import lawyerDeadlinesRoutes from "./routes/lawyer-deadlines";
+import formPrefillRoutes from "./routes/form-prefill";
+import smartChecklistsRoutes from "./routes/smart-checklists";
+import portalRoutes from "./routes/portal";
 
 export async function registerRoutes(app: Express) {
   try {
@@ -157,6 +161,10 @@ export async function registerRoutes(app: Express) {
     // HEAD Routes preserved
     app.use("/api/predict", predictRoutes);
     app.use("/api/deadlines", deadlinesRoutes);
+    app.use("/api/lawyer-deadlines", lawyerDeadlinesRoutes);
+    app.use("/api/form-prefill", formPrefillRoutes);
+    app.use("/api/smart-checklists", smartChecklistsRoutes);
+    app.use("/api/portal", portalRoutes);
     app.use("/api/video", videoRoutes);
     app.use("/api/ocr", ocrRoutes);
     app.use("/api/referrals", referralRoutes);

@@ -87,7 +87,8 @@ const VAPI_ASSISTANT_CONFIG = {
     }
 };
 
-const vapi = new Vapi(VAPI_PUBLIC_KEY);
+// Removed static initialization
+// const vapi = new Vapi(VAPI_PUBLIC_KEY);
 
 export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceInterviewerProps) {
     const { toast } = useToast();
@@ -97,26 +98,64 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
     const [volume, setVolume] = useState(0);
     const [transcript, setTranscript] = useState("");
 
-    useEffect(() => {
-        // Event listeners
-        vapi.on("call-start", () => setIsActive(true));
-        vapi.on("call-end", () => setIsActive(false));
-        vapi.on("speech-start", () => setIsSpeaking(true));
-        vapi.on("speech-end", () => setIsSpeaking(false));
-        vapi.on("volume-level", (level) => setVolume(level));
-        vapi.on("message", (message: any) => {
-            if (message.type === "transcript" && message.transcriptType === "final") {
-                setTranscript(message.transcript);
-            }
-        });
-        vapi.on("error", (e) => {
-            console.error(e);
-            toast({ title: "Voice Error", description: "Connection failed", variant: "destructive" });
-        });
+    const vapiRef = useRef<any>(null);
 
-        return () => {
-            vapi.stop();
+    useEffect(() => {
+        const initVapi = async () => {
+            let publicKey = VAPI_PUBLIC_KEY;
+
+            // Try fetching from backend first
+            try {
+                const res = await fetch('/api/voice/config');
+                if (res.ok) {
+                    const config = await res.json();
+                    if (config.publicKey) {
+                        publicKey = config.publicKey;
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch VAPI config", e);
+            }
+
+            if (!publicKey || publicKey === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84") {
+                toast({
+                    title: "Configuration Error",
+                    description: "VAPI Public Key is missing. Please check your Railway variables (VAPI_PUBLIC_KEY).",
+                    variant: "destructive"
+                });
+                return;
+            }
+
+            // Initialize Vapi instance
+            const vapi = new Vapi(publicKey);
+            vapiRef.current = vapi;
+
+            // Event listeners
+            vapi.on("call-start", () => setIsActive(true));
+            vapi.on("call-end", () => setIsActive(false));
+            vapi.on("speech-start", () => setIsSpeaking(true));
+            vapi.on("speech-end", () => setIsSpeaking(false));
+            vapi.on("volume-level", (level) => setVolume(level));
+            vapi.on("message", (message: any) => {
+                if (message.type === "transcript" && message.transcriptType === "final") {
+                    setTranscript(message.transcript);
+                }
+            });
+            vapi.on("error", (e) => {
+                console.error(e);
+                toast({ title: "Voice Error", description: "Connection failed", variant: "destructive" });
+            });
         };
+
+        const cleanup = () => {
+            if (vapiRef.current) {
+                vapiRef.current.stop();
+                vapiRef.current = null;
+            }
+        };
+
+        initVapi();
+        return cleanup;
     }, []);
 
     const toggleCall = async () => {

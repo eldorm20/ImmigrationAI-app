@@ -33,8 +33,10 @@ import { LawyerVideoConsultations } from "@/components/lawyer/LawyerVideoConsult
 import { LawyerSubscription } from "@/components/lawyer/LawyerSubscription";
 import { AdvancedAnalytics } from "@/components/lawyer/AdvancedAnalytics";
 import { AIChatWithCitations } from "@/components/ai/AIChatWithCitations";
-import { Crown, BarChart3, Sparkles } from "lucide-react";
+import { Crown, BarChart3, Sparkles, AlertTriangle } from "lucide-react";
 import CommunityFeed from "@/pages/community/Feed";
+import DeadlineWatchdog from "@/components/lawyer/DeadlineWatchdog";
+import FormPreFill from "@/components/lawyer/FormPreFill";
 
 export default function LawyerDashboard() {
   const { user, isLoading } = useAuth();
@@ -83,12 +85,14 @@ export default function LawyerDashboard() {
     { id: 'leads', label: "Inquiries", icon: Users },
     { id: 'applications', label: "Applications", icon: Briefcase },
     { id: 'consultations', label: "Consultations", icon: Calendar },
+    { id: 'deadlines', label: "Deadline Watchdog", icon: AlertTriangle },
     { id: 'video-consultations', label: "Video Calls", icon: Video },
     { id: 'community', label: "Community", icon: Users },
     { id: 'financials', label: "Financials", icon: DollarSign },
     { id: 'analytics', label: "Analytics", icon: BarChart3 },
     { id: 'subscription', label: "Subscription", icon: Crown },
     { id: 'ai-assistant', label: "AI Assistant", icon: Sparkles },
+    { id: 'form-prefill', label: "Form Pre-Fill", icon: FileText },
     { id: 'documents', label: "Documents", icon: FileText },
     { id: 'templates', label: "Templates", icon: FolderOpen },
     { id: 'company-check', label: "Company Check", icon: Building },
@@ -115,6 +119,7 @@ export default function LawyerDashboard() {
           setActiveTab('messages');
         }} />}
         {activeTab === 'consultations' && <LawyerConsultations />}
+        {activeTab === 'deadlines' && <DeadlineWatchdog />}
         {activeTab === 'video-consultations' && <LawyerVideoConsultations />}
         {activeTab === 'community' && <CommunityFeed />}
         {activeTab === 'financials' && (
@@ -126,6 +131,7 @@ export default function LawyerDashboard() {
         {activeTab === 'subscription' && <LawyerSubscription />}
         {activeTab === 'analytics' && <AdvancedAnalytics />}
         {activeTab === 'ai-assistant' && <AIChatWithCitations />}
+        {activeTab === 'form-prefill' && <FormPreFill />}
         {activeTab === 'documents' && <AIDocsView />}
         {activeTab === 'templates' && <DocumentTemplates />}
         {activeTab === 'company-check' && <CompanySearch />}

@@ -15,6 +15,8 @@ import Applications from "@/pages/applications";
 import ApplicationView from "@/pages/application-view";
 import Dashboard from "@/pages/dashboard";
 import LawyerDashboard from "@/pages/lawyer-dashboard";
+import PortalLogin from "@/pages/portal-login";
+import PortalDashboard from "@/pages/portal-dashboard";
 import Messages from "@/pages/messages";
 import Pricing from "@/pages/pricing";
 import Checkout from "@/pages/checkout";
@@ -85,6 +87,8 @@ function Router() {
       <Layout>
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/portal/login" component={PortalLogin} />
+          <Route path="/portal/dashboard" component={PortalDashboard} />
           <Route path="/auth" component={AuthPage} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/assessment" component={AssessmentPage} />

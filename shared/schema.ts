@@ -100,6 +100,8 @@ export const users = pgTable("users", {
   metadata: jsonb("metadata"), // Store subscription and other metadata
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  portalToken: varchar("portal_token", { length: 255 }).unique(),
+  portalTokenExpiry: timestamp("portal_token_expiry"),
 }, (table) => ({
   emailIdx: index("users_email_idx").on(table.email),
   roleIdx: index("users_role_idx").on(table.role),
@@ -877,6 +879,66 @@ export const insertReferralSchema = createInsertSchema(referrals).pick({
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
 
+// Smart Checklists for AI Document Collector (different from legacy checklistItems)
+export const smartChecklists = pgTable("smart_checklists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  lawyerId: varchar("lawyer_id", { length: 255 }).references(() => users.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  visaType: varchar("visa_type", { length: 100 }),
+  isAIGenerated: boolean("is_ai_generated").default(false),
+  status: varchar("status", { length: 50 }).default("active"), // active, completed, archived
+  reminderCount: integer("reminder_count").default(0),
+  validationRules: jsonb("validation_rules"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index("smart_checklists_user_id_idx").on(table.userId),
+  lawyerIdIdx: index("smart_checklists_lawyer_id_idx").on(table.lawyerId),
+}));
+
+export const smartChecklistItems = pgTable("smart_checklist_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  checklistId: varchar("checklist_id", { length: 255 }).notNull().references(() => smartChecklists.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  isRequired: boolean("is_required").default(true),
+  validationRule: text("validation_rule"),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, uploaded, approved, rejected
+  documentUrl: text("document_url"),
+  notes: text("notes"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  checklistIdIdx: index("smart_checklist_items_checklist_id_idx").on(table.checklistId),
+}));
+
+export const insertSmartChecklistSchema = createInsertSchema(smartChecklists).pick({
+  userId: true,
+  lawyerId: true,
+  title: true,
+  description: true,
+  visaType: true,
+  isAIGenerated: true,
+  status: true,
+});
+
+export const insertSmartChecklistItemSchema = createInsertSchema(smartChecklistItems).pick({
+  checklistId: true,
+  title: true,
+  category: true,
+  isRequired: true,
+  validationRule: true,
+  status: true,
+});
+
+export type InsertSmartChecklist = z.infer<typeof insertSmartChecklistSchema>;
+export type SmartChecklist = typeof smartChecklists.$inferSelect;
+export type InsertSmartChecklistItem = z.infer<typeof insertSmartChecklistItemSchema>;
+export type SmartChecklistItem = typeof smartChecklistItems.$inferSelect;
+
 // Electronic Signatures
 export const signatureRequests = pgTable("signature_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1131,6 +1193,12 @@ export const deadlines = pgTable("deadlines", {
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
   priority: taskPriorityEnum("priority").notNull().default("medium"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  status: varchar("status", { length: 50 }).default("active"), // Added for watchdog
+  remindersSent: integer("reminders_sent").default(0),
+  lastReminderAt: timestamp("last_reminder_at"),
+  notes: text("notes"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
