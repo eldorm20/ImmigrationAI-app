@@ -174,6 +174,21 @@ export async function runMigrationsIfNeeded(): Promise<void> {
 
       // 1. Users table updates
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code text");
+
+      // Fix for portal_token (Critical Login Fix)
+      try {
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS portal_token VARCHAR(255)");
+        await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS portal_token_expiry TIMESTAMP");
+        try {
+          await pool.query("ALTER TABLE users ADD CONSTRAINT users_portal_token_unique UNIQUE (portal_token)");
+        } catch (constraintErr) {
+          // Ignore if constraint already exists or fails
+        }
+        logger.info("✓ portal_token columns verified/added manually");
+      } catch (err) {
+        logger.error({ err }, "Failed to manually add portal_token columns");
+      }
+
       // ensure role column exists (already should, but safe to check)
       // await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role text DEFAULT 'applicant'"); 
 
