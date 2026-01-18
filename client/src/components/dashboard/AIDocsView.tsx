@@ -107,7 +107,8 @@ export const AIDocsView = ({ applicationId }: { applicationId?: string }) => {
 
             // STEP 2: Poll for completion
             const result = await pollJob(startRes.jobId);
-            const targetText = result.document || "";
+            // Handle both legacy (string) and new (object) result formats
+            const targetText = typeof result === 'string' ? result : (result?.document || "");
 
             // STEP 3: Animate text
             try { trackEvent('ai_document_generated', { template: docType, language: lang || 'en', length: (targetText || '').length }); } catch { };

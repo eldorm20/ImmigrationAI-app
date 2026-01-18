@@ -78,7 +78,13 @@ router.post(
     "/posts",
     asyncHandler(async (req, res) => {
         const userId = req.user!.userId;
-        const data = insertCommunityPostSchema.omit({ userId: true, status: true, images: true }).parse(req.body);
+        let data;
+        try {
+            data = insertCommunityPostSchema.omit({ userId: true, status: true, images: true }).parse(req.body);
+        } catch (error: any) {
+            logger.error({ error: error.issues, body: req.body }, "Community Post Validation Failed");
+            return res.status(400).json({ message: "Validation error", details: error.issues });
+        }
 
         const [post] = await db
             .insert(communityPosts)

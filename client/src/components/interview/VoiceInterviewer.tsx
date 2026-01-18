@@ -136,13 +136,33 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                     return;
                 }
 
-                // Debug logging (masked)
-                console.log("Initializing VAPI with Key:", VAPI_PUBLIC_KEY ? `${VAPI_PUBLIC_KEY.substring(0, 5)}...` : "MISSING");
+                let publicKey = VAPI_PUBLIC_KEY;
+                let assistantId = VAPI_ASSISTANT_ID;
 
-                if (!VAPI_PUBLIC_KEY || VAPI_PUBLIC_KEY === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84") {
+                // Fallback: Fetch config from backend (Railway fix)
+                // This allows us to use process.env.VAPI_PUBLIC_KEY from the server
+                if ((!publicKey || publicKey === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84")) {
+                    try {
+                        const res = await fetch('/api/voice/config');
+                        if (res.ok) {
+                            const config = await res.json();
+                            if (config.publicKey) {
+                                publicKey = config.publicKey;
+                                assistantId = config.assistantId;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch VAPI config", e);
+                    }
+                }
+
+                // Debug logging (masked)
+                console.log("Initializing VAPI with Key:", publicKey ? `${publicKey.substring(0, 5)}...` : "MISSING");
+
+                if (!publicKey || publicKey === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84") {
                     toast({
                         title: "Configuration Error",
-                        description: "VAPI Public Key is missing or invalid. Please check your .env file for VITE_VAPI_PUBLIC_KEY.",
+                        description: "VAPI Public Key is missing. Please check your Railway variables (VAPI_PUBLIC_KEY).",
                         variant: "destructive"
                     });
                     return;

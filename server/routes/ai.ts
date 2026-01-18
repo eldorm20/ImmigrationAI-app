@@ -585,7 +585,7 @@ router.post(
     const citations = [
       {
         source: "ImmigrationAI Knowledge Base",
-        url: "https://immigration-ai.com/library",
+        url: "/dashboard/research",
         authority: "primary",
         relevance: 0.90,
         excerpt: "Verified information from our global immigration database and verified legal sources."

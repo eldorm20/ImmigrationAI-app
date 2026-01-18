@@ -141,11 +141,12 @@ router.get("/search", async (req, res) => {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
     }
 
-    const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
+    const apiKey = process.env.UK_GOV_API_KEY || "517d69a4-9dd3-4a9b-887c-9f431b7cb30f";
+    console.log(`[DEBUG] Company Search: API Key Present? ${!!apiKey}, Query: ${query}`);
 
     try {
         if (!apiKey || apiKey === "") {
-            // logger.warn("COMPANIES_HOUSE_API_KEY not set. Returning mock data.");
+            // logger.warn("UK_GOV_API_KEY not set. Returning mock data.");
             // Filter mock data
             const results = MOCK_COMPANIES.filter(c =>
                 c.title.toLowerCase().includes(query.toLowerCase()) ||

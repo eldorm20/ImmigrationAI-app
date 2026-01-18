@@ -53,7 +53,7 @@ router.post(
     try {
       paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
-        currency: "usd",
+        currency: "uzs",
         metadata: {
           userId,
           applicationId: applicationId || "general",
@@ -71,7 +71,7 @@ router.post(
         userId,
         applicationId: applicationId || null,
         amount: amount.toString(),
-        currency: "USD",
+        currency: "UZS",
         provider: "stripe",
         providerTransactionId: paymentIntent.id,
         status: "processing",
@@ -126,7 +126,7 @@ router.post(
         userId,
         applicationId: null,
         amount: tierCfg.monthlyPrice.toString(),
-        currency: "USD",
+        currency: "UZS",
         provider: "stripe",
         providerTransactionId: mockSessionId,
         status: "processing",
@@ -166,7 +166,7 @@ router.post(
         userId,
         applicationId: null,
         amount: tierCfg.monthlyPrice.toString(),
-        currency: "USD",
+        currency: "UZS",
         provider: "stripe",
         providerTransactionId: session.id,
         status: "processing",
