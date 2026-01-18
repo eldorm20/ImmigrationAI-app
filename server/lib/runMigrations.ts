@@ -407,6 +407,116 @@ export async function runMigrationsIfNeeded(): Promise<void> {
     } catch (checkErr) {
       logger.warn({ checkErr }, "Could not verify embedding column existence in research_articles table");
     }
+    // ==========================================
+    // MANUAL FIX FOR COMMUNITY & ADVANCED FEATURES
+    // (Bypassing flaky migration runner)
+    // ==========================================
+    try {
+      logger.info("Running manual schema updates for Community & Advanced Features...");
+
+      // 1. Community Tables
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS "community_posts" (
+          "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          "user_id" varchar(255) NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+          "category" varchar(50) DEFAULT 'general' NOT NULL,
+          "title" varchar(255) NOT NULL,
+          "content" text NOT NULL,
+          "images" jsonb,
+          "status" varchar(50) DEFAULT 'published' NOT NULL,
+          "likes" integer DEFAULT 0,
+          "views" integer DEFAULT 0,
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS "community_posts_user_id_idx" ON "community_posts" ("user_id")`);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS "community_comments" (
+          "id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          "post_id" varchar(255) NOT NULL REFERENCES "community_posts"("id") ON DELETE cascade,
+          "user_id" varchar(255) NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+          "parent_id" varchar(255),
+          "content" text NOT NULL,
+          "likes" integer DEFAULT 0,
+          "created_at" timestamp DEFAULT now() NOT NULL,
+          "updated_at" timestamp DEFAULT now() NOT NULL
+        );
+      `);
+
+      // 2. Smart Checklists (Advanced Features)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS smart_checklists (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            lawyer_id VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            visa_type VARCHAR(100),
+            is_ai_generated BOOLEAN DEFAULT FALSE,
+            status VARCHAR(50) DEFAULT 'active',
+            reminder_count INTEGER DEFAULT 0,
+            validation_rules JSONB,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS smart_checklist_items (
+            id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+            checklist_id VARCHAR NOT NULL REFERENCES smart_checklists(id) ON DELETE CASCADE,
+            title VARCHAR(255) NOT NULL,
+            category VARCHAR(100),
+            is_required BOOLEAN DEFAULT TRUE,
+            validation_rule TEXT,
+            status VARCHAR(50) DEFAULT 'pending',
+            document_url TEXT,
+            notes TEXT,
+            completed_at TIMESTAMP,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+
+      // 3. Deadlines Schema Update
+      // Ensure 'deadlines' table has new columns if it exists (it might have been created by older migrations)
+      // We wrap in try/catch in case table doesn't exist yet (though it should from basic migrations)
+      // Basic deadline table is essential, so create if missing too
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS deadlines (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title VARCHAR(255) NOT NULL,
+          due_date TIMESTAMP NOT NULL,
+          priority VARCHAR(50) DEFAULT 'medium',
+          status VARCHAR(50) DEFAULT 'active',
+          reminders_sent INTEGER DEFAULT 0,
+          last_reminder_at TIMESTAMP,
+          notes TEXT,
+          metadata JSONB,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      try {
+        await pool.query("ALTER TABLE deadlines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active'");
+        await pool.query("ALTER TABLE deadlines ADD COLUMN IF NOT EXISTS reminders_sent INTEGER DEFAULT 0");
+        await pool.query("ALTER TABLE deadlines ADD COLUMN IF NOT EXISTS last_reminder_at TIMESTAMP");
+        await pool.query("ALTER TABLE deadlines ADD COLUMN IF NOT EXISTS notes TEXT");
+        await pool.query("ALTER TABLE deadlines ADD COLUMN IF NOT EXISTS metadata JSONB");
+      } catch (colErr) {
+        logger.warn({ colErr }, "Could not update deadlines table schema manually");
+      }
+
+      logger.info("✓ Manual schema updates for Community & Advanced Features completed");
+
+    } catch (advErr) {
+      logger.error({ advErr }, "Failed to apply manual Community/Advanced schema updates");
+    }
+
   } catch (err) {
     logger.error(
       { err, stack: (err as any)?.stack },
