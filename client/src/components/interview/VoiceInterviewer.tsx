@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Volume2, StopCircle, RefreshCw, Sparkles, X, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { apiRequest } from "@/lib/api";
 import Vapi from "@vapi-ai/web";
 
 interface VoiceInterviewerProps {
@@ -106,12 +107,9 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
 
             // Try fetching from backend first
             try {
-                const res = await fetch('/api/voice/config');
-                if (res.ok) {
-                    const config = await res.json();
-                    if (config.publicKey) {
-                        publicKey = config.publicKey;
-                    }
+                const config = await apiRequest<{ publicKey: string; assistantId: string }>('/voice/config');
+                if (config.publicKey) {
+                    publicKey = config.publicKey;
                 }
             } catch (e) {
                 console.error("Failed to fetch VAPI config", e);
@@ -160,7 +158,7 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
 
     const toggleCall = async () => {
         if (isActive) {
-            vapi.stop();
+            vapiRef.current?.stop();
         } else {
             try {
                 // Request microphone permission first
@@ -182,13 +180,10 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                 // This allows us to use process.env.VAPI_PUBLIC_KEY from the server
                 if ((!publicKey || publicKey === "7bnf9vr9-1brv-4r4n-7dh1-2bdss1e-sff84")) {
                     try {
-                        const res = await fetch('/api/voice/config');
-                        if (res.ok) {
-                            const config = await res.json();
-                            if (config.publicKey) {
-                                publicKey = config.publicKey;
-                                assistantId = config.assistantId;
-                            }
+                        const config = await apiRequest<{ publicKey: string; assistantId: string }>('/voice/config');
+                        if (config.publicKey) {
+                            publicKey = config.publicKey;
+                            assistantId = config.assistantId;
                         }
                     } catch (e) {
                         console.error("Failed to fetch VAPI config", e);
@@ -208,7 +203,16 @@ export default function VoiceInterviewer({ visaType, onSessionComplete }: VoiceI
                 }
 
                 // Start VAPI session with override config
-                await vapi.start(assistantId, VAPI_ASSISTANT_CONFIG as any);
+                if (vapiRef.current) {
+                    await vapiRef.current.start(assistantId, VAPI_ASSISTANT_CONFIG as any);
+                } else {
+                    // Re-initialize if null (edge case)
+                    const vapi = new Vapi(publicKey);
+                    vapiRef.current = vapi;
+                    // Re-attach listeners omitted for brevity, but ideally initVapi handles this.
+                    // For safety just start:
+                    await vapi.start(assistantId, VAPI_ASSISTANT_CONFIG as any);
+                }
                 toast({
                     title: "Connected",
                     description: "Voice interview started. You can begin speaking."

@@ -66,7 +66,7 @@ export default function DeadlineWatchdog() {
     // Fetch clients for dropdown
     const { data: clientsData } = useQuery({
         queryKey: ['clients-for-deadline'],
-        queryFn: () => apiRequest<{ clients: any[] }>('/clients'),
+        queryFn: () => apiRequest<any[]>('/clients'),
     });
 
     // Create deadline mutation
@@ -118,7 +118,7 @@ export default function DeadlineWatchdog() {
     });
 
     const deadlines = deadlinesData?.deadlines || [];
-    const clients = clientsData?.clients || [];
+    const clients = Array.isArray(clientsData) ? clientsData : [];
 
     const filteredDeadlines = filterZone === 'all'
         ? deadlines

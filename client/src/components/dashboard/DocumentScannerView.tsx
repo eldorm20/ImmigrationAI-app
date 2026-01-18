@@ -91,7 +91,7 @@ export default function DocumentScannerView() {
             formData.append("image", selectedFile);
             formData.append("documentType", documentType);
 
-            const result = await apiRequest<any>("/api/vision/analyze", {
+            const result = await apiRequest<any>("/vision/analyze", {
                 method: "POST",
                 body: formData,
             });
