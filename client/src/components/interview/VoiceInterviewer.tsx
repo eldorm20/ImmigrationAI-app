@@ -21,7 +21,7 @@ const VAPI_ASSISTANT_CONFIG = {
         "provider": "vapi"
     },
     "model": {
-        "model": "gemini-3-flash-preview",
+        "model": "gemini-1.5-flash",
         "messages": [
             {
                 "role": "system",

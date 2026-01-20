@@ -44,6 +44,22 @@ export default function FormPreFill() {
         queryFn: () => apiRequest<any[]>('/clients'),
     });
 
+    // Generate mutation
+    const generateMutation = useMutation({
+        mutationFn: (data: { clientId: string; templateId: string }) =>
+            apiRequest<GeneratedForm>('/form-prefill/generate', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+        onSuccess: (data) => {
+            setGeneratedForm(data);
+            toast({ title: 'Form Generated', description: 'AI has pre-filled the form with available data.' });
+        },
+        onError: (err: any) => {
+            toast({ title: 'Error', description: err.message || 'Failed to generate form', variant: 'destructive' });
+        }
+    });
+
     // ...
 
     const templates = templatesData?.templates || [];
