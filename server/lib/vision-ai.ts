@@ -2,7 +2,7 @@ import { logger } from "./logger";
 import { getCachedDocumentAnalysis, cacheDocumentAnalysis } from "./cache";
 import crypto from "crypto";
 
-const OLLAMA_URL = process.env.OLLAMA_BASE_URL || "http://ollama:11434";
+const OLLAMA_URL = process.env.LOCAL_AI_URL || process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
 
 export interface DocumentAnalysisResult {
     success: boolean;
@@ -162,10 +162,16 @@ Return ONLY the raw JSON object.`
             source: "llava"
         };
     } catch (error: any) {
-        logger.error({ error: error.message }, "Document analysis failed");
+        logger.error({
+            error: error.message,
+            stack: error.stack,
+            cause: error.cause,
+            url: OLLAMA_URL
+        }, "Document analysis failed - Check Ollama connection");
+
         return {
             success: false,
-            error: error.message || "Failed to analyze document",
+            error: `Failed to analyze document: ${error.message}. Is Ollama running at ${OLLAMA_URL}?`,
         };
     }
 }

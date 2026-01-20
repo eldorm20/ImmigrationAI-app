@@ -43,7 +43,9 @@ export async function processReminders(): Promise<number> {
             ))
             .limit(50); // Process in batches
 
-        logger.info({ count: pendingReminders.length }, "Processing pending reminders");
+        if (pendingReminders.length > 0) {
+            logger.info({ count: pendingReminders.length }, "Processing pending reminders");
+        }
 
         for (const reminder of pendingReminders) {
             try {
@@ -78,7 +80,9 @@ export async function processReminders(): Promise<number> {
             }
         }
 
-        logger.info({ sentCount }, "Reminders processed");
+        if (sentCount > 0) {
+            logger.info({ sentCount }, "Reminders processed");
+        }
         return sentCount;
     } catch (err) {
         logger.error({ err }, "Failed to process reminders batch");
