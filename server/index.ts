@@ -172,6 +172,32 @@ app.get("/health", async (_req, res) => {
         } else {
           logger.error({ url: process.env.LOCAL_AI_URL, reason: aiProbe.reason }, "❌ Local AI provider (Ollama) NOT reachable - AI features will fail");
         }
+
+        // Also check for Vision Model if reachable
+        if (aiProbe.reachable) {
+          const visionModel = process.env.OLLAMA_VISION_MODEL || "llava:7b";
+          try {
+            const visionProbe = await probeOllamaEndpoint(process.env.LOCAL_AI_URL, visionModel, 5000);
+            if (visionProbe.hasModel === false || visionProbe.status === 404) {
+              logger.warn({ model: visionModel }, "⚠️ Vision model not found. Triggering automatic pull...");
+              const pullUrl = (process.env.LOCAL_AI_URL as string).replace(/\/+$/, "") + "/api/pull";
+              // Non-blocking pull for vision model (it's large)
+              fetch(pullUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: visionModel, stream: false })
+              }).then(r => {
+                if (r.ok) logger.info(`✅ Vision model (${visionModel}) pulled successfully`);
+                else logger.error(`❌ Vision model pull failed: ${r.status}`);
+              }).catch(e => logger.error({ err: e }, "❌ Vision model pull error"));
+            } else {
+              logger.info({ model: visionModel }, "✅ Vision model ready");
+            }
+          } catch (err) {
+            logger.warn({ err }, "Failed to probe vision model");
+          }
+        }
+
       } catch (err) {
         logger.error({ err }, "❌ Error probing local AI provider - AI features will fail");
       }

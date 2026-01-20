@@ -107,7 +107,7 @@ Return ONLY the raw JSON object.`
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                model: "llava:7b",
+                model: process.env.OLLAMA_VISION_MODEL || "llava:7b",
                 prompt: prompt,
                 images: [imageBase64],
                 stream: false,
@@ -205,7 +205,7 @@ export async function validateDocumentImage(imageBase64: string): Promise<boolea
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                model: "llava:7b",
+                model: process.env.OLLAMA_VISION_MODEL || "llava:7b",
                 prompt: "Is this a valid passport, visa, ID card, or official document? Answer with only 'yes' or 'no'.",
                 images: [imageBase64],
                 stream: false,
