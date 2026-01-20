@@ -120,6 +120,50 @@ export default function DocumentScannerView() {
         }
     };
 
+    const [showCreateClientModal, setShowCreateClientModal] = useState(false);
+    const [formData, setFormData] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+    const [isCreating, setIsCreating] = useState(false);
+
+    useEffect(() => {
+        if (extractedData?.fullName) {
+            const parts = extractedData.fullName.split(" ");
+            const firstName = parts[0] || "";
+            const lastName = parts.slice(1).join(" ") || "";
+            setFormData(prev => ({ ...prev, firstName, lastName }));
+        }
+    }, [extractedData]);
+
+    const handleCreateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreating(true);
+        try {
+            const client = await apiRequest<any>("/clients", {
+                method: "POST",
+                body: JSON.stringify({
+                    ...formData,
+                    metadata: {
+                        scannedDocument: extractedData
+                    }
+                })
+            });
+
+            toast({
+                title: "Client Created",
+                description: `${client.firstName} ${client.lastName} has been added.`
+            });
+            setShowCreateClientModal(false);
+            setLocation(`/clients/${client.id}`);
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Failed to create client",
+                variant: "destructive"
+            });
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
         toast({ title: "Copied to clipboard" });
@@ -348,12 +392,9 @@ export default function DocumentScannerView() {
                                             variant="primary"
                                             className="bg-emerald-600 hover:bg-emerald-500"
                                             icon={ChevronRight}
-                                            onClick={() => {
-                                                toast({ title: "Saved", description: "Document data saved to application." });
-                                                setLocation("/dashboard");
-                                            }}
+                                            onClick={() => setShowCreateClientModal(true)}
                                         >
-                                            Use Data
+                                            Create Client Profile
                                         </LiveButton>
                                     </div>
                                 </div>
@@ -372,6 +413,79 @@ export default function DocumentScannerView() {
                     )}
                 </AnimatePresence>
             </div>
+
+            <AnimatePresence>
+                {showCreateClientModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                        >
+                            <h3 className="text-xl font-bold text-white mb-4">Create Client Profile</h3>
+                            <form onSubmit={handleCreateClient} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-medium text-slate-400 mb-1 block">First Name</label>
+                                        <GlassInput
+                                            value={formData.firstName}
+                                            onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-slate-400 mb-1 block">Last Name</label>
+                                        <GlassInput
+                                            value={formData.lastName}
+                                            onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-medium text-slate-400 mb-1 block">Email Address</label>
+                                    <GlassInput
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                        required
+                                        placeholder="client@example.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-medium text-slate-400 mb-1 block">Phone (Optional)</label>
+                                    <GlassInput
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                        placeholder="+1 234 567 8900"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <LiveButton
+                                        type="button"
+                                        variant="ghost"
+                                        className="flex-1"
+                                        onClick={() => setShowCreateClientModal(false)}
+                                    >
+                                        Cancel
+                                    </LiveButton>
+                                    <LiveButton
+                                        type="submit"
+                                        variant="primary"
+                                        className="flex-1"
+                                        disabled={isCreating}
+                                    >
+                                        {isCreating ? "Creating..." : "Create Client"}
+                                    </LiveButton>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

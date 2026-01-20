@@ -59,7 +59,8 @@ export async function analyzeDocumentImage(
 - placeOfBirth: Place of birth.
 - documentType: Always return "passport".
 
-Return ONLY the raw JSON object. Do not include markdown formatting (like \`\`\`json). If a field is not visible, use null.`,
+Return ONLY the raw JSON object. Do not include markdown formatting (like \`\`\`json). If a field is not visible, use null.
+CRITICAL: Do not invent information. Do not use placeholder names like "John Doe", "Fazle Karim", or "Sample". If you cannot read the text clearly, return null for that field.`,
 
             visa: `You are a precise data extraction AI. Analyze this visa image and extract the following fields into a JSON object:
 - fullName: The full name of the visa holder.
